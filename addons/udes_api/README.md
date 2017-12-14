@@ -34,6 +34,8 @@ IMPORTANT - N.B. migrate code from the sg branch, as one of the fields is only i
     'u_allow_swapping_packages': boolean,
     'u_skip_allowed': boolean,
     'u_split_on_drop_off_picked': boolean,
+    'u_suggest_qty': boolean,
+    'u_over_receive': boolean,
     'u_target_storage_format': string}
   ]
 }
