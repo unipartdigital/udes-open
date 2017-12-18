@@ -6,32 +6,32 @@ The following models are used extensively throughout UDES, and it is important t
 
 Products are the actual items we want to handle. These can be car parts, mobile phones or plant pots.
 
-| Field Name  | Type | Description |
-| ----------- | ------------- | ---- |
-| id  | int  |  |
-| barcode | string | |
+| Field Name   | Type   | Description                                              |
+| ------------ | ------ | -------------------------------------------------------- |
+| id           | int    | |
+| barcode      | string | |
 | display_name | string | A formatted, user-friendly representation of the product |
-| name | string |  |
-| tracking | string | How the product is tracked in the system. This is used for serial numbers and lots. |
+| name         | string | |
+| tracking     | string | How the product is tracked in the system. This is used for serial numbers and lots. |
 
 ## Locations (model: stock.location)
 
 The warehouse is made up of various locations for storing stock. There are two main types of locations - stock, and non-stock locations. Stock typically represents all the warehouse storage of products that can be sent to customers. The other locations typically represent transition stages around receiving goods and sending goods out to customers.
 
-| Field Name  | Type | Description |
-| ----------- | ------------- | ---- |
-| id  | int  |  |
-| barcode | string | |
-| name | string |  |
-| u_blocked | boolean | Whether the location has been blocked. If it has been blocked, stock should not be moved to/from this location.|
-| u_blocked_reason | string | A descriptive reason why the location has been blocked. |
+| Field Name       | Type    | Description                                              |
+| ---------------- | ------- | -------------------------------------------------------- |
+| id               | int     | |
+| barcode          | string  | |
+| name             | string  | |
+| u_blocked        | boolean | Whether the location has been blocked. If it has been blocked, stock should not be moved to/from this location. |
+| u_blocked_reason | string  | A descriptive reason why the location has been blocked. |
 
 ## Quants (model: stock.quant)
 
 Physical instances of products at a location are modelled as quants. Short of "quantitis of stock", these are used to record stock levels are various parts of the warehouse. Using the analogy of object-orientated programming, products = classes, quants = objects.
 
-| Field Name  | Type | Description |
-| ----------- | ------------- | ---- |
+| Field Name  | Type          | Description |
+| ----------- | ------------- | ----------- |
 | id | int | |
 | package_id | stock.quant.package | (see representation of the packages below) |
 | product_id | product.product | (see representation of the products above) |
@@ -42,13 +42,53 @@ Physical instances of products at a location are modelled as quants. Short of "q
 
 Physical packages of products. They can be used to represent parcels sent to customers, a pallet of products sent from a supplier, a tote used to pick products so they can be sent, or any combination of the above.
 
-## Stock Pickings (model: stock.picking)
+
+| Field Name       | Type    | Description                                              |
+| ---------------- | ------- | -------------------------------------------------------- |
+| id               | int     | |
+| name             | string  | |
+
+## Stock Picking (model: stock.picking)
 
 This is essentially a collection of products that are to be moved from one location to another.
 
+| Field Name       | Type    | Description                                              |
+| ---------------- | ------- | -------------------------------------------------------- |
+| id               | int     | |
+| name             | string  | |
+| priority         | int | |
+| backorder_id     | int | If this shipment is split, this refers to the stock.picking that has already been processed. For example, if we are expecting 10 items in stock.picking 1, but only process 6 then try to validate the stock.picking, we will be asked to create a backorder of the remaining 4 in the picking (stock.picking.id = 1), the new picking (i.e. stock.picking.id = 2) with have backorder_id = 1, to refer to the previous 6 that were processed. |
+| priority_name    | string | Computed field, used by the API. |
+| origin           | string | Typically used as a text reference of where the stock.picking came from. During goods in, this is the ASN (advanced ship notice - the supplier's delivery reference) |
+| location_dest_id | int | ID of the stock.location where the stock needs to move to |
+| picking_type_id |  int | See below |
+
+
+## Picking Type (model: stock.picking.type)
+
+
+The type of stock.picking can is defined by this type. It can represent a goods in, a putaway, an internal transfer, a pick, a goods out, or any other collection of stock moves the warehouse operators want to model within UDES. 
+
+## Stock Move
+
+A move of an item of stock from one location to another.
+
+ "move_lines" [{stock.move},]:
+      picking.pack_operation_ids._list_data(
+          filters['stock_pack_operations'] if 'stock_pack_operations' in
+
+
+## Stock Move Line
 
 
 
+
+
+
+
+# API End Points
+
+## Stock Warehouse
 
 ```
 URI: /api/stock-warehouse
@@ -99,6 +139,8 @@ Expected output format:
   ]
 }
 ```
+
+## Stock Picking
 
 ```
 URI: /api/stock-picking
@@ -224,8 +266,8 @@ Params:
   quant_ids: [
     {
       id: int,
-      package_id: {id: int, name: string},
-      product_id: {...},
+      package_id: {stock.quant.package},
+      product_id: {product.product},
       quantity: float,
       reserved_quantity: float
     }] 
