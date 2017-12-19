@@ -86,7 +86,7 @@ A lot of custom UDES functionality is specfied at the picking type level. This i
 | u_over_receive            | boolean | Is the system able to receive more than is expected. |
 | u_target_storage_format   | string  | This defines how the stock is stored at the end of the stock.picking. |
 
-## Stock Move
+## Stock Move (model: stock.move)
 
 A move of an item of stock from one location to another.
 
@@ -101,7 +101,9 @@ A move of an item of stock from one location to another.
 | quantity_done | float | Quantity received so far |
 | move_lines_id | [{stock.move.line}] | The lines associated with this move. |
 
-## Stock Move Line
+## Stock Move Line (model: stock.move.line)
+
+A move of a specific, handleable item of stock - such as 5 phones, or 1 car door.
 
 | Field Name                | Type     | Description                                       |
 | ------------------------- | -------- | ------------------------------------------------- |
@@ -116,6 +118,8 @@ A move of an item of stock from one location to another.
 | write_date                | datetime | |
 
 ## Stock Warehouse
+
+Configuration information for the an entire warehouse.
 
 | Field Name                        | Type             | Description                    |
 | --------------------------------- | ---------------- | ------------------------------ |
@@ -134,7 +138,6 @@ A move of an item of stock from one location to another.
 | u_dangerous_location_id           | int              | |
 | u_package_barcode_regex           | string           | |
 | u_pallet_barcode_regex            | string           | |
-
 
 
 # API End Points
@@ -199,16 +202,14 @@ Search for pickings by various criteria and return an array of stock.picking obj
                         pickings of those ids will be returned.
 * @param (optional) bulky (Boolean): This is used in conjunction with the picking_priorities
                         parameter to return pickings that have bulky items
-* @param (NO LONGER USED - REMOVE) (optional)  use_list_data: Decides whether the _list_data function is used
-                        when returning data
-
-
+* @param (NO LONGER USED - REMOVE) (optional)  use_list_data: Decides whether the _list_data function is used when returning data
 
 Output format:
 
 
 ```javascript
 {
+```
 
 
 ```
@@ -217,6 +218,8 @@ HTTP Method: POST
 Old method: create_transfer/create_internal_transfer
 ```
 
+
+## Stock Location
 
 ```
 URI: /api/stock-location
@@ -239,6 +242,10 @@ Params:
       reserved_quantity: float
     }] 
 }
+
+
+## Packages
+
 ```
 URI: /api/stock-quant-package
 HTTP Method: GET
