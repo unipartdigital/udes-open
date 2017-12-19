@@ -44,6 +44,7 @@ PICKING_TYPE_OTHER_FIELDS = [
     'u_validate_real_time',
     'u_target_storage_format',
     'u_user_scans',
+    'u_enforce_location_dest_id',
 ]
 PICKING_TYPE_ALL_FIELDS = PICKING_TYPE_ID_FIELDS + PICKING_TYPE_OTHER_FIELDS
 

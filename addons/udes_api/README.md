@@ -87,6 +87,7 @@ A lot of custom UDES functionality is specfied at the picking type level. This i
 | u_target_storage_format   | string  | This defines how the stock is stored at the end of the stock.picking. |
 | u_user_scans              | string  | This defines what the user will scan. |
 | u_validate_real_time      | boolean | Do we validate move lines in real time |
+| u_enforce_location_dest_id| boolean | If the destination location on validation has to excatly match with the location_dest_id of the move lines |
 
   
 ## Stock Move
