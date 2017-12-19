@@ -89,20 +89,58 @@ A lot of custom UDES functionality is specfied at the picking type level. This i
 | u_validate_real_time      | boolean | Do we validate move lines in real time |
 | u_enforce_location_dest_id| boolean | If the destination location on validation has to excatly match with the location_dest_id of the move lines |
 
-  
-## Stock Move
+## Stock Move (model: stock.move)
 
 A move of an item of stock from one location to another.
 
- "move_lines" [{stock.move},]:
-      picking.pack_operation_ids._list_data(
-          filters['stock_pack_operations'] if 'stock_pack_operations' in
+| Field Name                | Type    | Description                                       |
+| ------------------------- | ------- | ------------------------------------------------- |
+| id | int | |
+| location_dest_id | {id: stock.location.id, name: stock.location.name, stock.location.barcode} | Cut down location summary, for the destination location |
+| location_id | As above | Source location |
+| ordered_qty | float | Ordered quantity |
+| product_id | {product.product} | Product summary |
+| product_qty | float | Real quantity expected |
+| quantity_done | float | Quantity received so far |
+| move_lines_id | [{stock.move.line}] | The lines associated with this move. |
 
+## Stock Move Line (model: stock.move.line)
 
-## Stock Move Line
+A move of a specific, handleable item of stock - such as 5 phones, or 1 car door.
 
+| Field Name                | Type     | Description                                       |
+| ------------------------- | -------- | ------------------------------------------------- |
+| id                        | int      | |
+| create_date               | datetime | |
+| location_dest_id          | {id: stock.location.id, name: stock.location.name, stock.location.barcode} | Cut down location summary, for the destination location |
+| location_id               | As above | Source location |
+| lot_id | ??? | TBC |
+| package_id                | {stock.quant.package} | Source package |
+| qty_done                  | float | |
+| result_package_id         | {stock.quant.package} | Destination package
+| write_date                | datetime | |
 
 ## Stock Warehouse
+
+Configuration information for the an entire warehouse.
+
+| Field Name                        | Type             | Description                    |
+| --------------------------------- | ---------------- | ------------------------------ |
+| u_handle_damages_picking_type_ids | [int]            | |
+| u_print_labels_picking_type_ids   | [int]            | |
+| in_type_id                        | int              | |
+| out_type_id                       | int              | |
+| pack_type_id                      | int              | |
+| pick_type_id                      | int              | |
+| int_type_id                       | int              | |
+| u_missing_stock_location_id       | int              | |
+| u_damaged_location_id             | int              | |
+| u_temp_dangerous_location_id      | int              | |
+| u_probres_location_id             | int              | |
+| u_incomplete_location_id          | int              | |
+| u_dangerous_location_id           | int              | |
+| u_package_barcode_regex           | string           | |
+| u_pallet_barcode_regex            | string           | |
 
 
 # API End Points
@@ -124,21 +162,7 @@ Expected output format:
 
 ```javascript
 {
-  'u_handle_damages_picking_type_ids': [int],
-  'u_print_labels_picking_type_ids': [int],
-  'in_type_id': int,
-  'out_type_id': int,
-  'pack_type_id': int,
-  'pick_type_id': int,
-  'int_type_id': int,
-  'u_missing_stock_location_id': int,
-  'u_damaged_location_id': int,
-  'u_temp_dangerous_location_id': int,
-  'u_probres_location_id': int,
-  'u_incomplete_location_id': int,
-  'u_dangerous_location_id',
-  'u_package_barcode_regex:' string,
-  'u_pallet_barcode_regex': string,
+  'stock_warehouse': {stock.warehouse},
   'picking_types': [{picking_type}]
 }
 ```
@@ -181,70 +205,14 @@ Search for pickings by various criteria and return an array of stock.picking obj
                         pickings of those ids will be returned.
 * @param (optional) bulky (Boolean): This is used in conjunction with the picking_priorities
                         parameter to return pickings that have bulky items
-* @param (NO LONGER USED - REMOVE) (optional)  use_list_data: Decides whether the _list_data function is used
-                        when returning data
-
-
+* @param (NO LONGER USED - REMOVE) (optional)  use_list_data: Decides whether the _list_data function is used when returning data
 
 Output format:
 
 
 ```javascript
 {
-  "id": int,
-  "name": string,
-  "priority": int,
-  "backorder_id": int,
-  "priority_name": string,
-  "origin": string,
-  "location_dest_id": int,
-  "picking_type_id": int,
-  "move_lines" [{},]:
-      picking.pack_operation_ids._list_data(
-          filters['stock_pack_operations'] if 'stock_pack_operations' in
-
-
-location_dest_id???
-location_id
-
-
-move_lines_ids: [{}]
-lot_id, lot_name
-
-
-"id", "name", "date", "company_id", "scheduled_date", "is_locked", "picking_type_id", "move_type", "printed", "priority", "partner_id", "location_id", "location_dest_id", "owner_id", "create_uid", "write_uid", "create_date", "write_date",
-
-
-
-
-
-INSERT INTO "stock_move" ("id", "date_expected", "date", "company_id", "procure_method", "scrapped", "picking_type_id", "product_uom", "product_id", "sequence", "state", "location_dest_id", "priority", "group_id", "product_uom_qty", "ordered_qty", "additional", "location_id", "name", "picking_id", "propagate", "create_uid", "write_uid", "create_date", "write_date") VALUES(nextval('stock_move_id_seq'), '2017-12-12 10:17:24', '2017-12-12 10:17:48', 1, 'make_to_stock', false, 5, 1, 30, 10, 'draft', 14, '1', NULL, '4.000', '4.000', false, 8, '[MBi9] Motherboard I9P57', 69, true, 1, 1, (now() at time zone 'UTC'), (now() at time zone 'UTC')) RETURNING id
-
-INSERT INTO "stock_move" ("id", "date_expected", "date", "company_id", "procure_method", "scrapped", "picking_type_id", "product_uom", "product_id", "sequence", "state", "location_dest_id", "priority", "group_id", "product_uom_qty", "ordered_qty", "additional", "location_id", "name", "picking_id", "propagate", "create_uid", "write_uid", "create_date", "write_date") VALUES(nextval('stock_move_id_seq'), '2017-12-12 10:17:31', '2017-12-12 10:17:48', 1, 'make_to_stock', false, 5, 1, 28, 10, 'draft', 14, '1', NULL, '4.000', '4.000', false, 8, '[C-Case] Computer Case', 69, true, 1, 1, (now() at time zone 'UTC'), (now() at time zone 'UTC')) RETURNING id
-
-UPDATE "stock_picking" SET "activity_date_deadline"=NULL,"write_uid"=1,"write_date"=(now() at time zone 'UTC') WHERE id IN (69)
-
-UPDATE "stock_picking" SET "priority"='1',"write_uid"=1,"write_date"=(now() at time zone 'UTC') WHERE id IN (69)
-
-UPDATE "stock_picking" SET "scheduled_date"='2017-12-12 10:17:24',"write_uid"=1,"write_date"=(now() at time zone 'UTC') WHERE id IN (69)
-
-UPDATE "stock_picking" SET "group_id"=NULL,"write_uid"=1,"write_date"=(now() at time zone 'UTC') WHERE id IN (69)
-
-UPDATE "stock_move" SET "reference"='WH/IN/00030',"write_uid"=1,"write_date"=(now() at time zone 'UTC') WHERE id IN (115, 116)
-
-UPDATE "stock_picking" SET "state"='draft',"write_uid"=1,"write_date"=(now() at time zone 'UTC') WHERE id IN (69)
-
-UPDATE "stock_move" SET "product_qty"=4.0,"write_uid"=1,"write_date"=(now() at time zone 'UTC') WHERE id IN (115, 116)
-
-UPDATE "stock_move" SET "scrapped"=false,"write_uid"=1,"write_date"=(now() at time zone 'UTC') WHERE id IN (115, 116)
-
-UPDATE "stock_move" SET "date_expected"='2017-12-12 10:17:24',"write_uid"=1,"write_date"=(now() at time zone 'UTC') WHERE id IN (115, 116)
-
-UPDATE "stock_move" SET "priority"='1',"write_uid"=1,"write_date"=(now() at time zone 'UTC') WHERE id IN (115, 116)
-
-
-
-
+```
 
 
 ```
@@ -253,6 +221,8 @@ HTTP Method: POST
 Old method: create_transfer/create_internal_transfer
 ```
 
+
+## Stock Location
 
 ```
 URI: /api/stock-location
@@ -275,6 +245,10 @@ Params:
       reserved_quantity: float
     }] 
 }
+
+
+## Packages
+
 ```
 URI: /api/stock-quant-package
 HTTP Method: GET
