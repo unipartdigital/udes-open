@@ -50,18 +50,17 @@ PICKING_TYPE_ALL_FIELDS = PICKING_TYPE_ID_FIELDS + PICKING_TYPE_OTHER_FIELDS
 
 class WarehouseStock(UdesApi):
 
-    #@http.route('/api/stock-warehouse/', type='json', methods=['GET'], auth='user')
-    @http.route('/api/stock-warehouse/', type='json', auth='user')
+    @http.route('/api/stock-warehouse/', type='json', methods=['GET'], auth='user')
     def read_stock_warehouse_config(self):
         """
         Read the stock_warehouse records on the endpoint /api/stock-warhouse/
         :return: the main warehouse configuration + stock picking types values in a json format
         """
-        Warehouse = request.env['stock.warehouse']
+        Users = request.env['res.users']
         PickingType = request.env['stock.picking.type']
 
-        # get the warehouse
-        warehouse = Warehouse.get_warehouse()
+        # get the user's warehouse
+        warehouse = Users.get_user_warehouse()
         # read warehouse data
         warehouse_config_dict = warehouse.read(fields=WAREHOUSE_ALL_FIELDS)[0]
         # transform id fields into ids instead of id+name
