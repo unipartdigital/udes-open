@@ -103,19 +103,38 @@ A move of an item of stock from one location to another.
 
 ## Stock Move Line
 
-| Field Name                | Type    | Description                                       |
-| ------------------------- | ------- | ------------------------------------------------- |
-| id | int | |
-| create_date | datetime | |
-| location_dest_id | {id: stock.location.id, name: stock.location.name, stock.location.barcode} | Cut down location summary, for the destination location |
-| location_id | As above | Source location |
+| Field Name                | Type     | Description                                       |
+| ------------------------- | -------- | ------------------------------------------------- |
+| id                        | int      | |
+| create_date               | datetime | |
+| location_dest_id          | {id: stock.location.id, name: stock.location.name, stock.location.barcode} | Cut down location summary, for the destination location |
+| location_id               | As above | Source location |
 | lot_id | ??? | TBC |
-| package_id | {stock.quant.package} | Source package |
-| qty_done | float | |
-| result_package_id | {stock.quant.package} | Destination package
-| write_date | datetime | |
+| package_id                | {stock.quant.package} | Source package |
+| qty_done                  | float | |
+| result_package_id         | {stock.quant.package} | Destination package
+| write_date                | datetime | |
 
 ## Stock Warehouse
+
+| Field Name                        | Type             | Description                    |
+| --------------------------------- | ---------------- | ------------------------------ |
+| u_handle_damages_picking_type_ids | [int]            | |
+| u_print_labels_picking_type_ids   | [int]            | |
+| in_type_id                        | int              | |
+| out_type_id                       | int              | |
+| pack_type_id                      | int              | |
+| pick_type_id                      | int              | |
+| int_type_id                       | int              | |
+| u_missing_stock_location_id       | int              | |
+| u_damaged_location_id             | int              | |
+| u_temp_dangerous_location_id      | int              | |
+| u_probres_location_id             | int              | |
+| u_incomplete_location_id          | int              | |
+| u_dangerous_location_id           | int              | |
+| u_package_barcode_regex           | string           | |
+| u_pallet_barcode_regex            | string           | |
+
 
 
 # API End Points
@@ -137,21 +156,7 @@ Expected output format:
 
 ```javascript
 {
-  'u_handle_damages_picking_type_ids': [int],
-  'u_print_labels_picking_type_ids': [int],
-  'in_type_id': int,
-  'out_type_id': int,
-  'pack_type_id': int,
-  'pick_type_id': int,
-  'int_type_id': int,
-  'u_missing_stock_location_id': int,
-  'u_damaged_location_id': int,
-  'u_temp_dangerous_location_id': int,
-  'u_probres_location_id': int,
-  'u_incomplete_location_id': int,
-  'u_dangerous_location_id',
-  'u_package_barcode_regex:' string,
-  'u_pallet_barcode_regex': string,
+  'stock_warehouse': {stock.warehouse},
   'picking_types': [{picking_type}]
 }
 ```
