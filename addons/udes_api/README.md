@@ -1,6 +1,6 @@
 # Core Data Models
 
-The following models are used extensively throughout UDES, and it is important to understand how they all fit together before embarking on an UDES development work.
+The following models are used extensively throughout UDES, and it is important to understand how they all fit together before embarking on any UDES development work.
 
 ## Products (model: product.product)
 
@@ -63,12 +63,30 @@ This is essentially a collection of products that are to be moved from one locat
 | location_dest_id | int | ID of the stock.location where the stock needs to move to |
 | picking_type_id |  int | See below |
 
-
 ## Picking Type (model: stock.picking.type)
 
+The type of stock.picking can is defined by this type. It can represent a goods in, a putaway, an internal transfer, a pick, a goods out, or any other collection of stock moves the warehouse operators want to model within UDES.
 
-The type of stock.picking can is defined by this type. It can represent a goods in, a putaway, an internal transfer, a pick, a goods out, or any other collection of stock moves the warehouse operators want to model within UDES. 
+A lot of custom UDES functionality is specfied at the picking type level. This is where the stock storage format is specified, so the system knows how to store stock (i.e. as just products, in packages or pallets).
 
+| Field Name                | Type    | Description                                       |
+| ------------------------- | ------- | ------------------------------------------------- |
+| id                        | int     | |
+| code                      | string  | |
+| count_picking_ready       | int     | |
+| default_location_dest_id  | int     | |
+| default_location_src_id   | int     | |
+| display_name              | string  | |
+| name                      | string  | |
+| sequence                  | int     | Used for ordering picking types in a display. |
+| u_allow_swapping_packages | boolean | During a specified pick, this field determines whether we can we swap one package for another if they contain exactly the same. |
+| u_skip_allowed            | boolean | Is the user allowed to skip to the next item to pick? |
+| u_split_on_drop_off       | boolean | |
+| u_suggest_qty             | boolean | Do we display the suggested quantity, or get the user to enter it without any vision of what is expected. When we suggest it, the risk is that users will be automatically confirming it without a thorough check. |
+| u_over_receive            | boolean | Is the system able to receive more than is expected. |
+| u_target_storage_format   | string  | This defines how the stock is stored at the end of the stock.picking. |
+
+  
 ## Stock Move
 
 A move of an item of stock from one location to another.
@@ -81,9 +99,7 @@ A move of an item of stock from one location to another.
 ## Stock Move Line
 
 
-
-
-
+## Stock Warehouse
 
 
 # API End Points
@@ -120,23 +136,7 @@ Expected output format:
   'u_dangerous_location_id',
   'u_package_barcode_regex:' string,
   'u_pallet_barcode_regex': string,
-  'picking_types': [{
-    'id': int,
-    'code': string,
-    'count_picking_backorders': int,
-    'count_picking_ready': int,
-    'default_location_dest_id': int,
-    'default_location_src_id': int,
-    'display_name': string,
-    'name': string, 
-    'sequence': int,
-    'u_allow_swapping_packages': boolean,
-    'u_skip_allowed': boolean,
-    'u_split_on_drop_off_picked': boolean,
-    'u_suggest_qty': boolean,
-    'u_over_receive': boolean,
-    'u_target_storage_format': string}
-  ]
+  'picking_types': [{picking_type}]
 }
 ```
 
