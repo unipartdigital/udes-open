@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from odoo import api, models, fields, _
-from odoo.exceptions import ValidationError
+from odoo import models, fields
 
 class StockWarehouse(models.Model):
     _inherit = 'stock.warehouse'
@@ -62,8 +61,3 @@ class StockWarehouse(models.Model):
     )
     u_pallet_barcode_regex = fields.Char('Pallet Barcode Format', default='^PAL(\\d)+$')
     u_package_barcode_regex = fields.Char('Package Barcode Format', default='^PACK(\\d)+$')
-
-    def get_warehouse(self):
-        #TODO: get the warehouse related to the user
-        return self.env.ref('stock.warehouse0')
-
