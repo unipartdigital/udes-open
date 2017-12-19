@@ -62,17 +62,6 @@ class StockWarehouse(models.Model):
     )
     u_pallet_barcode_regex = fields.Char('Pallet Barcode Format', default='^PAL(\\d)+$')
     u_package_barcode_regex = fields.Char('Package Barcode Format', default='^PACK(\\d)+$')
-    u_pi_count_move_picking_type_id = fields.Many2one(
-        comodel_name='stock.picking.type',
-        string='PI Count Picking Type',
-        help="Picking type used to create PI Count move pickings."
-    )
-    u_stock_investigation_picking_type_id = fields.Many2one(
-        comodel_name='stock.picking.type',
-        string='Stock Investigation Picking Type',
-        help="Picking type used to create stock investigation pickings."
-    )
-
 
     def get_warehouse(self):
         #TODO: get the warehouse related to the user

@@ -33,8 +33,6 @@
                             <field name="u_dangerous_location_id" />
                             <field name="u_pallet_barcode_regex" />
                             <field name="u_package_barcode_regex" />
-                            <field name="u_pi_count_move_picking_type_id" />
-                            <field name="u_stock_investigation_picking_type_id" />
                         </group>
                     </page>
 
