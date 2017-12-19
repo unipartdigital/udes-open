@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_picking_type_form_inherit" model="ir.ui.view">
+        <field name="name">stock.picking.type.form.inherit</field>
+        <field name="model">stock.picking.type</field>
+        <field name="inherit_id" ref="stock.view_picking_type_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Hide misleadingly named "Allow moving packs" field -->
+            <xpath expr="//field[@name='show_entire_packs']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <!-- Add udes fields -->
+            <xpath expr="//form/sheet/group[last()]" position="after">
+                <group string="UDES Config" groups='base.group_no_one'>
+                    <field name="u_target_storage_format" />
+                    <field name="u_user_scans" />
+                    <field name="u_allow_swapping_packages" />
+                    <field name="u_skip_allowed" />
+                    <field name="u_split_on_drop_off_picked" />
+                    <field name="u_suggest_qty" />
+                    <field name="u_over_receive" />
+                    <field name="u_enforce_location_dest_id" />
+                    <field name="u_validate_real_time" />
+                </group>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>
