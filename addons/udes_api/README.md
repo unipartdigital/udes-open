@@ -85,6 +85,8 @@ A lot of custom UDES functionality is specfied at the picking type level. This i
 | u_suggest_qty             | boolean | Do we display the suggested quantity, or get the user to enter it without any vision of what is expected. When we suggest it, the risk is that users will be automatically confirming it without a thorough check. |
 | u_over_receive            | boolean | Is the system able to receive more than is expected. |
 | u_target_storage_format   | string  | This defines how the stock is stored at the end of the stock.picking. |
+| u_user_scans              | string  | This defines what the user will scan. |
+| u_validate_real_time      | boolean | Do we validate move lines in real time |
 
   
 ## Stock Move

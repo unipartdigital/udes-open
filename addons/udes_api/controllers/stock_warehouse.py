@@ -4,13 +4,6 @@ from odoo import http
 from odoo.http import request
 from .main import UdesApi
 
-def transform_id_fields(input_dict, fields):
-    for field in fields:
-        if field in input_dict and input_dict[field]:
-            input_dict[field]=input_dict[field][0]
-
-    return input_dict
-
 WAREHOUSE_ID_FILEDS = [
     'in_type_id',
     'out_type_id',
@@ -39,7 +32,6 @@ PICKING_TYPE_ID_FIELDS = [
 PICKING_TYPE_OTHER_FIELDS = [
     'id',
     'code',
-    'count_picking_backorders',
     'count_picking_ready',
     'display_name',
     'name', 
