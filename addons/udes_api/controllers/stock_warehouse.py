@@ -23,8 +23,6 @@ WAREHOUSE_ID_FILEDS = [
     'u_probres_location_id',
     'u_incomplete_location_id',
     'u_dangerous_location_id',
-    'u_pi_count_move_picking_type_id',
-    'u_stock_investigation_picking_type_id',
 ]
 WAREHOUSE_OTHER_FILEDS = [
     'u_handle_damages_picking_type_ids',

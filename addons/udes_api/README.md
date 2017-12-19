@@ -128,8 +128,6 @@ Expected output format:
   'pack_type_id': int,
   'pick_type_id': int,
   'int_type_id': int,
-  'u_pi_count_move_picking_type_id': int,
-  'u_stock_investigation_picking_type_id': int,
   'u_missing_stock_location_id': int,
   'u_damaged_location_id': int,
   'u_temp_dangerous_location_id': int,
