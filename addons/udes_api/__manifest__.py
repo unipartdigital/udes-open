@@ -19,6 +19,7 @@
     'depends': [
         'stock',
         'warehouse_config',
+        'blocked_locations',
     ],
 
     # always loaded
