@@ -24,11 +24,11 @@ class StockMoveLine(models.Model):
 
         return {"id": self.id,
                 "create_date": self.create_date,
-                "location_id": self.location_id.get_info(),
-                "location_dest_id": self.location_dest_id.get_info(),
+                "location_id": self.location_id.get_info()[0],
+                "location_dest_id": self.location_dest_id.get_info()[0],
                 #"lot_id": self.lot_id.id,
-                "package_id": self.package_id.get_info(),
-                "result_package_id": self.result_package_id.get_info(),
+                "package_id": self.package_id.get_info()[0],
+                "result_package_id": self.result_package_id.get_info()[0],
                 "qty_done": self.qty_done,
                 "write_date": self.write_date,
                }

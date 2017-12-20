@@ -21,13 +21,13 @@ class StockMove(models.Model):
         self.ensure_one()
 
         return {"id": self.id,
-                "location_id": self.location_id.get_info(),
-                "location_dest_id": self.location_dest_id.get_info(),
+                "location_id": self.location_id.get_info()[0],
+                "location_dest_id": self.location_dest_id.get_info()[0],
                 "ordered_qty": self.ordered_qty,
                 "product_qty": self.product_qty,
                 "quantity_done": self.quantity_done,
-                "product_id": self.product_id.get_info(),
-                "moves_line_ids": self.move_line_ids.get_info()
+                "product_id": self.product_id.get_info()[0],
+                "moves_line_ids": self.move_line_ids.get_info(),
                }
 
     @api.multi

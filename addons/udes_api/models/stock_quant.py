@@ -19,8 +19,8 @@ class StockQuant(models.Model):
         self.ensure_one()
 
         info = {"id": self.id,
-                "package_id": self.package_id.get_info(),
-                "product_id": self.product_id.get_info(),
+                "package_id": self.package_id.get_info()[0],
+                "product_id": self.product_id.get_info()[0],
                 "quantity": self.quantity,
                 "reserved_quantity": self.reserved_quantity,
                }
