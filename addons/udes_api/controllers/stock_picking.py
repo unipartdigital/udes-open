@@ -14,3 +14,12 @@ class Picking(UdesApi):
         Picking = request.env['stock.picking']
         pickings = Picking.get_pickings(**kwargs)
         return pickings.get_info()
+
+
+    @http.route('/api/stock-picking/', type='json', methods=['POST'], auth='user')
+    def create_picking(self, **kwargs):
+        """ Old create_internal_transfer
+        """
+        Picking = request.env['stock.picking']
+        picking = Picking.create_picking(**kwargs)
+        return picking.get_info()[0]
