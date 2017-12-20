@@ -39,7 +39,7 @@ class StockPicking(models.Model):
             states = ['draft', 'cancel', 'waiting',
                       'confirmed', 'assigned', 'done']
         if self:
-            pickings = self
+            domain = [('id', 'in', self.mapped('id'))]
         elif origin:
             domain = [('origin', '=', origin)]
         elif backorder_id:
