@@ -190,10 +190,11 @@ Search for pickings by various criteria and return an array of stock.picking obj
                        If False, only pack operations that are for the pallet
                        identified by param pallet (and it's sub-packages) are
                        included.
-* (PLEASE UPDATE WITH ACCEPTABLE OPTIONS FOR STATES) @param states: A List of strings that are states for pickings.
+* @param states: A List of strings that are states for pickings.
                        If present only pickings in the states present in the
                        list are returned.
-                       Defaults to all
+                       Defaults to all, possible values: 'draft', 'cancel', 'waiting', 'confirmed', 'assigned', 'done'
+                      
 * @param (optional) result_package_id: If an id is supplied all pickings that are
                         registered to this package id will be returned.
                         This can also be used in conjunction with the states
