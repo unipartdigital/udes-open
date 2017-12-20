@@ -8,17 +8,17 @@ class StockMoveLine(models.Model):
 
     @api.multi
     def _prepare_info(self):
-        """ TODO: add docstring
-
-            id  int     
-            create_date     datetime    
-            location_dest_id    {id: stock.location.id, name: stock.location.name, stock.location.barcode}  Cut down location summary, for the destination location
-            location_id     As above    Source location
-            lot_id  ???     TBC
-            package_id  {stock.quant.package}   Source package
-            qty_done    float   
-            result_package_id   {stock.quant.package}   Destination package
-            write_date  datetime    
+        """
+            Prepares the following info of the move line self:
+            - id: int
+            - create_date: datetime
+            - location_dest_id: {stock.lcation}
+            - location_id: {stock.lcation}
+            - lot_id: TBC
+            - package_id: {stock.quant.package}
+            - qty_done: float
+            - result_package_id: {stock.quant.package}
+            - write_date: datetime
         """
         self.ensure_one()
 
@@ -35,7 +35,7 @@ class StockMoveLine(models.Model):
 
     @api.multi
     def get_info(self):
-        """ TODO: add docstring
+        """ Return a list with the information of each move line in self.
         """
         res = []
         for line in self:

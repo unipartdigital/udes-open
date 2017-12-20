@@ -8,14 +8,13 @@ class StockQuantPackage(models.Model):
 
     @api.multi
     def _prepare_info(self, extended=False):
-        """ TODO: add docstring
-
-            id  int     
-            name    string  
+        """
+            Prepares the following info of the quant in self:
+            - id: int
+            - name: string
 
             When extended is True also return:
-
-            quant_ids   [{stock.quants]}    A list of all the quants of the given package.
+            - quant_ids: [{stock.quants}]
         """
         self.ensure_one()
 
@@ -30,7 +29,7 @@ class StockQuantPackage(models.Model):
 
     @api.multi
     def get_info(self, extended=False):
-        """ TODO: add docstring
+        """ Return a list with the information of each package in self.
         """
         res = []
         for pack in self:

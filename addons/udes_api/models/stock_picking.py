@@ -8,7 +8,6 @@ from odoo.exceptions import ValidationError
 class StockPicking(models.Model):
     _inherit = "stock.picking"
 
-
     @api.multi 
     def get_pickings(self,
                      origin=None,
@@ -23,7 +22,61 @@ class StockPicking(models.Model):
                      picking_ids=None,
                      bulky=None):
 
-        """ TODO: add docstring
+        """ Search for pickings by various criteria
+
+            @param (optional) origin
+                Search for stock.picking records based on the origin
+                field. Needs to be a complete match.
+
+            @param (optional) package_barcode
+                Search of stock.pickings associated with a specific
+                package_barcode (exact match).
+
+            @param (optional) product_id
+                If it is set then location_id must also be set and stock.pickings
+                are found using both of those values (states is optional).
+
+            @param (optional) location_id
+                If it is set then only internal transfers acting on that
+                location are considered. In all cases, if states is set
+                then only pickings in those states are considered.
+
+            @param (optional) backorder_id
+                Id of the backorder picking. If present, pickings are found
+                by backorder_id and states.
+
+            (IGNORE FOR NOW) @param (optional) allops: Boolean.
+                If True, all pack operations are included. If False, only
+                pack operations that are for the pallet identified by param
+                pallet (and it's sub-packages) are included.
+                Defaults to True.
+
+            @param (optional) states
+                A List of strings that are states for pickings. If present
+                only pickings in the states present in the list are
+                returned.
+                Defaults to all, possible values:
+                'draft', 'cancel', 'waiting', 'confirmed', 'assigned', 'done'
+
+            @param (optional) result_package_id
+                If an id is supplied all pickings that are registered to
+                this package id will be returned. This can also be used
+                in conjunction with the states parameter
+
+            @param (optional) picking_priorities
+                When supplied all pickings of set priorities and states
+                will be searched and returned
+
+            @param (optional) picking_ids
+                When supplied pickings of the supplied picking ids will
+                be searched and returned. If used in conjunction with
+                priorities then only those pickings of those ids will be
+                returned.
+
+            @param (optional) bulky: Boolean
+                This is used in conjunction with the picking_priorities
+                parameter to return pickings that have bulky items
+
             TODO: bulky
             TODO: handle move lines
         """
@@ -31,8 +84,6 @@ class StockPicking(models.Model):
         Package = self.env['stock.quant.package']
         Users = self.env['res.users']
 
-        pickings = Picking.browse()
-        domain = []
         order = None
 
         if states is None:
@@ -74,7 +125,7 @@ class StockPicking(models.Model):
             order='priority desc, scheduled_date, id'
             # TODO: add bulky field
             #if bulky is not None:
-            #    pickings = pickings.filtered(lambda p: p.u_contains_bulky == bulky)
+            #    domain.append(('u_contains_bulky', '=', bulky))
         elif picking_ids:
             domain = [('id', 'in', picking_ids)]
         elif location_id:
@@ -89,24 +140,30 @@ class StockPicking(models.Model):
         # add the states to the domain
         domain.append(('state', 'in', states))
 
-        if domain:
-            pickings = Picking.search(domain, order=order)
+        pickings = Picking.search(domain, order=order)
 
         return pickings
 
     @api.multi
-    def _prepare_info(self, priorities):
-        """ TODO: add docstring
-        id  int     
-        name    string  
-        priority    int     
-        backorder_id    int     If this shipment is split, this refers to the stock.picking that has already been processed. For example, if we are expecting 10 items in stock.picking 1, but only process 6 then try to validate the stock.picking, we will be asked to create a backorder of the remaining 4 in the picking (stock.picking.id = 1), the new picking (i.e. stock.picking.id = 2) with have backorder_id = 1, to refer to the previous 6 that were processed.
-        priority_name   string  Computed field, used by the API.
-        origin  string  Typically used as a text reference of where the stock.picking came from. During goods in, this is the ASN (advanced ship notice - the supplier's delivery reference)
-        location_dest_id    int     ID of the stock.location where the stock needs to move to
-        picking_type_id     int     See below
+    def _prepare_info(self, priorities=None):
+        """
+            Prepares the following info of the picking in self:
+            - id: int
+            - name: string
+            - priority: int
+            - backorder_id: int
+            - priority_name: string
+            - origin: string
+            - location_dest_id: int
+            - picking_type_id: int
+            - move_lines: [{stock.move}]
+
+            @param (optional) priorities
+                Dictionary of priority_id:priority_name
         """
         self.ensure_one()
+        if not priorities:
+            priorities = OrderedDict(self._fields['priority'].selection)
         priority_name = priorities[self.priority]
 
         return {"id": self.id,
@@ -122,8 +179,10 @@ class StockPicking(models.Model):
 
     @api.multi
     def get_info(self):
-        """ TODO: add docstring
+        """ Return a list with the information of each picking in self.
         """
+        # create a dict of priority_id:priority_name to avoid
+        # to do it for each picking
         priorities = OrderedDict(self._fields['priority'].selection)
         res = []
         for picking in self:

@@ -8,15 +8,16 @@ class StockMove(models.Model):
 
     @api.multi
     def _prepare_info(self):
-        """ TODO: add docstring
-
-            location_dest_id    {id: stock.location.id, name: stock.location.name, stock.location.barcode}  Cut down location summary, for the destination location
-            location_id     As above    Source location
-            ordered_qty     float   Ordered quantity
-            product_id  {product.product}   Product summary
-            product_qty     float   Real quantity expected
-            quantity_done   float   Quantity received so far
-            move_line_ids   [{stock.move.line}]     The lines associated with this move.
+        """
+            Prepares the following info of the move in self:
+            - id: int
+            - location_dest_id:  {stock.location}
+            - location_id: {stock.location}
+            - ordered_qty: float
+            - product_id: {product.product}
+            - product_qty: float
+            - quantity_done: float
+            - move_line_ids: [{stock.move.line}]
         """
         self.ensure_one()
 
@@ -32,7 +33,7 @@ class StockMove(models.Model):
 
     @api.multi
     def get_info(self):
-        """ TODO: add docstring
+        """ Return a list with the information of each move in self.
         """
         res = []
         for move in self:

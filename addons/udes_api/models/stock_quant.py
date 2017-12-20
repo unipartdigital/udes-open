@@ -8,13 +8,13 @@ class StockQuant(models.Model):
 
     @api.multi
     def _prepare_info(self):
-        """ TODO: add docstring
-
-            id  int     
-            package_id  stock.quant.package     (see representation of the packages below)
-            product_id  product.product     (see representation of the products above)
-            quantity    float   The physical quantity of the stock
-            reserved_quantity   float   The number of this quantity that has been reserved
+        """
+            Prepares the following info of the quant in self:
+            - id: int
+            - package_id: {stock.quant.package}
+            - product_id: {product.product}
+            - quantity: float
+            - reserved_quantit: float
         """
         self.ensure_one()
 
@@ -29,7 +29,7 @@ class StockQuant(models.Model):
 
     @api.multi
     def get_info(self):
-        """ TODO: add docstring
+        """ Return a list with the information of each quant in self.
         """
         res = []
         for quant in self:

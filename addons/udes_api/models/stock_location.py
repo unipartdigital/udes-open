@@ -8,17 +8,18 @@ class StockLocation(models.Model):
 
     @api.multi
     def _prepare_info(self, extended=False, load_quants=False):
-        """ TODO: add docstring
-
-            id: stock.location.id
-            name: stock.location.name
-            barcode: stock.location.barcode
+        """
+            Prepares the following info of the product in self:
+            - id: int
+            - name: string
+            - barcode: string
 
             When extended is True also return:
+            - u_blocked: boolean
+            - u_blocked_reason: string
 
-            u_blocked   boolean     Whether the location has been blocked. If it has been blocked, stock should not be moved to/from this location.
-            u_blocked_reason    string  A descriptive reason why the location has been blocked.
-            quant_ids   [{stock.quants]}    A list of all the quants at the given location.
+            When load_quants is True also return:
+            - quant_ids: [{stock.quants}]
         """
         self.ensure_one()
 
@@ -36,7 +37,7 @@ class StockLocation(models.Model):
 
     @api.multi
     def get_info(self, extended=False, load_quants=False):
-        """ TODO: add docstring
+        """ Return a list with the information of each picking in self.
         """
         res = []
         for loc in self:
