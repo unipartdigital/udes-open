@@ -18,6 +18,7 @@
     # any module necessary for this one to work correctly
     'depends': [
         'stock',
+        'stock_picking_batch',
         'warehouse_config',
         'blocked_locations',
     ],

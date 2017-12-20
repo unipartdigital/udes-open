@@ -102,7 +102,7 @@ A move of an item of stock from one location to another.
 | product_id | {product.product} | Product summary |
 | product_qty | float | Real quantity expected |
 | quantity_done | float | Quantity received so far |
-| move_lines_id | [{stock.move.line}] | The lines associated with this move. |
+| move_line_ids | [{stock.move.line}] | The lines associated with this move. |
 
 ## Stock Move Line (model: stock.move.line)
 
