@@ -36,3 +36,21 @@ class StockQuantPackage(models.Model):
             res.append(pack._prepare_info(extended=extended))
 
         return res
+
+    def get_package(self, package_identifier):
+        """ Get package from a name (i.e., barcode) or id.
+        """
+        if isinstance(package_identifier, int):
+            domain = [('id', '=', package_identifier)]
+        elif isinstance(package_identifier, str):
+            domain = [('name', '=', package_identifier)]
+        else:
+            raise ValidationError(_('Unable to create domain for package search from identifier of type %s') % type(package_identifier))
+
+        results = self.search(domain)
+        if not results:
+            raise ValidationError(_('Package not found for identifier %s') % str(package_identifier))
+        if  len(results) > 1:
+            raise ValidationError(_('Too many packages found for identifier %s') % str(package_identifier))
+
+        return results

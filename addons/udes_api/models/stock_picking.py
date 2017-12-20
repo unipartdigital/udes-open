@@ -105,7 +105,7 @@ class StockPicking(models.Model):
                 ('move_line_ids.location_id', '=', location_id)
             ]
         elif package_barcode:
-            package = Package.search([('name', '=', package_barcode)])
+            package = Package.get_package(package_barcode)
             # TODO: change = to child_of when we add package hierachy ?
             domain = ['|', ('move_line_ids.package_id', '=', package.id),
                            ('move_line_ids.result_package_id', '=', package.id)]
