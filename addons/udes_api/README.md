@@ -25,6 +25,7 @@ The warehouse is made up of various locations for storing stock. There are two m
 | name             | string  | |
 | u_blocked        | boolean | Whether the location has been blocked. If it has been blocked, stock should not be moved to/from this location. |
 | u_blocked_reason | string  | A descriptive reason why the location has been blocked. |
+| quant_ids | [{stock.quants]}  | A list of all the quants at the given location. |
 
 ## Quants (model: stock.quant)
 
@@ -228,23 +229,11 @@ Old method: create_transfer/create_internal_transfer
 URI: /api/stock-location
 HTTP Method: GET
 Params:
-* @param: id (optional)
+@param: loadQuants - (optional, default = false) Load the quants associated with a location.
+@param: id - (optional) the location's id
+@param query - (optional) this is a string that entirely matches either the name or barcode
+@return stock.location (as described above, containing the quants in the format also listed above).
 ```
-{
-  id: int,
-  name: string,
-  barcode: string,
-  u_blocked: boolean,
-  u_blocked_reason: string,
-  quant_ids: [
-    {
-      id: int,
-      package_id: {stock.quant.package},
-      product_id: {product.product},
-      quantity: float,
-      reserved_quantity: float
-    }] 
-}
 
 
 ## Packages
