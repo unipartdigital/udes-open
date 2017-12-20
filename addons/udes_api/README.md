@@ -229,6 +229,7 @@ Old method: create_transfer/create_internal_transfer
 URI: /api/stock-location
 HTTP Method: GET
 Params:
+@param: loadQuants - (optional, default = false) Load the quants associated with a location.
 @param: id - (optional) the location's id
 @param query - (optional) this is a string that entirely matches either the name or barcode
 @return stock.location (as described above, containing the quants in the format also listed above).
