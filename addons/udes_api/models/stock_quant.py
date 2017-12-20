@@ -18,14 +18,16 @@ class StockQuant(models.Model):
         """
         self.ensure_one()
 
-        info = {"id": self.id,
-                "package_id": self.package_id.get_info()[0],
+        package_info = False
+        if self.package_id:
+            package_info = self.package_id.get_info()[0]
+
+        return {"id": self.id,
+                "package_id": package_info,
                 "product_id": self.product_id.get_info()[0],
                 "quantity": self.quantity,
                 "reserved_quantity": self.reserved_quantity,
                }
-
-        return info
 
     @api.multi
     def get_info(self):

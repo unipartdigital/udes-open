@@ -22,13 +22,20 @@ class StockMoveLine(models.Model):
         """
         self.ensure_one()
 
+        package_info = False
+        result_package_info = False
+        if self.package_id:
+            package_info = self.package_id.get_info()[0]
+        if self.result_package_id:
+            package_info = self.result_package_id.get_info()[0]
+
         return {"id": self.id,
                 "create_date": self.create_date,
                 "location_id": self.location_id.get_info()[0],
                 "location_dest_id": self.location_dest_id.get_info()[0],
                 #"lot_id": self.lot_id.id,
-                "package_id": self.package_id.get_info()[0],
-                "result_package_id": self.result_package_id.get_info()[0],
+                "package_id": package_info,
+                "result_package_id": result_package_info,
                 "qty_done": self.qty_done,
                 "write_date": self.write_date,
                }
