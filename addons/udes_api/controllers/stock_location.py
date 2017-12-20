@@ -9,11 +9,15 @@ class Location(UdesApi):
 
     @http.route('/api/stock-location/', type='json', methods=['GET'], auth='user')
     def get_location(self, id=None, query=None, load_quants=False):
-        """
-            @param: load_quants - (optional, default = false) Load the quants associated with a location.
-            @param: id - (optional) the location's id
-            @param query - (optional) this is a string that entirely matches either the name or barcode
-            @return stock.location (as described above, containing the quants in the format also listed above).
+        """ Search for a location by id or name/barcode and returns a
+            stock.location object that match the given criteria.
+
+            @param (optional) id
+                The location's id
+            @param (optional) query
+                This is a string that entirely matches either the name or barcode
+            @param (optional) load_quants: Boolean (default = false)
+                Load the quants associated with a location.
         """
         Location = request.env['stock.location']
         identifier = id or query
@@ -22,4 +26,4 @@ class Location(UdesApi):
 
         location = Location.get_location(identifier)
 
-        return location.get_info(extended=True, load_quants=load_quants)
+        return location.get_info(extended=True, load_quants=load_quants)[0]
