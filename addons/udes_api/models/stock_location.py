@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
-from odoo import api, models, fields
+from odoo import api, models, fields, _
+from odoo.exceptions import ValidationError
+
 
 class StockLocation(models.Model):
     _inherit = "stock.location"
-
 
     @api.multi
     def _prepare_info(self, extended=False, load_quants=False):
@@ -44,7 +45,6 @@ class StockLocation(models.Model):
             res.append(loc._prepare_info(extended=extended, load_quants=load_quants))
 
         return res
-
 
     def get_location(self, location_identifier):
         """ Get locations from a name, barcode, or id.
