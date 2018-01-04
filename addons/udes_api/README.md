@@ -233,6 +233,7 @@ Params:
 @param: load_quants - (optional, default = false) Load the quants associated with a location.
 @param: id - (optional) the location's id
 @param query - (optional) this is a string that entirely matches either the name or barcode
+@param check_blocked - (optional, default = false) When enabled, checks if the location is blocked, in which case an error will be raise.
 @return stock.location (as described above, containing the quants in the format also listed above).
 ```
 
@@ -243,6 +244,7 @@ Params:
 URI: /api/stock-quant-package
 HTTP Method: GET
 Params:
+@param check_reserved - (optional, default = false) When enabled, checks if the package has stock reserved, in which case an error will be raise.
 ```
 
 Old methods that can be used: get_quants_from_barcode
