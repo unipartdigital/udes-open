@@ -1,97 +1,59 @@
-from odoo import models, fields
+from odoo import models, fields, _
 from odoo.exceptions import ValidationError
 
-from ..common import check_many2one_validity, check_stock_of_quants_reserved
+from ..common import check_many2one_validity, group_qty_by_product
 
 
 class StockPicking(models.Model):
     _inherit = 'stock.picking'
+
 
     def create_picking(
             self,
             quant_ids,
             location_id,
             location_dest_id=None,
+            picking_location_dest_id=None,
             picking_id=None,
             result_package_id=None,
             track_parent_package=False,
             force_unreserve=False,
             linked=False,
+            picking_type_id=False,
+            force_picking_dest_id=False,
+            group_id=False,
             **kwargs
     ):
         """
-        Creates or loads an internal transfer (stock.picking) for a package or
-        quants in a location, to a destination location (default Stock)
-        When this is called, reserve the operations (i.e. create
-        stock move AND operation (stock.pack.operation), and set the
-        reservation_id in the quant for the stock move's ID).
-
-        :param quant_ids: ids (list/arrays of int) of [stock.quant] records, to
-         be moved
-        :param location_id: id (int) of a [stock.location[ record, the source
-        location of the picking (Internal Transfer)
-        :param location_dest_id: id (int) of a [stock.location] record, the
-        destination location of the picking (Internal Transfer)
-        :param picking_id: id (int) of a [stock.picking] record (the Internal
-        Transfer). If this is specified, add the package(s)/quants to an existing
-        internal transfer.
-        :param result_package_id: id (int) of a [stock.quant.package] record (e.g. pallet).
-        If this is specified, add the package(s)/quants to the corresponding parent package (e.g. pallet).
-        :param track_parent_package: boolean to say if we want to track the parent
-        package (e.g. pallet) of the package or not in the result_package_id of the [stock.pack.operation]
-        record
-        :param force_unreserve: boolean flag to force to unreserve the quants
-            if they are reserved for any other transfer and their operations
-            are not done.
-        :param linked: boolean flag to say if the created transfer should be
-            inserted into a chain of pickings.
-        :return: the Internal Transfer ([stock.picking] record), in the same format
-        as _list_data()
-
-        Example:
-        [{'id': 212680,
-          'location_dest_id': 15,
-          'name': u'INT10342',
-          'origin': False,
-          'packages': [],
-          'picking_type_id': 5,
-          'priority': u'1',
-          'priority_name': 'Normal',
-          'stock_pack_operations': [{'id': 1600211,
-                                     'info': {'product_barcode': u'productApple',
-                                              'product_display_name': u'[productApple] TestProduct Apple',
-                                              'product_id': 268414,
-                                              'requiresSerial': False},
-                                     'location_barcode': u'LBASKET001',
-                                     'location_dest_id': 15,
-                                     'location_name': u'Fruit Basket',
-                                     'lots': [],
-                                     'operation_type': 'product',
-                                     'package_id': False,
-                                     'product_qty': 15.0,
-                                     'qty_done': 15.0,
-                                     'write_date': '2017-08-16 18:04:25'}]}]
+            TODO
         """
         Picking = self.env['stock.picking']
+        PickingType = self.env['stock.picking.type']
         Move = self.env['stock.move']
         Product = self.env['product.product']
-        Operation = self.env['stock.pack.operation']
+        MoveLine = self.env['stock.move.line']
         Quant = self.env['stock.quant']
         Location = self.env['stock.location']
+        Users = self.env['res.users']
 
-        warehouse = self.env.user.get_user_warehouse()
-        pick_type_internal = warehouse.int_type_id
+        if picking_type_id:
+            picking_type = PickingType.browse(picking_type_id)
+        else:
+            warehouse = Users.get_user_warehouse()
+            picking_type = warehouse.int_type_id
 
         default_uom_id = self.env.ref('product.product_uom_unit').id
 
-        # default Stock
-        if location_dest_id is None:
-            location_dest_id = warehouse.lot_stock_id.id
+        if not location_dest_id:
+            location_dest_id = picking_type.default_location_dest_id.id
+        if not picking_location_dest_id:
+            picking_location_dest_id = picking_type.default_location_dest_id.id
 
         # check params
         for (field, obj, id_) in [
             ('location_id', Location, location_id),
             ('location_dest_id', Location, location_dest_id),
+            ('picking_location_dest_id', Location, picking_location_dest_id),
         ]:
             check_many2one_validity(field, obj, id_)
         if picking_id is not None:
@@ -109,6 +71,8 @@ class StockPicking(models.Model):
 
         quants.ensure_not_reserved()
         quants.ensure_entire_packages()
+        # TODO: probably not needed anymore
+        #self.hook_for_check_before_create_picking(quants)
 
         if picking_id is not None:
             picking = Picking.browse(picking_id)
@@ -116,11 +80,15 @@ class StockPicking(models.Model):
                 raise ValidationError(_("The picking %s cannot be changed "
                                         "because it's %s") % (picking.name,
                                                               picking.state))
+            # reuse the group of the transfer
+            group_id = picking.group_id.id
         else:
+            # transfer needs to be created
             vals = {
-                'picking_type_id': pick_type_internal.id,
-                'location_dest_id': location_dest_id,
+                'picking_type_id': picking_type.id,
+                'location_dest_id': picking_location_dest_id,
                 'location_id': location_id,
+                'group_id': group_id,
             }
             vals.update(kwargs)
             picking = Picking.create(vals)
@@ -128,72 +96,75 @@ class StockPicking(models.Model):
 
         # when not creating a linked transfer, moves are created from quant info
         # when linked, moves are created from current moves info
+        created_moves = Move.browse()
         if not linked:
             # create stock move
+            # TODO: get all the display_names with one call to DB?
             move_vals = [
                 {
-                    'name': 'INT/{} {}'.format(qty, Product.browse(product_id).name),
+                    'name': '{} {}'.format(qty, Product.browse(product_id).display_name),
                     'product_id': product_id,
                     'product_uom_qty': qty,
                     'location_id': location_id,
-                    'location_dest_id': location_dest_id,
+                    'location_dest_id': picking_location_dest_id,
                     'product_uom': default_uom_id,
                     'picking_id': picking.id,
-                    'state': 'assigned',
+                    'group_id': group_id,
                 }
+                # TODO: create a function at quants that returns the group ?
                 for product_id, qty in group_qty_by_product(quants).items()
             ]
             for move_val in move_vals:
                 move = Move.create(move_val)
-                # "reserve" each quant with the same product as the move
-                # to the move through the "reservation_id" field
-                quants.filtered(
-                    lambda q: q.product_id.id == move_val['product_id']
-                ).write({'reservation_id': move.id})
+                created_moves |= move
         else:
+            # TODO: implement or merge with other code
             pass
 
 
+        # call action_confirm:
+        # - chain of moves will be created if needed
+        # - procurement group will be created if needed (this needs u_create_group)
+        # TODO: migrate picking_type.u_create_group and extend action_confirm
+        #       probably not needed for stock move
+        #TODO: picking.action_confirm or created_moves._action_confirm ?
+        picking.action_confirm()
+        # action confirm merges moves of the same product if merge=True
+        #created_moves._action_confirm(merge=False) #TODO: picking or create_moves?
+
+        # Use picking.action_assign or moves._action_assign to create move lines
+        # Context variables:
+        # - quant_ids:
+        #   filters the quants that stock.quant._gather returns
+        # - bypass_reservation_update:
+        #   avoids to execute code specific for Odoo UI at stock.move.line.write()
+        move_lines_before = picking.move_line_ids
+        #TODO: picking.action_assign or created_moves._action_assign ?
+        picking.with_context(quant_ids=quant_ids, bypass_reservation_update=True).action_assign()
+        #created_moves.with_context(quant_ids=quant_ids, bypass_reservation_update=True)._action_assign()
+        move_lines_after = picking.move_line_ids - move_lines_before
+        # set location_dest_id of the new move lines
+        move_lines_after.write({'location_dest_id': location_dest_id})
+
+        """
+        # TODO: result_package
+        # TODO: track_parent_package
+        #       if it is false remove parent_id of the result_package_id ??
         # 1) create one operation per package_id in quants (corresponding to quant_ids)
-        #   future improvement: one operation per parent package if we have all the
-        #   packages of the parent package (e.g. pallet) in the transfer
-        #   where parent_package (e.g. pallet) = package_id.parent_id
-        packages = quants.mapped('package_id')
-        for pack in packages:
-            op_vals = {
-                'package_id': pack.id,
-                'picking_id': picking.id,
-                'location_id': location_id,
-                'location_dest_id': location_dest_id,
-                'product_qty': 1,
-            }
-            # if the package is in a parent_package e.g. pallet (pack_id.parent_id is set)
+           # if the package is in a parent_package e.g. pallet (pack_id.parent_id is set)
             # we have to set the result_package_id, otherwise we will lose
             # the parent package (e.g. pallet) info.
             if result_package_id:
                 op_vals['result_package_id'] = result_package_id
             elif track_parent_package and pack.parent_id:
                 op_vals['result_package_id'] = pack.parent_id.id
-            Operation.create(op_vals)
         # 2) create one operation for each product without packages
-        quants_without_package = quants.filtered(lambda x: not x.package_id)
-        for product, qty in group_qty_by_product(quants_without_package).items():
-            op_vals = {
-                'picking_id': picking.id,
-                'location_id': location_id,
-                'location_dest_id': location_dest_id,
-                'product_id': product,
-                'product_uom_id': default_uom_id,
-                'product_qty': qty,
-            }
             # case where we are moving quants from A to B and they have to be in a package in location B
             if result_package_id:
                 op_vals['result_package_id'] = result_package_id
-            Operation.create(op_vals)
+        """
 
-        # recompute quantities, to recompute the links (stock.move.operation.link)
-        picking.do_recompute_remaining_quantities()
-        # make the new_internal_transfer available
-        picking.state = 'assigned'
+        if force_picking_dest_id:
+            picking.location_dest_id = location_dest_id
 
-        return picking._list_data()
+        return picking

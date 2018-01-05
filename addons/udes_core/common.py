@@ -15,21 +15,6 @@ def check_many2one_validity(field, obj, id_):
         raise ValidationError(_('The %s supplied (%s) is not valid, '
                                 'it does not exist.') % (field, id_))
 
-
-def check_if_partial_quant(quants):
-    """
-    Don't allow partial quants of a package to move (i.e. if a package contains
-    more than one quant, we either move ALL of them, or nothing - up to the user
-    to select all of them).
-    """
-    quant_ids = quants.mapped('id')
-    packages = quants.mapped('package_id')
-    for p in packages:
-        if not set(quant_ids) >= set(p.quant_ids.mapped('id')):
-            raise ValidationError(_('Not all quants of the package %s have '
-                                    'been taken') % (p.id))
-
-
 def group_qty_by_product(recordsets):
     """
     Group quantity by product
@@ -39,15 +24,5 @@ def group_qty_by_product(recordsets):
     products = {}
     for recordset in recordsets:
         products.setdefault(recordset.product_id.id, 0)
-        products[recordset.product_id.id] = products[recordset.product_id.id] + recordset.qty
+        products[recordset.product_id.id] = products[recordset.product_id.id] + recordset.quantity
     return products
-
-
-def check_if_quants_not_in_blocked_location(quants):
-    """
-    Don't allow quants to be moved if they are in a blocked location.
-    """
-    quant_ids = quants.filtered(lambda q: q.location_id.x_blocked)
-
-    if quant_ids:
-        quant_ids.mapped('location_id').check_blocked('Wrong location at operation.')

@@ -3,7 +3,7 @@
 
 {
     'name': 'UDES Core Functionality',
-    'version': '11',
+    'version': '11.0',
     'summary': 'Inventory, Logistics, Warehousing',
     'description': "Holds core functionality for UDES Modules",
     'depends': ['stock'],
