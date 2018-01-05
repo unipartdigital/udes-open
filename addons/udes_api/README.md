@@ -223,6 +223,33 @@ HTTP Method: POST
 Old method: create_transfer/create_internal_transfer
 ```
 
+Create a stock.picking
+
+* @param picking_type_id: int The type of the stock.picking.
+* @param quant_ids: Array (int) An array of the quants ID to add to the stock.picking
+* @param location_id: int ID of the location where the stock.picking is moving from.
+* @param location_dest_id: int ID of the location where the stock is going to be moved to.
+* @param result_package_id: int The target package ID
+* @param move_parent_package: Boolean (default false) Used in pallets/nested packages, to maintain the move of the entire pallet.
+* @return: the stock.picking in the same format as the GET API method.
+
+```
+URI: /api/stock-picking
+HTTP Method: PUT
+Old method(s): force_validate, validate_operation
+```
+
+Update/mutate the stock picking
+
+* @param id - the id of the stock.picking to process.
+
+* @param (optional) force_validate - forces the transfer to be completed. Depends on parameters
+* @param (optional) location_dest_id - target destination
+* @param (optional) result_package_barcode - filter the force validation to only process the contents of a specific package. If it corresponds to an existing package/pallet that is not in an other location, we will set it to the `result_package_id` of the operations of the picking (i.e. transfer)
+
+
+
+
 
 ## Stock Location
 
