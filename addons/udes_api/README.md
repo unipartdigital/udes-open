@@ -223,7 +223,11 @@ HTTP Method: POST
 Old method: create_transfer/create_internal_transfer
 ```
 
-Create a stock.picking
+Creates a transfer and stock moves for a given list of stock.quant ids
+
+* @param quant_ids - list of quant ids to create stock.moves for the transfer
+* @param location_id - location from where we create the transfer
+
 
 * @param picking_type_id: int The type of the stock.picking.
 * @param quant_ids: Array (int) An array of the quants ID to add to the stock.picking
@@ -242,13 +246,11 @@ Old method(s): force_validate, validate_operation
 Update/mutate the stock picking
 
 * @param id - the id of the stock.picking to process.
-
+* @param (optional) quant_ids: as POST
+* @param (optional) move_parent_package: as POST
 * @param (optional) force_validate - forces the transfer to be completed. Depends on parameters
 * @param (optional) location_dest_id - target destination
 * @param (optional) result_package_barcode - filter the force validation to only process the contents of a specific package. If it corresponds to an existing package/pallet that is not in an other location, we will set it to the `result_package_id` of the operations of the picking (i.e. transfer)
-
-
-
 
 
 ## Stock Location
