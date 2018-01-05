@@ -223,6 +223,11 @@ HTTP Method: POST
 Old method: create_transfer/create_internal_transfer
 ```
 
+Creates a transfer and stock moves for a given list of stock.quant ids
+
+* @param quant_ids - list of quant ids to create stock.moves for the transfer
+* @param location_id - location from where we create the transfer
+* @param (optional) picking_id - if this parameter is set the stock moves of the quants are added to the existing transfer instead of creating a new one
 
 ## Stock Location
 
