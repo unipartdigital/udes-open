@@ -8,9 +8,11 @@
         <field name="arch" type="xml">
 
             <!-- Hide misleadingly named "Allow moving packs" field -->
+            <!--
             <xpath expr="//field[@name='show_entire_packs']" position="attributes">
                 <attribute name="invisible">1</attribute>
             </xpath>
+            -->
 
             <!-- Add udes fields -->
             <xpath expr="//form/sheet/group[last()]" position="after">
