@@ -21,6 +21,7 @@
         'stock_picking_batch',
         'warehouse_config',
         'blocked_locations',
+        'udes_core',
     ],
 
     # always loaded
