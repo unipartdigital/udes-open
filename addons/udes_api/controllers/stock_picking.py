@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from odoo import http
+from odoo import http, _
 from odoo.http import request
+from odoo.exceptions import ValidationError
+
 from .main import UdesApi
 
 class Picking(UdesApi):
@@ -22,4 +24,15 @@ class Picking(UdesApi):
         """
         Picking = request.env['stock.picking']
         picking = Picking.create_picking(**kwargs)
+        return picking.get_info()[0]
+
+    @http.route('/api/stock-picking/<id>', type='json', methods=['POST'], auth='user')
+    def update_picking(self, id, **kwargs):
+        """ Old force_validate/validate_operation
+        """
+        Picking = request.env['stock.picking']
+        picking = Picking.browse(int(id))
+        if not picking.exists():
+            raise ValidationError(_('Cannot find stock.picking with id %s') % id)
+        picking.update_picking(**kwargs)
         return picking.get_info()[0]
