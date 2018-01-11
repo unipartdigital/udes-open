@@ -55,3 +55,10 @@ class StockQuantPackage(models.Model):
             raise ValidationError(_('Too many packages found for identifier %s') % str(package_identifier))
 
         return results
+
+    def assert_not_reserved(self):
+        """ Check that the content of the package is reserved, in that
+            case raise an error.
+        """
+        self.ensure_one()
+        self.mapped('quant_ids').ensure_not_reserved()

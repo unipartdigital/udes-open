@@ -64,4 +64,3 @@ class StockLocation(models.Model):
             raise ValidationError(_('Too many locations found for identifier %s') % str(location_identifier))
 
         return results
-

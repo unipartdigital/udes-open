@@ -3,4 +3,5 @@
 from . import main
 from . import stock_location
 from . import stock_picking
+from . import stock_quant_package
 from . import stock_warehouse
