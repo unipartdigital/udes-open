@@ -20,9 +20,8 @@ class WarehouseStock(UdesApi):
         # get the user's warehouse
         warehouse = Users.get_user_warehouse()
         # get warehouse info
-        res['stock_warehouse'] = warehouse.get_info()
-        # get picking types of the warehouse
-        picking_types = PickingType.search([('warehouse_id', '=', warehouse.id)])
-        res['picking_types'] = picking_types.get_info()
+        res['stock_warehouse'] = warehouse.get_info()[0]
+        # get info of the picking types of the warehouse
+        res['picking_types'] = warehouse.get_picking_types().get_info()
 
         return res 
