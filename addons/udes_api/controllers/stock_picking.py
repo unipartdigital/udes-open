@@ -26,7 +26,7 @@ class Picking(UdesApi):
         picking = Picking.create_picking(**kwargs)
         return picking.get_info()[0]
 
-    @http.route('/api/stock-picking/<id>', type='json', methods=['POST'], auth='user')
+    @http.route('/api/stock-picking/', type='json', methods=['PUT'], auth='user')
     def update_picking(self, id, **kwargs):
         """ Old force_validate/validate_operation
         """
