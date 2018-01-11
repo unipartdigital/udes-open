@@ -61,3 +61,35 @@ class StockWarehouse(models.Model):
     )
     u_pallet_barcode_regex = fields.Char('Pallet Barcode Format', default='^PAL(\\d)+$')
     u_package_barcode_regex = fields.Char('Package Barcode Format', default='^PACK(\\d)+$')
+
+
+    def _prepare_info(self):
+        """
+            Prepares the following extra info of the warehouse in self:
+
+            - u_missing_stock_location_id: int
+            - u_damaged_location_id: int
+            - u_temp_dangerous_location_id: int
+            - u_probres_location_id: int
+            - u_incomplete_location_id: int
+            - u_dangerous_location_id: int
+            - u_handle_damages_picking_type_ids: list(int)
+            - u_print_labels_picking_type_ids: list(int)
+            - u_pallet_barcode_regex: string
+            - u_package_barcode_regex: string
+        """
+
+        info = super(StockWarehouse, self)._prepare_info()
+        info.update({
+            'u_missing_stock_location_id': self.u_missing_stock_location_id.id,
+            'u_damaged_location_id': self.u_damaged_location_id.id,
+            'u_temp_dangerous_location_id': self.u_temp_dangerous_location_id.id,
+            'u_probres_location_id': self.u_probres_location_id.id,
+            'u_incomplete_location_id': self.u_incomplete_location_id.id,
+            'u_dangerous_location_id': self.u_dangerous_location_id.id,
+            'u_handle_damages_picking_type_ids': self.u_handle_damages_picking_type_ids.ids,
+            'u_print_labels_picking_type_ids': self.u_print_labels_picking_type_ids.ids,
+            'u_pallet_barcode_regex': self.u_pallet_barcode_regex,
+            'u_package_barcode_regex': self.u_package_barcode_regex,
+            })
+        return info

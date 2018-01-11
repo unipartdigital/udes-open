@@ -49,3 +49,31 @@ class StockPickingType(models.Model):
         string='What the User Scans',
         help='What the user scans when asked to '
         'scan something from pickings of this type')
+
+    def _prepare_info(self):
+        """
+            Prepares the following extra info of the picking_type in self:
+
+            - u_allow_swapping_packages: boolean
+            - u_skip_allowed: boolean
+            - u_split_on_drop_off_picked: boolean
+            - u_suggest_qty: boolean
+            - u_over_receive: boolean
+            - u_validate_real_time: boolean
+            - u_target_storage_format: string
+            - u_user_scans: string
+            - u_enforce_location_dest_id: boolean
+        """
+        info = super(StockPickingType, self)._prepare_info()
+        info.update({
+            'u_allow_swapping_packages': self.u_allow_swapping_packages,
+            'u_skip_allowed': self.u_skip_allowed,
+            'u_split_on_drop_off_picked': self.u_split_on_drop_off_picked,
+            'u_suggest_qty': self. u_suggest_qty,
+            'u_over_receive': self.u_over_receive,
+            'u_validate_real_time': self.u_validate_real_time,
+            'u_target_storage_format': self.u_target_storage_format,
+            'u_user_scans': self.u_user_scans,
+            'u_enforce_location_dest_id': self.u_enforce_location_dest_id,
+            })
+        return info
