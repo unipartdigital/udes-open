@@ -18,6 +18,7 @@
     # any module necessary for this one to work correctly
     'depends': [
         'stock',
+        'udes_core',
     ],
 
     # always loaded
