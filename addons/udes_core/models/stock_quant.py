@@ -6,7 +6,7 @@ from odoo.exceptions import ValidationError
 class StockQuant(models.Model):
     _inherit = 'stock.quant'
 
-    def ensure_not_reserved(self):
+    def assert_not_reserved(self):
         """Ensure all quants in the recordset are unreserved."""
         reserved = self.filtered(lambda q: q.reserved_quantity > 0)
         if reserved:
@@ -17,7 +17,7 @@ class StockQuant(models.Model):
                                         if reserved.mapped('package_id')
                                         else ' '.join(reserved.mapped('product_id.display_name'))))
 
-    def ensure_entire_packages(self):
+    def assert_entire_packages(self):
         """Ensure the recordset self contains all the quants in package present
         in the recordset."""
         packages = self.mapped('package_id')
@@ -30,7 +30,7 @@ class StockQuant(models.Model):
                                     'Incomplete Packages:\n'
                                     '%s') % (' '.join(prob_packs.mapped('name'))))
 
-    def ensure_valid_location(self, location_id):
+    def assert_valid_location(self, location_id):
         """ Ensure the recorset self contains quants child of location_id
         """
         # TODO: check this function again, create generic is_valid/are_valid?

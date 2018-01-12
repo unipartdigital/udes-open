@@ -10,8 +10,9 @@ from ..common import check_many2one_validity
 class StockPicking(models.Model):
     _inherit = 'stock.picking'
 
-    def ensure_valid_state(self):
+    def assert_valid_state(self):
         """ Checks if the transfer is in a valid state, i.e., not done or cancel
+            otherwise it raises and error
         """
         self.ensure_one()
         if self.state in ['done', 'cancel']:
@@ -25,7 +26,7 @@ class StockPicking(models.Model):
         Move = self.env['stock.move']
         Quant = self.env['stock.quant']
 
-        self.ensure_valid_state()
+        self.assert_valid_state()
 
         if values is None:
             values = {}
@@ -46,10 +47,9 @@ class StockPicking(models.Model):
             quants = quant_ids
         else:
             raise ValiationError(_('Wrong quant identifiers %s') % type(quant_ids))
-        # TODO: change ensure for assert
-        quants.ensure_not_reserved()
-        quants.ensure_entire_packages()
-        quants.ensure_valid_location(values['location_id'])
+        quants.assert_not_reserved()
+        quants.assert_entire_packages()
+        quants.assert_valid_location(values['location_id'])
 
         for product_id, qty in quants.group_quantity_by_product().items():
             move_vals = {
@@ -109,12 +109,7 @@ class StockPicking(models.Model):
 
         # get picking_type from picking_type_id or internal transfer
         if picking_type_id:
-            # TODO: create function
-            picking_type = PickingType.browse(picking_type_id)
-            if not picking_type.exists():
-                raise ValidationError(
-                        _('Cannot find picking type with id %s') %
-                        picking_type_id)
+            picking_type = PickingType.get_picking_type(picking_type_id)
         else:
             warehouse = Users.get_user_warehouse()
             picking_type = warehouse.int_type_id
@@ -180,7 +175,7 @@ class StockPicking(models.Model):
         Location = self.env['stock.location']
         Package = self.env['stock.quant.package']
 
-        self.ensure_valid_state()
+        self.assert_valid_state()
 
         values = {}
 
