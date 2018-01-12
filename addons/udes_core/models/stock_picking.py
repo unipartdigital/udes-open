@@ -18,13 +18,19 @@ class StockPicking(models.Model):
         if self.state in ['done', 'cancel']:
             raise ValidationError(_('Wrong state of picking %s') % self.state)
 
-    def _create_moves_from_quants(self, quant_ids, values=None, confirm=False, assign=False):
+    def _create_moves_from_quants(self, quant_ids, values=None,
+                                  confirm=False, assign=False,
+                                  result_package=None):
         """ Creates moves from quant_ids and adds it to the picking in self.
+            The picking is also confirmed/assigned if the flags are set to True.
+            If result_package is set, it will update the result_package_id of the
+            new move_lines when assign flag is True.
         """
         # TODO: update it to create by quant_ids or dictionary of {product_id:qty}
         Product = self.env['product.product']
         Move = self.env['stock.move']
         Quant = self.env['stock.quant']
+        Package = self.env['stock.quant.package']
 
         self.assert_valid_state()
 
@@ -66,6 +72,7 @@ class StockPicking(models.Model):
             self.action_confirm()
 
         if assign:
+            old_move_line_ids = self.move_line_ids
             # Use picking.action_assign or moves._action_assign to create move lines
             # Context variables:
             # - quant_ids:
@@ -73,6 +80,11 @@ class StockPicking(models.Model):
             # - bypass_reservation_update:
             #   avoids to execute code specific for Odoo UI at stock.move.line.write()
             self.with_context(quant_ids=quant_ids, bypass_reservation_update=True).action_assign()
+            if result_package:
+                # update result_package_id of the new move_line_ids
+                package = Package.get_package(result_package)
+                new_move_line_ids = self.move_line_ids - old_move_line_ids
+                new_move_line_ids.write({'result_package_id': package.id})
 
 
     def create_picking(
@@ -133,11 +145,10 @@ class StockPicking(models.Model):
         picking = Picking.create(values.copy())
 
         # Create stock.moves
-        picking._create_moves_from_quants(quant_ids, values=values.copy(), confirm=True, assign=True)
+        picking._create_moves_from_quants(quant_ids, values=values.copy(),
+                                          confirm=True, assign=True,
+                                          result_package=result_package_id)
 
-        # TODO: move it inside create_moves?
-        if result_package_id:
-            picking.move_line_ids.write({'result_package_id': result_package_id})
         # TODO: this might be in the package_hierarchy module, because odoo by default
         #       does not handle parent packages
         if not move_parent_package:
@@ -181,7 +192,8 @@ class StockPicking(models.Model):
 
         if quant_ids:
             # Create stock.moves
-            self._create_moves_from_quants(quant_ids, confirm=True, assign=True)
+            self._create_moves_from_quants(quant_ids, confirm=True, assign=True,
+                                           result_package=result_package_barcode)
 
         if location_dest_id:
             values['location_dest_id'] = location_dest_id
