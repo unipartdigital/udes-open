@@ -22,7 +22,7 @@ class StockLocation(models.Model):
         info = {"id": self.id,
                 "name": self.name,
                 "barcode": self.barcode,
-               }
+                }
         if load_quants:
             info['quants_ids'] = self.quant_ids.get_info()
 
