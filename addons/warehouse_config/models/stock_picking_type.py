@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from odoo import models, fields
 
+from odoo import models, fields
 
 class StockPickingType(models.Model):
     _inherit = "stock.picking.type"
@@ -53,7 +53,6 @@ class StockPickingType(models.Model):
     def _prepare_info(self):
         """
             Prepares the following extra info of the picking_type in self:
-
             - u_allow_swapping_packages: boolean
             - u_skip_allowed: boolean
             - u_split_on_drop_off_picked: boolean
