@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from odoo import models
+from odoo import models, _
+from odoo.exceptions import ValidationError
 
 class StockPickingType(models.Model):
     _inherit = "stock.picking.type"
@@ -38,3 +39,13 @@ class StockPickingType(models.Model):
             res.append(picking_type._prepare_info())
 
         return res
+
+    def get_picking_type(self, picking_type_id):
+        """ Get picking_type from id
+        """
+        picking_type = self.browse(picking_type_id)
+        if not picking_type.exists():
+            raise ValidationError(
+                    _('Cannot find picking type with id %s') %
+                    picking_type_id)
+        return picking_type
