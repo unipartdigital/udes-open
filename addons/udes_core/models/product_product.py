@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 
-from odoo import models
+from odoo import fields, models
 
 class ProductProduct(models.Model):
     _inherit = "product.product"
+
+    # Add tracking for archiving.
+    active = fields.Boolean(track_visibility='onchange')
 
     def _prepare_info(self):
         """
@@ -31,5 +34,3 @@ class ProductProduct(models.Model):
             res.append(prod._prepare_info())
 
         return res
-
-

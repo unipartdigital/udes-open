@@ -1,11 +1,19 @@
 # -*- coding: utf-8 -*-
 
-from odoo import models,  _
+from odoo import fields, models,  _
 from odoo.exceptions import ValidationError
 
 
 class StockLocation(models.Model):
-    _inherit = "stock.location"
+    _name = 'stock.location'
+    # Add messages to locations.
+    _inherit = ['stock.location', 'mail.thread']
+
+    # Disable translation instead of renaming.
+    name = fields.Char(translate=False)
+
+    # Add tracking for archiving.
+    active = fields.Boolean(track_visibility='onchange')
 
     def _prepare_info(self, extended=False, load_quants=False):
         """
