@@ -66,7 +66,6 @@ class StockWarehouse(models.Model):
     def _prepare_info(self):
         """
             Prepares the following extra info of the warehouse in self:
-
             - u_missing_stock_location_id: int
             - u_damaged_location_id: int
             - u_temp_dangerous_location_id: int
@@ -78,7 +77,6 @@ class StockWarehouse(models.Model):
             - u_pallet_barcode_regex: string
             - u_package_barcode_regex: string
         """
-
         info = super(StockWarehouse, self)._prepare_info()
         info.update({
             'u_missing_stock_location_id': self.u_missing_stock_location_id.id,
