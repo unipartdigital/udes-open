@@ -11,7 +11,7 @@ This core module adds the following features to Odoo Community Edition:
 * Ability to navigate from one picking to the next using the routes. Using the 3 stage outbound route, the Pick will have a link to the Pack then the Delivery Order.
 * Disabled translations on location names.
 * Disabled translations on product names.
-* Ability to track the visibility of archiving products.
 * Ability to track the visibility of archiving locations.
+* Ability to track the visibility of archiving products.
 * Ability to search by source package at stock.picking list.
 * Ability to search by destination package at stock.picking list.

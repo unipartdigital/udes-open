@@ -12,6 +12,7 @@
     'demo': [
     ],
     'data': [
+        'views/stock_picking.xml',
     ],
     'qweb': [
     ],

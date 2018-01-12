@@ -2,13 +2,53 @@
 
 from collections import OrderedDict
 
-from odoo import models, _
+from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
 
 from ..common import check_many2one_validity
 
 class StockPicking(models.Model):
     _inherit = 'stock.picking'
+
+    # compute previous and next pickings
+    # TODO: change to related field?
+    u_prev_picking_ids = fields.One2many(
+        'stock.picking', string='Previous Pickings',
+        compute='_compute_prev_next_picking_ids',
+        help='Previous pickings',
+        )
+    u_next_picking_ids = fields.One2many(
+        'stock.picking', string='Next Pickings',
+        compute='_compute_prev_next_picking_ids',
+        help='Next pickings',
+        )
+
+    # search helpers for source and destination package
+    u_package_id = fields.Many2one('stock.quant.package', 'Package',
+                                   related='move_line_ids.package_id',
+                                   help='Source package (used to search on pickings)',
+                                   )
+    u_result_package_id = fields.Many2one('stock.quant.package', 'Result Package',
+                                   related='move_line_ids.result_package_id',
+                                   help='Destination package (used to search on pickings)',
+                                   )
+
+
+    # Calculate previous/next pickings
+    # TODO: check if we really need all or only move_orig_ids/move_dest_ids
+    @api.depends('move_lines',
+                 'move_lines.move_orig_ids',
+                 'move_lines.move_dest_ids',
+                 'move_lines.move_orig_ids.picking_id',
+                 'move_lines.move_dest_ids.picking_id')
+    def _compute_prev_next_picking_ids(self):
+        for picking in self:
+            picking.u_prev_picking_ids = picking.mapped(
+                'move_lines.move_orig_ids.picking_id'
+                )
+            picking.u_next_picking_ids = picking.mapped(
+                'move_lines.move_dest_ids.picking_id'
+                )
 
     def assert_valid_state(self):
         """ Checks if the transfer is in a valid state, i.e., not done or cancel
