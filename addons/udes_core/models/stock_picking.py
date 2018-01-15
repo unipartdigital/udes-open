@@ -11,7 +11,6 @@ class StockPicking(models.Model):
     _inherit = 'stock.picking'
 
     # compute previous and next pickings
-    # TODO: change to related field?
     u_prev_picking_ids = fields.One2many(
         'stock.picking', string='Previous Pickings',
         compute='_compute_prev_next_picking_ids',
@@ -22,7 +21,6 @@ class StockPicking(models.Model):
         compute='_compute_prev_next_picking_ids',
         help='Next pickings',
         )
-
     # search helpers for source and destination package
     u_package_id = fields.Many2one('stock.quant.package', 'Package',
                                    related='move_line_ids.package_id',
@@ -35,7 +33,6 @@ class StockPicking(models.Model):
 
 
     # Calculate previous/next pickings
-    # TODO: check if we really need all or only move_orig_ids/move_dest_ids
     @api.depends('move_lines',
                  'move_lines.move_orig_ids',
                  'move_lines.move_dest_ids',
