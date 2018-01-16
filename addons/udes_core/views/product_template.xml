@@ -8,7 +8,7 @@
 
             <!-- Add a confirmation to the "Archive" button. -->
             <xpath expr="//button[@name='toggle_active']" position="attributes">
-                <attribute name="confirm">Are you sure?</attribute>
+                <attribute name="confirm">Are you sure you want to archive this product? It will become unavailable and hidden from searches.</attribute>
             </xpath>
 
         </field>
