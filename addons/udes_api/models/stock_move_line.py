@@ -77,13 +77,13 @@ class StockMoveLine(models.Model):
         return (package, result_package, parent_package)
 
 
-        def get_package_move_lines(self, package):
-            """ Extend to get move lines of package when package is
-                a parent package.
-            """
-            if package.children_ids:
-                res = self.filtered(lambda ml: ml.package_id in package.children_ids)
-            else:
-                res = super(StockMoveLine, self).get_package_move_lines(package)
+    def get_package_move_lines(self, package):
+        """ Extend to get move lines of package when package is
+            a parent package.
+        """
+        if package.children_ids:
+            res = self.filtered(lambda ml: ml.package_id in package.children_ids)
+        else:
+            res = super(StockMoveLine, self).get_package_move_lines(package)
 
-            return res
+        return res
