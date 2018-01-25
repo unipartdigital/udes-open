@@ -22,6 +22,7 @@
         'warehouse_config',
         'blocked_locations',
         'udes_core',
+        'package_hierarchy',
     ],
 
     # always loaded

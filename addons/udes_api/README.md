@@ -250,7 +250,7 @@ Update/mutate the stock picking
 * @param (optional) move_parent_package: as POST
 * @param (optional) force_validate - forces the transfer to be completed. Depends on parameters
 * @param (optional) location_dest_id - target destination
-* @param (optional) result_package_barcode - If it corresponds to an existing package/pallet that is not in an other location, we will set it to the `result_package_id` of the operations of the picking (i.e. transfer)
+* @param (optional) result_package_name - If it corresponds to an existing package/pallet that is not in an other location, we will set it to the `result_package_id` of the operations of the picking (i.e. transfer)
 
 
 ## Stock Location
