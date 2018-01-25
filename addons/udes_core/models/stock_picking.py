@@ -55,6 +55,15 @@ class StockPicking(models.Model):
         if self.state in ['done', 'cancel']:
             raise ValidationError(_('Wrong state of picking %s') % self.state)
 
+    def add_unexpected_parts(self, product_quantities):
+        """ TODO: unexpected parts, call picking._create_moves()
+            if not overreceive raise error? check it inside overriding it?
+            Test what happens when adding unexpected part of a serial numbered product
+
+            By default allow overreceive, when overriding check it from the picking type
+        """
+        raise ValidationError(_('Not handling unexpected parts yet'))
+
     def _create_moves_from_quants(self, quant_ids, values=None,
                                   confirm=False, assign=False,
                                   result_package=None):
@@ -201,8 +210,11 @@ class StockPicking(models.Model):
             quant_ids=None,
             force_validate=False,
             location_dest_id=None,
-            result_package_barcode=None,
+            location_barcode=None,
+            result_package_name=None,
+            package_name=None,
             move_parent_package=False,
+            products_info=None,
     ):
         """ Update/mutate the stock picking in self
 
@@ -212,7 +224,7 @@ class StockPicking(models.Model):
                 Forces the transfer to be completed. Depends on parameters
             @param (optional) location_dest_id: int
                 ID of the location where the stock is going to be moved to
-            @param (optional) result_package_barcode: string
+            @param (optional) result_package_name: string
                 If it corresponds to an existing package/pallet that is not
                 in an other location, we will set it to the `result_package_id`
                 of the operations of the picking (i.e. transfer)
@@ -228,27 +240,36 @@ class StockPicking(models.Model):
         values = {}
 
         if quant_ids:
-            # Create stock.moves
+            # Create extra stock.moves to the picking
             self._create_moves_from_quants(quant_ids, confirm=True, assign=True,
-                                           result_package=result_package_barcode)
+                                           result_package=result_package_name)
+            # when adding only do this?
+            return True
 
-        if location_dest_id:
-            values['location_dest_id'] = location_dest_id
-        if result_package_barcode:
-            # not needed for now, this was used to move packages inside pallets?
-            #values['result_package_barcode'] = result_package_barcode
-            pass
+        if location_dest_id or location_barcode:
+            values['location_dest'] = location_dest_id or location_barcode
+        if result_package_name:
+            values['result_package'] = result_package_name
         if not move_parent_package:
-            # not needed yet
+            # not needed yet, move it outside udes_core
             # when false remove parent_id of the result_package_id ??
             #picking.move_line_ids.mapped('result_package_id').write({'package_id': False})
             pass
 
-        if force_validate:
-            # get all the stock.move.lines
-            move_lines = self.move_line_ids
+        if package_name:
+            values['package'] = package_name
+        if products_info:
+            values['products_info'] = products_info
+
+        # get all the stock.move.lines
+        move_lines = self.move_line_ids
+
+        if package_name or products_info or force_validate:
             # validate stock.move.lines
             move_lines.validate(**values)
+
+        # TODO: or validate?
+        if force_validate:
             # validate stock.picking
             self.action_done() # old do_transfer
 

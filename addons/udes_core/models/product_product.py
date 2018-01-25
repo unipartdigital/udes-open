@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from odoo import fields, models
+from odoo import fields, models, _
+from odoo.exceptions import ValidationError
 
 class ProductProduct(models.Model):
     _inherit = "product.product"
@@ -34,3 +35,22 @@ class ProductProduct(models.Model):
             res.append(prod._prepare_info())
 
         return res
+
+    def get_product(self, product_identifier):
+        """ Get product from a name, barcode, or id.
+        """
+        if isinstance(product_identifier, int):
+            domain = [('id', '=', product_identifier)]
+        elif isinstance(product_identifier, str):
+            domain = ['|', ('barcode', '=', product_identifier),
+                           ('name', '=', product_identifier)]
+        else:
+            raise ValidationError(_('Unable to create domain for product search from identifier of type %s') % type(product_identifier))
+
+        results = self.search(domain)
+        if not results:
+            raise ValidationError(_('Product not found for identifier %s') % str(product_identifier))
+        if  len(results) > 1:
+            raise ValidationError(_('Too many products found for identifier %s') % str(product_identifier))
+
+        return results
