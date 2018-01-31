@@ -7,6 +7,7 @@ from odoo.exceptions import ValidationError
 
 from ..common import check_many2one_validity
 
+
 class StockPicking(models.Model):
     _inherit = 'stock.picking'
 
@@ -256,19 +257,23 @@ class StockPicking(models.Model):
             #picking.move_line_ids.mapped('result_package_id').write({'package_id': False})
             pass
 
-        if package_name:
-            values['package'] = package_name
-        if products_info:
-            values['products_info'] = products_info
 
         # get all the stock.move.lines
         move_lines = self.move_line_ids
 
-        if package_name or products_info or force_validate:
-            # validate stock.move.lines
-            move_lines.validate(**values)
+        if package_name:
+            # a package is bein marked as done
+            values['package'] = package_name
+            package = Package.get_package(package_name)
+            move_lines = move_lines.get_package_move_lines(package)
+        if products_info:
+            values['products_info'] = products_info
 
-        # TODO: or validate?
+
+        if package_name or products_info or force_validate:
+            # mark_as_done the stock.move.lines
+            move_lines.mark_as_done(**values)
+
         if force_validate:
             # validate stock.picking
             self.action_done() # old do_transfer
