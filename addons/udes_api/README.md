@@ -238,8 +238,8 @@ Creates a transfer and stock moves for a given list of stock.quant ids
 * @return: the stock.picking in the same format as the GET API method.
 
 ```
-URI: /api/stock-picking
-HTTP Method: PUT
+URI: /api/stock-picking/<id>
+HTTP Method: POST
 Old method(s): force_validate, validate_operation
 ```
 
@@ -250,8 +250,27 @@ Update/mutate the stock picking
 * @param (optional) move_parent_package: as POST
 * @param (optional) force_validate - forces the transfer to be completed. Depends on parameters
 * @param (optional) location_dest_id - target destination
-* @param (optional) result_package_name - If it corresponds to an existing package/pallet that is not in an other location, we will set it to the `result_package_id` of the operations of the picking (i.e. transfer)
+* @param (optional) location_barcode - target destination
+* @param (optional) result_package_name - If it corresponds to an existing package/pallet that is not in an other location, we will set it to the `result_package_id` of the operations of the picking (i.e. transfer). If the target storage format of the picking type is pallet of packages it will set `result_parent_package_id`.
+* @param (optional) package_name - Name of the package of the picking to be marked as done
+* @param (optional) products_info - An array with the products information to be marked as done, where each dictionary contains: product_barcode, qty and serial numbers if needed
 
+
+Api call example to mark as done one unit of product test01 from picking with id 60.
+If the target storage format of the picking type is pallet of packages, test01 move line will have as `result_package_id` a new package and as `result_parent_package_id` the package with name PAL007. If the target storage format of the picking type is pallet of products, test01 move line will have as `result_package_id` the package with name PAL007.
+```javascript
+odoo.__DEBUG__.services['web.ajax'].jsonRpc('/api/stock-picking/60', 'call', {
+    products_info: [{'product_barcode': 'test01', 'qty': 1}],
+    result_package_name: 'PAL007',
+}).then(function(result){console.log(result); } )
+```
+
+Api call example to mark as done two units of serial numbered product test02 from picking with id 60:
+```javascript
+odoo.__DEBUG__.services['web.ajax'].jsonRpc('/api/stock-picking/60', 'call', {
+    products_info: [{'product_barcode': 'test02', 'qty': 2, serial_numbers: ['sn0001','sn0002']}],
+}).then(function(result){console.log(result); } )
+```
 
 ## Stock Location
 
