@@ -9,14 +9,18 @@ class StockMoveLine(models.Model):
     _inherit = 'stock.move.line'
 
     def mark_as_done(self, location_dest=None, result_package=None, package=None, products_info=None):
-        """
-            location_dest = string or id
-            result_package = string or id
-            packge = string or id
-            products_info = [{product_info}]
-                where product_info = product_barcode, qty, damaged_qty, serial_numbers, damaged_serial_numbers
-        """
+        """ Marks as done the move lines in self and updates location_dest_id
+            and result_package_id if they are set.
 
+            When products_info is set, only matching move lines from self will
+            be marked as done for a specific quantity.
+
+            - location_dest = string or id
+            - result_package = string or id
+            - package = string or id
+            - products_info = list of dictionaries, whose keys will be
+                              product_barcode, qty, serial_numbers
+        """
         MoveLine = self.env['stock.move.line']
         Location = self.env['stock.location']
         Package = self.env['stock.quant.package']
@@ -48,7 +52,7 @@ class StockMoveLine(models.Model):
             # filter unfinished move lines
             move_lines = move_lines.filtered(lambda ml: ml.qty_done < ml.product_uom_qty)
             move_lines._check_enough_quantity(products_info_by_product)
-            # TODO: check this condition
+            # TODO: check this condition, if it is not needed, we don't need package in this function
             if not package and not result_package and move_lines.mapped('package_id'):
                 raise ValidationError(_('Setting as done package operations as product operations'))
 
@@ -82,10 +86,14 @@ class StockMoveLine(models.Model):
         return mls_done
 
     def _filter_by_products_info(self, products_info):
-        """ TODO:
+        """ Filter the move_lines in self by the products in products_info.
+            When a product is tracked by serial number:
+            - when they have lot_id set, they are also filtered by
+              serial number and check that they are not done
+            - when they have lot_name, it is checked to avoid repeated
+              serial numbers
         """
         # get all move lines of the products in products_info
-        print(products_info)
         move_lines = self.filtered(lambda ml: ml.product_id in products_info)
 
         # if any of the products is tracked by serial number, filter if needed
@@ -146,7 +154,9 @@ class StockMoveLine(models.Model):
         return self.filtered(lambda ml: ml.package_id == package)
 
     def _assert_result_package(self, result_package):
-        """ Checks that the result_package ....
+        """ Checks that result_package is the expected result package
+            for the move lines in self. i.e., result_package has to
+            match with move_line.result_package_id.
         """
         if not result_package:
             return
@@ -163,17 +173,16 @@ class StockMoveLine(models.Model):
 
 
     def _update_products_info(self, product, products_info, info):
-        """ TODO check name, maybe do it different and move to another model
-
-            For each key,value in info it merges to the corresponding
+        """ For each (key, value) in info it merges to the corresponding
             produc info if it alreay exists.
 
             where key:
-                qty, damaged_qty, serial_numbers, damaged_serial_numbers
+                qty, serial_numbers
 
             Only for products not tracked or tracked by serial numbers
 
             TODO: extend this function to handle damaged
+                damaged_qty, damaged_serial_numbers
         """
         if product.tracking == 'serial':
             if not 'serial_numbers' in info:
@@ -184,6 +193,7 @@ class StockMoveLine(models.Model):
                 raise ValidationError(
                         _('The number of serial numbers and quantity done'
                           ' does not match for product %s') % product.name)
+
         if not product in products_info:
             products_info[product] = info.copy()
         else:
@@ -241,7 +251,9 @@ class StockMoveLine(models.Model):
 
 
     def _prepare_line_product_info(self, values, products_info):
-        """ Updates values and products_info....
+        """ Updates values with the proper quantity done and optionally
+            with a serial number, and updates products_info according
+            to it by decreasing the remaining quantity to be done
         """
         # TODO: extend for damaged in a different module
         self.ensure_one()
@@ -253,7 +265,7 @@ class StockMoveLine(models.Model):
         if self.product_uom_qty < qty_done:
             qty_done = self.product_uom_qty
         values['qty_done'] = qty_done
-        # update products_info remainint qty to be marked as done
+        # update products_info remaining qty to be marked as done
         info['qty'] -= qty_done
 
         if product.tracking == 'serial':
@@ -281,8 +293,7 @@ class StockMoveLine(models.Model):
         return (values, products_info)
 
     def _mark_as_done(self, values, split=True):
-        """ Assumes all paramaters but lot numbers have been checked,
-                    can we check lot numbers at _prepare_line_product_info?
+        """ Upate the move line with values and splits it if needed.
         """
         self.ensure_one()
         if 'qty_done' not in values:
