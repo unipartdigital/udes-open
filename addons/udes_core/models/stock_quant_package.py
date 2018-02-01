@@ -3,6 +3,7 @@
 from odoo import models, _
 from odoo.exceptions import ValidationError
 
+
 class StockQuantPackage(models.Model):
     _inherit = "stock.quant.package"
 
@@ -49,12 +50,9 @@ class StockQuantPackage(models.Model):
 
         results = self.search(domain)
         if not results:
-            if not create:
+            if not create or name is None:
                 raise ValidationError(_('Package not found for identifier %s') % str(package_identifier))
-            values = {}
-            if name:
-                values['name'] = name
-            results = self.create(values)
+            results = self.create({'name': name})
         if  len(results) > 1:
             raise ValidationError(_('Too many packages found for identifier %s') % str(package_identifier))
 
@@ -66,3 +64,10 @@ class StockQuantPackage(models.Model):
         """
         self.ensure_one()
         self.mapped('quant_ids').ensure_not_reserved()
+
+    def has_same_content(self, other):
+        """ Compare the content of current package with the content of another package.
+        """
+        self.ensure_one()
+        return frozenset(self._get_all_products_quantities().items()) == \
+               frozenset(other._get_all_products_quantities().items())

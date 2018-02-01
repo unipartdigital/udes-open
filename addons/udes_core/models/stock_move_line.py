@@ -4,18 +4,23 @@ from odoo import models,  _
 from odoo.exceptions import ValidationError
 from odoo.tools.float_utils import float_compare, float_round
 
+
 class StockMoveLine(models.Model):
     _inherit = 'stock.move.line'
 
-    def validate(self, location_dest=None, result_package=None, package=None, products_info=None):
-        """
-            location_dest = string or id
-            result_package = string or id
-            packge = string or id
-            products_info = [{product_info}]
-                where product_info = product_barcode, qty, damaged_qty, serial_numbers, damaged_serial_numbers
-        """
+    def mark_as_done(self, location_dest=None, result_package=None, package=None, products_info=None):
+        """ Marks as done the move lines in self and updates location_dest_id
+            and result_package_id if they are set.
 
+            When products_info is set, only matching move lines from self will
+            be marked as done for a specific quantity.
+
+            - location_dest = string or id
+            - result_package = string or id
+            - package = string or id
+            - products_info = list of dictionaries, whose keys will be
+                              product_barcode, qty, serial_numbers
+        """
         MoveLine = self.env['stock.move.line']
         Location = self.env['stock.location']
         Package = self.env['stock.quant.package']
@@ -28,7 +33,6 @@ class StockMoveLine(models.Model):
             # get the location to check if it is valid
             location = Location.get_location(location_dest)
             values['location_dest_id'] = location.id
-        # TODO: self.check_valid_location_dest(location_dest)
 
         if result_package:
             # get the result package to check if it is valid
@@ -36,45 +40,113 @@ class StockMoveLine(models.Model):
             values['result_package_id'] = result_package.id
 
         if package:
-            # get the package and filter move_lines of the package
+            # get the package
             package = Package.get_package(package)
-            move_lines = move_lines.get_package_move_lines(package)
 
         products_info_by_product = {}
         if products_info:
-            # prepare products_info and filter move_lines by the product in it
+            # prepare products_info
             products_info_by_product = move_lines._prepare_products_info(products_info)
-            move_lines = move_lines.filtered(lambda ml: ml.product_id in products_info_by_product and
-                                                        ml.qty_done == 0)
-            # TODO: check this condition
+            # filter move_lines by products in producst_info_by_product and undone
+            move_lines = move_lines._filter_by_products_info(products_info_by_product)
+            # filter unfinished move lines
+            move_lines = move_lines.filtered(lambda ml: ml.qty_done < ml.product_uom_qty)
+            move_lines._check_enough_quantity(products_info_by_product)
+            # TODO: check this condition, if it is not needed, we don't need package in this function
             if not package and not result_package and move_lines.mapped('package_id'):
                 raise ValidationError(_('Setting as done package operations as product operations'))
 
         if not move_lines:
-            raise ValidationError(_("Cannot find move lines to validate"))
+            raise ValidationError(_("Cannot find move lines to mark as done"))
         if move_lines.filtered(lambda ml: ml.qty_done > 0):
             raise ValidationError(_("The operation is already done"))
 
         # check valid result_package for the move_lines that are going
-        # to be validated only
+        # to be marked as done only
         move_lines._assert_result_package(result_package)
 
         mls_done = MoveLine.browse()
         for ml in move_lines:
             ml_values = values.copy()
+            # Check if there is specific info for the move_line product
+            # otherwise we fully mark as done the move_line
             if products_info_by_product:
-                # there is specific info for the product of the move_line
-                ml._prepare_line_product_info(ml_values, products_info_by_product)
+                # check if the qty done has been fulfilled
+                if products_info_by_product[ml.product_id]['qty'] == 0:
+                    continue
+                ml_values, products_info_by_product = ml._prepare_line_product_info(ml_values, products_info_by_product)
             else:
-                # otherwise we fully validate the move_line
                 ml_values['qty_done'] = ml.product_qty
-            mls_done |= ml._validate(ml_values)
+            mls_done |= ml._mark_as_done(ml_values)
 
         # TODO: at this point products_info_by_product should be with qty_todo = 0?
-        #       check it?
+        #       No necessarily, can we have add unexpected parts and not enough stock?
 
         # it might be useful when extending the method
         return mls_done
+
+    def _filter_by_products_info(self, products_info):
+        """ Filter the move_lines in self by the products in products_info.
+            When a product is tracked by serial number:
+            - when they have lot_id set, they are also filtered by
+              serial number and check that they are not done
+            - when they have lot_name, it is checked to avoid repeated
+              serial numbers
+        """
+        # get all move lines of the products in products_info
+        move_lines = self.filtered(lambda ml: ml.product_id in products_info)
+
+        # if any of the products is tracked by serial number, filter if needed
+        for product in move_lines.mapped('product_id').filtered(lambda ml: ml.tracking == 'serial'):
+            serial_numbers = products_info[product]['serial_numbers']
+
+            product_mls = move_lines.filtered(lambda ml: ml.product_id == product)
+            mls_with_lot_id = product_mls.filtered(lambda ml: ml.lot_id)
+            mls_with_lot_name = product_mls.filtered(lambda ml: ml.lot_name)
+            if mls_with_lot_id:
+                # all mls should have lot id
+                if not mls_with_lot_id == product_mls:
+                    raise ValidationError(
+                            _("Some move lines don't have lot_id in "
+                              "picking %s for product %s") %
+                            (product_mls.mapped('picking_id.name'), product.name))
+
+                product_mls_in_serial_numbers = mls_with_lot_id.filtered(lambda ml: ml.lot_id.name in serial_numbers)
+                if len(product_mls_in_serial_numbers) != len(serial_numbers):
+                    mls_serial_numbers = product_mls_in_serial_numbers.mapped('lot_id.name')
+                    diff = set(serial_numbers) - set(mls_serial_numbers)
+                    raise ValidationError(
+                            _('Serial numbers %s for product %s not found in picking %s') %
+                            (' '.join(diff), product.name, product_mls.mapped('picking_id.name')))
+
+                done_mls = product_mls_in_serial_numbers.filtered(lambda ml: ml.qty_done > 0)
+                if done_mls:
+                    raise ValidationError(
+                            _("Operations for product %s with serial "
+                              "numbers %s are already done.") %
+                            (product.name, ','.join(done_mls.mapped('lot_id.name'))))
+
+                product_mls_not_in_serial_numbers = product_mls - product_mls_in_serial_numbers
+                # remove move lines not in serial_numbers
+                move_lines -= product_mls_not_in_serial_numbers
+
+            elif mls_with_lot_name:
+                # none of them has lot id, so they are new serial numbers and
+                # none of them
+                product_mls_in_serial_numbers = mls_with_lot_name.filtered(lambda ml: ml.lot_name in serial_numbers)
+                if product_mls_in_serial_numbers:
+                    raise ValidationError(
+                            _('Serial numbers %s already exist in picking %s') %
+                            product_mls.mapped('picking_id.name'))
+            elif product_mls:
+                # new serial numbers
+                pass
+            else:
+                # unexpected part?
+                pass
+
+
+        return move_lines
 
     def get_package_move_lines(self, package):
         """ Get move lines in self of package
@@ -82,7 +154,9 @@ class StockMoveLine(models.Model):
         return self.filtered(lambda ml: ml.package_id == package)
 
     def _assert_result_package(self, result_package):
-        """ Checks that the result_package ....
+        """ Checks that result_package is the expected result package
+            for the move lines in self. i.e., result_package has to
+            match with move_line.result_package_id.
         """
         if not result_package:
             return
@@ -98,19 +172,27 @@ class StockMoveLine(models.Model):
                           (ml_result_package.name, result_package.name)))
 
 
-    def _set_products_info(self, product, products_info, info):
-        """ TODO check name, maybe do it different and move to another model
-
-            For each key,value in info it merges to the corresponding
+    def _update_products_info(self, product, products_info, info):
+        """ For each (key, value) in info it merges to the corresponding
             produc info if it alreay exists.
 
             where key:
-                qty, damaged_qty, serial_numbers, damaged_serial_numbers
+                qty, serial_numbers
 
             Only for products not tracked or tracked by serial numbers
+
+            TODO: extend this function to handle damaged
+                damaged_qty, damaged_serial_numbers
         """
-        if product.tracking == 'serial' and not 'serial_numbers' in info:
-            raise ValidationError(_('Validating a serial numbered product without serial numbers'))
+        if product.tracking == 'serial':
+            if not 'serial_numbers' in info:
+                raise ValidationError(
+                        _('Validating a serial numbered product without'
+                          ' serial numbers'))
+            if len(info['serial_numbers']) != info['qty']:
+                raise ValidationError(
+                        _('The number of serial numbers and quantity done'
+                          ' does not match for product %s') % product.name)
 
         if not product in products_info:
             products_info[product] = info.copy()
@@ -124,24 +206,28 @@ class StockMoveLine(models.Model):
                     raise ValidationError(
                             _('Unexpected type for move line parameter %s') % key)
 
-    def _check_enough_quantity(self, products_info):
-        """ Checks if there is enough quantity todo at move_lines in self
-            to fulfill the qty_done of all products
+        return products_info
 
-            Also checks if qty_done = len(serial_numbers)
+    def _check_enough_quantity(self, products_info):
+        """ Check that move_lines in self can fulfill the quantity done
+            in products_info, otherwise create unexpected parts if
+            applicable.
+
+            products_info is mapped by product and contains a dictionary
+            with the qty to be marked as done and the list of serial
+            numbers
         """
+        # products_todo stores extra quantity done per product that
+        # cannot be handled in the move lines in self
         products_todo = {}
         for product, info in products_info.items():
-            qty_todo = sum(self.filtered(lambda ml: ml.product_id == product).mapped('product_qty'))
+            product_mls = self.filtered(lambda ml: ml.product_id == product)
+            mls_qty_reserved = sum(product_mls.mapped('product_uom_qty'))
+            mls_qty_done = sum(product_mls.mapped('qty_done'))
+            mls_qty_todo = mls_qty_reserved - mls_qty_done
             qty_done = info['qty']
-            diff = qty_todo - qty_done
-            if diff >= 0:
-                # TODO: do the same for damaged serial nubmers overriding this function
-                if product.tracking == 'serial' and qty_done != len(info['serial_numbers']):
-                    raise ValidationError(
-                        _('The number of serial numbers and quantity done'
-                          ' does not match for product %s') % product.name)
-            else:
+            diff = mls_qty_todo - qty_done
+            if diff < 0:
                 #not enough quantity
                 # TODO: list of {'product_barcode': product.barcode, 'qty': diff} ?
                 products_todo[product.id] = diff
@@ -152,23 +238,23 @@ class StockMoveLine(models.Model):
 
     def _prepare_products_info(self, products_info):
         """ Reindex products_info by product.product model, merge repeated
-            products info into one and check that move_lines in self can
-            fulfill the quantity done (otherwise create unexpected parts
-            if applicable)
+            products info into one
         """
         Product = self.env['product.product']
 
         products_info_by_product = {}
         for info in products_info:
             product = Product.get_product(info['product_barcode'])
-            self._set_products_info(product, products_info_by_product, info)
-
-        self._check_enough_quantity(products_info_by_product)
+            products_info_by_product = self._update_products_info(product, products_info_by_product, info)
 
         return products_info_by_product
 
 
     def _prepare_line_product_info(self, values, products_info):
+        """ Updates values with the proper quantity done and optionally
+            with a serial number, and updates products_info according
+            to it by decreasing the remaining quantity to be done
+        """
         # TODO: extend for damaged in a different module
         self.ensure_one()
 
@@ -176,27 +262,43 @@ class StockMoveLine(models.Model):
         info = products_info[product]
         qty_done = info['qty']
 
-        if self.product_qty < qty_done:
-            qty_done = self.product_qty
+        if self.product_uom_qty < qty_done:
+            qty_done = self.product_uom_qty
         values['qty_done'] = qty_done
-        # update products_info qty todo
+        # update products_info remaining qty to be marked as done
         info['qty'] -= qty_done
 
         if product.tracking == 'serial':
-            # lot_id is when it already exists in the system
-            ml_lot_name = self.lot_name or self.lot_id.name
-            # TODO: when ml_lot_name is set, pop the corresponding,
-            #       it has to match to one of them
-            values['lot_name'] = info['serial_numbers'].pop()
+            if self.lot_name:
+                # lot_name is set when it does not exist in the system
+                raise ValidationError(
+                        _("Trying to mark as done a move line with lot"
+                          " name already set: %s") % self.lot_name)
+            # lot_id is set when it already exists in the system
+            ml_lot_name = self.lot_id.name
+            if ml_lot_name:
+                # check that is in the serial numbers list
+                if ml_lot_name not in info['serial_numbers']:
+                    raise ValidationError(
+                            _('Cannot find serial number %s in the list'
+                              ' of serial numbers to validate') %
+                            ml_lot_name)
+                i = info['serial_numbers'].index(ml_lot_name)
+                # remove it from the list, no need to set lot_name because
+                # the move line already has a lot_id
+                info['serial_numbers'].pop(i)
+            else:
+                values['lot_name'] = info['serial_numbers'].pop()
 
-    def _validate(self, values, split=True):
-        """ Assumes all paramaters but lot numbers have been checked,
-                    can we check lot numbers at _prepare_line_product_info?
+        return (values, products_info)
+
+    def _mark_as_done(self, values, split=True):
+        """ Upate the move line with values and splits it if needed.
         """
         self.ensure_one()
         if 'qty_done' not in values:
             raise ValidationError(
-                    _('Cannot validate move line %s of picking %s without '
+                    _('Cannot mark as done move line %s of picking %s without '
                       'quantity done') % (self.id, self.picking_id.name))
 
         self.write(values)
@@ -223,15 +325,25 @@ class StockMoveLine(models.Model):
                 precision_rounding=self.product_uom_id.rounding,
                 rounding_method='UP')
             done_to_keep = self.qty_done
+            # create new move line with the qty_done
             new_ml = self.copy(
-                default={'product_uom_qty': 0, 'qty_done': self.qty_done})
-            self.write({'product_uom_qty': quantity_left_todo,
-                        'qty_done': 0.0,
-                        'result_package_id': False})
-            new_ml.write({'product_uom_qty': done_to_keep})
+                default={'product_uom_qty': done_to_keep,
+                         'ordered_qty': done_to_keep,
+                         'qty_done': self.qty_done,
+                         })
+            # update self move line quantity todo
+            # - bypass_reservation_update:
+            #   avoids to execute code specific for Odoo UI at stock.move.line.write()
+            self.with_context(bypass_reservation_update=True).write(
+                    {'product_uom_qty': quantity_left_todo,
+                     'ordered_qty': quantity_left_todo,
+                     'qty_done': 0.0,
+                     'result_package_id': False,
+                     })
             res = new_ml
 
         return res
+
     def _prepare_info(self):
         """
             Prepares the following info of the move line self:

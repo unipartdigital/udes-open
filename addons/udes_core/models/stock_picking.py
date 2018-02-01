@@ -7,6 +7,7 @@ from odoo.exceptions import ValidationError
 
 from ..common import check_many2one_validity
 
+
 class StockPicking(models.Model):
     _inherit = 'stock.picking'
 
@@ -224,6 +225,8 @@ class StockPicking(models.Model):
                 Forces the transfer to be completed. Depends on parameters
             @param (optional) location_dest_id: int
                 ID of the location where the stock is going to be moved to
+            @param (optional) location_barcode: string 
+                barcode of the location where the stock is going to be moved to
             @param (optional) result_package_name: string
                 If it corresponds to an existing package/pallet that is not
                 in an other location, we will set it to the `result_package_id`
@@ -231,6 +234,13 @@ class StockPicking(models.Model):
             @param (optional) move_parent_package: Boolean
                 Used in pallets/nested packages, to maintain the move of the entire pallet.
                 Defaults to False
+            @param package_name: string
+                Name of the package of the picking to be marked as done
+            @param products_info: Array of dictionaries
+                An array with the products information to be marked as done,
+                where each dictionary contains: product_barcode, qty and
+                serial numbers if needed
+
         """
         Location = self.env['stock.location']
         Package = self.env['stock.quant.package']
@@ -256,19 +266,22 @@ class StockPicking(models.Model):
             #picking.move_line_ids.mapped('result_package_id').write({'package_id': False})
             pass
 
-        if package_name:
-            values['package'] = package_name
-        if products_info:
-            values['products_info'] = products_info
-
         # get all the stock.move.lines
         move_lines = self.move_line_ids
 
-        if package_name or products_info or force_validate:
-            # validate stock.move.lines
-            move_lines.validate(**values)
+        if package_name:
+            # a package is being marked as done
+            values['package'] = package_name
+            package = Package.get_package(package_name)
+            move_lines = move_lines.get_package_move_lines(package)
 
-        # TODO: or validate?
+        if products_info:
+            values['products_info'] = products_info
+
+        if package_name or products_info or force_validate:
+            # mark_as_done the stock.move.lines
+            mls_done = move_lines.mark_as_done(**values)
+
         if force_validate:
             # validate stock.picking
             self.action_done() # old do_transfer
