@@ -85,7 +85,7 @@ class StockMoveLine(models.Model):
 
     def get_package_move_lines(self, package):
         """ Extend to get move lines of package when package is
-            a parent package and handle swapping packages.
+            a parent package and to handle swapping packages.
         """
         if package.children_ids:
             res = self.filtered(lambda ml: ml.package_id in package.children_ids)
@@ -93,8 +93,10 @@ class StockMoveLine(models.Model):
             res = super(StockMoveLine, self).get_package_move_lines(package)
 
         if not res:
-            # check if the package can be swapped
+            # The package is not found in the move lines,
+            # check if the package can be swapped and get
+            # move_lines
             picking = self.mapped('picking_id')
-            move_lines = picking._handle_swap(package)
+            res = picking.handle_swap(package)
 
         return res
