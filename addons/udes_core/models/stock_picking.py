@@ -394,7 +394,9 @@ class StockPicking(models.Model):
                 ('move_line_ids.location_id', '=', location_id)
             ]
         elif package_barcode:
-            package = Package.get_package(package_barcode)
+            package = Package.get_package(package_barcode, no_results=True)
+            if not package:
+                return Picking.browse()
             domain = self._get_package_search_domain(package)
         elif picking_priorities:
             domain = [
