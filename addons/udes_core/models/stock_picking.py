@@ -359,7 +359,6 @@ class StockPicking(models.Model):
                     for instance adding the extra criteria to extra_domain paramater
 
             TODO: bulky
-            TODO: handle move lines
         """
         Picking = self.env['stock.picking']
         Package = self.env['stock.quant.package']
@@ -387,13 +386,7 @@ class StockPicking(models.Model):
             ]
         elif package_barcode:
             package = Package.get_package(package_barcode)
-            # TODO: change = to child_of when we add package hierachy ?
-            domain = ['|', ('move_line_ids.package_id', '=', package.id),
-                           ('move_line_ids.result_package_id', '=', package.id)]
-            # TODO: instead of using this variable we can use a context variable
-            #list_data_filters['stock_pack_operations'] = {'self': {'package_id': pallet.id}}
-            #if allops:
-            #    list_data_filters['stock_pack_operations']['allops'] = True
+            domain = self._get_package_search_domain(package)
         elif picking_priorities:
             warehouse = Users.get_user_warehouse()
             domain = [
@@ -428,7 +421,13 @@ class StockPicking(models.Model):
 
         return pickings
 
-    def _prepare_info(self, priorities=None):
+    def _get_package_search_domain(self, package):
+        """ Generate the domain for searching pickings of a package
+        """
+        return ['|', ('move_line_ids.package_id', '=', package.id),
+                     ('move_line_ids.result_package_id', '=', package.id)]
+
+    def _prepare_info(self, priorities=None, fields_to_fetch=None):
         """
             Prepares the following info of the picking in self:
             - id: int
@@ -449,18 +448,23 @@ class StockPicking(models.Model):
             priorities = OrderedDict(self._fields['priority'].selection)
         priority_name = priorities[self.priority]
 
-        return {"id": self.id,
-                "name": self.name,
-                "priority": self.priority,
-                "backorder_id": self.backorder_id.id,
-                "priority_name": priority_name,
-                "origin": self.origin,
-                "location_dest_id": self.location_dest_id.id,
-                "picking_type_id": self.picking_type_id.id,
-                "moves_lines": self.move_lines.get_info()
+        info = {"id": lambda p: p.id,
+                "name": lambda p: p.name,
+                "priority": lambda p: p.priority,
+                "backorder_id": lambda p: p.backorder_id.id,
+                "priority_name": lambda p: priority_name,
+                "origin": lambda p: p.origin,
+                "state": lambda p: p.state,
+                "location_dest_id": lambda p: p.location_dest_id.id,
+                "picking_type_id": lambda p: p.picking_type_id.id,
+                "moves_lines": lambda p: p.move_lines.get_info()
                }
+        if not fields_to_fetch:
+            fields_to_fetch = info.keys()
 
-    def get_info(self):
+        return {key: value(self) for key, value in info.items() if key in fields_to_fetch}
+
+    def get_info(self, **kwargs):
         """ Return a list with the information of each picking in self.
         """
         # create a dict of priority_id:priority_name to avoid
@@ -468,6 +472,6 @@ class StockPicking(models.Model):
         priorities = OrderedDict(self._fields['priority'].selection)
         res = []
         for picking in self:
-            res.append(picking._prepare_info(priorities))
+            res.append(picking._prepare_info(priorities, **kwargs))
 
         return res
