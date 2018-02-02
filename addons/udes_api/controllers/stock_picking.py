@@ -12,6 +12,10 @@ class Picking(UdesApi):
     def get_pickings(self, fields_to_fetch=None, **kwargs):
         """ Search for pickings by various criteria and return an
             array of stock.picking objects that match a given criteria.
+
+            @param fields_to_fetch: list of strings
+                Filter the returned fields of each picking, returning
+                only the ones in the list.
         """
         Picking = request.env['stock.picking']
         pickings = Picking.get_pickings(**kwargs)

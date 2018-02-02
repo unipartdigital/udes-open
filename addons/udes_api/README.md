@@ -209,6 +209,11 @@ Search for pickings by various criteria and return an array of stock.picking obj
                         parameter to return pickings that have bulky items
 * @param (NO LONGER USED - REMOVE) (optional)  use_list_data: Decides whether the _list_data function is used when returning data
 
+* @param (optional) fields_to_fetch: list of strings. Filter the returned fields of each picking, returning only the ones in the list.
+
+* @param (optional) picking_type_ids: Array (int) If it is set the pickings returned will be only from the picking types in the array.
+
+
 Output format:
 
 
