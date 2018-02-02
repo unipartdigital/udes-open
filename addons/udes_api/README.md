@@ -299,4 +299,17 @@ Search for a package by id or name/barcode and returns a stock.quant.package obj
 * @param query - (optional) this is a string that entirely matches either the name or barcode
 * @param check_reserved - (optional, default = false) When enabled, checks if the package has stock reserved, in which case an error will be raise.
 
+## Products
+
+```
+URI: /api/product-product
+HTTP Method: GET
+Old method(s): ???
+```
+Search for a product by id or name/barcode and returns a product object that match the given criteria.
+
+* @param: id - (optional) the package's id
+* @param query - (optional) this is a string that entirely matches either the name or barcode
+* @param fields_to_fetch - (optional): Subset of the default returned fields to return
+
 
