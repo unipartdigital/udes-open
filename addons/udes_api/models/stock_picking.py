@@ -7,6 +7,13 @@ from odoo.exceptions import ValidationError
 class StockPicking(models.Model):
     _inherit = 'stock.picking'
 
+    def _get_package_search_domain(self, package):
+        """ Override to handle multiple levels of packages
+        """
+        return ['|', ('move_line_ids.package_id', 'child_of', package.id),
+                '|', ('move_line_ids.result_package_id', 'child_of', package.id),
+                     ('move_line_ids.u_result_parent_package_id', '=', package.id)]
+
     def update_picking(self, expected_package_name=None, **kwargs):
         """ Extend update_picking with a new parameter expected_package_name
             to be used during swapping packages
