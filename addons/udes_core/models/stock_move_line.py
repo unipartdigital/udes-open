@@ -364,7 +364,7 @@ class StockMoveLine(models.Model):
         if self.package_id:
             package_info = self.package_id.get_info()[0]
         if self.result_package_id:
-            package_info = self.result_package_id.get_info()[0]
+            result_package_info = self.result_package_id.get_info()[0]
 
         return {"id": self.id,
                 "create_date": self.create_date,
