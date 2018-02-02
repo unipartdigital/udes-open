@@ -100,3 +100,16 @@ class StockMoveLine(models.Model):
             res = picking.handle_swap(package)
 
         return res
+
+    def _prepare_info(self, **kwargs):
+        """
+            Prepares the following extra info of the move line in self
+            - u_result_parent_package_id: result parent package of the
+                result_package_id
+        """
+        info = super(StockMoveLine, self)._prepare_info(**kwargs)
+
+        if self.u_result_parent_package_id:
+            info['u_result_parent_package_id'] = self.u_result_parent_package_id.get_info()[0]
+
+        return info
