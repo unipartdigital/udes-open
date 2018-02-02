@@ -290,6 +290,7 @@ class StockPicking(models.Model):
                      origin=None,
                      package_barcode=None,
                      states=None,
+                     picking_type_ids=None,
                      allops=None,
                      location_id=None,
                      product_id=None,
@@ -358,6 +359,9 @@ class StockPicking(models.Model):
                 TODO: this needs to be in a new module and extend this function
                     for instance adding the extra criteria to extra_domain paramater
 
+            @param (optional) picking_type_ids: Array (int)
+                If it is set the pickings returned will be only from the picking types in the array.
+
             TODO: bulky
         """
         Picking = self.env['stock.picking']
@@ -369,6 +373,11 @@ class StockPicking(models.Model):
         if states is None:
             states = ['draft', 'cancel', 'waiting',
                       'confirmed', 'assigned', 'done']
+
+        warehouse = Users.get_user_warehouse()
+        if picking_type_ids is None:
+            picking_type_ids = warehouse.get_picking_types().ids
+
         if self:
             domain = [('id', 'in', self.mapped('id'))]
         elif origin:
@@ -388,7 +397,6 @@ class StockPicking(models.Model):
             package = Package.get_package(package_barcode)
             domain = self._get_package_search_domain(package)
         elif picking_priorities:
-            warehouse = Users.get_user_warehouse()
             domain = [
                 ('priority', 'in', picking_priorities),
                 ('picking_type_id', '=', warehouse.pick_type_id.id),
@@ -413,6 +421,9 @@ class StockPicking(models.Model):
 
         # add the states to the domain
         domain.append(('state', 'in', states))
+        # add the picking type ids to the domain
+        domain.append(('picking_type_id', 'in', picking_type_ids))
+
         # add extra domain if there is any
         if extra_domain:
             domain.extend(extra_domain)
