@@ -6,6 +6,16 @@ from odoo import models
 class StockQuantPackage(models.Model):
     _inherit = "stock.quant.package"
 
+    def assert_not_reserved(self):
+        """ Check that the content of the package is reserved, in that
+        case raise an error.
+        """
+        self.ensure_one()
+        if self.children_ids:
+            self.mapped('children_quant_ids').assert_not_reserved()
+        else:
+            super(StockQuantPackage, self).assert_not_reserved()
+
     def _prepare_info(self, extended=False, **kwargs):
         """
             Prepares the following extra info of the package in self
