@@ -182,7 +182,7 @@ Old method: search_pickings
 Search for pickings by various criteria and return an array of stock.picking objects that match a given criteria.
 
 * @param (optional) origin - search for stock.picking records based on the origin field. Needs to be a complete match.
-* @param (optional) package_barcode - search of stock.pickings associated with a specific package_barcode (exact match). N.B. in the old method, this was pallet.
+* @param (optional) package_name - search of stock.pickings associated with a specific package_name (exact match). N.B. in the old method, this was pallet.
 * @param (optional) product_id - is set then location_id must also be set and stock.pickings are found using both of those values (states is optional).
 * @param (optional) location_id is set then only internal transfers acting on that location are considered.
         In all cases, if states is set then only pickings in those states are
