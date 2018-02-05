@@ -48,6 +48,9 @@ Physical packages of products. They can be used to represent parcels sent to cus
 | ---------------- | ------- | -------------------------------------------------------- |
 | id               | int     | |
 | name             | string  | |
+| package_id       | int     | ID of the parent package if it exists |
+| children_ids     | [{stock.quant.package}] | Children packages information if there is any |
+| quants           | [{stock.quant}] | Stock inside the package |
 
 ## Stock Picking (model: stock.picking)
 
@@ -119,6 +122,7 @@ A move of a specific, handleable item of stock - such as 5 phones, or 1 car door
 | package_id                | {stock.quant.package} | Source package |
 | qty_done                  | float | |
 | result_package_id         | {stock.quant.package} | Destination package
+| u_result_parent_package_id | {stock.quant.package} | Destination parent package of the result_package_id
 | write_date                | datetime | |
 
 ## Stock Warehouse
