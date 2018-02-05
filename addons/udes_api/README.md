@@ -302,10 +302,10 @@ URI: /api/stock-quant-package
 HTTP Method: GET
 Old method(s): get_quants_from_barcode
 ```
-Search for a package by id or name/barcode and returns a stock.quant.package object that match the given criteria.
+Search for a package by id or name and returns a stock.quant.package object that match the given criteria.
 
-* @param: id - (optional) the package's id
-* @param query - (optional) this is a string that entirely matches either the name or barcode
+* @param: package_id - (optional) the package's id
+* @param package_name - (optional) this is a string that entirely matches the name
 * @param check_reserved - (optional, default = false) When enabled, checks if the package has stock reserved, in which case an error will be raise.
 
 ## Products
