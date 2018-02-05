@@ -17,9 +17,6 @@ class StockQuantPackage(models.Model):
         if self.package_id:
             info['package_id'] = self.package_id.id
         if self.children_ids:
-            if extended:
-                info['children_ids'] = self.children_ids.get_info(extended=extended, **kwargs)
-            else:
-                info['children_ids'] = self.children_ids.ids
+            info['children_ids'] = self.children_ids.get_info(extended=extended, **kwargs)
 
         return info
