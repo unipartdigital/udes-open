@@ -9,21 +9,23 @@ from .main import UdesApi
 class Product(UdesApi):
 
     @http.route('/api/product-product/', type='json', methods=['GET'], auth='user')
-    def get_product(self, product_id=None, query=None, fields_to_fetch=None):
-        """ Search for a product by id or name/barcode and returns a
+    def get_product(self, product_id=None, product_name=None, product_barcode=None, fields_to_fetch=None):
+        """ Search for a product by id, name or barcode and returns a
             product.product object that match the given criteria.
 
             @param (optional) product_id
                 The product's id
-            @param (optional) query
-                This is a string that entirely matches either the name or barcode
+            @param (optional) product_name
+                This is a string that entirely matches the name
+            @param (optional) product_barcode
+                This is a string that entirely matches the barcode
             @param (optional) fields_to_fetch
                 Subset of the default fields to return
 
         """
         Product = request.env['product.product']
 
-        identifier = product_id or query
+        identifier = product_id or product_name or product_barcode
         if not identifier:
             raise ValidationError(
                     _('You need to provide an id, name or barcode for'
