@@ -48,6 +48,9 @@ Physical packages of products. They can be used to represent parcels sent to cus
 | ---------------- | ------- | -------------------------------------------------------- |
 | id               | int     | |
 | name             | string  | |
+| package_id       | int     | ID of the parent package if it exists |
+| children_ids     | [{stock.quant.package}] | Children packages information if there is any |
+| quants           | [{stock.quant}] | Stock inside the package |
 
 ## Stock Picking (model: stock.picking)
 
@@ -119,6 +122,7 @@ A move of a specific, handleable item of stock - such as 5 phones, or 1 car door
 | package_id                | {stock.quant.package} | Source package |
 | qty_done                  | float | |
 | result_package_id         | {stock.quant.package} | Destination package
+| u_result_parent_package_id | {stock.quant.package} | Destination parent package of the result_package_id
 | write_date                | datetime | |
 
 ## Stock Warehouse
@@ -178,7 +182,7 @@ Old method: search_pickings
 Search for pickings by various criteria and return an array of stock.picking objects that match a given criteria.
 
 * @param (optional) origin - search for stock.picking records based on the origin field. Needs to be a complete match.
-* @param (optional) package_barcode - search of stock.pickings associated with a specific package_barcode (exact match). N.B. in the old method, this was pallet.
+* @param (optional) package_name - search of stock.pickings associated with a specific package_name (exact match). N.B. in the old method, this was pallet.
 * @param (optional) product_id - is set then location_id must also be set and stock.pickings are found using both of those values (states is optional).
 * @param (optional) location_id is set then only internal transfers acting on that location are considered.
         In all cases, if states is set then only pickings in those states are
@@ -208,6 +212,11 @@ Search for pickings by various criteria and return an array of stock.picking obj
 * @param (optional) bulky (Boolean): This is used in conjunction with the picking_priorities
                         parameter to return pickings that have bulky items
 * @param (NO LONGER USED - REMOVE) (optional)  use_list_data: Decides whether the _list_data function is used when returning data
+
+* @param (optional) fields_to_fetch: Array (string). Subset of the default fields to return.
+
+* @param (optional) picking_type_ids: Array (int) If it is set the pickings returned will be only from the picking types in the array.
+
 
 Output format:
 

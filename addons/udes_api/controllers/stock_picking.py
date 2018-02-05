@@ -9,13 +9,16 @@ from .main import UdesApi
 class Picking(UdesApi):
 
     @http.route('/api/stock-picking/', type='json', methods=['GET'], auth='user')
-    def get_pickings(self, **kwargs):
+    def get_pickings(self, fields_to_fetch=None, **kwargs):
         """ Search for pickings by various criteria and return an
             array of stock.picking objects that match a given criteria.
+
+            @param fields_to_fetch: Array (string)
+                Subset of the default returned fields to return.
         """
         Picking = request.env['stock.picking']
         pickings = Picking.get_pickings(**kwargs)
-        return pickings.get_info()
+        return pickings.get_info(fields_to_fetch=fields_to_fetch)
 
 
     @http.route('/api/stock-picking/', type='json', methods=['POST'], auth='user')
