@@ -71,7 +71,7 @@ class StockQuantPackage(models.Model):
             case raise an error.
         """
         self.ensure_one()
-        self.mapped('quant_ids').ensure_not_reserved()
+        self.mapped('quant_ids').assert_not_reserved()
 
     def has_same_content(self, other):
         """ Compare the content of current package with the content of another package.
