@@ -288,8 +288,9 @@ class StockPicking(models.Model):
 
     def get_pickings(self,
                      origin=None,
-                     package_barcode=None,
+                     package_name=None,
                      states=None,
+                     picking_type_ids=None,
                      allops=None,
                      location_id=None,
                      product_id=None,
@@ -307,9 +308,9 @@ class StockPicking(models.Model):
                 Search for stock.picking records based on the origin
                 field. Needs to be a complete match.
 
-            @param (optional) package_barcode
+            @param (optional) package_name
                 Search of stock.pickings associated with a specific
-                package_barcode (exact match).
+                package_name (exact match).
 
             @param (optional) product_id
                 If it is set then location_id must also be set and stock.pickings
@@ -358,8 +359,10 @@ class StockPicking(models.Model):
                 TODO: this needs to be in a new module and extend this function
                     for instance adding the extra criteria to extra_domain paramater
 
+            @param (optional) picking_type_ids: Array (int)
+                If it is set the pickings returned will be only from the picking types in the array.
+
             TODO: bulky
-            TODO: handle move lines
         """
         Picking = self.env['stock.picking']
         Package = self.env['stock.quant.package']
@@ -370,6 +373,11 @@ class StockPicking(models.Model):
         if states is None:
             states = ['draft', 'cancel', 'waiting',
                       'confirmed', 'assigned', 'done']
+
+        warehouse = Users.get_user_warehouse()
+        if picking_type_ids is None:
+            picking_type_ids = warehouse.get_picking_types().ids
+
         if self:
             domain = [('id', 'in', self.mapped('id'))]
         elif origin:
@@ -385,17 +393,12 @@ class StockPicking(models.Model):
                 ('move_line_ids.product_id', '=', product_id),
                 ('move_line_ids.location_id', '=', location_id)
             ]
-        elif package_barcode:
-            package = Package.get_package(package_barcode)
-            # TODO: change = to child_of when we add package hierachy ?
-            domain = ['|', ('move_line_ids.package_id', '=', package.id),
-                           ('move_line_ids.result_package_id', '=', package.id)]
-            # TODO: instead of using this variable we can use a context variable
-            #list_data_filters['stock_pack_operations'] = {'self': {'package_id': pallet.id}}
-            #if allops:
-            #    list_data_filters['stock_pack_operations']['allops'] = True
+        elif package_name:
+            package = Package.get_package(package_name, no_results=True)
+            if not package:
+                return Picking.browse()
+            domain = self._get_package_search_domain(package)
         elif picking_priorities:
-            warehouse = Users.get_user_warehouse()
             domain = [
                 ('priority', 'in', picking_priorities),
                 ('picking_type_id', '=', warehouse.pick_type_id.id),
@@ -420,6 +423,9 @@ class StockPicking(models.Model):
 
         # add the states to the domain
         domain.append(('state', 'in', states))
+        # add the picking type ids to the domain
+        domain.append(('picking_type_id', 'in', picking_type_ids))
+
         # add extra domain if there is any
         if extra_domain:
             domain.extend(extra_domain)
@@ -428,7 +434,13 @@ class StockPicking(models.Model):
 
         return pickings
 
-    def _prepare_info(self, priorities=None):
+    def _get_package_search_domain(self, package):
+        """ Generate the domain for searching pickings of a package
+        """
+        return ['|', ('move_line_ids.package_id', '=', package.id),
+                     ('move_line_ids.result_package_id', '=', package.id)]
+
+    def _prepare_info(self, priorities=None, fields_to_fetch=None):
         """
             Prepares the following info of the picking in self:
             - id: int
@@ -449,18 +461,23 @@ class StockPicking(models.Model):
             priorities = OrderedDict(self._fields['priority'].selection)
         priority_name = priorities[self.priority]
 
-        return {"id": self.id,
-                "name": self.name,
-                "priority": self.priority,
-                "backorder_id": self.backorder_id.id,
-                "priority_name": priority_name,
-                "origin": self.origin,
-                "location_dest_id": self.location_dest_id.id,
-                "picking_type_id": self.picking_type_id.id,
-                "moves_lines": self.move_lines.get_info()
+        info = {"id": lambda p: p.id,
+                "name": lambda p: p.name,
+                "priority": lambda p: p.priority,
+                "backorder_id": lambda p: p.backorder_id.id,
+                "priority_name": lambda p: priority_name,
+                "origin": lambda p: p.origin,
+                "state": lambda p: p.state,
+                "location_dest_id": lambda p: p.location_dest_id.id,
+                "picking_type_id": lambda p: p.picking_type_id.id,
+                "moves_lines": lambda p: p.move_lines.get_info()
                }
+        if not fields_to_fetch:
+            fields_to_fetch = info.keys()
 
-    def get_info(self):
+        return {key: value(self) for key, value in info.items() if key in fields_to_fetch}
+
+    def get_info(self, **kwargs):
         """ Return a list with the information of each picking in self.
         """
         # create a dict of priority_id:priority_name to avoid
@@ -468,6 +485,6 @@ class StockPicking(models.Model):
         priorities = OrderedDict(self._fields['priority'].selection)
         res = []
         for picking in self:
-            res.append(picking._prepare_info(priorities))
+            res.append(picking._prepare_info(priorities, **kwargs))
 
         return res
