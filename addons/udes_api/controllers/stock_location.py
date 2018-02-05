@@ -8,14 +8,16 @@ from odoo.exceptions import ValidationError
 class Location(UdesApi):
 
     @http.route('/api/stock-location/', type='json', methods=['GET'], auth='user')
-    def get_location(self, id=None, query=None, load_quants=False, check_blocked=False):
-        """ Search for a location by id or name/barcode and returns a
+    def get_location(self, location_id=None, location_name=None, location_barcode=None, load_quants=False, check_blocked=False):
+        """ Search for a location by id, name or barcode and returns a
             stock.location object that match the given criteria.
 
-            @param (optional) id
+            @param (optional) location_id
                 The location's id
-            @param (optional) query
-                This is a string that entirely matches either the name or barcode
+            @param (optional) location_name
+                This is a string that entirely matches the name
+            @param (optional) location_barcode
+                This is a string that entirely matches the barcode
             @param (optional) load_quants: Boolean (default = false)
                 Load the quants associated with a location.
             @param (optional) check_blocked:  Boolean (default = false)
@@ -23,9 +25,9 @@ class Location(UdesApi):
                 an error will be raise.
         """
         Location = request.env['stock.location']
-        identifier = id or query
+        identifier = location_id or location_name or location_barcode
         if not identifier:
-            raise ValidationError(_('You need to provide an id or name for the location.'))
+            raise ValidationError(_('You need to provide an id, name or barcode for the location.'))
 
         location = Location.get_location(identifier)
 

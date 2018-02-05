@@ -236,8 +236,6 @@ Creates a transfer and stock moves for a given list of stock.quant ids
 
 * @param quant_ids - list of quant ids to create stock.moves for the transfer
 * @param location_id - location from where we create the transfer
-
-
 * @param picking_type_id: int The type of the stock.picking.
 * @param quant_ids: Array (int) An array of the quants ID to add to the stock.picking
 * @param location_id: int ID of the location where the stock.picking is moving from.
@@ -287,9 +285,10 @@ odoo.__DEBUG__.services['web.ajax'].jsonRpc('/api/stock-picking/60', 'call', {
 URI: /api/stock-location
 HTTP Method: GET
 Params:
-@param: load_quants - (optional, default = false) Load the quants associated with a location.
-@param: id - (optional) the location's id
-@param query - (optional) this is a string that entirely matches either the name or barcode
+@param load_quants - (optional, default = false) Load the quants associated with a location.
+@param location_id - (optional) the location's id
+@param location_name - (optional) this is a string that entirely matches the name
+@param location_barcode - (optional) this is a string that entirely matches the barcode
 @param check_blocked - (optional, default = false) When enabled, checks if the location is blocked, in which case an error will be raise.
 @return stock.location (as described above, containing the quants in the format also listed above).
 ```
@@ -304,7 +303,7 @@ Old method(s): get_quants_from_barcode
 ```
 Search for a package by id or name and returns a stock.quant.package object that match the given criteria.
 
-* @param: package_id - (optional) the package's id
+* @param package_id - (optional) the package's id
 * @param package_name - (optional) this is a string that entirely matches the name
 * @param check_reserved - (optional, default = false) When enabled, checks if the package has stock reserved, in which case an error will be raise.
 
@@ -317,7 +316,7 @@ Old method(s): ???
 ```
 Search for a product by id, name or barcode and returns a product object that match the given criteria.
 
-* @param: product_id - (optional) the product's id
+* @param product_id - (optional) the product's id
 * @param query - (optional) this is a string that entirely matches either the name or barcode
 * @param fields_to_fetch - (optional): Subset of the default returned fields to return
 
