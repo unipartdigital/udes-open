@@ -308,7 +308,7 @@ Old method(s): ???
 ```
 Search for a product by id or name/barcode and returns a product object that match the given criteria.
 
-* @param: id - (optional) the package's id
+* @param: id - (optional) the product's id
 * @param query - (optional) this is a string that entirely matches either the name or barcode
 * @param fields_to_fetch - (optional): Subset of the default returned fields to return
 
