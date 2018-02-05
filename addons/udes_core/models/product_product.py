@@ -3,13 +3,14 @@
 from odoo import fields, models, _
 from odoo.exceptions import ValidationError
 
+
 class ProductProduct(models.Model):
     _inherit = "product.product"
 
     # Add tracking for archiving.
     active = fields.Boolean(track_visibility='onchange')
 
-    def _prepare_info(self):
+    def _prepare_info(self, fields_to_fetch=None):
         """
             Prepares the following info of the product in self:
             - id: int
@@ -17,22 +18,31 @@ class ProductProduct(models.Model):
             - display_name: string
             - name: string
             - tracking: string
+
+            @param fields_to_fetch: array of string
+                Subset of the default fields to return
         """
         self.ensure_one()
 
-        return {"id": self.id,
-                "barcode": self.barcode,
-                "display_name": self.display_name,
-                "name": self.display_name,
-                "tracking": self.tracking,
+        info = {"id": lambda p: p.id,
+                "barcode": lambda p: p.barcode,
+                "display_name": lambda p: p.display_name,
+                "name": lambda p: p.display_name,
+                "tracking": lambda p: p.tracking,
                }
 
-    def get_info(self):
+        if not fields_to_fetch:
+            fields_to_fetch = info.keys()
+
+        return {key: value(self) for key, value in info.items() if key in fields_to_fetch}
+
+
+    def get_info(self, **kwargs):
         """ Return a list with the information of each product in self.
         """
         res = []
         for prod in self:
-            res.append(prod._prepare_info())
+            res.append(prod._prepare_info(**kwargs))
 
         return res
 
