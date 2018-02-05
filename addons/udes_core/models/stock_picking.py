@@ -288,7 +288,7 @@ class StockPicking(models.Model):
 
     def get_pickings(self,
                      origin=None,
-                     package_barcode=None,
+                     package_name=None,
                      states=None,
                      picking_type_ids=None,
                      allops=None,
@@ -308,9 +308,9 @@ class StockPicking(models.Model):
                 Search for stock.picking records based on the origin
                 field. Needs to be a complete match.
 
-            @param (optional) package_barcode
+            @param (optional) package_name
                 Search of stock.pickings associated with a specific
-                package_barcode (exact match).
+                package_name (exact match).
 
             @param (optional) product_id
                 If it is set then location_id must also be set and stock.pickings
@@ -393,8 +393,8 @@ class StockPicking(models.Model):
                 ('move_line_ids.product_id', '=', product_id),
                 ('move_line_ids.location_id', '=', location_id)
             ]
-        elif package_barcode:
-            package = Package.get_package(package_barcode, no_results=True)
+        elif package_name:
+            package = Package.get_package(package_name, no_results=True)
             if not package:
                 return Picking.browse()
             domain = self._get_package_search_domain(package)
