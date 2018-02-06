@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
 from odoo import api, models
-from odoo.errors import ValidationError
+from odoo.exceptions import ValidationError, UserError
+
 
 class ResUser(models.Model):
 
