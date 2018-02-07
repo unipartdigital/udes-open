@@ -197,7 +197,7 @@ class StockMoveLine(models.Model):
         if not product in products_info:
             products_info[product] = info.copy()
         else:
-            for key, value in info:
+            for key, value in info.items():
                 if isinstance(value, int) or isinstance(value,float):
                     products_info[product][key] += value
                 elif isinstance(value, list):
@@ -245,6 +245,7 @@ class StockMoveLine(models.Model):
         products_info_by_product = {}
         for info in products_info:
             product = Product.get_product(info['product_barcode'])
+            del info['product_barcode']
             products_info_by_product = self._update_products_info(product, products_info_by_product, info)
 
         return products_info_by_product
