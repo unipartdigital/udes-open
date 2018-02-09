@@ -31,6 +31,9 @@ class Product(UdesApi):
                     _('You need to provide an id, name or barcode for'
                       ' the product.'))
 
-        product = Product.get_product(identifier)
+        res = dict()
+        product = Product.get_product(identifier, no_results=True)
+        if product:
+            res = product.get_info(fields_to_fetch=fields_to_fetch)[0]
 
-        return product.get_info(fields_to_fetch=fields_to_fetch)[0]
+        return res

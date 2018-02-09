@@ -191,7 +191,6 @@ Search for pickings by various criteria and return an array of stock.picking obj
         considered.
 * @param (optional) backorder_id: id of the backorder picking.
                        If present, pickings are found by backorder_id and states.
-
 * (IGNORE FOR NOW) @param (optional) allops: Boolean. (default=True). If True, all pack operations are included.
                        If False, only pack operations that are for the pallet
                        identified by param pallet (and it's sub-packages) are
@@ -200,7 +199,6 @@ Search for pickings by various criteria and return an array of stock.picking obj
                        If present only pickings in the states present in the
                        list are returned.
                        Defaults to all, possible values: 'draft', 'cancel', 'waiting', 'confirmed', 'assigned', 'done'
-                      
 * @param (optional) result_package_id: If an id is supplied all pickings that are
                         registered to this package id will be returned.
                         This can also be used in conjunction with the states
@@ -213,11 +211,9 @@ Search for pickings by various criteria and return an array of stock.picking obj
                         pickings of those ids will be returned.
 * @param (optional) bulky (Boolean): This is used in conjunction with the picking_priorities
                         parameter to return pickings that have bulky items
-* @param (NO LONGER USED - REMOVE) (optional)  use_list_data: Decides whether the _list_data function is used when returning data
-
 * @param (optional) fields_to_fetch: Array (string). Subset of the default fields to return.
-
 * @param (optional) picking_type_ids: Array (int) If it is set the pickings returned will be only from the picking types in the array.
+* @return: list of {stock.picking} as described above [{stock.picking}] or empty list []
 
 
 Output format:
@@ -272,6 +268,7 @@ Update/mutate the stock picking
 * @param (optional) result_package_name - If it corresponds to an existing package/pallet that is not in an other location, we will set it to the `result_package_id` of the operations of the picking (i.e. transfer). If the target storage format of the picking type is pallet of packages it will set `result_parent_package_id`.
 * @param (optional) package_name - Name of the package of the picking to be marked as done
 * @param (optional) products_info - An array with the products information to be marked as done, where each dictionary contains: product_barcode, qty and serial numbers if needed
+* @return: the stock.picking in the same format as the GET API method.
 
 
 Api call example to mark as done one unit of product test01 from picking with id 60.
@@ -295,14 +292,15 @@ odoo.__DEBUG__.services['web.ajax'].jsonRpc('/api/stock-picking/60', 'call', {
 ```
 URI: /api/stock-location
 HTTP Method: GET
-Params:
-@param load_quants - (optional, default = false) Load the quants associated with a location.
-@param location_id - (optional) the location's id
-@param location_name - (optional) this is a string that entirely matches the name
-@param location_barcode - (optional) this is a string that entirely matches the barcode
-@param check_blocked - (optional, default = false) When enabled, checks if the location is blocked, in which case an error will be raise.
-@return stock.location (as described above, containing the quants in the format also listed above).
 ```
+Search for a location by id, name or barcode and returns a location object that match the given criteria.
+
+* @param load_quants - (optional, default = false) Load the quants associated with a location.
+* @param location_id - (optional) the location's id
+* @param location_name - (optional) this is a string that entirely matches the name
+* @param location_barcode - (optional) this is a string that entirely matches the barcode
+* @param check_blocked - (optional, default = false) When enabled, checks if the location is blocked, in which case an error will be raise.
+* @return: {stock.location} (as described above, containing the quants in the format also listed above) or empty dict.
 
 
 ## Packages
@@ -317,6 +315,7 @@ Search for a package by id or name and returns a stock.quant.package object that
 * @param package_id - (optional) the package's id
 * @param package_name - (optional) this is a string that entirely matches the name
 * @param check_reserved - (optional, default = false) When enabled, checks if the package has stock reserved, in which case an error will be raise.
+* @return: {stock.quant.package} (as described above) or empty dict.
 
 ## Products
 
@@ -331,5 +330,6 @@ Search for a product by id, name or barcode and returns a product object that ma
 * @param product_name - (optional) this is a string that entirely matches the name
 * @param product_barcode - (optional) this is a string that entirely matches the barcode
 * @param fields_to_fetch - (optional): Subset of the default returned fields to return
+* @return: {product.product} (as described above) or empty dict.
 
 

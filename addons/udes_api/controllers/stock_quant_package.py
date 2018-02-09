@@ -22,13 +22,16 @@ class Package(UdesApi):
                 in which case an error will be raise.
         """
         Package = request.env['stock.quant.package']
+
         identifier = package_id or package_name
         if not identifier:
             raise ValidationError(_('You need to provide an id or name for the package.'))
 
-        package = Package.get_package(identifier)
+        res = dict()
+        package = Package.get_package(identifier, no_results=True)
+        if package:
+            if check_reserved:
+                package.assert_not_reserved()
+            res = package.get_info(extended=True)[0]
 
-        if check_reserved:
-            package.assert_not_reserved()
-
-        return package.get_info(extended=True)[0]
+        return res

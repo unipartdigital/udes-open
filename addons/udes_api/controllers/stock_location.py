@@ -25,13 +25,16 @@ class Location(UdesApi):
                 an error will be raise.
         """
         Location = request.env['stock.location']
+
         identifier = location_id or location_name or location_barcode
         if not identifier:
             raise ValidationError(_('You need to provide an id, name or barcode for the location.'))
 
-        location = Location.get_location(identifier)
+        res = dict()
+        location = Location.get_location(identifier, no_results=True)
+        if location:
+            if check_blocked:
+                location.check_blocked()
+            res = location.get_info(extended=True, load_quants=load_quants)[0]
 
-        if check_blocked:
-            location.check_blocked()
-
-        return location.get_info(extended=True, load_quants=load_quants)[0]
+        return res
