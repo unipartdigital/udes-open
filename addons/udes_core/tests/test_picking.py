@@ -27,40 +27,42 @@ class TestGoodsInPicking(common.BaseUDES):
 
 
     def test01_get_pickings_by_package_name_fail(self):
-        """ Tests get_pickings on a product without
-            any pickings
+        """ Tests get_pickings by package_name 
+            when no package exists
         """
         Picking = self.env['stock.picking']
         returned_pickings = Picking.get_pickings(package_name='DUMMY')
         self.assertEqual(len(returned_pickings), 0)
 
     def test02_get_pickings_by_package_name_sucess(self):
-        """ Tests get_pickings on a product without
-            any pickings
+        """ Tests get_pickings by package_name 
+            when package exists
         """
         Picking = self.env['stock.picking']
         returned_pickings = Picking.get_pickings(package_name=self.test_package.name)
         self.assertEqual(returned_pickings.id, self.test_picking.id)
 
     def test03_get_pickings_by_origin_fail(self):
+        """ Tests get_pickings by origin 
+            when no package exists
+        """
         Picking = self.env['stock.picking']
         returned_pickings = Picking.get_pickings(origin='DUMMY')
         self.assertEqual(len(returned_pickings), 0)
 
     def test04_get_pickings_by_origin_sucess(self):
+        """ Tests get_pickings by origin 
+            when package exists
+        """
         Picking = self.env['stock.picking']
         returned_pickings = Picking.get_pickings(origin=self.test_picking.origin)
         self.assertEqual(returned_pickings.id, self.test_picking.id)
 
-    def test05_get_info_only_id(self):
-        info = self.test_picking.get_info(fields_to_fetch=['id'])
-        # There should only be one and they should all be the same if not
-        self.assertEqual(list(info[0].keys()), ['id'])
-        # Another way would be 
-        # self.assertEqual(len(info[0].keys()), 1)
-        # self.assertTrue('id' in info[0].keys())
 
-    def test06_get_info_all(self):
+    def test05_get_info_all(self):
+        """ Tests get_info with requesting
+            a field
+        """
         info = self.test_picking.get_info()
         # This has been pre-sorted
         expected = ['backorder_id',
@@ -77,3 +79,12 @@ class TestGoodsInPicking(common.BaseUDES):
         # Sorted returns a list(or did when I wrote this)
         # so no need to type cast
         self.assertEqual(sorted(info[0].keys()), expected)
+    
+    def test06_get_info_only_id(self):
+        """ Tests get_info requesting a specific field"""
+        info = self.test_picking.get_info(fields_to_fetch=['id'])
+        # There should only be one and they should all be the same if not
+        self.assertEqual(list(info[0].keys()), ['id'])
+        # Another way would be 
+        # self.assertEqual(len(info[0].keys()), 1)
+        # self.assertTrue('id' in info[0].keys())
