@@ -57,7 +57,8 @@ class StockPicking(models.Model):
             raise ValidationError(_('Wrong state of picking %s') % self.state)
 
     def add_unexpected_parts(self, product_quantities):
-        """ By default allow overreceive, when overriding check it from the picking type
+        """ By default allow to overreceive and it will be extended in 
+            a module where the picking type has a flag to decide this.
         """
         self.ensure_one()
         old_move_lines = self.move_line_ids
@@ -65,8 +66,14 @@ class StockPicking(models.Model):
         new_move_lines = (self.move_line_ids - old_move_lines)
         for ml in old_move_lines:
             if ml.qty_done > 0 and ml.product_uom_qty > ml.qty_done:
+                # Note: when adding extra moves/move_lines, odoo will merge
+                # them into one of the existing ones, therefore we need
+                # to split the old_move_lines that have qty_done > 0 and
+                # qty_done < product_uom_qty
+
                 # TODO: handle this properly at odoo core:
                 #       avoid to merge new move lines if qty_done > 0?
+
                 # ml has qty_done 0 and new_ml is done
                 new_ml = ml._split()
                 new_move_lines |= ml
