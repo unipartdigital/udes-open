@@ -60,7 +60,7 @@ class TestGoodsInPicking(common.BaseUDES):
 
 
     def test05_get_info_all(self):
-        """ Tests get_info with requesting
+        """ Tests get_info without requesting
             a field
         """
         info = self.test_picking.get_info()
