@@ -8,6 +8,12 @@ from odoo.tools.float_utils import float_compare, float_round
 class StockMoveLine(models.Model):
     _inherit = 'stock.move.line'
 
+    def get_lines_todo(self):
+        """ Return the move lines in self that are not completed,
+            i.e., quantity done < quantity todo
+        """
+        return self.filtered(lambda ml: ml.qty_done < ml.product_uom_qty)
+
     def mark_as_done(self, location_dest=None, result_package=None, package=None, products_info=None):
         """ Marks as done the move lines in self and updates location_dest_id
             and result_package_id if they are set.
@@ -50,7 +56,7 @@ class StockMoveLine(models.Model):
             # filter move_lines by products in producst_info_by_product and undone
             move_lines = move_lines._filter_by_products_info(products_info_by_product)
             # filter unfinished move lines
-            move_lines = move_lines.filtered(lambda ml: ml.qty_done < ml.product_uom_qty)
+            move_lines = move_lines.get_lines_todo()
             move_lines._check_enough_quantity(products_info_by_product)
             # TODO: check this condition, if it is not needed, we don't need package in this function
             if not package and not result_package and move_lines.mapped('package_id'):
