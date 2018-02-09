@@ -57,26 +57,57 @@ class StockPicking(models.Model):
             raise ValidationError(_('Wrong state of picking %s') % self.state)
 
     def add_unexpected_parts(self, product_quantities):
-        """ TODO: unexpected parts, call picking._create_moves()
-            if not overreceive raise error? check it inside overriding it?
-            Test what happens when adding unexpected part of a serial numbered product
-
-            By default allow overreceive, when overriding check it from the picking type
+        """ By default allow overreceive, when overriding check it from the picking type
         """
-        raise ValidationError(_('Not handling unexpected parts yet'))
+        self.ensure_one()
+        old_move_lines = self.move_line_ids
+        self._create_moves(product_quantities, confirm=True, assign=True)
+        new_move_lines = (self.move_line_ids - old_move_lines)
+        for ml in old_move_lines:
+            if ml.qty_done > 0 and ml.product_uom_qty > ml.qty_done:
+                # TODO: handle this properly at odoo core:
+                #       avoid to merge new move lines if qty_done > 0?
+                # ml has qty_done 0 and new_ml is done
+                new_ml = ml._split()
+                new_move_lines |= ml
 
-    def _create_moves_from_quants(self, quant_ids, values=None,
-                                  confirm=False, assign=False,
-                                  result_package=None):
-        """ Creates moves from quant_ids and adds it to the picking in self.
+        return new_move_lines
+
+    def _create_moves_from_quants(self, quant_ids, **kwargs):
+        """ Check that the quants are valid to be used in self and
+            create moves calling _create_moves().
+        """
+        Quant = self.env['stock.quant']
+
+        self.assert_valid_state()
+
+        if isinstance(quant_ids, list):
+            quants = Quant.browse(quant_ids)
+        elif isinstance(quant_ids, type(Quant)):
+            quants = quant_ids
+        else:
+            raise ValiationError(_('Wrong quant identifiers %s') % type(quant_ids))
+        quants.assert_not_reserved()
+        quants.assert_entire_packages()
+        quants.assert_valid_location(self.location_id.id)
+
+        # Call _create_moves() with context variable quants_ids in order
+        # to filter the quants that stock.quant._gather returns
+        self.with_context(quant_ids=quant_ids)._create_moves(quants.group_quantity_by_product(),**kwargs)
+
+    def _create_moves(self, products_info, values=None,
+                            confirm=False, assign=False,
+                            result_package=None):
+        """ Creates moves from products_info and adds it to the picking
+            in self. Where products_info is a dictionary mapped by
+            product ids and the value are the quantities.
+
             The picking is also confirmed/assigned if the flags are set to True.
             If result_package is set, it will update the result_package_id of the
             new move_lines when assign flag is True.
         """
-        # TODO: update it to create by quant_ids or dictionary of {product_id:qty}
         Product = self.env['product.product']
         Move = self.env['stock.move']
-        Quant = self.env['stock.quant']
         Package = self.env['stock.quant.package']
 
         self.assert_valid_state()
@@ -94,17 +125,7 @@ class StockPicking(models.Model):
             default_uom_id = self.env.ref('product.product_uom_unit').id
             values['product_uom'] = default_uom_id
 
-        if isinstance(quant_ids, list):
-            quants = Quant.browse(quant_ids)
-        elif isinstance(quant_ids, type(Quant)):
-            quants = quant_ids
-        else:
-            raise ValiationError(_('Wrong quant identifiers %s') % type(quant_ids))
-        quants.assert_not_reserved()
-        quants.assert_entire_packages()
-        quants.assert_valid_location(values['location_id'])
-
-        for product_id, qty in quants.group_quantity_by_product().items():
+        for product_id, qty in products_info.items():
             move_vals = {
                     'name': '{} {}'.format(qty, Product.browse(product_id).display_name),
                     'product_id': product_id,
@@ -121,18 +142,14 @@ class StockPicking(models.Model):
         if assign:
             old_move_line_ids = self.move_line_ids
             # Use picking.action_assign or moves._action_assign to create move lines
-            # Context variables:
-            # - quant_ids:
-            #   filters the quants that stock.quant._gather returns
-            # - bypass_reservation_update:
-            #   avoids to execute code specific for Odoo UI at stock.move.line.write()
-            self.with_context(quant_ids=quant_ids, bypass_reservation_update=True).action_assign()
+            # with context variable bypass_reservation_update in order to avoid
+            # to execute code specific for Odoo UI at stock.move.line.write()
+            self.with_context(bypass_reservation_update=True).action_assign()
             if result_package:
                 # update result_package_id of the new move_line_ids
                 package = Package.get_package(result_package)
                 new_move_line_ids = self.move_line_ids - old_move_line_ids
                 new_move_line_ids.write({'result_package_id': package.id})
-
 
     def create_picking(
             self,
