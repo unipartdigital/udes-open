@@ -45,8 +45,12 @@ class StockLocation(models.Model):
 
         return res
 
-    def get_location(self, location_identifier):
+    def get_location(self, location_identifier, no_results=False):
         """ Get locations from a name, barcode, or id.
+
+            @param no_results: Boolean
+                Allows to return empty recordset when the location is
+                not found
         """
         if isinstance(location_identifier, int):
             domain = [('id', '=', location_identifier)]
@@ -57,7 +61,7 @@ class StockLocation(models.Model):
             raise ValidationError(_('Unable to create domain for location search from identifier of type %s') % type(location_identifier))
 
         results = self.search(domain)
-        if not results:
+        if not results and not no_results:
             raise ValidationError(_('Location not found for identifier %s') % str(location_identifier))
         if  len(results) > 1:
             raise ValidationError(_('Too many locations found for identifier %s') % str(location_identifier))

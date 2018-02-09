@@ -46,8 +46,12 @@ class ProductProduct(models.Model):
 
         return res
 
-    def get_product(self, product_identifier):
+    def get_product(self, product_identifier, no_results=False):
         """ Get product from a name, barcode, or id.
+
+            @param no_results: Boolean
+                Allows to return empty recordset when the product is
+                not found
         """
         if isinstance(product_identifier, int):
             domain = [('id', '=', product_identifier)]
@@ -58,7 +62,7 @@ class ProductProduct(models.Model):
             raise ValidationError(_('Unable to create domain for product search from identifier of type %s') % type(product_identifier))
 
         results = self.search(domain)
-        if not results:
+        if not results and not no_results:
             raise ValidationError(_('Product not found for identifier %s') % str(product_identifier))
         if  len(results) > 1:
             raise ValidationError(_('Too many products found for identifier %s') % str(product_identifier))
