@@ -256,7 +256,7 @@ Creates a transfer and stock moves for a given list of stock.quant ids
 ```
 URI: /api/stock-picking/<id>
 HTTP Method: POST
-Old method(s): force_validate, validate_operation
+Old method(s): force_validate, validate_operation, confirm_transfer
 ```
 
 Update/mutate the stock picking
@@ -265,6 +265,8 @@ Update/mutate the stock picking
 * @param (optional) quant_ids: as POST
 * @param (optional) move_parent_package: as POST
 * @param (optional) force_validate - forces the transfer to be completed. Depends on parameters
+* @param (optional) validate - Validate the transfer unless there are move lines todo, in that case it will raise an error.
+* @param (optional) create_backorder - When true, allows to validate a transfer with move lines todo by creating a backorder.
 * @param (optional) location_dest_id - target destination
 * @param (optional) location_barcode - target destination
 * @param (optional) result_package_name - If it corresponds to an existing package/pallet that is not in an other location, we will set it to the `result_package_id` of the operations of the picking (i.e. transfer). If the target storage format of the picking type is pallet of packages it will set `result_parent_package_id`.
