@@ -42,17 +42,17 @@ class TestGoodsInPicking(common.BaseUDES):
         returned_pickings = Picking.get_pickings(package_name=self.test_package.name)
         self.assertEqual(returned_pickings.id, self.test_picking.id)
 
-    def test_03_get_pickings_by_origin_fail(self):
+    def test03_get_pickings_by_origin_fail(self):
         Picking = self.env['stock.picking']
         returned_pickings = Picking.get_pickings(origin='DUMMY')
         self.assertEqual(len(returned_pickings), 0)
 
-    def test_04_get_pickings_by_origin_sucess(self):
+    def test04_get_pickings_by_origin_sucess(self):
         Picking = self.env['stock.picking']
         returned_pickings = Picking.get_pickings(origin=self.test_picking.origin)
         self.assertEqual(returned_pickings.id, self.test_picking.id)
 
-    def test_05_get_pickings_get_info_only_id(self):
+    def test05_get_pickings_get_info_only_id(self):
         info = self.test_picking.get_info(fields_to_fetch=['id'])
         # There should only be one and they should all be the same if not
         self.assertEqual(list(info[0].keys()), ['id'])
@@ -60,7 +60,7 @@ class TestGoodsInPicking(common.BaseUDES):
         # self.assertEqual(len(info[0].keys()), 1)
         # self.assertTrue('id' in info[0].keys())
 
-    def test_06_get_pickings_get_info_all(self):
+    def test06_get_pickings_get_info_all(self):
         info = self.test_picking.get_info()
         # This has been pre-sorted
         expected = ['backorder_id',
