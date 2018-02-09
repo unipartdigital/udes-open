@@ -227,6 +227,8 @@ class StockPicking(models.Model):
             self,
             quant_ids=None,
             force_validate=False,
+            validate=False,
+            create_backorder=False,
             location_dest_id=None,
             location_barcode=None,
             result_package_name=None,
@@ -240,6 +242,12 @@ class StockPicking(models.Model):
                 An array of the quants ID to add to the stock.picking
             @param (optional) force_validate: Boolean
                 Forces the transfer to be completed. Depends on parameters
+            @param (optional) validate: Boolean
+                Validate the transfer unless there are move lines todo, in
+                that case it will raise an error.
+            @param (optional) create_backorder: Boolean
+                When true, allows to validate a transfer with move lines todo
+                by creating a backorder.
             @param (optional) location_dest_id: int
                 ID of the location where the stock is going to be moved to
             @param (optional) location_barcode: string 
@@ -299,7 +307,12 @@ class StockPicking(models.Model):
             # mark_as_done the stock.move.lines
             mls_done = move_lines.mark_as_done(**values)
 
-        if force_validate:
+        if force_validate or validate:
+            if self.move_line_ids.get_lines_todo() and not create_backorder:
+                raise ValidationError(
+                        _('Cannot validate transfer because there'
+                          ' are move lines todo'))
+            # by default action_done will backorder the stock.move.lines todo
             # validate stock.picking
             self.action_done() # old do_transfer
 
