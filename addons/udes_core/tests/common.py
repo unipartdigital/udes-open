@@ -69,10 +69,6 @@ class BaseUDES(common.SavepointCase):
 
     @classmethod
     def create_move(cls, product, qty, picking, **kwargs):
-<<<<<<< HEAD
-        print(product, qty, picking)
-=======
->>>>>>> bfae410b32ef82728c3eaf88f550a40d8fa4cbee
         """ Create and return a move for the given product and qty."""
         Move = cls.env['stock.move']
         vals = {
