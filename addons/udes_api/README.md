@@ -290,6 +290,19 @@ odoo.__DEBUG__.services['web.ajax'].jsonRpc('/api/stock-picking/60', 'call', {
 }).then(function(result){console.log(result); } )
 ```
 
+
+
+```
+URI: /api/stock-picking/<id>/is_compatible_package
+HTTP Method: GET
+```
+
+Check if a package is in use and hence compatible with the stock picking.
+
+* @param id - the id of the stock.picking to check.
+* @param package_name - string with the name of the package.
+
+
 ## Stock Location
 
 ```

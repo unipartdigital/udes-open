@@ -14,6 +14,30 @@ class StockPicking(models.Model):
                 '|', ('move_line_ids.result_package_id', 'child_of', package.id),
                      ('move_line_ids.u_result_parent_package_id', '=', package.id)]
 
+    def is_compatible_package(self, package_name):
+        """ The package with name package_name is compatible
+            with the picking in self if:
+            - The package does not exist
+            - The package is not in stock
+            - The package is not used in any other picking
+        """
+        Picking = self.env['stock.picking']
+        Package = self.env['stock.quant.package']
+
+        self.ensure_one()
+        res = True
+        pickings = Picking.get_pickings(package_name=package_name)
+        if len(pickings) == 0:
+            package = Package.get_package(package_name, no_results=True)
+            if package and package.quant_ids or package.children_ids:
+                # the package exists and it contains stock or other packages
+                res = False
+        elif len(pickings) > 1 or (len(pickings) == 1 and self != pickings):
+            # the package has been used
+            res = False
+
+        return res
+
     def update_picking(self, expected_package_name=None, **kwargs):
         """ Extend update_picking with a new parameter expected_package_name
             to be used during swapping packages
