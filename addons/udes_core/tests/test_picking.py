@@ -40,7 +40,7 @@ class TestGoodsInPicking(common.BaseUDES):
         Picking = self.env['stock.picking']
         Package = self.env['stock.quant.package']
         test_package = Package.get_package('test_package', create=True)
-        self.test_picking.move_line_ids.package_id = test_package
+        self.test_picking.move_line_ids.result_package_id = test_package
         returned_pickings = Picking.get_pickings(package_name='test_package')
         self.assertEqual(returned_pickings.id, self.test_picking.id)
 
@@ -57,9 +57,6 @@ class TestGoodsInPicking(common.BaseUDES):
             when package exists
         """
         Picking = self.env['stock.picking']
-        Package = self.env['stock.quant.package']
-        test_package = Package.get_package('test_package', create=True)
-        self.test_picking.move_line_ids.package_id = test_package
         returned_pickings = Picking.get_pickings(origin=self.test_picking.origin)
         self.assertEqual(returned_pickings.id, self.test_picking.id)
 
@@ -90,30 +87,3 @@ class TestGoodsInPicking(common.BaseUDES):
         info = self.test_picking.get_info(fields_to_fetch=['id'])
         # There should only be one and they should all be the same if not
         self.assertEqual(list(info[0].keys()), ['id'])
-
-    def test07_update_picking_split_lines(self):
-        """ Test update_picking by addding by splitting a product
-            without serial numbers
-        """
-        products_info = [{'product_barcode': self.apple.barcode, 'qty': 2} for _ in range(5)]
-        self.test_picking.update_picking(products_info=products_info)
-        self.assertEqual(self.test_move.quantity_done, 5)
-        
-    
-    def test07_update_picking_split_lines_with_serial_number(self):
-        """ Test update_picking by addding by splitting a product
-            without serial numbers
-        """
-        products_info = [{
-                            'product_barcode': self.apple.barcode, 
-                            'qty': 5, 
-                            'serial_numbers': ['Apple1','Apple2','Apple3','Apple4','Apple5']
-                          },
-                          {
-                            'product_barcode': self.apple.barcode, 
-                            'qty': 5, 
-                            'serial_numbers': ['Apple6','Apple7','Apple8','Apple9','Apple10']
-                          },
-                         ] 
-        self.test_picking.update_picking(products_info=products_info)
-        self.assertEqual(self.test_move.quantity_done, 10)

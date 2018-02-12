@@ -86,11 +86,9 @@ class BaseUDES(common.SavepointCase):
 
     @classmethod
     def create_picking(cls, picking_type, products_info=False,
-                       package_name=None, confirm=False, assign=False,
-                       **kwargs):
+                       confirm=False, assign=False, **kwargs):
         """ Create and return a picking for the given picking_type."""
         Picking = cls.env['stock.picking']
-        Package = cls.env['stock.quant.package']
         vals = {
             'picking_type_id': picking_type.id,
             'location_id': picking_type.default_location_src_id.id,
@@ -101,17 +99,15 @@ class BaseUDES(common.SavepointCase):
         picking =  Picking.create(vals)
 
         if  products_info:
-            # For now assume only one product per package
-            product_info = products_info[0].copy()
-            product_info.update(picking=picking)
-            move = cls.create_move(**product_info)
+            for product_info in products_info:
+                product_info.update(picking=picking)
+                move = cls.create_move(**product_info)
 
         if confirm:
             picking.action_confirm()
             
         if assign:
             picking.action_assign()
-
 
         return picking
 
