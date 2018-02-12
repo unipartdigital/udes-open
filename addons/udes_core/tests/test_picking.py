@@ -25,7 +25,6 @@ class TestGoodsInPicking(common.BaseUDES):
                                               products_info=products_info,
                                               confirm=True)
 
-
     def test01_get_pickings_by_package_name_fail(self):
         """ Tests get_pickings by package_name 
             when no package exists
@@ -91,3 +90,30 @@ class TestGoodsInPicking(common.BaseUDES):
         info = self.test_picking.get_info(fields_to_fetch=['id'])
         # There should only be one and they should all be the same if not
         self.assertEqual(list(info[0].keys()), ['id'])
+
+    def test07_update_picking_split_lines(self):
+        """ Test update_picking by addding by splitting a product
+            without serial numbers
+        """
+        products_info = [{'product_barcode': self.apple.barcode, 'qty': 2} for _ in range(5)]
+        self.test_picking.update_picking(products_info=products_info)
+        self.assertEqual(self.test_move.quantity_done, 5)
+        
+    
+    def test07_update_picking_split_lines_with_serial_number(self):
+        """ Test update_picking by addding by splitting a product
+            without serial numbers
+        """
+        products_info = [{
+                            'product_barcode': self.apple.barcode, 
+                            'qty': 5, 
+                            'serial_numbers': ['Apple1','Apple2','Apple3','Apple4','Apple5']
+                          },
+                          {
+                            'product_barcode': self.apple.barcode, 
+                            'qty': 5, 
+                            'serial_numbers': ['Apple6','Apple7','Apple8','Apple9','Apple10']
+                          },
+                         ] 
+        self.test_picking.update_picking(products_info=products_info)
+        self.assertEqual(self.test_move.quantity_done, 10)
