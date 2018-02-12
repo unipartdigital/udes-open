@@ -86,10 +86,9 @@ class StockExport(models.TransientModel):
 
         def get_prod_qty(prod, package):
             contained_quants = Quant.search(
-                [('package_id', 'child_of', package.ids)])
-            prod_quants = contained_quants.filtered(
-                lambda x: x.product_id == prod)
-            return sum(prod_quants.mapped('quantity'))
+                [('package_id', 'child_of', package.ids),
+                 ('product_id', '=', prod.id)])
+            return sum(contained_quants.mapped('quantity'))
 
         _logger.info(_('Creating Excel file'))
         file_name = 'warehouse_stock_{TIMESTAMP}.xls'.format(
