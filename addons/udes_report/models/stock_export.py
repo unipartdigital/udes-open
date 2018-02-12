@@ -54,8 +54,8 @@ class StockExport(models.TransientModel):
         Creates a stock file summarising the current stock in the
         warehouse. Such file will be in the excel format and contain
         two tabs:
-            1) part number, location, pallet ID and quantity;
-            2) part number, number of pallets and total quantity.
+            1) part number, location, package ID and quantity;
+            2) part number, number of packages and total quantity.
         '''
         locations = self.included_locations - self.excluded_locations
 
@@ -69,24 +69,24 @@ class StockExport(models.TransientModel):
         by_prod = lambda x: x.product_id.id
         by_location = lambda x: x.location_id.id
 
-        get_pallets_by_loc = lambda quant_union: {
+        get_packages_by_loc = lambda quant_union: {
             Location.browse(loc): Quant.union(*_quants).mapped('package_id')
             for loc, _quants in groupby(quant_union.sorted(key=by_location),
                                         key=by_location)}
 
-        pallets_by_prod_by_loc = OrderedDict()
-        pallets_by_prod = OrderedDict()
+        packages_by_prod_by_loc = OrderedDict()
+        packages_by_prod = OrderedDict()
 
         for prod, _quants in groupby(all_quants.sorted(key=by_prod),
                                      key=by_prod):
             quant_prods = Product.browse(prod)
             quants_u = Quant.union(*_quants)
-            pallets_by_prod_by_loc[quant_prods] = get_pallets_by_loc(quants_u)
-            pallets_by_prod[quant_prods] = quants_u.mapped('package_id')
+            packages_by_prod_by_loc[quant_prods] = get_packages_by_loc(quants_u)
+            packages_by_prod[quant_prods] = quants_u.mapped('package_id')
 
-        def get_prod_qty(prod, pallet):
+        def get_prod_qty(prod, package):
             contained_quants = Quant.search(
-                [('package_id', 'child_of', pallet.ids)])
+                [('package_id', 'child_of', package.ids)])
             prod_quants = contained_quants.filtered(
                 lambda x: x.product_id == prod)
             return sum(prod_quants.mapped('quantity'))
@@ -102,33 +102,33 @@ class StockExport(models.TransientModel):
                 sheet.write(0, col, col_title)
             return sheet
 
-        # 1/2) 'Stock File': one entry for each (prod, pallet) pair
+        # 1/2) 'Stock File': one entry for each (prod, package) pair
 
         stock_sheet = _create_sheet('Stock File', ['Part Number',
                                                    'Location',
-                                                   'Pallet',
+                                                   'Package',
                                                    'Quantity'])
 
         row = 0
-        for prod, pallets_by_location in pallets_by_prod_by_loc.items():
-            for location, pallets in pallets_by_location.items():
-                for pallet_by_prod in pallets:
+        for prod, pkgs_by_location in packages_by_prod_by_loc.items():
+            for location, pkgs in pkgs_by_location.items():
+                for pkg_by_prod in pkgs:
                     row += 1
                     stock_sheet.write(row, 0, prod.default_code)
                     stock_sheet.write(row, 1, location.display_name)
-                    stock_sheet.write(row, 2, pallet_by_prod.name)
-                    stock_sheet.write(row, 3, get_prod_qty(prod, pallet_by_prod))
+                    stock_sheet.write(row, 2, pkg_by_prod.name)
+                    stock_sheet.write(row, 3, get_prod_qty(prod, pkg_by_prod))
 
         # 2/2) 'Stock Summary': one entry for each prod
 
         summary_sheet = _create_sheet('Stock Summary', ['Part Number',
-                                                        'Pallet Count',
+                                                        'Package Count',
                                                         'Quantity'])
 
-        for row, (prod, prod_pallets) in enumerate(pallets_by_prod.items(), 1):
+        for row, (prod, prod_pkgs) in enumerate(packages_by_prod.items(), 1):
             summary_sheet.write(row, 0, prod.default_code)
-            summary_sheet.write(row, 1, len(prod_pallets))
-            summary_sheet.write(row, 2, get_prod_qty(prod, prod_pallets))
+            summary_sheet.write(row, 1, len(prod_pkgs))
+            summary_sheet.write(row, 2, get_prod_qty(prod, prod_pkgs))
 
         self.__write_workbook(wb, file_name, "Stock File")
 
@@ -137,8 +137,8 @@ class StockExport(models.TransientModel):
         Creates movement file, in excel format, summarising the stock
         received and sent for a given date, i.e. goods-in and goods-out
         stock moves done, in two different tabs containing:
-            1) Goods In:  Reference, Part number, Pallet, Quantity;
-            2) Goods Out: Reference, Part number, Pallet, Quantity.
+            1) Goods In:  Reference, Part number, Package, Quantity;
+            2) Goods Out: Reference, Part number, Package, Quantity.
         '''
         if not self.date:
             raise ValidationError(_("Date not found."))
@@ -170,7 +170,7 @@ class StockExport(models.TransientModel):
 
             for col, title in [(0, 'Reference'),
                                (1, 'Part number'),
-                               (2, 'Pallet'),
+                               (2, 'Package'),
                                (3, 'Quantity')]:
                 sheet.write(0, col, title)
 
