@@ -39,8 +39,10 @@ class TestGoodsInPicking(common.BaseUDES):
             when package exists
         """
         Picking = self.env['stock.picking']
-        test_package_name = self.test_picking.move_line_ids.result_package_id.name
-        returned_pickings = Picking.get_pickings(package_name=test_package_name)
+        Package = self.env['stock.quant.package']
+        test_package = Package.get_package('test_package', create=True)
+        self.test_picking.move_line_ids.package_id = test_package
+        returned_pickings = Picking.get_pickings(package_name='test_package')
         self.assertEqual(returned_pickings.id, self.test_picking.id)
 
     def test03_get_pickings_by_origin_fail(self):
@@ -56,6 +58,9 @@ class TestGoodsInPicking(common.BaseUDES):
             when package exists
         """
         Picking = self.env['stock.picking']
+        Package = self.env['stock.quant.package']
+        test_package = Package.get_package('test_package', create=True)
+        self.test_picking.move_line_ids.package_id = test_package
         returned_pickings = Picking.get_pickings(origin=self.test_picking.origin)
         self.assertEqual(returned_pickings.id, self.test_picking.id)
 

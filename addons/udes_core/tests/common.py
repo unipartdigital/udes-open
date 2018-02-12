@@ -105,16 +105,13 @@ class BaseUDES(common.SavepointCase):
             product_info = products_info[0].copy()
             product_info.update(picking=picking)
             move = cls.create_move(**product_info)
-            if confirm:
-                picking.action_confirm()
-            # Create package
-            package_name = package_name or 'test_package'
-            package = Package.get_package(package_name, create=True)
-            # Update move with package
-            move.move_line_ids.result_package_id = package
 
-            if assign:
-                picking.action_assign()
+        if confirm:
+            picking.action_confirm()
+            
+        if assign:
+            picking.action_assign()
+
 
         return picking
 
