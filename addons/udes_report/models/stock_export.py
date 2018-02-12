@@ -30,8 +30,6 @@ class StockExport(models.TransientModel):
     def __get_default_stock_location(self):
         return self.env['stock.location'].search([('name', '=', 'Stock')])
 
-    # @todo: (ale) using Many2many, not One2many; check that
-    # @todo: (ale) linking to actual locations, not ids; check that
     included_locations = fields.Many2many(
         comodel_name='stock.location',
         column1='included_locs',
@@ -151,8 +149,6 @@ class StockExport(models.TransientModel):
         Move = self.env['stock.move']
         picking_type_in = self.env.ref('stock.picking_type_in')
         picking_type_out = self.env.ref('stock.picking_type_out')
-
-        # @todo: check: usin union (no dups) instead of addition
         picking_types = picking_type_in | picking_type_out
 
         moves = Move.search([('state', '=', 'done'),
