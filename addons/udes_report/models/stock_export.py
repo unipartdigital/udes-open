@@ -95,18 +95,12 @@ class StockExport(models.TransientModel):
             TIMESTAMP=datetime.now())
         wb = xlwt.Workbook()
 
-        def _create_sheet(sheet_name, columns):
-            sheet = wb.add_sheet(sheet_name)
-            for col, col_title in enumerate(columns):
-                sheet.write(0, col, col_title)
-            return sheet
-
         # 1/2) 'Stock File': one entry for each (prod, package) pair
 
-        stock_sheet = _create_sheet('Stock File', ['Part Number',
-                                                   'Location',
-                                                   'Package',
-                                                   'Quantity'])
+        stock_sheet = _create_sheet(wb, 'Stock File', ['Part Number',
+                                                       'Location',
+                                                       'Package',
+                                                       'Quantity'])
 
         row = 0
         for prod, pkgs_by_location in packages_by_prod_by_loc.items():
@@ -120,9 +114,9 @@ class StockExport(models.TransientModel):
 
         # 2/2) 'Stock Summary': one entry for each prod
 
-        summary_sheet = _create_sheet('Stock Summary', ['Part Number',
-                                                        'Package Count',
-                                                        'Quantity'])
+        summary_sheet = _create_sheet(wb, 'Stock Summary', ['Part Number',
+                                                            'Package Count',
+                                                            'Quantity'])
 
         for row, (prod, prod_pkgs) in enumerate(packages_by_prod.items(), 1):
             summary_sheet.write(row, 0, prod.default_code)
@@ -165,13 +159,10 @@ class StockExport(models.TransientModel):
 
         for goods_moves, sheet_name in [(in_moves, "Goods In"),
                                         (out_moves, "Goods Out")]:
-            sheet = wb.add_sheet(sheet_name)
-
-            for col, title in [(0, 'Reference'),
-                               (1, 'Part number'),
-                               (2, 'Package'),
-                               (3, 'Quantity')]:
-                sheet.write(0, col, title)
+            sheet = _create_sheet(wb, sheet_name, ['Reference',
+                                                   'Part number',
+                                                   'Package',
+                                                   'Quantity'])
 
             row = 0
             for move in goods_moves:
@@ -202,7 +193,18 @@ class StockExport(models.TransientModel):
              'datas': file_data,
              'datas_fname': file_name})
 
-        User.send_message_to_user(
+        Users.send_message_to_user(
             subject="%s Ready" % doc_title,
             body=_("%s %s is attached.") % (doc_title, file_name),
             attachment=attachment)
+
+
+#
+# Helpers
+#
+
+def _create_sheet(workbook, sheet_name, columns_titles):
+    sheet = workbook.add_sheet(sheet_name)
+    for col, col_title in enumerate(columns_titles):
+        sheet.write(0, col, col_title)
+    return sheet
