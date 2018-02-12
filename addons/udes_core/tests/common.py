@@ -69,6 +69,7 @@ class BaseUDES(common.SavepointCase):
 
     @classmethod
     def create_move(cls, product, qty, picking, **kwargs):
+        print(product, qty, picking)
         """ Create and return a move for the given product and qty."""
         Move = cls.env['stock.move']
         vals = {
@@ -85,16 +86,41 @@ class BaseUDES(common.SavepointCase):
         return Move.create(vals)
 
     @classmethod
-    def create_picking(cls, picking_type, **kwargs):
+    def create_picking(cls, picking_type, products_info=False,
+                       package_name=None, confirm=False, assign=False,
+                       **kwargs):
         """ Create and return a picking for the given picking_type."""
         Picking = cls.env['stock.picking']
+        Package = cls.env['stock.quant.package']
+
         vals = {
             'picking_type_id': picking_type.id,
             'location_id': picking_type.default_location_src_id.id,
             'location_dest_id': picking_type.default_location_dest_id.id,
         }
+
         vals.update(kwargs)
-        return Picking.create(vals)
+        picking =  Picking.create(vals)
+
+        if  products_info:
+            # For now assume only one product per package
+            product_info = products_info[0].copy()
+            product_info.update(picking=picking)
+            move = cls.create_move(**product_info)
+            if confirm:
+                picking.action_confirm()
+            # Create package
+            package_name = package_name or 'test_package'
+            package = Package.get_package(package_name, create=True)
+            # Update move with package
+            move.move_line_ids.result_package_id = package
+
+            if assign:
+                picking.action_assign()
+
+        return picking
+
+
 
     @classmethod
     def create_product(cls, name, **kwargs):

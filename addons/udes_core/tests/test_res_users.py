@@ -19,7 +19,7 @@ class TestGetUserWarehouse(common.BaseUDES):
 
 
     def test01_get_user_warehouse_no_user(self):
-        """Checking that when a user no user is found
+        """Checking that when no user is found
            the correct error is raised
         """
         User = self.env['res.users']
