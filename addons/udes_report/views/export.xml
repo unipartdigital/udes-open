@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<openerp>
+    <data>
+
+        <!-- stock summary -->
+
+        <record id="export_form_stock_file" model="ir.ui.view">
+            <field name="name">export.form stock file</field>
+            <field name="model">udes_export.stock_export</field>
+            <field name="priority">1</field>
+            <field name="arch" type="xml">
+                <form string="Export File">
+                    <group name="options">
+                        <field name="file_name" invisible="1" />
+                        <field name="file_data" colspan="2" filename="file_name" />
+                    </group>
+                    <footer>
+                        <group>
+                            <field name="included_locations" colspan="2" />
+                        </group>
+                        <group>
+                            <field name="excluded_locations" colspan="2" />
+                        </group>
+                        <group>
+                            <button name="run_stock_file_export" type="object"
+                                class="oe_highlight" string="Export Stock File"/>
+                        </group>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="export_action_stock_file" model="ir.actions.act_window">
+            <field name="name">Export Stock File</field>
+            <field name="res_model">udes_export.stock_export</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">form</field>
+            <field name="view_id" ref="export_form_stock_file" />
+            <field name="target">current</field>
+        </record>
+
+        <menuitem id="export_stock_file_menu"
+            name="Export Stock File"
+            action="export_action_stock_file"
+            parent="export_menu"
+            sequence="50"/>
+
+        <!-- stock movement -->
+
+        <record id="export_form_movement_file" model="ir.ui.view">
+            <field name="name">export.form movement file</field>
+            <field name="model">udes_export.stock_export</field>
+            <field name="priority">2</field>
+            <field name="arch"  type="xml">
+                <form string="Export File">
+                    <group name="options">
+                        <field name="file_name" invisible="1" />
+                        <field name="file_data" colspan="2" filename="file_name" />
+                    </group>
+                    <footer>
+                        <group>
+                            <field name="date" colspan="2" />
+                        </group>
+                        <group>
+                            <button name="run_movement_file_export" type="object"
+                                class="oe_highlight" string="Export Movement File"/>
+                        </group>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="export_action_movement_file" model="ir.actions.act_window">
+            <field name="name">Export Movement File</field>
+            <field name="res_model">udes_export.stock_export</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">form</field>
+            <field name="view_id" ref="export_form_movement_file" />
+            <field name="target">current</field>
+        </record>
+
+        <menuitem id="export_movement_file_menu"
+            name="Export Movement File"
+            action="export_action_movement_file"
+            parent="export_menu"
+            sequence="60"/> -->
+
+    </data>
+</openerp>
