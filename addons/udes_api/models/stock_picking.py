@@ -7,6 +7,27 @@ from odoo.exceptions import ValidationError
 class StockPicking(models.Model):
     _inherit = 'stock.picking'
 
+    def add_unexpected_parts(self, product_quantities):
+        """ Extend function to check if the picking_type of the picking
+            is allowed to overreceive, otherwise raise an error.
+        """
+        Product = self.env['product.product']
+        self.ensure_one()
+
+        if self.picking_type_id.u_over_receive:
+            new_move_lines = super(StockPicking, self).add_unexpected_parts(product_quantities)
+        else:
+            overreceived_qtys = ["%s: %s" % (Product.get_product(id).name, qty)
+                                 for id,qty in product_quantities.items()]
+            raise ValidationError(
+                    _("We are not expecting these extra quantities of"
+                    " these parts:\n%s\nPlease either receive the right"
+                    " amount and move the rest to probres, or if they"
+                    " cannot be split, move all to probres.") %
+                    '\n'.join(overreceived_qtys))
+
+        return new_move_lines
+
     def _get_package_search_domain(self, package):
         """ Override to handle multiple levels of packages
         """

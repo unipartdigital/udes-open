@@ -30,12 +30,13 @@ class Picking(UdesApi):
         return picking.get_info()[0]
 
     @http.route('/api/stock-picking/<id>', type='json', methods=['POST'], auth='user')
-    def update_picking(self, id, **kwargs):
+    def update_picking(self, id, location_id=None, **kwargs):
         """ Old force_validate/validate_operation
         """
         Picking = request.env['stock.picking']
         picking = Picking.browse(int(id))
         if not picking.exists():
             raise ValidationError(_('Cannot find stock.picking with id %s') % id)
+        #TODO: validate location_id child of picking.location_id ?
         picking.update_picking(**kwargs)
         return picking.get_info()[0]
