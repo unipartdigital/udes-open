@@ -26,14 +26,9 @@ class StockExport(models.TransientModel):
     file_data = fields.Binary('File')
     date = fields.Date('Date')
 
-    # @todo: (api) is this decorator necessary? Idem below
     @api.model
     def __get_default_stock_location(self):
-        # @todo: (ale) without the parent, this will also include
-        # locations like 'TRW/Stock' (for which the name is actually
-        # 'Stock', ofc...); ensure we want to also specify it
-        return self.env['stock.location'].search([('name', '=', 'Stock'),
-                                                  ('location_id', '=', 'UPL')])
+        return self.env['stock.location'].search([('name', '=', 'Stock')])
 
     # @todo: (ale) using Many2many, not One2many; check that
     # @todo: (ale) linking to actual locations, not ids; check that
