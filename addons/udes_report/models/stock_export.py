@@ -187,6 +187,8 @@ class StockExport(models.TransientModel):
 
     @api.model
     def __write_workbook(self, workbook, file_name, doc_title):
+        User = self.env['res.users']
+
         with closing(BytesIO()) as output:
             workbook.save(output)
             data = output.getvalue()
@@ -201,73 +203,7 @@ class StockExport(models.TransientModel):
              'datas': file_data,
              'datas_fname': file_name})
 
-        _send_message_to_user(
-            self.env['res.users'],
+        User.send_message_to_user(
             subject="%s Ready" % doc_title,
             body=_("%s %s is attached.") % (doc_title, file_name),
             attachment=attachment)
-
-
-# @todo: (ale) consider moving this helper elsewhere
-def _send_message_to_user(Users, subject, body,
-                          recipients=None,
-                          related_rec=None,
-                          attachment=None,
-                          type='notification'):
-    '''
-    Sends an odoo message to the specified recipients.
-    In case no recipient is specified, the functions sends the
-    message to the user itself.
-
-    :param Users: The Users model instance.
-    :param subject: Subject of the message.
-    :param body: Body text of the message.
-    :param recipients: List of res.user recipients. Defaults to current user.
-    :param related_rec: Related record.
-    :param attachment: ir.attachment to attach to the message.
-    :param type: message type. Defaults to Odoo internal notification
-    :return:
-    '''
-    assert Users is not None, "must specify the Users instance"
-    Message = Users.env['mail.message']
-    Notification = Users.env['mail.notification']
-
-    if recipients is None:
-        recipients = [Users.env.user]
-
-    _logger.info("Message to: {RECIPIENTS}\n"
-                 "{SUBJECT}\n"
-                 "{BODY}\n"
-                 "Attached File: {ATTACHMENT}".format(
-        RECIPIENTS=[u.name for u in recipients],
-        SUBJECT=subject,
-        BODY=body,
-        ATTACHMENT=attachment.datas_fname or 'None'))
-
-    info = {
-        'message_type': type,
-        'subject': subject,
-        'record_name': subject,
-        'body': body,
-        'partner_ids': [(4, recip.partner_id.id) for recip in recipients]}
-
-    if related_rec is not None:
-        info.update({
-            'model': related_rec._name,
-            'res_id': related_rec.id})
-
-    if attachment is not None:
-        info.update({'attachment_ids': [(4, attachment.id, 0)]})
-
-    msg = Message.create(info)
-
-    if attachment is not None:
-        attachment.write(
-            {'res_model': msg._name,
-             'res_id': msg.id,
-             'res_name': msg.record_name})
-
-    for recip in recipients:
-        Notification.create(
-            {'mail_message_id': msg.id,
-             'res_partner_id': recip.partner_id.id})
