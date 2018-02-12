@@ -7,7 +7,7 @@ class TestGetUserWarehouse(common.BaseUDES):
 
     @classmethod
     def setUpClass(cls):
-        super(BaseUDES, cls).setUpClass()
+        super(TestGetUserWarehouse, cls).setUpClass()
         Warehouse = cls.env['stock.warehouse']
         # Create new company so there is more than one warehouse
         cls.test_company = cls.create_company('test_company')
