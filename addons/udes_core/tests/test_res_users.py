@@ -56,6 +56,5 @@ class TestGetUserWarehouse(common.BaseUDES):
     def test04_get_user_warehouse_success(self):
         """Checks that the correct warehouse is returned"""
         User = self.env['res.users']
-        # Create new company so there is more than one warehouse
         returned_warehouse = User.sudo(self.test_user).get_user_warehouse()
         self.assertEqual(returned_warehouse.id, self.test_warehouse.id)
