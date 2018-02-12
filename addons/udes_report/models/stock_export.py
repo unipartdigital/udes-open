@@ -139,11 +139,13 @@ class StockExport(models.TransientModel):
         self.field_data = False
         self.field_name = False
 
-        Move = self.env['stock.move']
-        picking_type_in = self.env.ref('stock.picking_type_in')
-        picking_type_out = self.env.ref('stock.picking_type_out')
+        Users = self.env['res.users']
+        warehouse = Users.get_user_warehouse()
+        picking_type_in = warehouse.in_type_id
+        picking_type_out = warehouse.out_type_id
         picking_types = picking_type_in | picking_type_out
 
+        Move = self.env['stock.move']
         moves = Move.search([('state', '=', 'done'),
                              ('picking_type_id', 'in', picking_types.ids),
                              ('date', '>', self.date + " 00:00:00"),
