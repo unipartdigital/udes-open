@@ -51,13 +51,16 @@ class StockMoveLine(models.Model):
 
         products_info_by_product = {}
         if products_info:
+            # TODO: move functions into picking instead of parameter
+            picking = move_lines.mapped('picking_id')
             # prepare products_info
             products_info_by_product = move_lines._prepare_products_info(products_info)
             # filter move_lines by products in producst_info_by_product and undone
             move_lines = move_lines._filter_by_products_info(products_info_by_product)
             # filter unfinished move lines
             move_lines = move_lines.get_lines_todo()
-            move_lines._check_enough_quantity(products_info_by_product)
+            # TODO all in one function?
+            move_lines = move_lines._check_enough_quantity(products_info_by_product, picking_id=picking)
             # TODO: check this condition, if it is not needed, we don't need package in this function
             if not package and not result_package and move_lines.mapped('package_id'):
                 raise ValidationError(_('Setting as done package operations as product operations'))
@@ -214,7 +217,7 @@ class StockMoveLine(models.Model):
 
         return products_info
 
-    def _check_enough_quantity(self, products_info):
+    def _check_enough_quantity(self, products_info, picking_id=None):
         """ Check that move_lines in self can fulfill the quantity done
             in products_info, otherwise create unexpected parts if
             applicable.
@@ -223,6 +226,7 @@ class StockMoveLine(models.Model):
             with the qty to be marked as done and the list of serial
             numbers
         """
+        move_lines = self
         # products_todo stores extra quantity done per product that
         # cannot be handled in the move lines in self
         products_todo = {}
@@ -235,12 +239,16 @@ class StockMoveLine(models.Model):
             diff = mls_qty_todo - qty_done
             if diff < 0:
                 #not enough quantity
-                # TODO: list of {'product_barcode': product.barcode, 'qty': diff} ?
-                products_todo[product.id] = diff
+                products_todo[product.id] = abs(diff)
 
         if products_todo:
-            picking = self.mapped('picking_id')
-            picking.add_unexpected_parts(products_todo)
+            # TODO: move function into picking?
+            # if not move_line in self, there is no picking
+            picking = self.mapped('picking_id') or picking_id
+            new_move_lines = picking.add_unexpected_parts(products_todo)
+            move_lines |= new_move_lines
+
+        return move_lines
 
     def _prepare_products_info(self, products_info):
         """ Reindex products_info by product.product model, merge repeated
@@ -325,28 +333,37 @@ class StockMoveLine(models.Model):
         """
         self.ensure_one()
         res = self
-        if self.qty_done > 0 and float_compare(self.qty_done, self.product_uom_qty,
-                                               precision_rounding=self.product_uom_id.rounding) < 0:
+        qty_done = self.qty_done
+        if qty_done > 0 and float_compare(qty_done, self.product_uom_qty,
+                                          precision_rounding=self.product_uom_id.rounding) < 0:
             quantity_left_todo = float_round(
-                self.product_uom_qty - self.qty_done,
+                self.product_uom_qty - qty_done,
                 precision_rounding=self.product_uom_id.rounding,
                 rounding_method='UP')
-            done_to_keep = self.qty_done
+            ordered_quantity_left_todo = quantity_left_todo
+            done_to_keep = qty_done
+            ordered_qty = qty_done
+            if qty_done > self.ordered_qty:
+                ordered_qty = self.ordered_qty
+                ordered_quantity_left_todo = 0
+
             # create new move line with the qty_done
             new_ml = self.copy(
                 default={'product_uom_qty': done_to_keep,
-                         'ordered_qty': done_to_keep,
-                         'qty_done': self.qty_done,
+                         'qty_done': qty_done,
                          })
+            # updated ordered_qty otherwise odoo will use product_uom_qty
+            new_ml.ordered_qty= ordered_qty
             # update self move line quantity todo
             # - bypass_reservation_update:
             #   avoids to execute code specific for Odoo UI at stock.move.line.write()
             self.with_context(bypass_reservation_update=True).write(
                     {'product_uom_qty': quantity_left_todo,
-                     'ordered_qty': quantity_left_todo,
+                     'ordered_qty': ordered_quantity_left_todo,
                      'qty_done': 0.0,
                      'result_package_id': False,
                      })
+
             res = new_ml
 
         return res
