@@ -46,6 +46,8 @@ class StockPicking(models.Model):
         Package = self.env['stock.quant.package']
 
         self.ensure_one()
+        self.assert_valid_state()
+
         res = True
         pickings = Picking.get_pickings(package_name=package_name)
         if len(pickings) == 0:
