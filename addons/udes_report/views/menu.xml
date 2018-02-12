@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<openerp>
+  <data>
+    <menuitem id="top_export_menu" name="File Exports" />
+    <menuitem id="export_menu" name="Export Menu" parent="top_export_menu"/>
+  </data>
+</openerp>
