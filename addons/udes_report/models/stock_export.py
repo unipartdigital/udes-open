@@ -177,7 +177,7 @@ class StockExport(models.TransientModel):
 
     @api.model
     def __write_workbook(self, workbook, file_name, doc_title):
-        User = self.env['res.users']
+        Users = self.env['res.users']
 
         with closing(BytesIO()) as output:
             workbook.save(output)
