@@ -9,7 +9,7 @@ from itertools import groupby
 import logging
 
 from odoo import models, fields, api, _
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import UserError
 
 import xlwt
 
@@ -60,7 +60,7 @@ class StockExport(models.TransientModel):
         locations = self.included_locations - self.excluded_locations
 
         if not locations:
-            raise UserError(_("The specified list of Stock Locations is empty"))
+            raise UserError(_("The specified list of Stock Locations is empty."))
 
         Quant = self.env['stock.quant']
         Product = self.env['product.product']
@@ -134,7 +134,7 @@ class StockExport(models.TransientModel):
             2) Goods Out: Reference, Part number, Package, Quantity.
         '''
         if not self.date:
-            raise ValidationError(_("Date not found."))
+            raise UserError(_("Date not specified."))
 
         self.field_data = False
         self.field_name = False

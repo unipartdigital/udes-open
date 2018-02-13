@@ -4,7 +4,7 @@ import datetime
 import mock
 
 from odoo.addons.stock.tests.common import TestStockCommon
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import UserError
 
 
 class TestStockExport(TestStockCommon):
@@ -73,10 +73,10 @@ class TestStockExport(TestStockCommon):
         ''' Movement - should error in case no date is specified '''
         self.stock_export.date = None
 
-        with self.assertRaises(ValidationError) as err:
+        with self.assertRaises(UserError) as err:
             self.stock_export.run_movement_file_export()
 
-        self.assertEqual('Date not found.', str(err.exception.name))
+        self.assertEqual('Date not specified.', str(err.exception.name))
 
     def test_move_success(self):
         ''' Movement - should call the write method '''
