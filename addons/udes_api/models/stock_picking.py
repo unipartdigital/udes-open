@@ -40,7 +40,7 @@ class StockPicking(models.Model):
             with the picking in self if:
             - The package does not exist
             - The package is not in stock
-            - The package is not used in any other picking
+            - The package has not been used in any other picking
         """
         Picking = self.env['stock.picking']
         Package = self.env['stock.quant.package']
