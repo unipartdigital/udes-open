@@ -3,7 +3,7 @@
 from odoo import models,  _
 from odoo.exceptions import ValidationError
 from odoo.tools.float_utils import float_compare, float_round
-
+from copy import deepcopy
 
 class StockMoveLine(models.Model):
     _inherit = 'stock.move.line'
@@ -52,7 +52,7 @@ class StockMoveLine(models.Model):
         products_info_by_product = {}
         if products_info:
             # prepare products_info
-            products_info_by_product = move_lines._prepare_products_info(products_info)
+            products_info_by_product = move_lines._prepare_products_info(deepcopy(products_info))
             # filter move_lines by products in producst_info_by_product and undone
             move_lines = move_lines._filter_by_products_info(products_info_by_product)
             # filter unfinished move lines
