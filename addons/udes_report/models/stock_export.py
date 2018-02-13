@@ -19,7 +19,7 @@ SAVE_DIR = "/home/odoo/"
 
 
 class StockExport(models.TransientModel):
-    _name = 'udes_export.stock_export'
+    _name = 'udes_report.stock_export'
     _description = 'Creates spreadsheets summarising the warehouse stock'
 
     file_name = fields.Char('Filename')
