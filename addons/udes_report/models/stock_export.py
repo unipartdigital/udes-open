@@ -123,7 +123,7 @@ class StockExport(models.TransientModel):
             summary_sheet.write(row, 1, len(prod_pkgs))
             summary_sheet.write(row, 2, get_prod_qty(prod, prod_pkgs))
 
-        self.__write_workbook(wb, file_name, "Stock File")
+        self._write_workbook(wb, file_name, "Stock File")
 
     def run_movement_file_export(self):
         '''
@@ -175,10 +175,10 @@ class StockExport(models.TransientModel):
                     sheet.write(row, 2, move_line.result_package_id.name)
                     sheet.write(row, 3, move_line.qty_done)
 
-        self.__write_workbook(wb, file_name, "Movement File")
+        self._write_workbook(wb, file_name, "Movement File")
 
     @api.model
-    def __write_workbook(self, workbook, file_name, doc_title):
+    def _write_workbook(self, workbook, file_name, doc_title):
         Users = self.env['res.users']
 
         with closing(BytesIO()) as output:
