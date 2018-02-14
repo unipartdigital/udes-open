@@ -318,11 +318,9 @@ class StockMoveLine(models.Model):
 
         self.write(values)
         if split:
-            ml_done = self._split()
-        else:
-            ml_done = self
-
-        return ml_done
+            self._split()
+        
+        return self
 
     def _split(self):
         """ Split the move line in self if:
@@ -349,21 +347,21 @@ class StockMoveLine(models.Model):
 
             # create new move line with the qty_done
             new_ml = self.copy(
-                default={'product_uom_qty': done_to_keep,
-                         'qty_done': qty_done,
-                         })
+                    default={'product_uom_qty': quantity_left_todo,
+                             'ordered_qty': ordered_quantity_left_todo,
+                             'qty_done': 0.0,
+                             'result_package_id': False,
+                    })
             # updated ordered_qty otherwise odoo will use product_uom_qty
-            new_ml.ordered_qty= ordered_qty
+            # new_ml.ordered_qty = ordered_quantity_left_todo
             # update self move line quantity todo
             # - bypass_reservation_update:
             #   avoids to execute code specific for Odoo UI at stock.move.line.write()
             self.with_context(bypass_reservation_update=True).write(
-                    {'product_uom_qty': quantity_left_todo,
-                     'ordered_qty': ordered_quantity_left_todo,
-                     'qty_done': 0.0,
-                     'result_package_id': False,
-                     })
-
+                        {'product_uom_qty': done_to_keep,
+                         'qty_done': qty_done,
+                         })
+            self.ordered_qty= ordered_qty
             res = new_ml
 
         return res

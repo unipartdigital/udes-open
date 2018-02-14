@@ -64,6 +64,8 @@ class StockPicking(models.Model):
         old_move_lines = self.move_line_ids
         self._create_moves(product_quantities, confirm=True, assign=True)
         new_move_lines = (self.move_line_ids - old_move_lines)
+
+
         for ml in old_move_lines:
             if ml.qty_done > 0 and ml.product_uom_qty > ml.qty_done:
                 # Note: when adding extra moves/move_lines, odoo will merge
@@ -76,7 +78,9 @@ class StockPicking(models.Model):
 
                 # ml has qty_done 0 and new_ml is done
                 new_ml = ml._split()
-                new_move_lines |= ml
+                new_move_lines |= new_ml
+        # These are unexpected so the ordered_qty should be        
+        new_move_lines.write({"ordered_qty": 0})
 
         return new_move_lines
 
