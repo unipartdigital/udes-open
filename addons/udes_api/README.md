@@ -297,7 +297,7 @@ URI: /api/stock-picking/<id>/is_compatible_package
 HTTP Method: GET
 ```
 
-Check that a package is not in use and hence is compatible with the stock picking.
+Check that a package is not in use and hence is compatible with the stock picking, i.e., the package does not exist, it is not in stock and the package it has not been used in any other picking.
 
 * @param id - the id of the stock.picking to check.
 * @param package_name - string with the name of the package.
