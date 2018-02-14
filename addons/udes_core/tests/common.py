@@ -80,6 +80,7 @@ class BaseUDES(common.SavepointCase):
             'location_dest_id': picking.location_dest_id.id,
             'picking_id': picking.id,
             'priority': picking.priority,
+            'picking_type_id': picking.picking_type_id.id,
         }
         vals.update(kwargs)
         return Move.create(vals)
