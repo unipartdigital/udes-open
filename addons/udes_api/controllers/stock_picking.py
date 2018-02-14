@@ -6,7 +6,8 @@ from odoo.exceptions import ValidationError
 
 from .main import UdesApi
 
-class Picking(UdesApi):
+
+class PickingApi(UdesApi):
 
     @http.route('/api/stock-picking/', type='json', methods=['GET'], auth='user')
     def get_pickings(self, fields_to_fetch=None, **kwargs):
@@ -20,7 +21,6 @@ class Picking(UdesApi):
         pickings = Picking.get_pickings(**kwargs)
         return pickings.get_info(fields_to_fetch=fields_to_fetch)
 
-
     @http.route('/api/stock-picking/', type='json', methods=['POST'], auth='user')
     def create_picking(self, **kwargs):
         """ Old create_internal_transfer
@@ -29,14 +29,29 @@ class Picking(UdesApi):
         picking = Picking.create_picking(**kwargs)
         return picking.get_info()[0]
 
-    @http.route('/api/stock-picking/<id>', type='json', methods=['POST'], auth='user')
-    def update_picking(self, id, location_id=None, **kwargs):
+    @http.route('/api/stock-picking/<ident>', type='json', methods=['POST'], auth='user')
+    def update_picking(self, ident, location_id=None, **kwargs):
         """ Old force_validate/validate_operation
         """
         Picking = request.env['stock.picking']
-        picking = Picking.browse(int(id))
+        picking = Picking.browse(int(ident))
         if not picking.exists():
-            raise ValidationError(_('Cannot find stock.picking with id %s') % id)
+            raise ValidationError(_('Cannot find stock.picking with id %s') % ident)
         #TODO: validate location_id child of picking.location_id ?
         picking.update_picking(**kwargs)
         return picking.get_info()[0]
+
+    @http.route('/api/stock-picking/<ident>/is_compatible_package', type='json', methods=['GET'], auth='user')
+    def is_compatible_package(self, ident, package_name=None):
+        """ Check if the package name is compatible with the
+            picking with id <ident>, i.e., the package name has not been
+            used before, only has been used in the same picking and
+            it is not in use at stock.
+        """
+        Picking = request.env['stock.picking']
+        picking = Picking.browse(int(ident))
+        if not picking.exists():
+            raise ValidationError(_('Cannot find stock.picking with id %s') % ident)
+        if not package_name:
+            raise ValidationError(_('Missing parameter package_name.'))
+        return picking.is_compatible_package(package_name)
