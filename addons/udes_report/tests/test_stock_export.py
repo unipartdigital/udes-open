@@ -37,7 +37,8 @@ class TestStockExport(TestStockCommon):
         with self.assertRaises(UserError) as err:
             self.stock_export.run_stock_file_export()
 
-        self.assertIn('The specified list', str(err.exception))
+        self.assertIn('The specified list', str(err.exception),
+                      'Wrong error message')
 
     def test_stock_all_excluded_locations(self):
         ''' Stock - should error in case all locations are excluded '''
@@ -49,7 +50,8 @@ class TestStockExport(TestStockCommon):
         with self.assertRaises(UserError) as err:
             self.stock_export.run_stock_file_export()
 
-        self.assertIn('The specified list', str(err.exception))
+        self.assertIn('The specified list', str(err.exception),
+                      'Wrong error message')
 
     def test_stock_success(self):
         ''' Stock - should call the write method when locations are given '''
@@ -65,7 +67,8 @@ class TestStockExport(TestStockCommon):
         with mock.patch.object(self.stock_export, '_write_workbook',
                                new=write_callback):
             self.stock_export.run_stock_file_export()
-            self.assertTrue(invoked[0])
+            self.assertTrue(invoked[0], "The function that writes the "
+                                        "workbook was not invoked")
 
     #
     ## Movement
@@ -78,7 +81,8 @@ class TestStockExport(TestStockCommon):
         with self.assertRaises(UserError) as err:
             self.stock_export.run_movement_file_export()
 
-        self.assertEqual('Date not specified.', str(err.exception.name))
+        self.assertEqual('Date not specified.', str(err.exception.name),
+                         'Wrong error message')
 
     def test_move_success(self):
         ''' Movement - should call the write method '''
@@ -91,4 +95,5 @@ class TestStockExport(TestStockCommon):
         with mock.patch.object(self.stock_export, '_write_workbook',
                                new=write_callback):
             self.stock_export.run_movement_file_export()
-            self.assertTrue(invoked[0])
+            self.assertTrue(invoked[0], "The function that writes the "
+                                        "workbook was not invoked")
