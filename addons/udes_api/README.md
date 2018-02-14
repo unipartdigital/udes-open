@@ -259,7 +259,7 @@ Creates a transfer and stock moves for a given list of stock.quant ids
 
 ### Update stock picking
 ```
-URI: /api/stock-picking/<id>
+URI: /api/stock-picking/:id
 HTTP Method: POST
 Old method(s): force_validate, validate_operation, confirm_transfer
 ```
@@ -298,7 +298,7 @@ odoo.__DEBUG__.services['web.ajax'].jsonRpc('/api/stock-picking/60', 'call', {
 
 ### Package is compatible with stock picking
 ```
-URI: /api/stock-picking/<id>/is_compatible_package/package_name
+URI: /api/stock-picking/:id/is_compatible_package/:package_name
 HTTP Method: GET
 ```
 
