@@ -176,6 +176,8 @@ Expected output format:
 
 ## Stock Picking
 
+
+### Get stock pickings
 ```
 URI: /api/stock-picking
 HTTP Method: GET
@@ -235,6 +237,7 @@ Same picking after packing 1 unit of each product inside packages and inside pal
 ```
 
 
+### Create stock picking
 ```
 URI: /api/stock-picking
 HTTP Method: POST
@@ -253,6 +256,8 @@ Creates a transfer and stock moves for a given list of stock.quant ids
 * @param move_parent_package: Boolean (default false) Used in pallets/nested packages, to maintain the move of the entire pallet.
 * @return: the stock.picking in the same format as the GET API method.
 
+
+### Update stock picking
 ```
 URI: /api/stock-picking/<id>
 HTTP Method: POST
@@ -291,9 +296,9 @@ odoo.__DEBUG__.services['web.ajax'].jsonRpc('/api/stock-picking/60', 'call', {
 ```
 
 
-
+### Package is compatible with stock picking
 ```
-URI: /api/stock-picking/<id>/is_compatible_package
+URI: /api/stock-picking/<id>/is_compatible_package/package_name
 HTTP Method: GET
 ```
 

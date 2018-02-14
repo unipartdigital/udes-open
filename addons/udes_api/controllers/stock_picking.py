@@ -41,8 +41,8 @@ class PickingApi(UdesApi):
         picking.update_picking(**kwargs)
         return picking.get_info()[0]
 
-    @http.route('/api/stock-picking/<ident>/is_compatible_package', type='json', methods=['GET'], auth='user')
-    def is_compatible_package(self, ident, package_name=None):
+    @http.route('/api/stock-picking/<ident>/is_compatible_package/<package_name>', type='json', methods=['GET'], auth='user')
+    def is_compatible_package(self, ident, package_name):
         """ Check if the package name is compatible with the
             picking with id <ident>, i.e., the package name has not been
             used before, only has been used in the same picking and
@@ -52,6 +52,4 @@ class PickingApi(UdesApi):
         picking = Picking.browse(int(ident))
         if not picking.exists():
             raise ValidationError(_('Cannot find stock.picking with id %s') % ident)
-        if not package_name:
-            raise ValidationError(_('Missing parameter package_name.'))
         return picking.is_compatible_package(package_name)
