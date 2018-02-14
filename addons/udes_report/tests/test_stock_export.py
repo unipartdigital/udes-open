@@ -30,8 +30,9 @@ class TestStockExport(TestStockCommon):
 
     def test_stock_no_locations(self):
         ''' Stock - should error in case no locations are specified '''
-        self.stock_export.included_locations = self.LocationObj.browse()
-        self.stock_export.excluded_locations = self.LocationObj.browse()
+        empty_locations = self.StockExportObj.env['stock.location']
+        self.stock_export.included_locations = empty_locations
+        self.stock_export.excluded_locations = empty_locations
 
         with self.assertRaises(UserError) as err:
             self.stock_export.run_stock_file_export()
@@ -54,7 +55,8 @@ class TestStockExport(TestStockCommon):
         ''' Stock - should call the write method when locations are given '''
         self.stock_export.included_locations = \
             self.LocationObj.browse(self.stock_location)
-        self.stock_export.excluded_locations = self.LocationObj.browse()
+        self.stock_export.excluded_locations = \
+            self.StockExportObj.env['stock.location']
         invoked = [False]
 
         def write_callback(workbook, file_name, doc_title, done=invoked):
