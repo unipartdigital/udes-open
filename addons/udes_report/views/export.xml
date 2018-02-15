@@ -6,7 +6,7 @@
 
         <record id="export_form_stock_file" model="ir.ui.view">
             <field name="name">export.form stock file</field>
-            <field name="model">udes_export.stock_export</field>
+            <field name="model">udes_report.stock_export</field>
             <field name="priority">1</field>
             <field name="arch" type="xml">
                 <form string="Export File">
@@ -32,7 +32,7 @@
 
         <record id="export_action_stock_file" model="ir.actions.act_window">
             <field name="name">Export Stock File</field>
-            <field name="res_model">udes_export.stock_export</field>
+            <field name="res_model">udes_report.stock_export</field>
             <field name="view_type">form</field>
             <field name="view_mode">form</field>
             <field name="view_id" ref="export_form_stock_file" />
@@ -49,7 +49,7 @@
 
         <record id="export_form_movement_file" model="ir.ui.view">
             <field name="name">export.form movement file</field>
-            <field name="model">udes_export.stock_export</field>
+            <field name="model">udes_report.stock_export</field>
             <field name="priority">2</field>
             <field name="arch"  type="xml">
                 <form string="Export File">
@@ -72,7 +72,7 @@
 
         <record id="export_action_movement_file" model="ir.actions.act_window">
             <field name="name">Export Movement File</field>
-            <field name="res_model">udes_export.stock_export</field>
+            <field name="res_model">udes_report.stock_export</field>
             <field name="view_type">form</field>
             <field name="view_mode">form</field>
             <field name="view_id" ref="export_form_movement_file" />

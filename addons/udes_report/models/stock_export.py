@@ -9,7 +9,7 @@ from itertools import groupby
 import logging
 
 from odoo import models, fields, api, _
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import UserError
 
 import xlwt
 
@@ -19,7 +19,7 @@ SAVE_DIR = "/home/odoo/"
 
 
 class StockExport(models.TransientModel):
-    _name = 'udes_export.stock_export'
+    _name = 'udes_report.stock_export'
     _description = 'Creates spreadsheets summarising the warehouse stock'
 
     file_name = fields.Char('Filename')
@@ -60,7 +60,7 @@ class StockExport(models.TransientModel):
         locations = self.included_locations - self.excluded_locations
 
         if not locations:
-            raise UserError(_("The specified list of Stock Locations is empty"))
+            raise UserError(_("The specified list of Stock Locations is empty."))
 
         Quant = self.env['stock.quant']
         Product = self.env['product.product']
@@ -123,7 +123,7 @@ class StockExport(models.TransientModel):
             summary_sheet.write(row, 1, len(prod_pkgs))
             summary_sheet.write(row, 2, get_prod_qty(prod, prod_pkgs))
 
-        self.__write_workbook(wb, file_name, "Stock File")
+        self._write_workbook(wb, file_name, "Stock File")
 
     def run_movement_file_export(self):
         '''
@@ -134,7 +134,7 @@ class StockExport(models.TransientModel):
             2) Goods Out: Reference, Part number, Package, Quantity.
         '''
         if not self.date:
-            raise ValidationError(_("Date not found."))
+            raise UserError(_("Date not specified."))
 
         self.field_data = False
         self.field_name = False
@@ -175,10 +175,10 @@ class StockExport(models.TransientModel):
                     sheet.write(row, 2, move_line.result_package_id.name)
                     sheet.write(row, 3, move_line.qty_done)
 
-        self.__write_workbook(wb, file_name, "Movement File")
+        self._write_workbook(wb, file_name, "Movement File")
 
     @api.model
-    def __write_workbook(self, workbook, file_name, doc_title):
+    def _write_workbook(self, workbook, file_name, doc_title):
         Users = self.env['res.users']
 
         with closing(BytesIO()) as output:
