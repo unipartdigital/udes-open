@@ -146,7 +146,8 @@ class StockMoveLine(models.Model):
                 if product_mls_in_serial_numbers:
                     raise ValidationError(
                             _('Serial numbers %s already exist in picking %s') %
-                            product_mls.mapped('picking_id.name'))
+                            (product_mls_in_serial_numbers.mapped('lot_name'),
+                            product_mls.mapped('picking_id.name')))
             elif product_mls:
                 # new serial numbers
                 pass
