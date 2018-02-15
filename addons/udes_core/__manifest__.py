@@ -12,6 +12,7 @@
     'demo': [
     ],
     'data': [
+        'data/stock_config.xml',
         'views/product_template.xml',
         'views/stock_location.xml',
         'views/stock_picking.xml',
