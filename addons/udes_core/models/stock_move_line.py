@@ -4,6 +4,7 @@ from odoo import models,  _
 from odoo.exceptions import ValidationError
 from odoo.tools.float_utils import float_compare, float_round
 from copy import deepcopy
+from collections import Counter
 
 class StockMoveLine(models.Model):
     _inherit = 'stock.move.line'
@@ -64,7 +65,6 @@ class StockMoveLine(models.Model):
             # TODO: check this condition, if it is not needed, we don't need package in this function
             if not package and not result_package and move_lines.mapped('package_id'):
                 raise ValidationError(_('Setting as done package operations as product operations'))
-
         if not move_lines:
             raise ValidationError(_("Cannot find move lines to mark as done"))
         if move_lines.filtered(lambda ml: ml.qty_done > 0):
@@ -108,6 +108,14 @@ class StockMoveLine(models.Model):
         # if any of the products is tracked by serial number, filter if needed
         for product in move_lines.mapped('product_id').filtered(lambda ml: ml.tracking == 'serial'):
             serial_numbers = products_info[product]['serial_numbers']
+            repeated_serial_numbers = [sn for sn, num in Counter(serial_numbers).items() if num > 1]
+            if len(repeated_serial_numbers) > 0: 
+                raise ValidationError(
+                            _('The serial number %s is repeated '
+                              'in picking %s for product %s') %
+                              (' '.join(repeated_serial_numbers),
+                               move_lines.mapped('picking_id').name,
+                               product.name))
 
             product_mls = move_lines.filtered(lambda ml: ml.product_id == product)
             mls_with_lot_id = product_mls.filtered(lambda ml: ml.lot_id)
@@ -118,7 +126,7 @@ class StockMoveLine(models.Model):
                     raise ValidationError(
                             _("Some move lines don't have lot_id in "
                               "picking %s for product %s") %
-                            (product_mls.mapped('picking_id.name'), product.name))
+                            (product_mls.mapped('picking_id').name, product.name))
 
                 product_mls_in_serial_numbers = mls_with_lot_id.filtered(lambda ml: ml.lot_id.name in serial_numbers)
                 if len(product_mls_in_serial_numbers) != len(serial_numbers):
@@ -126,7 +134,7 @@ class StockMoveLine(models.Model):
                     diff = set(serial_numbers) - set(mls_serial_numbers)
                     raise ValidationError(
                             _('Serial numbers %s for product %s not found in picking %s') %
-                            (' '.join(diff), product.name, product_mls.mapped('picking_id.name')))
+                            (' '.join(diff), product.name, product_mls.mapped('picking_id').name))
 
                 done_mls = product_mls_in_serial_numbers.filtered(lambda ml: ml.qty_done > 0)
                 if done_mls:
@@ -146,14 +154,13 @@ class StockMoveLine(models.Model):
                 if product_mls_in_serial_numbers:
                     raise ValidationError(
                             _('Serial numbers %s already exist in picking %s') %
-                            product_mls.mapped('picking_id.name'))
+                             (' '.join(serial_numbers), product_mls.mapped('picking_id').name))
             elif product_mls:
                 # new serial numbers
                 pass
             else:
                 # unexpected part?
                 pass
-
 
         return move_lines
 
@@ -210,7 +217,7 @@ class StockMoveLine(models.Model):
                 if isinstance(value, int) or isinstance(value,float):
                     products_info[product][key] += value
                 elif isinstance(value, list):
-                    products_info[product][key].append(value)
+                    products_info[product][key].extend(value)
                 else:
                     raise ValidationError(
                             _('Unexpected type for move line parameter %s') % key)
@@ -261,7 +268,6 @@ class StockMoveLine(models.Model):
             product = Product.get_product(info['product_barcode'])
             del info['product_barcode']
             products_info_by_product = self._update_products_info(product, products_info_by_product, info)
-
         return products_info_by_product
 
 
