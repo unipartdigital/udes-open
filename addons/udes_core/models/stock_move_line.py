@@ -110,7 +110,7 @@ class StockMoveLine(models.Model):
             repeated_serial_numbers = [sn for sn, num in Counter(serial_numbers).items() if num > 1]
             if len(repeated_serial_numbers) > 0: 
                 raise ValidationError(
-                            _('The serial number %s is repeated '
+                            _('Serial numbers %s are repeated '
                               'in picking %s for product %s') %
                               (' '.join(repeated_serial_numbers),
                                move_lines.mapped('picking_id').name,
