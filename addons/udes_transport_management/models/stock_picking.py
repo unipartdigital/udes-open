@@ -21,6 +21,8 @@ class StockPicking(models.Model):
                                     related='u_trailer_info_id.trailer_license')
     u_trailer_driver = fields.Char(string='Driver name',
                                    related='u_trailer_info_id.trailer_driver')
+    u_requires_transport = fields.Boolean(string='Show transport management tab',
+                                   related='picking_type_id.u_requires_transport')
 
     _sql_constraints = [
         ('trailer_info_uniq', 'unique(u_trailer_info_id)', 'Only one trailer information is allowed per picking.'),

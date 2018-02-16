@@ -10,9 +10,9 @@
 
                 <!-- Add Trailer information -->
                 <xpath expr="//page[@name='extra']" position="after">
-                    <field name="picking_type_id" invisible="1"/>
+                    <field name="u_requires_transport" invisible="1"/>
                     <page string="Trailer information" name="trailer"
-                          attrs="{'invisible': [('picking_type_id.u_requires_transport', '=', False)]}">
+                          attrs="{'invisible': [('u_requires_transport', '=', False)]}">
                         <group>
                             <field name="u_trailer_info_id" invisible="1"/>
                             <field name="u_trailer_num"/>
