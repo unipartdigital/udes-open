@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from . import common
-from odoo.exceptions import ValidationError
-
 
 class TestGoodsInPicking(common.BaseUDES):
 
@@ -85,5 +83,3 @@ class TestGoodsInPicking(common.BaseUDES):
         info = self.test_picking.get_info(fields_to_fetch=['id'])
         # There should only be one and they should all be the same if not
         self.assertEqual(list(info[0].keys()), ['id'])
-
-

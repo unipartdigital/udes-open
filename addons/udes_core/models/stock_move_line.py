@@ -3,7 +3,7 @@
 from odoo import models,  _
 from odoo.exceptions import ValidationError
 from odoo.tools.float_utils import float_compare, float_round
-from copy import deepcopy 
+from copy import deepcopy
 from collections import Counter
 
 class StockMoveLine(models.Model):
@@ -109,7 +109,7 @@ class StockMoveLine(models.Model):
         for product in move_lines.mapped('product_id').filtered(lambda ml: ml.tracking == 'serial'):
             serial_numbers = products_info[product]['serial_numbers']
             repeated_serial_numbers = [sn for sn, num in Counter(serial_numbers).items() if num > 1]
-            if len(repeated_serial_numbers) > 0: 
+            if len(repeated_serial_numbers) > 0:
                 raise ValidationError(
                             _('Serial numbers %s are repeated '
                               'in picking %s for product %s') %
