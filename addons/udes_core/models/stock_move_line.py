@@ -3,7 +3,7 @@
 from odoo import models,  _
 from odoo.exceptions import ValidationError
 from odoo.tools.float_utils import float_compare, float_round
-
+from collections import Counter
 
 class StockMoveLine(models.Model):
     _inherit = 'stock.move.line'
@@ -51,17 +51,19 @@ class StockMoveLine(models.Model):
 
         products_info_by_product = {}
         if products_info:
+            # TODO: move functions into picking instead of parameter
+            picking = move_lines.mapped('picking_id')
             # prepare products_info
             products_info_by_product = move_lines._prepare_products_info(products_info)
             # filter move_lines by products in producst_info_by_product and undone
             move_lines = move_lines._filter_by_products_info(products_info_by_product)
             # filter unfinished move lines
             move_lines = move_lines.get_lines_todo()
-            move_lines._check_enough_quantity(products_info_by_product)
+            # TODO all in one function?
+            move_lines = move_lines._check_enough_quantity(products_info_by_product, picking_id=picking)
             # TODO: check this condition, if it is not needed, we don't need package in this function
             if not package and not result_package and move_lines.mapped('package_id'):
                 raise ValidationError(_('Setting as done package operations as product operations'))
-
         if not move_lines:
             raise ValidationError(_("Cannot find move lines to mark as done"))
         if move_lines.filtered(lambda ml: ml.qty_done > 0):
@@ -105,6 +107,14 @@ class StockMoveLine(models.Model):
         # if any of the products is tracked by serial number, filter if needed
         for product in move_lines.mapped('product_id').filtered(lambda ml: ml.tracking == 'serial'):
             serial_numbers = products_info[product]['serial_numbers']
+            repeated_serial_numbers = [sn for sn, num in Counter(serial_numbers).items() if num > 1]
+            if len(repeated_serial_numbers) > 0: 
+                raise ValidationError(
+                            _('Serial numbers %s are repeated '
+                              'in picking %s for product %s') %
+                              (' '.join(repeated_serial_numbers),
+                               move_lines.mapped('picking_id').name,
+                               product.name))
 
             product_mls = move_lines.filtered(lambda ml: ml.product_id == product)
             mls_with_lot_id = product_mls.filtered(lambda ml: ml.lot_id)
@@ -115,7 +125,7 @@ class StockMoveLine(models.Model):
                     raise ValidationError(
                             _("Some move lines don't have lot_id in "
                               "picking %s for product %s") %
-                            (product_mls.mapped('picking_id.name'), product.name))
+                            (product_mls.mapped('picking_id').name, product.name))
 
                 product_mls_in_serial_numbers = mls_with_lot_id.filtered(lambda ml: ml.lot_id.name in serial_numbers)
                 if len(product_mls_in_serial_numbers) != len(serial_numbers):
@@ -123,7 +133,7 @@ class StockMoveLine(models.Model):
                     diff = set(serial_numbers) - set(mls_serial_numbers)
                     raise ValidationError(
                             _('Serial numbers %s for product %s not found in picking %s') %
-                            (' '.join(diff), product.name, product_mls.mapped('picking_id.name')))
+                            (' '.join(diff), product.name, product_mls.mapped('picking_id').name))
 
                 done_mls = product_mls_in_serial_numbers.filtered(lambda ml: ml.qty_done > 0)
                 if done_mls:
@@ -143,14 +153,14 @@ class StockMoveLine(models.Model):
                 if product_mls_in_serial_numbers:
                     raise ValidationError(
                             _('Serial numbers %s already exist in picking %s') %
-                            product_mls.mapped('picking_id.name'))
+                            (product_mls_in_serial_numbers.mapped('lot_name'),
+                            product_mls.mapped('picking_id').name))
             elif product_mls:
                 # new serial numbers
                 pass
             else:
                 # unexpected part?
                 pass
-
 
         return move_lines
 
@@ -207,14 +217,14 @@ class StockMoveLine(models.Model):
                 if isinstance(value, int) or isinstance(value,float):
                     products_info[product][key] += value
                 elif isinstance(value, list):
-                    products_info[product][key].append(value)
+                    products_info[product][key].extend(value)
                 else:
                     raise ValidationError(
                             _('Unexpected type for move line parameter %s') % key)
 
         return products_info
 
-    def _check_enough_quantity(self, products_info):
+    def _check_enough_quantity(self, products_info, picking_id=None):
         """ Check that move_lines in self can fulfill the quantity done
             in products_info, otherwise create unexpected parts if
             applicable.
@@ -223,6 +233,7 @@ class StockMoveLine(models.Model):
             with the qty to be marked as done and the list of serial
             numbers
         """
+        move_lines = self
         # products_todo stores extra quantity done per product that
         # cannot be handled in the move lines in self
         products_todo = {}
@@ -235,12 +246,16 @@ class StockMoveLine(models.Model):
             diff = mls_qty_todo - qty_done
             if diff < 0:
                 #not enough quantity
-                # TODO: list of {'product_barcode': product.barcode, 'qty': diff} ?
-                products_todo[product.id] = diff
+                products_todo[product.id] = abs(diff)
 
         if products_todo:
-            picking = self.mapped('picking_id')
-            picking.add_unexpected_parts(products_todo)
+            # TODO: move function into picking?
+            # if not move_line in self, there is no picking
+            picking = self.mapped('picking_id') or picking_id
+            new_move_lines = picking.add_unexpected_parts(products_todo)
+            move_lines |= new_move_lines
+
+        return move_lines
 
     def _prepare_products_info(self, products_info):
         """ Reindex products_info by product.product model, merge repeated
@@ -253,7 +268,6 @@ class StockMoveLine(models.Model):
             product = Product.get_product(info['product_barcode'])
             del info['product_barcode']
             products_info_by_product = self._update_products_info(product, products_info_by_product, info)
-
         return products_info_by_product
 
 
@@ -310,11 +324,9 @@ class StockMoveLine(models.Model):
 
         self.write(values)
         if split:
-            ml_done = self._split()
-        else:
-            ml_done = self
-
-        return ml_done
+            self._split()
+        
+        return self
 
     def _split(self):
         """ Split the move line in self if:
@@ -325,28 +337,37 @@ class StockMoveLine(models.Model):
         """
         self.ensure_one()
         res = self
-        if self.qty_done > 0 and float_compare(self.qty_done, self.product_uom_qty,
-                                               precision_rounding=self.product_uom_id.rounding) < 0:
+        qty_done = self.qty_done
+        if qty_done > 0 and float_compare(qty_done, self.product_uom_qty,
+                                          precision_rounding=self.product_uom_id.rounding) < 0:
             quantity_left_todo = float_round(
-                self.product_uom_qty - self.qty_done,
+                self.product_uom_qty - qty_done,
                 precision_rounding=self.product_uom_id.rounding,
                 rounding_method='UP')
-            done_to_keep = self.qty_done
+            ordered_quantity_left_todo = quantity_left_todo
+            done_to_keep = qty_done
+            ordered_qty = qty_done
+            if qty_done > self.ordered_qty:
+                ordered_qty = self.ordered_qty
+                ordered_quantity_left_todo = 0
+
             # create new move line with the qty_done
             new_ml = self.copy(
-                default={'product_uom_qty': done_to_keep,
-                         'ordered_qty': done_to_keep,
-                         'qty_done': self.qty_done,
-                         })
+                    default={'product_uom_qty': quantity_left_todo,
+                             'ordered_qty': ordered_quantity_left_todo,
+                             'qty_done': 0.0,
+                             'result_package_id': False,
+                    })
+            # updated ordered_qty otherwise odoo will use product_uom_qty
+            # new_ml.ordered_qty = ordered_quantity_left_todo
             # update self move line quantity todo
             # - bypass_reservation_update:
             #   avoids to execute code specific for Odoo UI at stock.move.line.write()
             self.with_context(bypass_reservation_update=True).write(
-                    {'product_uom_qty': quantity_left_todo,
-                     'ordered_qty': quantity_left_todo,
-                     'qty_done': 0.0,
-                     'result_package_id': False,
-                     })
+                        {'product_uom_qty': done_to_keep,
+                         'qty_done': qty_done,
+                         })
+            self.ordered_qty= ordered_qty
             res = new_ml
 
         return res
