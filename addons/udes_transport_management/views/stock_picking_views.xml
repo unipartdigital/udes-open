@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<odoo>
+    <data>
+        <!-- Customisations for stock.view_picking_form -->
+        <record id="stock_view_picking_form" model="ir.ui.view">
+            <field name="name">stock.view_picking_form</field>
+            <field name="model">stock.picking</field>
+            <field name="inherit_id" ref="stock.view_picking_form"/>
+            <field name="arch" type="xml">
+
+                <!-- Add Trailer information -->
+                <xpath expr="//page[@name='extra']" position="after">
+                    <field name="picking_type_id" invisible="1"/>
+                    <page string="Trailer information" name="trailer"
+                          attrs="{'invisible': [('picking_type_id.u_requires_transport', '=', False)]}">
+                        <group>
+                            <field name="u_trailer_info_id" invisible="1"/>
+                            <field name="u_trailer_num"/>
+                            <field name="u_trailer_ident"/>
+                            <field name="u_trailer_license"/>
+                            <field name="u_trailer_driver"/>
+                        </group>
+                    </page>
+                </xpath>
+
+            </field>
+        </record>
+
+    </data>
+</odoo>
