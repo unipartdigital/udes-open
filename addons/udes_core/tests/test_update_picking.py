@@ -250,8 +250,8 @@ class TestGoodsInUpdatePicking(common.BaseUDES):
         self.assertEqual(picking.mapped('move_line_ids.ordered_qty'), [4.0, 0.0])
         self.assertEqual(picking.mapped('move_line_ids.qty_done'), [4.0, 2.0])
         self.assertEqual(picking.move_lines.ordered_qty, 4.0, 'Only 4 was expected')
-        self.assertEqual(picking.move_lines.quantity_done, 8.0, 
-                         'The quantity done should be the total of 8')
+        self.assertEqual(picking.move_lines.quantity_done, 6.0, 
+                         'The quantity done should be the total of 6')
         
     def test11_update_picking_only_unexpected_product(self):
         """ Checks that an unexpected product is put into
