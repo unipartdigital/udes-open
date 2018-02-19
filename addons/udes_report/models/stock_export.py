@@ -28,7 +28,12 @@ class StockExport(models.TransientModel):
 
     @api.model
     def __get_default_stock_location(self):
-        return self.env['stock.location'].search([('name', '=', 'Stock')])
+        '''
+        Propagates possible ValidationErrors if it fails to find
+        the current user's warehouse.
+        '''
+        warehouse = self.env['res.users'].get_user_warehouse()
+        return warehouse.lot_stock_id
 
     included_locations = fields.Many2many(
         comodel_name='stock.location',
