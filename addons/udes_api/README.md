@@ -273,7 +273,8 @@ Update/mutate the stock picking
 * @param (optional) validate - Validate the transfer unless there are move lines todo, in that case it will raise an error.
 * @param (optional) create_backorder - When true, allows to validate a transfer with move lines todo by creating a backorder.
 * @param (optional) location_dest_id - target destination
-* @param (optional) location_barcode - target destination
+* @param (optional) location_dest_name - target destination
+* @param (optional) location_dest_barcode - target destination
 * @param (optional) result_package_name - If it corresponds to an existing package/pallet that is not in an other location, we will set it to the `result_package_id` of the operations of the picking (i.e. transfer). If the target storage format of the picking type is pallet of packages it will set `result_parent_package_id`.
 * @param (optional) package_name - Name of the package of the picking to be marked as done
 * @param (optional) products_info - An array with the products information to be marked as done, where each dictionary contains: product_barcode, qty and serial numbers if needed
