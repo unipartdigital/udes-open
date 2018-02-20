@@ -24,7 +24,20 @@ class BaseUDES(common.SavepointCase):
         cls.test_locations = cls.test_location_01 + cls.test_location_02
 
         # Products
+
+        # Untracked
         cls.apple = cls.create_product('Apple')
+        cls.banana = cls.create_product('Banana')
+        cls.cherry = cls.create_product('Cherry')
+        cls.damson = cls.create_product('Damson')
+        cls.elderberry = cls.create_product('Elderberry')
+        cls.fig = cls.create_product('Fig')
+        cls.grape = cls.create_product('Grape')
+
+        # Serial tracking
+        cls.strawberry = cls.create_product('Strawberry', tracking='serial')
+        cls.tangerine = cls.create_product('Tangerine', tracking='serial')
+
 
         # Picking types
         cls.picking_type_internal = cls.env.ref('stock.picking_type_internal')
@@ -80,6 +93,7 @@ class BaseUDES(common.SavepointCase):
             'location_dest_id': picking.location_dest_id.id,
             'picking_id': picking.id,
             'priority': picking.priority,
+            'picking_type_id': picking.picking_type_id.id,
         }
         vals.update(kwargs)
         return Move.create(vals)

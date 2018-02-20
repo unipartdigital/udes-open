@@ -2,7 +2,6 @@
 
 from . import common
 
-
 class TestGoodsInPicking(common.BaseUDES):
 
     @classmethod
@@ -11,7 +10,6 @@ class TestGoodsInPicking(common.BaseUDES):
         User = cls.env['res.users']
         PickingType = cls.env['stock.picking.type']
         Picking = cls.env['stock.picking']
-        Package = cls.env['stock.quant.package']
 
         user_warehouse = User.get_user_warehouse()
         # Get goods in type
@@ -60,7 +58,6 @@ class TestGoodsInPicking(common.BaseUDES):
         returned_pickings = Picking.get_pickings(origin=self.test_picking.origin)
         self.assertEqual(returned_pickings.id, self.test_picking.id)
 
-
     def test05_get_info_all(self):
         """ Tests get_info without requesting
             a field
@@ -80,7 +77,6 @@ class TestGoodsInPicking(common.BaseUDES):
         # Sorted returns a list(or did when I wrote this)
         # so no need to type cast
         self.assertEqual(sorted(info[0].keys()), sorted(expected))
-
     
     def test06_get_info_only_id(self):
         """ Tests get_info requesting a specific field"""
