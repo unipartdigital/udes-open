@@ -62,16 +62,13 @@ class StockPicking(models.Model):
         res._create_trailer_info_data(values)
         return res
 
-    # @api.multi
-    # def _prepare_info(self, **kwargs):
-    #     data = super(StockPicking, self)._list_data_prepare_info(**kwargs)
-    #
-    #     #todo   only add to data fields that exist
-    #
-    #     for field in TRAILER_FIELDS:
-    #         value = getattr(self, field, False)
-    #         if value:
-    #             data[field] = value
-    #
-    #     return data
+    @api.multi
+    def _prepare_info(self, priorities=None, **kwargs):
+        data = super(StockPicking, self)._prepare_info(priorities=priorities, **kwargs)
 
+        # create a dictionary of the trailer data
+        trailer_data = dict((field, getattr(self, field)) for field in TRAILER_FIELDS if getattr(self, field, False))
+        # add it to the super data
+        data.update(trailer_data)
+
+        return data
