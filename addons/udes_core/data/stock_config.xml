@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<odoo>
+  <data>
+
+    <!-- Kill off the inventory planner, it is like a step-by-step guide -->
+    <record id="stock.planner_inventory" model="web.planner">
+      <field name="active" eval="False"/>
+    </record>
+
+    <!-- Apply default configuration settings -->
+    <record id="settings_stock_config" model="res.config.settings">
+      <!-- Enable using packages -->
+      <field name="group_stock_tracking_lot" eval="1"/>
+      <!-- Enable picking batches -->
+      <field name="module_stock_picking_batch" eval="1"/>
+
+      <!-- Enable product variants -->
+      <field name="group_product_variant" eval="1"/>
+
+      <!-- Enable products tracked by lot/serial numbers -->
+      <field name="group_stock_production_lot" eval="1"/>
+
+      <!-- Enable multiple locations -->
+      <field name="group_stock_multi_locations" eval="1"/>
+      <!-- Enable multiple warehouses -->
+      <field name="group_stock_multi_warehouses" eval="1"/>
+      <!-- Enable advanced routes -->
+      <field name="group_stock_adv_location" eval="1"/>
+    </record>
+
+    <function model="res.config.settings" name="execute">
+      <value eval="[ref('settings_stock_config')]"/>
+    </function>
+
+  </data>
+</odoo>

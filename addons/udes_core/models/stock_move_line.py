@@ -4,6 +4,7 @@ from odoo import models,  _
 from odoo.exceptions import ValidationError
 from odoo.tools.float_utils import float_compare, float_round
 from copy import deepcopy
+
 from collections import Counter
 
 class StockMoveLine(models.Model):
@@ -155,6 +156,7 @@ class StockMoveLine(models.Model):
                     raise ValidationError(
                             _('Serial numbers %s already exist in picking %s') %
                             (' '.join(product_mls_in_serial_numbers.mapped('lot_name')),
+
                             product_mls.mapped('picking_id').name))
             elif product_mls:
                 # new serial numbers

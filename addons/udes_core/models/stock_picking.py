@@ -77,6 +77,7 @@ class StockPicking(models.Model):
                 #       avoid to merge new move lines if qty_done > 0?
 
                 # new_ml has qty_done 0 and ml is done
+
                 new_ml = ml._split()
                 new_move_lines |= new_ml
         # These are unexpected so the ordered_qty should be        
