@@ -5,6 +5,7 @@ from odoo.exceptions import ValidationError
 from odoo.tools.float_utils import float_compare, float_round
 from collections import Counter
 
+
 class StockMoveLine(models.Model):
     _inherit = 'stock.move.line'
 
@@ -155,9 +156,10 @@ class StockMoveLine(models.Model):
                             _('Serial numbers %s already exist in picking %s') %
                             (product_mls_in_serial_numbers.mapped('lot_name'),
                             product_mls.mapped('picking_id').name))
+                product.assert_serial_numbers(serial_numbers)
             elif product_mls:
                 # new serial numbers
-                pass
+                product.assert_serial_numbers(serial_numbers)
             else:
                 # unexpected part?
                 pass
