@@ -242,7 +242,7 @@ class StockPicking(models.Model):
             create_backorder=False,
             location_dest_id=None,
             location_dest_name=None,
-            location_barcode=None,
+            location_dest_barcode=None,
             result_package_name=None,
             package_name=None,
             move_parent_package=False,
@@ -264,7 +264,7 @@ class StockPicking(models.Model):
                 ID of the location where the stock is going to be moved to
             @param (optional) location_dest_name: string
                 Name of the location where the stock is going to be moved to
-            @param (optional) location_barcode: string 
+            @param (optional) location_dest_barcode: string
                 barcode of the location where the stock is going to be moved to
             @param (optional) result_package_name: string
                 If it corresponds to an existing package/pallet that is not
@@ -295,8 +295,8 @@ class StockPicking(models.Model):
             # when adding only do this?
             return True
 
-        if location_dest_id or location_barcode or location_dest_name:
-            values['location_dest'] = location_dest_id or location_barcode or location_dest_name
+        if location_dest_id or location_dest_barcode or location_dest_name:
+            values['location_dest'] = location_dest_id or location_dest_barcode or location_dest_name
         if result_package_name:
             values['result_package'] = result_package_name
         if not move_parent_package:
