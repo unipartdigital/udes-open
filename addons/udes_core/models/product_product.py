@@ -59,7 +59,7 @@ class ProductProduct(models.Model):
 
         results = self.search(domain)
         if not results:
-            raise ValidationError(_('Product not found for identifier %s') % str(product_identifier))
+            raise ValidationError(_('Invalid product scanned: %s') % str(product_identifier))
         if  len(results) > 1:
             raise ValidationError(_('Too many products found for identifier %s') % str(product_identifier))
 
