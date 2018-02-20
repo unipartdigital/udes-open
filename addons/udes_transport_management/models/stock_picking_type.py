@@ -6,7 +6,7 @@ from odoo import models, fields
 class StockPickingType(models.Model):
     _inherit = "stock.picking.type"
 
-    u_requires_transport = fields.Boolean('Show transport management tab')
+    u_requires_transport = fields.Boolean('Requires Transport Management')
 
     def _prepare_info(self):
         """

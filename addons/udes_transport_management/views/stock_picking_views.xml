@@ -11,7 +11,7 @@
                 <!-- Add Trailer information -->
                 <xpath expr="//page[@name='extra']" position="after">
                     <field name="u_requires_transport" invisible="1"/>
-                    <page string="Trailer information" name="trailer"
+                    <page string="Transport information" name="trailer"
                           attrs="{'invisible': [('u_requires_transport', '=', False)]}">
                         <group>
                             <field name="u_trailer_info_id" invisible="1"/>
