@@ -97,7 +97,7 @@ class StockPicking(models.Model):
         elif isinstance(quant_ids, type(Quant)):
             quants = quant_ids
         else:
-            raise ValiationError(_('Wrong quant identifiers %s') % type(quant_ids))
+            raise ValidationError(_('Wrong quant identifiers %s') % type(quant_ids))
         quants.assert_not_reserved()
         quants.assert_entire_packages()
         quants.assert_valid_location(self.location_id.id)
@@ -241,6 +241,7 @@ class StockPicking(models.Model):
             validate=False,
             create_backorder=False,
             location_dest_id=None,
+            location_dest_name=None,
             location_barcode=None,
             result_package_name=None,
             package_name=None,
@@ -261,6 +262,8 @@ class StockPicking(models.Model):
                 by creating a backorder.
             @param (optional) location_dest_id: int
                 ID of the location where the stock is going to be moved to
+            @param (optional) location_dest_name: string
+                Name of the location where the stock is going to be moved to
             @param (optional) location_barcode: string 
                 barcode of the location where the stock is going to be moved to
             @param (optional) result_package_name: string
@@ -292,8 +295,8 @@ class StockPicking(models.Model):
             # when adding only do this?
             return True
 
-        if location_dest_id or location_barcode:
-            values['location_dest'] = location_dest_id or location_barcode
+        if location_dest_id or location_barcode or location_dest_name:
+            values['location_dest'] = location_dest_id or location_barcode or location_dest_name
         if result_package_name:
             values['result_package'] = result_package_name
         if not move_parent_package:
