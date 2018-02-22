@@ -16,22 +16,21 @@ class StockPicking(models.Model):
         'stock.picking', string='Previous Pickings',
         compute='_compute_prev_next_picking_ids',
         help='Previous pickings',
-        )
+    )
     u_next_picking_ids = fields.One2many(
         'stock.picking', string='Next Pickings',
         compute='_compute_prev_next_picking_ids',
         help='Next pickings',
-        )
+    )
     # search helpers for source and destination package
     u_package_id = fields.Many2one('stock.quant.package', 'Package',
                                    related='move_line_ids.package_id',
                                    help='Source package (used to search on pickings)',
                                    )
     u_result_package_id = fields.Many2one('stock.quant.package', 'Result Package',
-                                   related='move_line_ids.result_package_id',
-                                   help='Destination package (used to search on pickings)',
-                                   )
-
+                                          related='move_line_ids.result_package_id',
+                                          help='Destination package (used to search on pickings)',
+                                          )
 
     # Calculate previous/next pickings
     @api.depends('move_lines',
@@ -43,10 +42,10 @@ class StockPicking(models.Model):
         for picking in self:
             picking.u_prev_picking_ids = picking.mapped(
                 'move_lines.move_orig_ids.picking_id'
-                )
+            )
             picking.u_next_picking_ids = picking.mapped(
                 'move_lines.move_dest_ids.picking_id'
-                )
+            )
 
     def assert_valid_state(self):
         """ Checks if the transfer is in a valid state, i.e., not done or cancel
@@ -64,7 +63,6 @@ class StockPicking(models.Model):
         old_move_lines = self.move_line_ids
         self._create_moves(product_quantities, confirm=True, assign=True)
         new_move_lines = (self.move_line_ids - old_move_lines)
-
 
         for ml in old_move_lines:
             if ml.qty_done > 0 and ml.product_uom_qty > ml.qty_done:
@@ -104,11 +102,11 @@ class StockPicking(models.Model):
 
         # Call _create_moves() with context variable quants_ids in order
         # to filter the quants that stock.quant._gather returns
-        self.with_context(quant_ids=quant_ids)._create_moves(quants.group_quantity_by_product(),**kwargs)
+        self.with_context(quant_ids=quant_ids)._create_moves(quants.group_quantity_by_product(), **kwargs)
 
     def _create_moves(self, products_info, values=None,
-                            confirm=False, assign=False,
-                            result_package=None):
+                      confirm=False, assign=False,
+                      result_package=None):
         """ Creates moves from products_info and adds it to the picking
             in self. Where products_info is a dictionary mapped by
             product ids and the value are the quantities.
@@ -138,10 +136,10 @@ class StockPicking(models.Model):
 
         for product_id, qty in products_info.items():
             move_vals = {
-                    'name': '{} {}'.format(qty, Product.browse(product_id).display_name),
-                    'product_id': product_id,
-                    'product_uom_qty': qty,
-                }
+                'name': '{} {}'.format(qty, Product.browse(product_id).display_name),
+                'product_id': product_id,
+                'product_uom_qty': qty,
+            }
             move_vals.update(values)
             move = Move.create(move_vals)
 
@@ -229,7 +227,7 @@ class StockPicking(models.Model):
         if not move_parent_package:
             # not needed yet
             # when false remove parent_id of the result_package_id ??
-            #picking.move_line_ids.mapped('result_package_id').write({'package_id': False})
+            # picking.move_line_ids.mapped('result_package_id').write({'package_id': False})
             pass
 
         return picking
@@ -247,6 +245,7 @@ class StockPicking(models.Model):
             package_name=None,
             move_parent_package=False,
             products_info=None,
+            picking_info=None,
     ):
         """ Update/mutate the stock picking in self
 
@@ -279,7 +278,8 @@ class StockPicking(models.Model):
                 An array with the products information to be marked as done,
                 where each dictionary contains: product_barcode, qty and
                 serial numbers if needed
-
+            @param picking_info: dictionary
+                Generic picking information to update the stock picking with
         """
         Location = self.env['stock.location']
         Package = self.env['stock.quant.package']
@@ -287,6 +287,10 @@ class StockPicking(models.Model):
         self.assert_valid_state()
 
         values = {}
+
+        # Updates stock picking with generic picking info
+        if picking_info:
+            self.write(picking_info)
 
         if quant_ids:
             # Create extra stock.moves to the picking
@@ -302,7 +306,7 @@ class StockPicking(models.Model):
         if not move_parent_package:
             # not needed yet, move it outside udes_core
             # when false remove parent_id of the result_package_id ??
-            #picking.move_line_ids.mapped('result_package_id').write({'package_id': False})
+            # picking.move_line_ids.mapped('result_package_id').write({'package_id': False})
             pass
 
         # get all the stock.move.lines
@@ -324,11 +328,11 @@ class StockPicking(models.Model):
         if force_validate or validate:
             if self.move_line_ids.get_lines_todo() and not create_backorder:
                 raise ValidationError(
-                        _('Cannot validate transfer because there'
-                          ' are move lines todo'))
+                    _('Cannot validate transfer because there'
+                      ' are move lines todo'))
             # by default action_done will backorder the stock.move.lines todo
             # validate stock.picking
-            self.action_done() # old do_transfer
+            self.action_done()  # old do_transfer
 
     def get_pickings(self,
                      origin=None,
@@ -450,9 +454,9 @@ class StockPicking(models.Model):
             ]
             if picking_ids is not None:
                 domain.append(('id', 'in', picking_ids))
-            order='priority desc, scheduled_date, id'
+            order = 'priority desc, scheduled_date, id'
             # TODO: add bulky field
-            #if bulky is not None:
+            # if bulky is not None:
             #    domain.append(('u_contains_bulky', '=', bulky))
         elif picking_ids:
             domain = [('id', 'in', picking_ids)]
@@ -482,7 +486,7 @@ class StockPicking(models.Model):
         """ Generate the domain for searching pickings of a package
         """
         return ['|', ('move_line_ids.package_id', '=', package.id),
-                     ('move_line_ids.result_package_id', '=', package.id)]
+                ('move_line_ids.result_package_id', '=', package.id)]
 
     def _prepare_info(self, priorities=None, fields_to_fetch=None):
         """
@@ -515,7 +519,7 @@ class StockPicking(models.Model):
                 "location_dest_id": lambda p: p.location_dest_id.id,
                 "picking_type_id": lambda p: p.picking_type_id.id,
                 "moves_lines": lambda p: p.move_lines.get_info()
-               }
+                }
         if not fields_to_fetch:
             fields_to_fetch = info.keys()
 
