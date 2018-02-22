@@ -194,83 +194,83 @@ class TestTargetStorageTypes(common.BaseUDES):
 
     def test09_target_storage_format_package_serial_numbers_product(self):
         """Tests receiving tracked products for target_storage_format product"""
-        create_info = [{'product': self.lime, 'qty': 2}]
-        lime_sn = ['Lime0', 'Lime1']
+        create_info = [{'product': self.strawberry, 'qty': 2}]
+        strawberry_sn = ['Strawberry0', 'Strawberry1']
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
         products_info = [{
-                            'product_barcode': self.lime.barcode,
+                            'product_barcode': self.strawberry.barcode,
                             'qty': 2,
-                            'serial_numbers': lime_sn
+                            'serial_numbers': strawberry_sn
                         }]
         self.picking_type_in.u_target_storage_format = 'product'
-        self.validate_move_lines(picking.move_line_ids, self.lime, 2, 0)
+        self.validate_move_lines(picking.move_line_ids, self.strawberry, 2, 0)
         picking.update_picking(products_info=products_info)
-        self.validate_move_lines(picking.move_line_ids, self.lime, 2, 2,
-                                 serial_numbers=lime_sn)
+        self.validate_move_lines(picking.move_line_ids, self.strawberry, 2, 2,
+                                 serial_numbers=strawberry_sn)
 
     def test10_target_storage_format_package_serial_numbers_package(self):
         """Tests receiving tracked products for target_storage_format package"""
         Package = self.env['stock.quant.package']
         package = Package.get_package('test_package', create=True)
-        create_info = [{'product': self.lime, 'qty': 2}]
-        lime_sn = ['Lime0', 'Lime1']
+        create_info = [{'product': self.strawberry, 'qty': 2}]
+        strawberry_sn = ['Strawberry0', 'Strawberry1']
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
         products_info = [{
-                            'product_barcode': self.lime.barcode,
+                            'product_barcode': self.strawberry.barcode,
                             'qty': 2,
-                            'serial_numbers': lime_sn
+                            'serial_numbers': strawberry_sn
                         }]
         self.picking_type_in.u_target_storage_format = 'package'
-        self.validate_move_lines(picking.move_line_ids, self.lime, 2, 0)
+        self.validate_move_lines(picking.move_line_ids, self.strawberry, 2, 0)
         picking.update_picking(products_info=products_info, result_package_name=package.name)
-        self.validate_move_lines(picking.move_line_ids, self.lime, 2, 2,
-                                 serial_numbers=lime_sn, package_name=package.name,
+        self.validate_move_lines(picking.move_line_ids, self.strawberry, 2, 2,
+                                 serial_numbers=strawberry_sn, package_name=package.name,
                                  is_package=True)
 
     def test11_target_storage_format_package_serial_numbers_pallet_products(self):
         """Tests receiving tracked products for target_storage_format pallet_products"""
         Package = self.env['stock.quant.package']
         package = Package.get_package('test_package', create=True)
-        create_info = [{'product': self.lime, 'qty': 2}]
-        lime_sn = ['Lime0', 'Lime1']
+        create_info = [{'product': self.strawberry, 'qty': 2}]
+        strawberry_sn = ['Strawberry0', 'Strawberry1']
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
         products_info = [{
-                            'product_barcode': self.lime.barcode,
+                            'product_barcode': self.strawberry.barcode,
                             'qty': 2,
-                            'serial_numbers': lime_sn
+                            'serial_numbers': strawberry_sn
                         }]
         self.picking_type_in.u_target_storage_format = 'pallet_products'
-        self.validate_move_lines(picking.move_line_ids, self.lime, 2, 0)
+        self.validate_move_lines(picking.move_line_ids, self.strawberry, 2, 0)
         picking.update_picking(products_info=products_info, result_package_name=package.name)
-        self.validate_move_lines(picking.move_line_ids, self.lime, 2, 2,
-                                 serial_numbers=lime_sn, package_name=package.name,
+        self.validate_move_lines(picking.move_line_ids, self.strawberry, 2, 2,
+                                 serial_numbers=strawberry_sn, package_name=package.name,
                                  is_pallet=True)
 
     def test12_target_storage_format_package_serial_numbers_pallet_packages(self):
         """Tests receiving tracked products for target_storage_format pallet_packages"""
         Package = self.env['stock.quant.package']
         package = Package.get_package('test_package', create=True)
-        create_info = [{'product': self.lime, 'qty': 2}]
-        lime_sn = ['Lime0', 'Lime1']
+        create_info = [{'product': self.strawberry, 'qty': 2}]
+        strawberry_sn = ['Strawberry0', 'Strawberry1']
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
         products_info = [{
-                            'product_barcode': self.lime.barcode,
+                            'product_barcode': self.strawberry.barcode,
                             'qty': 2,
-                            'serial_numbers': lime_sn
+                            'serial_numbers': strawberry_sn
                         }]
         self.picking_type_in.u_target_storage_format = 'pallet_packages'
-        self.validate_move_lines(picking.move_line_ids, self.lime, 2, 0)
+        self.validate_move_lines(picking.move_line_ids, self.strawberry, 2, 0)
         picking.update_picking(products_info=products_info, result_package_name=package.name)
-        self.validate_move_lines(picking.move_line_ids, self.lime, 2, 2,
-                                 serial_numbers=lime_sn, package_name=package.name,
+        self.validate_move_lines(picking.move_line_ids, self.strawberry, 2, 2,
+                                 serial_numbers=strawberry_sn, package_name=package.name,
                                  is_package=True, is_pallet=True)
 
     def test13_target_storage_format_mixed_product(self):
