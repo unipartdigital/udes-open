@@ -2,8 +2,8 @@
 
 from odoo import api, fields, models
 
-class TrailerInfo(models.Model):
 
+class TrailerInfo(models.Model):
     _name = 'udes_transport_management.trailer_info'
     _description = 'UDES Trailer Info'
 
@@ -39,4 +39,23 @@ class TrailerInfo(models.Model):
     def create(self, values):
         res = super(TrailerInfo, self).create(values)
         res._update_picking_data()
+        return res
+
+    @api.multi
+    def _prepare_info(self, **kwargs):
+        # Create a dict of all the fields
+        data = {'trailer_num': self.trailer_num, 'trailer_ident': self.trailer_ident,
+                'trailer_license': self.trailer_license, 'trailer_driver': self.trailer_driver}
+
+        return data
+
+    def get_info(self, **kwargs):
+        """ Return a list with the information of each picking in self.
+        """
+
+        # Create an array of trailer_info records in self, there should only be one
+        res = []
+        for trailer_info in self:
+            res.append(trailer_info._prepare_info(**kwargs))
+
         return res
