@@ -63,12 +63,12 @@ class StockPicking(models.Model):
         return res
 
     @api.multi
-    def _prepare_info(self, priorities=None, **kwargs):
-        data = super(StockPicking, self)._prepare_info(priorities=priorities, **kwargs)
+    def _prepare_info(self, priorities=None, fields_to_fetch=None, **kwargs):
+        data = super(StockPicking, self)._prepare_info(priorities=priorities, fields_to_fetch=fields_to_fetch, **kwargs)
 
-        # create a dictionary of the trailer data
-        trailer_data = dict((field, getattr(self, field)) for field in TRAILER_FIELDS if getattr(self, field, False))
-        # add it to the super data
-        data.update(trailer_data)
+        # If the stock picking requires transport
+        if self.u_requires_transport and (not fields_to_fetch or 'u_trailer_info_id' in fields_to_fetch):
+            # Get trailer info and add it to data
+            data['u_trailer_info_id'] = self.u_trailer_info_id.get_info()[0]
 
         return data
