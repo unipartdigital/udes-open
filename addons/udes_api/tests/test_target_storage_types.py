@@ -57,6 +57,8 @@ class TestTargetStorageTypes(common.BaseUDES):
     def test01_target_storage_format_product(self):
         """ Test for basic usage of target_storage_format product"""
         create_info = [{'product': self.apple, 'qty': 4}]
+        Package = self.env['stock.quant.package']
+        package = Package.get_package('test_package', create=True)
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
