@@ -160,7 +160,7 @@ class StockExport(models.TransientModel):
         out_moves = moves.filtered(lambda m: m.picking_type_id == picking_type_out)
 
         _logger.info(_('Creating Excel file'))
-        file_name = 'warehouse_movemenet_{TIMESTAMP}.xls'.format(
+        file_name = 'warehouse_movement_{TIMESTAMP}.xls'.format(
             TIMESTAMP=datetime.now())
         wb = xlwt.Workbook()
 
