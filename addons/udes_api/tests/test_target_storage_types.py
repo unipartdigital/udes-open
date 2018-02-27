@@ -107,23 +107,19 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
                                       confirm=True)
         products_info = [{'product_barcode': self.apple.barcode, 'qty': 4}]
         self.picking_type_in.u_target_storage_format = 'product'
-
-        qnt_domain = [
-                        ('product_id','=', self.apple.id),
-                        ('location_id', '=', self.picking_type_in.default_location_dest_id.id),
-                     ]
-
         self.validate_move_lines(picking.move_line_ids, self.apple, 4, 0)
-
         with self.assertRaises(ValidationError) as e:
             picking.update_picking(products_info=products_info, result_package_name=package.name)
         self.assertEqual(e.exception.name, 'Invalid parameters for products target'
                                            ' storage format.',
                          'No/Incorrect error message was thrown')
-
         picking.update_picking(products_info=products_info)
         self.validate_move_lines(picking.move_line_ids, self.apple, 4, 4)
         picking.update_picking(validate=True)
+        qnt_domain = [
+                        ('product_id','=', self.apple.id),
+                        ('location_id', '=', self.picking_type_in.default_location_dest_id.id),
+                     ]
         qnts = Quants.search(qnt_domain)
         validation_args = {'expected_location': self.picking_type_in.default_location_dest_id}
         expected_quants = [{'product': self.apple, 'qty': 4}]
@@ -224,18 +220,16 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
-
-        qnt_domain = [
-                          ('product_id','=', self.apple.id),
-                          ('location_id', '=', self.picking_type_in.default_location_dest_id.id),
-                     ]
-
         self.validate_move_lines(picking.move_line_ids, self.apple, 2, 0)
         self.picking_type_in.u_target_storage_format = 'product'
         products_info = [{'product_barcode': self.apple.barcode, 'qty': 4}]
         picking.update_picking(products_info=products_info)
         self.validate_move_lines(picking.move_line_ids, self.apple, 2, 4)
         picking.update_picking(validate=True)
+        qnt_domain = [
+                       ('product_id','=', self.apple.id),
+                       ('location_id', '=', self.picking_type_in.default_location_dest_id.id),
+                     ]
         qnts = Quants.search(qnt_domain)
 
         validation_args = {'expected_location': self.picking_type_in.default_location_dest_id}
@@ -339,10 +333,7 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
                             'qty': 2,
                             'serial_numbers': strawberry_sn
                         }]
-        qnt_domain = [
-                        ('product_id','=', self.strawberry.id),
-                        ('location_id', '=', self.picking_type_in.default_location_dest_id.id),
-                     ]
+
 
         self.picking_type_in.u_target_storage_format = 'product'
         self.validate_move_lines(picking.move_line_ids, self.strawberry, 2, 0)
@@ -351,6 +342,10 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
                                  serial_numbers=strawberry_sn)
         picking.update_picking(validate=True)
         validation_args = {'expected_location': self.picking_type_in.default_location_dest_id}
+        qnt_domain = [
+                        ('product_id','=', self.strawberry.id),
+                        ('location_id', '=', self.picking_type_in.default_location_dest_id.id),
+                     ]
         qnts = Quants.search(qnt_domain)
         expected_quants = [{'product': self.strawberry, 'qty': 1}, {'product': self.strawberry, 'qty': 1}]
         self.validate_quants(quants=qnts, expected_quants=expected_quants, **validation_args)
@@ -461,10 +456,7 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
                                       products_info=create_info,
                                       confirm=True)
 
-        qnt_domain = [('location_id', '=', self.picking_type_in.default_location_dest_id.id),
-                      '|',
-                      ('product_id','=', self.apple.id),
-                      ('product_id','=', self.banana.id)]
+
         apple_move_lines = picking.move_line_ids.filtered(lambda x: x.product_id == self.apple)
         banana_move_lines = picking.move_line_ids.filtered(lambda x: x.product_id == self.banana)
         self.validate_move_lines(apple_move_lines, self.apple, 4, 0)
@@ -481,6 +473,12 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
 
         validation_args = {'expected_location': self.picking_type_in.default_location_dest_id}
         expected_quants = [{'product': self.apple, 'qty': 4}, {'product': self.banana, 'qty': 4}]
+        qnt_domain = [
+                        ('location_id', '=', self.picking_type_in.default_location_dest_id.id),
+                        '|',
+                        ('product_id','=', self.apple.id),
+                        ('product_id','=', self.banana.id)
+                      ]
         qnts = Quants.search(qnt_domain)
         self.validate_quants(quants=qnts, expected_quants=expected_quants, **validation_args)
 
