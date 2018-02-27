@@ -6,10 +6,13 @@ from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
 
 from ..common import check_many2one_validity
+from . import common
 
 
 class StockPicking(models.Model):
     _inherit = 'stock.picking'
+
+    priority = fields.Selection(selection=common.PRIORITIES)
 
     # compute previous and next pickings
     u_prev_picking_ids = fields.One2many(
@@ -533,3 +536,18 @@ class StockPicking(models.Model):
             res.append(picking._prepare_info(priorities, **kwargs))
 
         return res
+
+    def get_priorities(self):
+        """ Return a list of dicts containing the priorities of the
+            'Picking' priority group, in the following format:
+                [
+                    {
+                        'name': 'Picking',
+                        'priorities': [
+                            OrderedDict([('id', '2'), ('name', 'Urgent')]),
+                            OrderedDict([('id', '1'), ('name', 'Normal')])
+                        ]
+                    }
+                ]
+        """
+        return [common.PRIORITY_GROUPS[common.PriorityGroups.Picking]]
