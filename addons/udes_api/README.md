@@ -405,7 +405,7 @@ Returns the list of possible groups of priorities with the following format:
 
 ```
 [{
-    name: 'Picking':
+    name: 'Picking',
     priorities: [
         {'id': 2, 'name': 'Urgent'},
         {'id': 1, 'name': 'Normal'}
