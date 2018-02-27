@@ -150,6 +150,16 @@ Configuration information for the an entire warehouse.
 | u_pallet_barcode_regex            | string           | |
 
 
+## Picking Batches (model: stock.picking.batch)
+
+Group of pickings to be completed by a user.
+
+| Field Name  | Type          | Description |
+| ----------- | ------------- | ----------- |
+| id | int | |
+| picking_ids | [stock.picking] | List of stock.picking objects|
+
+
 # API End Points
 
 ## Stock Warehouse
@@ -351,4 +361,44 @@ Search for a product by id, name or barcode and returns a product object that ma
 * @param product_barcode - (optional) this is a string that entirely matches the barcode
 * @param fields_to_fetch - (optional): Subset of the default returned fields to return
 
+## Stock Picking Batch
 
+### Get picking batch
+```
+URI: /api/stock-picking-batch
+HTTP Method: GET
+Old method(s): get_users_wave
+```
+Search for a picking batch in progress for the current user. It returns the id of the batch and the list of pickings.
+
+### Create picking batch
+```
+URI: /api/stock-picking-batch
+HTTP Method: POST
+Old method(s): generate_wave_for_user
+```
+Generate a new batch for the current user.
+
+* @param picking_priorities - (optional) List of priorities to search for the pickings
+* @param max_locations - (optional) Max number of locations to pick from (not used)
+
+### Update picking batch
+```
+URI: /api/stock-picking-batch/:id
+HTTP Method: POST
+Old method(s): drop_off_picked
+```
+Update current user's picking batch.
+
+* @param id - id of the batch to process
+* @param location_barcode - Barcode of the location where the picked stock is dropped off
+* @param continue_wave - (optional) Determines if the batch should continue or finish the wave (not used)
+
+
+## Stock Picking Priorities
+```
+URI: /api/stock-picking-priorities/
+HTTP Method: GET
+Old method(s): get_priority_groups
+```
+Returns the list of possible groups of priorities.
