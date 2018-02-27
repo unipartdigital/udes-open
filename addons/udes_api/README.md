@@ -392,7 +392,7 @@ Update current user's picking batch.
 
 * @param id - id of the batch to process
 * @param location_barcode - Barcode of the location where the picked stock is dropped off
-* @param continue_wave - (optional) Determines if the batch should continue or finish the wave (not used)
+* @param continue_wave - (optional) Determines if the batch should continue or finish the batch (not used)
 
 
 ## Stock Picking Priorities
@@ -401,4 +401,14 @@ URI: /api/stock-picking-priorities/
 HTTP Method: GET
 Old method(s): get_priority_groups
 ```
-Returns the list of possible groups of priorities.
+Returns the list of possible groups of priorities with the following format:
+
+```
+[{
+    name: 'Picking':
+    priorities: [
+        {'id': 2, 'name': 'Urgent'},
+        {'id': 1, 'name': 'Normal'}
+        ]   
+}]
+```
