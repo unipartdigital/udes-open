@@ -101,7 +101,7 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         Package = self.env['stock.quant.package']
         Quants = self.env['stock.quant']
         package = Package.get_package('test_package', create=True)
-        validation_args = {}
+
         create_info = [{'product': self.apple, 'qty': 4}]
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
@@ -126,7 +126,7 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         self.validate_move_lines(picking.move_line_ids, self.apple, 4, 4)
         picking.update_picking(validate=True)
         qnts = Quants.search(qnt_domain)
-        validation_args.update({'expected_location': self.picking_type_in.default_location_src_id})
+        validation_args = {'expected_location': self.picking_type_in.default_location_src_id}
         expected_quants = [{'product': self.apple, 'qty': 4}]
         self.validate_quants(quants=qnts, expected_quants=expected_quants, **validation_args)
 
@@ -222,7 +222,6 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
     def test05_target_storage_format_package_over_receive_product(self):
         """Tests over receiving for target_storage_format product"""
         Quants = self.env['stock.quant']
-        validation_args = {}
         create_info = [{'product': self.apple, 'qty': 2}]
         self.picking_type_in.u_over_receive = True
         picking = self.create_picking(self.picking_type_in,
@@ -242,7 +241,7 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         picking.update_picking(validate=True)
         qnts = Quants.search(qnt_domain)
 
-        validation_args.update({'expected_location': self.picking_type_in.default_location_src_id})
+        validation_args = {'expected_location': self.picking_type_in.default_location_src_id}
         expected_quants = [{'product': self.apple, 'qty': 4}]
         self.validate_quants(quants=qnts, expected_quants=expected_quants, **validation_args)
 
@@ -333,7 +332,6 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
            target_storage_format product
         """
         Quants = self.env['stock.quant']
-        validation_args = {}
         create_info = [{'product': self.strawberry, 'qty': 2}]
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
@@ -355,9 +353,10 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         self.validate_move_lines(picking.move_line_ids, self.strawberry, 2, 2,
                                  serial_numbers=strawberry_sn)
         picking.update_picking(validate=True)
+        validation_args = {'expected_location': self.picking_type_in.default_location_src_id}
         qnts = Quants.search(qnt_domain)
         expected_quants = [{'product': self.strawberry, 'qty': 1}, {'product': self.strawberry, 'qty': 1}]
-        self.validate_quants(quants=qnts, expected_quants=expected_quants)
+        self.validate_quants(quants=qnts, expected_quants=expected_quants, **validation_args)
 
     def test10_target_storage_format_package_serial_numbers_package(self):
         """Tests receiving tracked products for
@@ -459,7 +458,6 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
            target_storage_format product
         """
         Quants = self.env['stock.quant']
-        validation_args = {}
         create_info = [{'product': self.apple, 'qty': 4},
                        {'product': self.banana, 'qty': 4}]
         picking = self.create_picking(self.picking_type_in,
@@ -483,9 +481,11 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         self.validate_move_lines(apple_move_lines, self.apple, 4, 4)
         self.validate_move_lines(banana_move_lines, self.banana, 4, 4)
         picking.update_picking(validate=True)
+
+        validation_args = {'expected_location': self.picking_type_in.default_location_src_id}
         expected_quants = [{'product': self.apple, 'qty': 4}, {'product': self.banana, 'qty': 4}]
         qnts = Quants.search(qnt_domain)
-        self.validate_quants(quants=qnts, expected_quants=expected_quants)
+        self.validate_quants(quants=qnts, expected_quants=expected_quants, **validation_args)
 
     def test14_target_storage_format_mixed_package(self):
         """Tests receiving mixed products for
