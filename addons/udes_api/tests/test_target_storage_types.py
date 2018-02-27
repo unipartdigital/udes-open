@@ -938,6 +938,7 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
            when over-receiving when it is not
            allowed by picking type.
         """
+        self.picking_type_in.u_target_storage_format = 'product'
         self.picking_type_in.u_over_receive = False
         expected_qty = 2
         receive_qty = 6
@@ -965,6 +966,7 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
            when receiving an unexpected product when
            it is not allowed by picking type.
         """
+        self.picking_type_in.u_target_storage_format = 'product'
         self.picking_type_in.u_over_receive = False
         expected_qty = 2
         receive_qty = 6
