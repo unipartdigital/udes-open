@@ -24,7 +24,7 @@ class TestGoodsInPicking(common.BaseUDES):
                                               confirm=True)
 
     def test01_get_pickings_by_package_name_fail(self):
-        """ Tests get_pickings by package_name 
+        """ Tests get_pickings by package_name
             when no package exists
         """
         Picking = self.env['stock.picking']
@@ -32,7 +32,7 @@ class TestGoodsInPicking(common.BaseUDES):
         self.assertEqual(len(returned_pickings), 0)
 
     def test02_get_pickings_by_package_name_sucess(self):
-        """ Tests get_pickings by package_name 
+        """ Tests get_pickings by package_name
             when package exists
         """
         Picking = self.env['stock.picking']
@@ -43,7 +43,7 @@ class TestGoodsInPicking(common.BaseUDES):
         self.assertEqual(returned_pickings.id, self.test_picking.id)
 
     def test03_get_pickings_by_origin_fail(self):
-        """ Tests get_pickings by origin 
+        """ Tests get_pickings by origin
             when no package exists
         """
         Picking = self.env['stock.picking']
@@ -51,7 +51,7 @@ class TestGoodsInPicking(common.BaseUDES):
         self.assertEqual(len(returned_pickings), 0)
 
     def test04_get_pickings_by_origin_sucess(self):
-        """ Tests get_pickings by origin 
+        """ Tests get_pickings by origin
             when package exists
         """
         Picking = self.env['stock.picking']
@@ -77,7 +77,7 @@ class TestGoodsInPicking(common.BaseUDES):
         # Sorted returns a list(or did when I wrote this)
         # so no need to type cast
         self.assertEqual(sorted(info[0].keys()), sorted(expected))
-    
+
     def test06_get_info_only_id(self):
         """ Tests get_info requesting a specific field"""
         info = self.test_picking.get_info(fields_to_fetch=['id'])
