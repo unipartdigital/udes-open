@@ -505,10 +505,13 @@ class StockPicking(models.Model):
                 Dictionary of priority_id:priority_name
         """
         self.ensure_one()
+
         if not priorities:
             priorities = OrderedDict(self._fields['priority'].selection)
+
         priority_name = priorities[self.priority]
 
+        # @todo: (ale) move this out of the method as it's static code
         info = {"id": lambda p: p.id,
                 "name": lambda p: p.name,
                 "priority": lambda p: p.priority,
@@ -518,8 +521,8 @@ class StockPicking(models.Model):
                 "state": lambda p: p.state,
                 "location_dest_id": lambda p: p.location_dest_id.id,
                 "picking_type_id": lambda p: p.picking_type_id.id,
-                "moves_lines": lambda p: p.move_lines.get_info()
-               }
+                "moves_lines": lambda p: p.move_lines.get_info()}
+
         if not fields_to_fetch:
             fields_to_fetch = info.keys()
 
