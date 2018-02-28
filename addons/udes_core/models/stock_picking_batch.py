@@ -22,7 +22,7 @@ class StockPickingBatch(models.Model):
         PickingBatch = self.env['stock.picking.batch']
 
         if user_id is None:
-            user_id or self.env.user.id
+            user_id = self.env.user.id
 
         batches = PickingBatch.search(
             [('user_id', '=', user_id),
