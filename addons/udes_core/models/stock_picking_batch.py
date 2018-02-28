@@ -7,6 +7,16 @@ from odoo.exceptions import ValidationError
 class StockPickingBatch(models.Model):
     _inherit = 'stock.picking.batch'
 
+    def _check_user_id(self, user_id):
+        if user_id is None:
+            user_id = self.env.user.id
+
+        if not user_id:
+            raise ValidationError(_("Cannot determine the user"))
+
+        return user_id
+
+
     @api.multi
     def get_single_batch(self, user_id=None):
         """
@@ -21,15 +31,9 @@ class StockPickingBatch(models.Model):
         """
         PickingBatch = self.env['stock.picking.batch']
 
-        if user_id is None:
-            user_id = self.env.user.id
-
-        if not user_id:
-            raise ValidationError(_("Cannot determine the user"))
-
-        batches = PickingBatch.search(
-            [('user_id', '=', user_id),
-             ('state', '=', 'in_progress')])
+        user_id = self._check_user_id(user_id)
+        batches = PickingBatch.search([('user_id', '=', user_id),
+                                       ('state', '=', 'in_progress')])
         batch = None
 
         if not batches:
@@ -63,26 +67,39 @@ class StockPickingBatch(models.Model):
                 for batch in self]
 
     @api.multi
-    def create_batch(self, user_id=None):
+    def create_batch(self, picking_priorities, user_id=None):
         """
         Creeate and return a batch for the specified user if pickings
-        exist. Return None otherwise.
+        exist. Return None otherwise. Pickings are filtered based on
+        the specified picking priorities.
+
+        Raise a ValidationError in case the user ID is not specified.
+
+        If the user already has batches assigned, a ValidationError
+        is raised in case of pickings that need to be completed,
+        otherwise such batches will be marked as done.
         """
-        user_id = user_id or self.env.user.id
+        user_id = self._check_user_id(user_id)
         self._check_batches(user_id)
 
-        return self._create_batch(user_id)
+        return self._create_batch(user_id, picking_priorities)
 
-    def _create_batch(self, user_id):
+    def _create_batch(self, user_id, picking_priorities=None):
         Picking = self.env['stock.picking']
         PickingBatch = self.env['stock.picking.batch']
         Users = self.env['res.users']
 
         warehouse = Users.get_user_warehouse()
         picking_type_id = warehouse.pick_type_id
-        search_domain = [('picking_type_id', '=', picking_type_id.id),
-                         ('state', '=', 'assigned'),
-                         ('batch_id', '=', False)]
+        search_domain = []
+
+        if picking_priorities is not None:
+            search_domain.append(('priority', 'in', picking_priorities))
+
+        search_domain.extend([('picking_type_id', '=', picking_type_id.id),
+                              ('state', '=', 'assigned'),
+                              ('batch_id', '=', False)])
+
         picking = Picking.search(search_domain,
                                  order='priority desc, scheduled_date, id',
                                  limit=1)
@@ -101,7 +118,7 @@ class StockPickingBatch(models.Model):
         PickingBatch = self.env['stock.picking.batch']
 
         batches = PickingBatch.search([('user_id', '=', user_id),
-                                        ('state', '=', 'in_progress')])
+                                       ('state', '=', 'in_progress')])
 
         if batches:
             draft_picks = Picking.browse()
