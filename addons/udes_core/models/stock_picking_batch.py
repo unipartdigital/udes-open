@@ -16,7 +16,6 @@ class StockPickingBatch(models.Model):
 
         return user_id
 
-
     @api.multi
     def get_single_batch(self, user_id=None):
         """
@@ -41,30 +40,23 @@ class StockPickingBatch(models.Model):
         else:
             if len(batches) > 1:
                 raise ValidationError(
-                    _("Expected single picking batch, found %d batches")
-                    % len(batches))
+                    _("Found %d batches for the user, please contact "
+                      "administrator.") % len(batches))
 
-            batch = batches[0]
+            batch = batches
 
         return batch
 
-    def _get_single_batch_info(self, batch, allowed_picking_states):
-        filtered_pickings = batch.picking_ids.filtered(
-            lambda x: x.state in allowed_picking_states)
-
+    def _prepare_info(self):
         return {'id': self.id,
-                'picking_ids': filtered_pickings.get_info()}
+                'picking_ids': self.picking_ids.get_info()}
 
-    def get_info(self, allowed_picking_states=None):
+    def get_info(self):
         """
         Return list of dictionaries containing information about
         all batches.
         """
-        if allowed_picking_states is None:
-            allowed_picking_states = ['assigned']
-
-        return [self._get_single_batch_info(batch, allowed_picking_states)
-                for batch in self]
+        return [batch._prepare_info() for batch in self]
 
     @api.multi
     def create_batch(self, picking_priorities, user_id=None):
@@ -85,6 +77,11 @@ class StockPickingBatch(models.Model):
         return self._create_batch(user_id, picking_priorities)
 
     def _create_batch(self, user_id, picking_priorities=None):
+        """
+        Create a batch for the specified user, by including only
+        those with the specified picking priorities (optional).
+        In case no pickings exist, return None.
+        """
         Picking = self.env['stock.picking']
         PickingBatch = self.env['stock.picking.batch']
         Users = self.env['res.users']
@@ -114,6 +111,12 @@ class StockPickingBatch(models.Model):
         return batch
 
     def _check_batches(self, user_id):
+        """
+        In case there is a batch for the specified user, run
+        through its pickings and raise a ValidationError if any
+        non-draft picking is incomplete, otherwise mark the batch
+        as done.
+        """
         Picking = self.env['stock.picking']
         PickingBatch = self.env['stock.picking.batch']
 
