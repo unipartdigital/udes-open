@@ -12,9 +12,9 @@ class PickingPriorities(UdesApi):
                 type='json', methods=['GET'], auth='user')
     def get_priority_groups(self):
         """
-        Return a JSON list with a single object, containing the
-        priorities of the 'Picking' priority group, by following
-        the format of this example:
+        Return a list of dictionaries, each containing the
+        priorities of a given priority group, by following the
+        format of this example:
 
             [
                 {
