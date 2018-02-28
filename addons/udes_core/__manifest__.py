@@ -6,7 +6,10 @@
     'version': '11.0',
     'summary': 'Inventory, Logistics, Warehousing',
     'description': "Holds core functionality for UDES Modules",
-    'depends': ['stock'],
+    'depends': [
+        'stock',
+        'stock_picking_batch'
+    ],
     'category': 'Warehouse',
     'sequence': 11,
     'demo': [
