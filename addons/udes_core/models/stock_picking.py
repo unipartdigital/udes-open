@@ -557,4 +557,4 @@ class StockPicking(models.Model):
                     ...
                 ]
         """
-        return common.PRIORITY_GROUPS.values()
+        return list(common.PRIORITY_GROUPS.values())
