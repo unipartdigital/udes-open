@@ -16,13 +16,16 @@ class StockPickingBatch(models.Model):
 
         If a batch is determined, return it, otherwise return None.
 
-        Raises a ValidationError in case multiple batches are found
-        for the current user.
+        Raise a ValidationError in case it cannot perform a search
+        or if multiple batches are found for the specified user.
         """
         PickingBatch = self.env['stock.picking.batch']
 
         if user_id is None:
             user_id = self.env.user.id
+
+        if not user_id:
+            raise ValidationError(_("Cannot determine the user"))
 
         batches = PickingBatch.search(
             [('user_id', '=', user_id),
