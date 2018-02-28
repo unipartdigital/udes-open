@@ -542,7 +542,7 @@ class StockPicking(models.Model):
 
     def get_priorities(self):
         """ Return a list of dicts containing the priorities of the
-            'Picking' priority group, in the following format:
+            all defined priority groups, in the following format:
                 [
                     {
                         'name': 'Picking',
@@ -550,7 +550,11 @@ class StockPicking(models.Model):
                             OrderedDict([('id', '2'), ('name', 'Urgent')]),
                             OrderedDict([('id', '1'), ('name', 'Normal')])
                         ]
-                    }
+                    },
+                    {
+                        ...
+                    },
+                    ...
                 ]
         """
-        return [common.PRIORITY_GROUPS[common.PriorityGroups.Picking]]
+        return common.PRIORITY_GROUPS.values()
