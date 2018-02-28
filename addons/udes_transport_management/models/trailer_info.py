@@ -52,7 +52,6 @@ class TrailerInfo(models.Model):
     def get_info(self, **kwargs):
         """ Return a list with the information of each picking in self.
         """
-
         # Create an array of trailer_info records in self, there should only be one
         res = []
         for trailer_info in self:
