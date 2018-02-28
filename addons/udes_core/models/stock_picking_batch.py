@@ -47,16 +47,23 @@ class StockPickingBatch(models.Model):
 
         return batch
 
-    def _prepare_info(self):
-        return {'id': self.id,
-                'picking_ids': self.picking_ids.get_info()}
+    def _prepare_info(self, allowed_picking_states):
+        pickings = self.picking_ids
 
-    def get_info(self):
+        if allowed_picking_states:
+            pickings = pickings.filtered(
+                lambda x: x.state in allowed_picking_states)
+
+        return {'id': self.id,
+                'picking_ids': pickings.get_info()}
+
+    def get_info(self, allowed_picking_states):
         """
         Return list of dictionaries containing information about
         all batches.
         """
-        return [batch._prepare_info() for batch in self]
+        return [batch._prepare_info(allowed_picking_states)
+                for batch in self]
 
     @api.multi
     def create_batch(self, picking_priorities, user_id=None):
