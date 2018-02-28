@@ -6,11 +6,11 @@ from odoo.http import request
 from .main import UdesApi
 
 
-def _get_single_batch_info(batch):
+def _get_single_batch_info(batch, allowed_picking_states=None):
     if not batch:
         return {}
 
-    info = batch.get_info()
+    info = batch.get_info(allowed_picking_states)
     assert len(info) == 1, "expected exactly one batch"
 
     return batch[0]
@@ -36,7 +36,8 @@ class PickingBatchApi(UdesApi):
         PickingBatch = request.env['stock.picking.batch']
         batch = PickingBatch.get_single_batch()
 
-        return _get_single_batch_info(batch)
+        return _get_single_batch_info(batch,
+                                      allowed_picking_states=['assigned'])
 
     @http.route('/api/stock-picking-batch/',
                 type='json', methods=['POST'], auth='user')
