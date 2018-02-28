@@ -10,8 +10,14 @@ class StockPickingBatch(models.Model):
     @api.multi
     def get_single_batch(self, user_id=None):
         """
-        Retrieve ...
-        Can return None ...
+        Search for a picking batch in progress for the specified user.
+        If no user is specified, the current user is considered.
+        If no batch is found, but pickings exist, create a new batch.
+
+        If a batch is determined, return it, otherwise return None.
+
+        Raises a ValidationError in case multiple batches are found
+        for the current user.
         """
         PickingBatch = self.env['stock.picking.batch']
 
@@ -44,7 +50,8 @@ class StockPickingBatch(models.Model):
 
     def get_info(self, allowed_picking_states=None):
         """
-        Return ...
+        Return list of dictionaries containing information about
+        all batches.
         """
         if allowed_picking_states is None:
             allowed_picking_states = ['assigned']
@@ -52,11 +59,10 @@ class StockPickingBatch(models.Model):
         return [self._get_single_batch_info(batch, allowed_picking_states)
                 for batch in self]
 
-
     @api.multi
     def create_batch(self, user_id=None):
         """
-        Creeate and return a batch for the current user if pickings
+        Creeate and return a batch for the specified user if pickings
         exist. Return None otherwise.
         """
         user_id = user_id or self.env.user.id
@@ -88,9 +94,6 @@ class StockPickingBatch(models.Model):
         return batch
 
     def _check_batches(self, user_id):
-        """
-        Check ...
-        """
         Picking = self.env['stock.picking']
         PickingBatch = self.env['stock.picking.batch']
 
