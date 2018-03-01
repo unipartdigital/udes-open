@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from odoo import models,  _
+from odoo import models, _
 from odoo.exceptions import ValidationError
 
 
@@ -18,13 +18,13 @@ class StockPicking(models.Model):
             new_move_lines = super(StockPicking, self).add_unexpected_parts(product_quantities)
         else:
             overreceived_qtys = ["%s: %s" % (Product.get_product(id).name, qty)
-                                 for id,qty in product_quantities.items()]
+                                 for id, qty in product_quantities.items()]
             raise ValidationError(
-                    _("We are not expecting these extra quantities of"
-                    " these parts:\n%s\nPlease either receive the right"
-                    " amount and move the rest to probres, or if they"
-                    " cannot be split, move all to probres.") %
-                    '\n'.join(overreceived_qtys))
+                _("We are not expecting these extra quantities of"
+                  " these parts:\n%s\nPlease either receive the right"
+                  " amount and move the rest to probres, or if they"
+                  " cannot be split, move all to probres.") %
+                '\n'.join(overreceived_qtys))
 
         return new_move_lines
 
@@ -33,7 +33,7 @@ class StockPicking(models.Model):
         """
         return ['|', ('move_line_ids.package_id', 'child_of', package.id),
                 '|', ('move_line_ids.result_package_id', 'child_of', package.id),
-                     ('move_line_ids.u_result_parent_package_id', '=', package.id)]
+                ('move_line_ids.u_result_parent_package_id', '=', package.id)]
 
     def is_compatible_package(self, package_name):
         """ The package with name package_name is compatible
@@ -61,20 +61,28 @@ class StockPicking(models.Model):
 
         return res
 
-    def update_picking(self, expected_package_name=None, **kwargs):
+    def update_picking(self, expected_package_name=None, u_trailer_info_id=None, **kwargs):
         """ Extend update_picking with a new parameter expected_package_name
             to be used during swapping packages
             TODO: finish implement and add parameter at README
         """
+        # if picking_info already exists in kwargs, update with trailer info
+        if 'picking_info' in kwargs:
+            kwargs['picking_info'].update(u_trailer_info_id)
+        # else add picking_info to kwargs with the trailer info
+        else:
+            kwargs['picking_info'] = u_trailer_info_id
+
         # extra_context = {}
         if expected_package_name:
             # extra_context['expected_package'] = expected_package_name
-            res = super(StockPicking, self).with_context(expected_package=expected_package_name).update_picking(**kwargs)
+            res = super(StockPicking, self).with_context(expected_package=expected_package_name).update_picking(
+                **kwargs)
         else:
             res = super(StockPicking, self).update_picking(**kwargs)
 
         return res
-        #return super(StockPicking, self).with_context(**extra_context).update_picking(**kwargs)
+        # return super(StockPicking, self).with_context(**extra_context).update_picking(**kwargs)
 
     def handle_swap(self, package):
         """ Mark package as done Swap expected package for package.
@@ -88,26 +96,26 @@ class StockPicking(models.Model):
 
         # TODO: not handling swap packages yet
         raise ValidationError(
-                _('Package %s not found in the operations of %s') %
-                (package, self.name))
+            _('Package %s not found in the operations of %s') %
+            (package, self.name))
 
         allow_swap = self.picking_type_id.u_allow_swapping_packages
         if not allow_swap:
             raise ValidationError(
-                    _('Package %s not found in the operations of %s') %
-                    (package, self.name))
+                _('Package %s not found in the operations of %s') %
+                (package, self.name))
 
         expected_package = self.env.context.get('expected_package')
         if not expected_package:
             raise ValidationError(
-                    _("Expected package to scan missing."))
+                _("Expected package to scan missing."))
 
         expected_package = Package.get_package(expected_package_name)
         exp_pack_mls = self.move_line_ids.filtered(lambda ml: ml.package_id == expected_package)
         if not exp_pack_mls:
             raise ValidationError(
-                    _("Expected package cannot be found in picking %s") %
-                    self.name)
+                _("Expected package cannot be found in picking %s") %
+                self.name)
 
         # at this point package is not in self, expected_package
         # it is in self
