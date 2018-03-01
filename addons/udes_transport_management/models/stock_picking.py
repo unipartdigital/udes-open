@@ -68,7 +68,14 @@ class StockPicking(models.Model):
 
         # If the stock picking requires transport
         if self.u_requires_transport and (not fields_to_fetch or 'u_trailer_info_id' in fields_to_fetch):
-            # Get trailer info and add it to data
-            data['u_trailer_info_id'] = self.u_trailer_info_id.get_info()[0]
+            if self.u_trailer_info_id:
+                # Get trailer info and add it to data
+                data['u_trailer_info_id'] = {'u_trailer_num': self.u_trailer_num,
+                                             'u_trailer_ident': self.u_trailer_ident,
+                                             'u_trailer_license': self.u_trailer_license,
+                                             'u_trailer_driver': self.u_trailer_driver}
+            else:
+                # for the case with no information, the front end expects an empty list
+                data['u_trailer_info_id'] = []
 
         return data
