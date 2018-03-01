@@ -185,14 +185,18 @@ class StockPickingBatch(models.Model):
             pickings = completed_move_lines.mapped('picking_id')
 
             for pick in pickings:
-                pick_move_lines = completed_move_lines.filtered(
-                    lambda x: x.picking_id == pick)
+                pick.update_picking(validate=True, create_backorder=True)
 
-                if len(pick.move_line_ids) == len(pick_move_lines):
-                    pick.update_picking(validate=True, create_backorder=True)
-                else:
-                    # @todo: (ale) process backorder operations for pick
-                    pass
+                # @todo: (ale) decide whether or not to trigger backorder
+                # operations in inverse order based on the number of
+                # move lines (prior art below for reference):
+                #
+                # pick_move_lines = completed_move_lines.filtered(
+                #     lambda x: x.picking_id == pick)
+                # if len(pick.move_line_ids) == len(pick_move_lines):
+                #     pick.update_picking(validate=True, create_backorder=True)
+                # else:
+                #     # @todo: (ale) backorder operations in inverse order
 
         incomplete_picks = self.picking_ids.filtered(
             lambda x: x.state not in ['done', 'cancel'])
