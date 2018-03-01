@@ -152,3 +152,58 @@ class StockPickingBatch(models.Model):
 
             # all the picks in the waves are finished
             batches.done()
+
+    @api.multi
+    def drop_off_picked(self, continue_wave, location_barcode):
+        """
+        Validate the move lines of the batch (expects a singleton)
+        by moving them to the specified location.
+
+        In case continue_wave is flagged, mark the batch as
+        'done' if appropriate.
+        """
+        self.ensure_one()
+
+        if self.state != 'in_progress':
+            raise ValidationError(_("Wrong batch state: %s.") % self.state)
+
+        Location = self.env['stock.location']
+        dest_loc = None
+
+        if location_barcode:
+            dest_loc = Location.get_location(location_barcode)
+
+        completed_move_lines = self.picking_ids.mapped('move_line_ids').filtered(
+            lambda x: x.qty_done > 0
+                      and x.picking_id.state not in ['cancel', 'done'])
+
+        if not dest_loc and completed_move_lines:
+            raise ValidationError(_("Drop off lane not found."))
+
+        if dest_loc and completed_move_lines:
+            completed_move_lines.write({'location_dest_id': dest_loc.id})
+            pickings = completed_move_lines.mapped('picking_id')
+
+            for pick in pickings:
+                pick_move_lines = completed_move_lines.filtered(
+                    lambda x: x.picking_id == pick)
+
+                if len(pick.move_line_ids) == len(pick_move_lines):
+                    pick.update_picking(validate=True, create_backorder=True)
+                else:
+                    # @todo: (ale) process backorder operations for pick
+                    pass
+
+        incomplete_picks = self.picking_ids.filtered(
+            lambda x: x.state not in ['done', 'cancel'])
+        all_done = not incomplete_picks
+
+        if not continue_wave:
+            incomplete_picks.write({'batch_id': False})
+            all_done = True
+
+        if all_done:
+            # there's nothing else to be picked...
+            self.done()
+
+        return self
