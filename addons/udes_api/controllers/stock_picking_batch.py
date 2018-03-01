@@ -13,7 +13,7 @@ def _get_single_batch_info(batch, allowed_picking_states=None):
     info = batch.get_info(allowed_picking_states)
     assert len(info) == 1, "expected exactly one batch"
 
-    return batch[0]
+    return info[0]
 
 
 class PickingBatchApi(UdesApi):
