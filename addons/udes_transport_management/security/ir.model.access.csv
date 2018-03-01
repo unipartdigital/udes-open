@@ -1,2 +1,2 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_udes_transport_management_trailer_info,access_udes_transport_management_trailer_info,model_udes_transport_management_trailer_info,,1,1,1,0
+access_udes_transport_management_transport,access_udes_transport_management_transport,model_udes_transport_management_transport,,1,1,1,0
