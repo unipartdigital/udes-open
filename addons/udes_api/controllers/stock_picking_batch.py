@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from odoo import http
+from odoo import http, _
+from odoo.exceptions import ValidationError
 from odoo.http import request
 
 from .main import UdesApi
@@ -62,5 +63,37 @@ class PickingBatchApi(UdesApi):
         """
         PickingBatch = request.env['stock.picking.batch']
         batch = PickingBatch.create_batch(picking_priorities)
+
+        return _get_single_batch_info(batch)
+
+    @http.route('/api/stock-picking-batch/<ident>',
+                type='json', methods=['POST'], auth='user')
+    def update_batch(self, ident,
+                     location_barcode=None,
+                     continue_wave=False):
+        """
+        Update the specified batch by inspecting its move lines
+        and setting the destination to the location with the
+        provided `location_barcode`.
+
+        In case all pickings are completed, the batch will be
+        marked as 'done' if `continue_wave` is flagged (defaults
+        to false).
+        """
+        PickingBatch = request.env['stock.picking.batch']
+        batch_id = None
+
+        try:
+            batch_id = int(ident)
+        except ValueError:
+            raise ValidationError(_('You need to provide a valid id for the '
+                                    'batch.'))
+
+        batch = PickingBatch.browse(batch_id)
+
+        if not batch.exists():
+            raise ValidationError(_('The specified batch does not exist.'))
+
+        batch = batch.drop_off_picked(continue_wave, location_barcode)
 
         return _get_single_batch_info(batch)
