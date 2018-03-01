@@ -61,17 +61,17 @@ class StockPicking(models.Model):
 
         return res
 
-    def update_picking(self, expected_package_name=None, u_trailer_info_id=None, **kwargs):
+    def update_picking(self, expected_package_name=None, u_transport_id=None, **kwargs):
         """ Extend update_picking with a new parameter expected_package_name
             to be used during swapping packages
             TODO: finish implement and add parameter at README
         """
         # if picking_info already exists in kwargs, update with trailer info
         if 'picking_info' in kwargs:
-            kwargs['picking_info'].update(u_trailer_info_id)
+            kwargs['picking_info'].update(u_transport_id)
         # else add picking_info to kwargs with the trailer info
         else:
-            kwargs['picking_info'] = u_trailer_info_id
+            kwargs['picking_info'] = u_transport_id
 
         # extra_context = {}
         if expected_package_name:

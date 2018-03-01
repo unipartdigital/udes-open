@@ -278,7 +278,7 @@ Update/mutate the stock picking
 * @param (optional) result_package_name - If it corresponds to an existing package/pallet that is not in an other location, we will set it to the `result_package_id` of the operations of the picking (i.e. transfer). If the target storage format of the picking type is pallet of packages it will set `result_parent_package_id`.
 * @param (optional) package_name - Name of the package of the picking to be marked as done
 * @param (optional) products_info - An array with the products information to be marked as done, where each dictionary contains: product_barcode, qty and serial numbers if needed
-* @param (optional) picking_info - A dictionary of generic picking information to update the stock picking with
+* @param (optional) u_transport_id - A dictionary of transport information to update the stock picking with
 
 Api call example to mark as done one unit of product test01 from picking with id 60.
 If the target storage format of the picking type is pallet of packages, test01 move line will have as `result_package_id` a new package and as `result_parent_package_id` the package with name PAL007. If the target storage format of the picking type is pallet of products, test01 move line will have as `result_package_id` the package with name PAL007.
