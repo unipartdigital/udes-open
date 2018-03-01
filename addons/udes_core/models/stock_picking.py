@@ -57,14 +57,13 @@ class StockPicking(models.Model):
             raise ValidationError(_('Wrong state of picking %s') % self.state)
 
     def add_unexpected_parts(self, product_quantities):
-        """ By default allow to overreceive and it will be extended in 
+        """ By default allow to overreceive and it will be extended in
             a module where the picking type has a flag to decide this.
         """
         self.ensure_one()
         old_move_lines = self.move_line_ids
         self._create_moves(product_quantities, confirm=True, assign=True)
         new_move_lines = (self.move_line_ids - old_move_lines)
-
 
         for ml in old_move_lines:
             if ml.qty_done > 0 and ml.product_uom_qty > ml.qty_done:
@@ -80,7 +79,7 @@ class StockPicking(models.Model):
 
                 new_ml = ml._split()
                 new_move_lines |= new_ml
-        # These are unexpected so the ordered_qty should be        
+        # These are unexpected so the ordered_qty should be
         new_move_lines.write({"ordered_qty": 0})
 
         return new_move_lines
@@ -248,6 +247,7 @@ class StockPicking(models.Model):
             package_name=None,
             move_parent_package=False,
             products_info=None,
+            real_time_update=False,
     ):
         """ Update/mutate the stock picking in self
 
@@ -280,13 +280,15 @@ class StockPicking(models.Model):
                 An array with the products information to be marked as done,
                 where each dictionary contains: product_barcode, qty and
                 serial numbers if needed
-
+            @param (optional) real_time_update: Boolean
+                Used to specify if the update should be should be processed
+                imidately or on confirmation of the picking.
         """
         Location = self.env['stock.location']
         Package = self.env['stock.quant.package']
-
         self.assert_valid_state()
 
+        picking = self
         values = {}
 
         if quant_ids:
@@ -322,14 +324,96 @@ class StockPicking(models.Model):
             # mark_as_done the stock.move.lines
             mls_done = move_lines.mark_as_done(**values)
 
+            if real_time_update:
+                picking = self._real_time_update(mls_done)
+                validate = True
+
         if force_validate or validate:
-            if self.move_line_ids.get_lines_todo() and not create_backorder:
+            if picking.move_line_ids.get_lines_todo() and not create_backorder:
                 raise ValidationError(
                         _('Cannot validate transfer because there'
                           ' are move lines todo'))
             # by default action_done will backorder the stock.move.lines todo
             # validate stock.picking
-            self.action_done() # old do_transfer
+            picking.action_done() # old do_transfer
+
+    def _requires_backorder(self, mls):
+        # if we
+        #   have all the moves
+        #   have all the move_lines within them
+        #   are not waiting for any previous moves to complete
+        # then we dont need to backorder
+        mls_moves = mls.mapped('move_id')
+        for move in self.move_lines:
+            if move not in mls_moves:
+                break
+            if not move.move_line_ids == mls.filtered(lambda x: x.move_id == move):
+                break
+            if move.mapped('move_orig_ids').filtered(lambda x: x.state not in ('done', 'cancel')):
+                break
+        else:
+            return False
+        return True
+
+    def _create_backorder(self, mls):
+        """ Creates a backorder pick from self and a subset of
+            stock.move.lines are then moved into it.
+            the move from which the move lines have been transfers
+            has the ordered_qty decrimented by the amount in the
+            transftered lines.
+        """
+        Move = self.env['stock.move']
+        # Based on back order creation in sock_move._action_done
+        self.ensure_one()
+
+        # make empty set
+        new_moves = Move.browse()
+        for current_move in mls.mapped('move_id'):
+            current_mls = mls.filtered(lambda x: x.move_id == current_move)
+
+            if current_mls == current_move.move_line_ids and \
+               not current_move.mapped('move_orig_ids').filtered(
+                            lambda x: x.state not in ('done', 'cancel')):
+                bk_move = current_move
+            else:
+                bk_move = current_move.copy({'picking_id': False,
+                                             'move_line_ids': [],
+                                             'move_orig_ids': [],
+                                            })
+                total_qty = sum(current_mls.mapped('qty_done'))
+                current_mls.write({'move_id': bk_move.id})
+                current_move.with_context(bypass_reservation_update=True).write({
+                                       'ordered_qty': current_move.ordered_qty - total_qty,
+                                       'product_uom_qty': current_move.product_uom_qty - total_qty
+                                    })
+                if current_move.move_orig_ids:
+                    (bk_move | current_move).update_orig_ids(current_move.move_orig_ids)
+            new_moves |= bk_move
+
+        # Create picking for completed move lines
+        bk_picking = self.copy({
+                'name': '/',
+                'move_lines': [],
+                'move_line_ids': [],
+                'backorder_id': self.id,
+            })
+        new_moves.write({'picking_id': bk_picking.id})
+        new_moves.mapped('move_line_ids').write({'picking_id': bk_picking.id})
+        bk_picking.action_done()
+        return bk_picking
+
+    def _real_time_update(self, mls):
+        """ Checks to see if the tranfer of the move_lines would leave the
+            stock.move empty if so it returns self else it returns a
+            backorder comprising of the stock.move.lines provided
+        """
+        if not self._requires_backorder(mls):
+            return self
+        rt_picking = self._create_backorder(mls)
+        # Tell original picking that the move line is now done?????
+        # self.message_post(_('Move line ... done ...DATETIME? ... details ...'))
+
+        return rt_picking
 
     def get_pickings(self,
                      origin=None,

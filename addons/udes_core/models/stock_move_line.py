@@ -330,7 +330,7 @@ class StockMoveLine(models.Model):
         self.write(values)
         if split:
             self._split()
-        
+
         return self
 
     def _split(self):
