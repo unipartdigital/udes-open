@@ -2,64 +2,64 @@
 
 from odoo import api, fields, models
 
-TRAILER_FIELDS = ['u_trailer_num', 'u_trailer_ident', 'u_trailer_license', 'u_trailer_driver']
+TRANSPORT_FIELDS = ['u_vehicle_sequence', 'u_vehicle_description', 'u_license_plate', 'u_driver_name']
 
 
 class StockPicking(models.Model):
     _inherit = 'stock.picking'
 
-    u_trailer_info_id = fields.Many2one('udes_transport_management.trailer_info',
-                                        'Trailer Info',
-                                        copy=False,
-                                        index=True)
-    # related fields to show the trailer information
-    u_trailer_num = fields.Integer(string='Trailer number',
-                                   related='u_trailer_info_id.trailer_num')
-    u_trailer_ident = fields.Char(string='Trailer unit ID',
-                                  related='u_trailer_info_id.trailer_ident')
-    u_trailer_license = fields.Char(string='Vehicle registration',
-                                    related='u_trailer_info_id.trailer_license')
-    u_trailer_driver = fields.Char(string='Driver name',
-                                   related='u_trailer_info_id.trailer_driver')
+    u_transport_id = fields.Many2one('udes_transport_management.transport',
+                                     'Transport Info',
+                                     copy=False,
+                                     index=True)
+    # related fields to show the transport information
+    u_vehicle_sequence = fields.Integer(string='Vehicle Sequence Number',
+                                        related='u_transport_id.vehicle_sequence')
+    u_vehicle_description = fields.Char(string='Vehicle Description',
+                                        related='u_transport_id.vehicle_description')
+    u_license_plate = fields.Char(string='Vehicle Registration',
+                                  related='u_transport_id.license_plate')
+    u_driver_name = fields.Char(string='Driver Name',
+                                related='u_transport_id.driver_name')
     u_requires_transport = fields.Boolean(string='Show transport management tab',
                                           related='picking_type_id.u_requires_transport')
 
     _sql_constraints = [
-        ('trailer_info_uniq', 'unique(u_trailer_info_id)', 'Only one trailer information is allowed per picking.'),
+        ('transport_uniq', 'unique(u_transport_id)', 'Only one transport information is allowed per picking.'),
     ]
 
-    def _create_trailer_info_data(self, values):
-        """ Create a trailer information for each picking that doesn't
+    def _create_transport_info_data(self, values):
+        """ Create a transport information for each picking that doesn't
             have it.
         """
-        # Instantiate TrailerInfo object
-        TrailerInfo = self.env['udes_transport_management.trailer_info']
+        # Instantiate Transport object
+        Transport = self.env['udes_transport_management.transport']
 
-        # Filter values for trailer info and substring the 'u_' from the keys to create correct trailer_info field names
-        filtered_trailer_info = dict((k[2:], values[k]) for k in TRAILER_FIELDS if k in values)
+        # Filter values for transport info and substring the 'u_' from the keys to create correct transport field names
+        filtered_transport = dict((k[2:], values[k]) for k in TRANSPORT_FIELDS if k in values)
 
-        # Only create a trailer_info object if trailer_info data exists in values
-        if filtered_trailer_info:
+        # Only create a transport object if transport data exists in values
+        if filtered_transport:
             for record in self:
-                if not record.u_trailer_info_id:
+                if not record.u_transport_id:
                     # Add picking_id as this always exists
-                    filtered_trailer_info['picking_id'] = record.id
+                    filtered_transport['picking_id'] = record.id
 
-                    # Create the TrailerInfo object with created dict
-                    TrailerInfo.create(filtered_trailer_info)
+                    # Create the Transport object with created dict
+                    Transport.create(filtered_transport)
 
         return values
 
     @api.multi
     def write(self, values):
-        values = self._create_trailer_info_data(values)
+        values = self._create_transport_info_data(values)
         res = super(StockPicking, self).write(values)
         return res
 
     @api.model
     def create(self, values):
         res = super(StockPicking, self).create(values)
-        res._create_trailer_info_data(values)
+        res._create_transport_info_data(values)
         return res
 
     @api.multi
@@ -67,15 +67,15 @@ class StockPicking(models.Model):
         data = super(StockPicking, self)._prepare_info(priorities=priorities, fields_to_fetch=fields_to_fetch, **kwargs)
 
         # If the stock picking requires transport
-        if self.u_requires_transport and (not fields_to_fetch or 'u_trailer_info_id' in fields_to_fetch):
-            if self.u_trailer_info_id:
-                # Get trailer info and add it to data
-                data['u_trailer_info_id'] = {'u_trailer_num': self.u_trailer_num,
-                                             'u_trailer_ident': self.u_trailer_ident,
-                                             'u_trailer_license': self.u_trailer_license,
-                                             'u_trailer_driver': self.u_trailer_driver}
+        if self.u_requires_transport and (not fields_to_fetch or 'u_transport_id' in fields_to_fetch):
+            if self.u_transport_id:
+                # Get transport info and add it to data
+                data['u_transport_id'] = {'u_vehicle_sequence': self.u_vehicle_sequence,
+                                          'u_vehicle_description': self.u_vehicle_description,
+                                          'u_license_plate': self.u_license_plate,
+                                          'u_driver_name': self.u_driver_name}
             else:
                 # for the case with no information, the front end expects an empty list
-                data['u_trailer_info_id'] = []
+                data['u_transport_id'] = []
 
         return data
