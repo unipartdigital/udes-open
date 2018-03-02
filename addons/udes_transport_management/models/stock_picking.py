@@ -34,17 +34,14 @@ class StockPicking(models.Model):
         """
         # Instantiate Transport object
         Transport = self.env['udes_transport_management.transport']
-
         # Filter values for transport info and substring the 'u_' from the keys to create correct transport field names
         filtered_transport = dict((k[2:], values[k]) for k in TRANSPORT_FIELDS if k in values)
-
         # Only create a transport object if transport data exists in values
         if filtered_transport:
             for record in self:
                 if not record.u_transport_id:
                     # Add picking_id as this always exists
                     filtered_transport['picking_id'] = record.id
-
                     # Create the Transport object with created dict
                     Transport.create(filtered_transport)
 
@@ -65,17 +62,11 @@ class StockPicking(models.Model):
     @api.multi
     def _prepare_info(self, priorities=None, fields_to_fetch=None, **kwargs):
         data = super(StockPicking, self)._prepare_info(priorities=priorities, fields_to_fetch=fields_to_fetch, **kwargs)
-
         # If the stock picking requires transport
         if self.u_requires_transport and (not fields_to_fetch or 'u_transport_id' in fields_to_fetch):
-            if self.u_transport_id:
-                # Get transport info and add it to data
-                data['u_transport_id'] = {'u_vehicle_sequence': self.u_vehicle_sequence,
-                                          'u_vehicle_description': self.u_vehicle_description,
-                                          'u_license_plate': self.u_license_plate,
-                                          'u_driver_name': self.u_driver_name}
-            else:
-                # for the case with no information, the front end expects an empty list
-                data['u_transport_id'] = []
-
+            # Get transport info and add it to data
+            data['u_transport_id'] = {'u_vehicle_sequence': self.u_vehicle_sequence,
+                                      'u_vehicle_description': self.u_vehicle_description,
+                                      'u_license_plate': self.u_license_plate,
+                                      'u_driver_name': self.u_driver_name}
         return data
