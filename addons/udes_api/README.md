@@ -173,7 +173,7 @@ Load the warehouse config for the stock.warehouse associated with the current us
 
 If it is simple, filter picking types to only show the ones that the user has permission to view.
 
-IMPORTANT - N.B. migrate code from the sg branch, as one of the fields is only in that branch! 
+IMPORTANT - N.B. migrate code from the sg branch, as one of the fields is only in that branch!
 
 Expected output format:
 
@@ -212,7 +212,7 @@ Search for pickings by various criteria and return an array of stock.picking obj
                        If present only pickings in the states present in the
                        list are returned.
                        Defaults to all, possible values: 'draft', 'cancel', 'waiting', 'confirmed', 'assigned', 'done'
-                      
+
 * @param (optional) result_package_id: If an id is supplied all pickings that are
                         registered to this package id will be returned.
                         This can also be used in conjunction with the states
@@ -394,6 +394,15 @@ Update current user's picking batch.
 * @param location_barcode - Barcode of the location where the picked stock is dropped off
 * @param continue_wave - (optional) Determines if the batch should continue or finish the batch (not used)
 
+### Validate drop off location of picking batch
+```
+URI: /api/stock-picking-batch/:id/is-valid-dest-location/:location
+HTTP Method: GET
+Old method(s): is_valid_location_dest_id
+```
+
+* @param id - id of the batch to process
+* @param location - id, barcode or name of the drop off location to be validated
 
 ## Stock Picking Priorities
 ```
@@ -409,6 +418,6 @@ Returns the list of possible groups of priorities with the following format:
     priorities: [
         {'id': 2, 'name': 'Urgent'},
         {'id': 1, 'name': 'Normal'}
-        ]   
+        ]
 }]
 ```
