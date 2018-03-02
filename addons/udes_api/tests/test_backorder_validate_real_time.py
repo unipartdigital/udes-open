@@ -9,24 +9,32 @@ class TestRealTimeUpdate(common.BaseUDES):
      def setUpClass(cls):
           super(TestRealTimeUpdate, cls).setUpClass()
           User = cls.env['res.users']
+          Location = cls.env['stock.location']
+
           user_warehouse = User.get_user_warehouse()
-          # Get internal move type
+
+          # Intermidate location for goods in
+          # otherwide infinite loop on pull rules
+          cls.recived_location = Location.create({
+                'name': "Recived",
+                'barcode': "Lrecived",
+            })
+
+          # Get internal move types
           cls.picking_type_goods_in = user_warehouse.in_type_id
           cls.picking_type_internal = user_warehouse.int_type_id
 
-          cls.picking_type_goods_in.write(
-                  {
+          cls.picking_type_goods_in.write({
                     'default_location_src_id': cls.env.ref('stock.stock_location_suppliers').id,
-                    'default_location_dest_id': cls.test_location_01.id,
-                    'u_target_storage_format': 'pallet_products'
+                    'default_location_dest_id': cls.recived_location.id,
+                    'u_target_storage_format': 'pallet_products',
                   })
 
-          cls.picking_type_internal.write(
-                  {
-                    'default_location_src_id': cls.test_location_01.id,
-                    'default_location_dest_id': cls.test_location_02.id,
+          cls.picking_type_internal.write({
+                    'default_location_src_id': cls.recived_location.id,
+                    'default_location_dest_id': cls.env.ref('stock.stock_location_stock').id,
+                    'u_target_storage_format': 'pallet_products',
                     'u_validate_real_time': True,
-                    'u_target_storage_format': 'pallet_products'
                   })
 
           cls.location_stock = cls.picking_type_internal.default_location_src_id
@@ -50,7 +58,6 @@ class TestRealTimeUpdate(common.BaseUDES):
           picking.update_picking(package_name=package.name)
           backorders = Picking.search([('backorder_id', '=', picking.id)])
           self.assertEqual(len(backorders), 0)
-
 
      def test02_backorder_created_on_update(self):
           """ Checks that when a picking calls
@@ -100,7 +107,8 @@ class TestRealTimeUpdate(common.BaseUDES):
           Package = self.env['stock.quant.package']
           Picking = self.env['stock.picking']
 
-          self.create_simple_inbound_route(self.picking_type_internal)
+          self.create_simple_inbound_route(self.picking_type_goods_in,
+                                           self.picking_type_internal)
 
           package_1 = Package.get_package('test_apple1_pkg', create=True)
           package_2 = Package.get_package('test_apple2_pkg', create=True)
@@ -144,6 +152,11 @@ class TestRealTimeUpdate(common.BaseUDES):
           self.assertEqual(len(backorders), 0)
           self.assertEqual(picking_put.state, 'done')
 
+          # This should catch any backorders creating by action_done()
+          incomplete_backorders = Picking.search([('state', '!=', 'done'),
+                                                 ('backorder_id', '!=', False)])
+          self.assertEqual(len(incomplete_backorders), 0)
+
      def test04_update_move_orig_ids_with_package(self):
           """Checks that move_orig_ids is properly updates
              when stock.move is split for packages.
@@ -151,7 +164,8 @@ class TestRealTimeUpdate(common.BaseUDES):
           Package = self.env['stock.quant.package']
           Picking = self.env['stock.picking']
 
-          self.create_simple_inbound_route(self.picking_type_internal)
+          self.create_simple_inbound_route(self.picking_type_goods_in,
+                                           self.picking_type_internal)
 
           package_1 = Package.get_package('test_apple1_pkg', create=True)
           package_2 = Package.get_package('test_apple2_pkg', create=True)
@@ -194,6 +208,11 @@ class TestRealTimeUpdate(common.BaseUDES):
           backorders_2 = Picking.search([('backorder_id', '=', picking_put.id)])
           self.assertEqual(backorders, backorders_2)
 
+          # This should catch any backorders creating by action_done()
+          incomplete_backorders = Picking.search([('state', '!=', 'done'),
+                                                 ('backorder_id', '!=', False)])
+          self.assertEqual(len(incomplete_backorders), 0)
+
      def test05_update_move_orig_ids_with_serial_package(self):
           """Checks that move_orig_ids is properly updates
              when stock.move is split for packages
@@ -202,7 +221,8 @@ class TestRealTimeUpdate(common.BaseUDES):
           Package = self.env['stock.quant.package']
           Picking = self.env['stock.picking']
 
-          self.create_simple_inbound_route(self.picking_type_internal)
+          self.create_simple_inbound_route(self.picking_type_goods_in,
+                                           self.picking_type_internal)
 
           package_1 = Package.get_package('test_strawberry1_pkg', create=True)
           package_2 = Package.get_package('test_strawberry2_pkg', create=True)
@@ -250,6 +270,12 @@ class TestRealTimeUpdate(common.BaseUDES):
           backorders_2 = Picking.search([('backorder_id', '=', picking_put.id)])
           self.assertEqual(backorders, backorders_2)
 
+          # This should catch any backorders creating by action_done()
+          incomplete_backorders = Picking.search([('state', '!=', 'done'),
+                                                 ('backorder_id', '!=', False)])
+          self.assertEqual(len(incomplete_backorders), 0)
+
+
      def test06_update_move_orig_ids_with_serial_product(self):
           """Checks that move_orig_ids is properly updated
              when stock.move is split for a product
@@ -261,7 +287,8 @@ class TestRealTimeUpdate(common.BaseUDES):
           self.picking_type_goods_in.u_target_storage_format = 'product'
           self.picking_type_internal.u_target_storage_format = 'product'
 
-          self.create_simple_inbound_route(self.picking_type_internal)
+          self.create_simple_inbound_route(self.picking_type_goods_in,
+                                           self.picking_type_internal)
 
           package_1 = Package.get_package('test_strawberry1_pkg', create=True)
           package_2 = Package.get_package('test_strawberry2_pkg', create=True)
@@ -307,6 +334,11 @@ class TestRealTimeUpdate(common.BaseUDES):
           backorders_2 = Picking.search([('backorder_id', '=', picking_put.id)])
           self.assertEqual(backorders, backorders_2)
 
+          # This should catch any backorders creating by action_done()
+          incomplete_backorders = Picking.search([('state', '!=', 'done'),
+                                                 ('backorder_id', '!=', False)])
+          self.assertEqual(len(incomplete_backorders), 0)
+
      def test07_mix_of_products_from_multiple_pickings(self):
           """Performs updates on a mix of packages
              from multiple source pickings.
@@ -314,7 +346,8 @@ class TestRealTimeUpdate(common.BaseUDES):
           Package = self.env['stock.quant.package']
           Picking = self.env['stock.picking']
 
-          self.create_simple_inbound_route(self.picking_type_internal)
+          self.create_simple_inbound_route(self.picking_type_goods_in,
+                                           self.picking_type_internal)
 
           package_1a = Package.get_package('test_apple1_pkg', create=True)
           package_1b = Package.get_package('test_apple2_pkg', create=True)
@@ -493,7 +526,10 @@ class TestRealTimeUpdate(common.BaseUDES):
           backorders = Picking.search([('backorder_id', '=', picking_put.id)])
           backorders -= backorders_done
           self.assertEqual(len(backorders), 0)
-
+          # This should catch any backorders creating by action_done()
+          incomplete_backorders = Picking.search([('state', '!=', 'done'),
+                                                 ('backorder_id', '!=', False)])
+          self.assertEqual(len(incomplete_backorders), 0)
 
      def test08_mix_of_products_from_multiple_pickings_multiple_move_update(self):
           """ Tests that mutiple moves within
@@ -503,7 +539,8 @@ class TestRealTimeUpdate(common.BaseUDES):
           Package = self.env['stock.quant.package']
           Picking = self.env['stock.picking']
 
-          self.create_simple_inbound_route(self.picking_type_internal)
+          self.create_simple_inbound_route(self.picking_type_goods_in,
+                                           self.picking_type_internal)
 
           package_1 = Package.get_package('test_package1', create=True)
           package_2 = Package.get_package('test_package2', create=True)
@@ -574,8 +611,12 @@ class TestRealTimeUpdate(common.BaseUDES):
           self.assertEqual(picking_put.state, 'done')
           backorders_2 = Picking.search([('backorder_id', '=', picking_put.id)])
           self.assertEqual(backorders, backorders_2)
+          # This should catch any backorders creating by action_done()
+          incomplete_backorders = Picking.search([('state', '!=', 'done'),
+                                                 ('backorder_id', '!=', False)])
+          self.assertEqual(len(incomplete_backorders), 0)
 
-     def test99_update_move_orig_ids_with_product(self):
+     def test09_update_move_orig_ids_with_product(self):
           """Checks that move_orig_ids updates as
              expected (not well) when stock.move
              is split for a product without tracking.
@@ -586,7 +627,8 @@ class TestRealTimeUpdate(common.BaseUDES):
           self.picking_type_goods_in.u_target_storage_format = 'product'
           self.picking_type_internal.u_target_storage_format = 'product'
 
-          self.create_simple_inbound_route(self.picking_type_internal)
+          self.create_simple_inbound_route(self.picking_type_goods_in,
+                                           self.picking_type_internal)
 
           package_1 = Package.get_package('test_apple1_pkg', create=True)
           package_2 = Package.get_package('test_apple2_pkg', create=True)
@@ -631,3 +673,7 @@ class TestRealTimeUpdate(common.BaseUDES):
           self.assertEqual(picking_put.state, 'done')
           backorders_2 = Picking.search([('backorder_id', '=', picking_put.id)])
           self.assertEqual(backorders, backorders_2)
+          # This should catch any backorders creating by action_done()
+          incomplete_backorders = Picking.search([('state', '!=', 'done'),
+                                                 ('backorder_id', '!=', False)])
+          self.assertEqual(len(incomplete_backorders), 0)
