@@ -235,5 +235,5 @@ class StockPickingBatch(models.Model):
         done_move_lines = done_pickings.get_move_lines_done()
         all_done_pickings = done_move_lines.mapped('picking_id')
 
-        return all([pick.is_valid_location_dest_id(location)
+        return all([pick.is_valid_location_dest_id(location=location)
                     for pick in all_done_pickings])

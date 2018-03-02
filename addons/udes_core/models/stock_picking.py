@@ -567,18 +567,23 @@ class StockPicking(models.Model):
 
         return move_lines.filtered(lambda o: o.qty_done > 0)
 
-    def is_valid_location_dest_id(self, location_ref):
-        """ Whether the specified location (via ID, name or barcode)
-            is a valid putaway location for the picking.
+    def is_valid_location_dest_id(self, location=None, location_ref=None):
+        """ Whether the specified location or location reference
+            (i.e. ID, name or barcode) is a valid putaway location
+            for the picking.
             Expects a singleton instance.
 
             Returns a boolean indicating the validity check outcome.
         """
-        self.ensure_one()
-
         Location = self.env['stock.location']
+        self.ensure_one()
+        assert location or location_ref, "Must specify a location or ref"
+        dest_locations = None
 
-        dest_locations = Location.get_location(location_ref)
+        if location is not None:
+            dest_locations = location
+        else:
+            dest_locations = Location.get_location(location_ref)
 
         if not dest_locations:
             raise ValidationError(_("The specified location is unknown."))
