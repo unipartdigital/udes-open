@@ -111,21 +111,41 @@ class PickingBatchApi(UdesApi):
 
         return _get_single_batch_info(updated_batch)
 
-    @http.route('/api/stock-picking-batch/<ident>/is-valid-dest-location/<location>',
+    @http.route('/api/stock-picking-batch/<ident>/is-valid-dest-location',
                 type='json', methods=['GET'], auth='user')
-    def validate_drop_off_location(self, ident, location):
+    def validate_drop_off_location(self, ident,
+                                   location_id=None,
+                                   location_name=None,
+                                   location_barcode=None):
         """
         Validates the specified drop off location for the given
         batch by checking if the location exists and, if so, whether
         it's a valid location for putaway for the relevant pickings.
-        The location can be either a location ID, name or barcode.
+        The location can be either a location ID, name or barcode;
+        the method expects one of such entries to be specified.
 
         Raises a ValidationError in case the batch doesn't exist.
 
         Returns a boolean indicating the outcome of the validation.
         """
         batch = _get_batch(request.env, ident)
-        outcome = batch.is_valid_location_dest_id(location)
+
+        if not any([location_id, location_name, location_barcode]):
+            raise ValidationError(_('You need to specify a location id, name, '
+                                    'or barcode.'))
+
+        location_ref = None
+
+        if location_id is not None:
+            try:
+                location_ref = int(location_id)
+            except ValueError:
+                raise ValidationError(_('You need to provide a valid id for '
+                                        'the location.'))
+        else:
+            location_ref = location_name or location_barcode
+
+        outcome = batch.is_valid_location_dest_id(location_ref)
         assert any([outcome is x for x in [False, True]]), \
             "Unexpected outcome from the drop off location validation"
 
