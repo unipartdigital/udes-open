@@ -396,13 +396,18 @@ Update current user's picking batch.
 
 ### Validate drop off location of picking batch
 ```
-URI: /api/stock-picking-batch/:id/is-valid-dest-location/:location
+URI: /api/stock-picking-batch/:id/is-valid-dest-location/
 HTTP Method: GET
 Old method(s): is_valid_location_dest_id
 ```
 
 * @param id - id of the batch to process
-* @param location - id, barcode or name of the drop off location to be validated
+* @param location_id - (optional) id of the drop off location to be validated
+* @param location_name - (optional) name of the drop off location to be validated
+* @param location_barcode - (optional)barcode of the drop off location to be validated
+
+One of [`location_id`, `location_name`, `location_barcode`] must
+be specified in the request.
 
 ## Stock Picking Priorities
 ```
