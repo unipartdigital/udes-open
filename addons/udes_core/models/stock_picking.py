@@ -380,11 +380,13 @@ class StockPicking(models.Model):
                             lambda x: x.state not in ('done', 'cancel')):
                 bk_move = current_move
             else:
+                total_qty = sum(current_mls.mapped('qty_done'))
                 bk_move = current_move.copy({'picking_id': False,
                                              'move_line_ids': [],
                                              'move_orig_ids': [],
+                                             'ordered_qty': total_qty,
+                                             'product_uom_qty': total_qty,
                                             })
-                total_qty = sum(current_mls.mapped('qty_done'))
                 current_mls.write({'move_id': bk_move.id})
                 current_move.with_context(bypass_reservation_update=True).write({
                                        'ordered_qty': current_move.ordered_qty - total_qty,
