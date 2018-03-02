@@ -211,3 +211,31 @@ class StockPickingBatch(models.Model):
             self.done()
 
         return self
+
+    @api.multi
+    def is_valid_location_dest_id(self, location_ref):
+        """
+        Whether the specified location (via ID, name or barcode)
+        is a valid putaway location for the all the relavant
+        pickings of the batch.
+        Expects a singleton instance.
+
+        Returns a boolean indicating the validity check outcome.
+        """
+        self.ensure_one()
+
+        Location = self.env['stock.location']
+        location = None
+
+        try:
+            location = Location.get_location(location_ref)
+        except:
+            return False
+
+        done_pickings = self.picking_ids.filtered(
+            lambda p: p.state == 'assigned')
+        done_move_lines = done_pickings.get_move_lines_done()
+        all_done_pickings = done_move_lines.mapped('picking_id')
+
+        return all([pick.is_valid_location_dest_id(location)
+                    for pick in all_done_pickings])

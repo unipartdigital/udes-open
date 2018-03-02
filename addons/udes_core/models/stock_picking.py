@@ -558,3 +558,33 @@ class StockPicking(models.Model):
                 ]
         """
         return list(common.PRIORITY_GROUPS.values())
+
+    @api.multi
+    def get_move_lines_done(self):
+        """ Return the recordset of move lines done. """
+        move_lines = self.mapped('move_line_ids')
+
+        return move_lines.filtered(lambda o: o.qty_done > 0)
+
+    @api.multi
+    def is_valid_location_dest_id(self, location_ref):
+        """ Whether the specified location (via ID, name or barcode)
+            is a valid putaway location for the picking.
+            Expects a singleton instance.
+
+            Returns a boolean indicating the validity check outcome.
+        """
+        self.ensure_one()
+
+        Location = self.env['stock.location']
+
+        dest_locations = Location.get_location(location_ref)
+
+        if not dest_locations:
+            raise ValidationError(_("The specified location is unknown."))
+
+        valid_locations = Location.search(
+            [('id', 'child_of', self.location_dest_id.id)])
+        invalid_locations = dest_locations - valid_locations
+
+        return len(invalid_locations) == 0
