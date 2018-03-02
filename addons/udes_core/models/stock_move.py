@@ -39,31 +39,37 @@ class StockMove(models.Model):
         return res
 
     def _make_mls_comparison_lambda(self, move_line):
+        """ This makes the a lambda for
+            checking the a move_line
+            against move_orign_ids
+        """
         lot_name = move_line.lot_id.name or move_line.lot_name
+        package = move_line.package_id
         #lot and package
-        if lot_name and move_line.package_id:
+        if lot_name and package:
             return lambda ml: (ml.lot_name == lot_name or ml.lot_id.name == lot_name) and \
-                               ml.result_package_id in move_line.package_id
+                               ml.result_package_id == package
         # serial
         elif lot_name:
             return lambda ml: ml.lot_name == lot_name or ml.lot_id.name == lot_name
 
         # package
         elif move_line.package_id:
-            return lambda ml: ml.result_package_id in move_line.package_id
+            return lambda ml: ml.result_package_id == package
 
-        # products :'(
+        # products
         else:
-            # TODO: make better later ... this probaly isn't to be trusted
+            # This probaly isn't to be trusted
             return lambda ml: ml.location_dest_id == move_line.location_id and \
                               ml.product_id == move_line.product_id  # and \
                               # ml.qty_done <= move_line.ordered_qty
                               # not sure if the qty comparison makes sense
-                              # we have products not a set size, perhaps use <= ??
 
     def update_orig_ids(self, origin_ids):
-        """updates origin ids for the move lines
-           with in moves(record)) in self(recordset)
+        """ Updates move_orig_ids
+            based on a given set of
+            origin_ids for moves in
+            self.
         """
         Move = self.env['stock.move']
         for move in self:

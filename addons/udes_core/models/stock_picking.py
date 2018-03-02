@@ -349,13 +349,13 @@ class StockPicking(models.Model):
                 break
             if not move.move_line_ids == mls.filtered(lambda x: x.move_id == move):
                 break
-            if move.mapped('move_orig_ids').filtered(lambda x: x.state not in ('done', 'cancel')):
+            if move.move_orig_ids.filtered(lambda x: x.state not in ('done', 'cancel')):
                 break
         else:
             return False
         return True
 
-    def _create_backorder(self, mls):
+    def _create_backorder(self, mls=None):
         """ Creates a backorder pick from self and a subset of
             stock.move.lines are then moved into it.
             the move from which the move lines have been transfers
@@ -366,13 +366,17 @@ class StockPicking(models.Model):
         # Based on back order creation in sock_move._action_done
         self.ensure_one()
 
+        if mls is None:
+            # or done & canceled?
+            mls = self.move_lines.filtered(lambda x: x.state == 'done')
+
         # make empty set
         new_moves = Move.browse()
         for current_move in mls.mapped('move_id'):
             current_mls = mls.filtered(lambda x: x.move_id == current_move)
 
             if current_mls == current_move.move_line_ids and \
-               not current_move.mapped('move_orig_ids').filtered(
+               not current_move.move_orig_ids.filtered(
                             lambda x: x.state not in ('done', 'cancel')):
                 bk_move = current_move
             else:
@@ -399,11 +403,11 @@ class StockPicking(models.Model):
             })
         new_moves.write({'picking_id': bk_picking.id})
         new_moves.mapped('move_line_ids').write({'picking_id': bk_picking.id})
-        bk_picking.action_done()
+        #bk_picking.action_done()
         return bk_picking
 
     def _real_time_update(self, mls):
-        """ Checks to see if the tranfer of the move_lines would leave the
+        """ Checks to see if the transfer of the move_lines would leave the
             stock.move empty if so it returns self else it returns a
             backorder comprising of the stock.move.lines provided
         """

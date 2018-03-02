@@ -174,7 +174,7 @@ class BaseUDES(common.SavepointCase):
         return Company.create(vals)
 
     @classmethod
-    def create_simple_inbound_route(cls, picking_type_internal):
+    def create_simple_inbound_route(cls, picking_type_in, picking_type_internal):
         Route = cls.env['stock.location.route']
         Path = cls.env['stock.location.path']
         Sequence = cls.env['ir.sequence']
@@ -200,19 +200,19 @@ class BaseUDES(common.SavepointCase):
             "name": "Putaway",
             "route_id": route.id,
             "sequence": 20,
-            "location_from_id": picking_type_internal.default_location_src_id.id,
+            "location_from_id": picking_type_in.default_location_dest_id.id,
             "location_dest_id": picking_type_internal.default_location_dest_id.id,
             "picking_type_id": picking_type_internal.id,
         }
         path_in_putaway = Path.create(location_path_vals)
 
-        procurement_in_putaway_vals = {
-            "name": "Putaway",
-            "route_id": route.id,
-            "sequence": 20,
-            "location_src_id": picking_type_internal.default_location_src_id.id,
-            "location_id": picking_type_internal.default_location_dest_id.id,
-            "action": "move",
-            "picking_type_id": picking_type_internal.id,
-        }
-        procurement_in_putaway = Rule.create(procurement_in_putaway_vals)
+        # procurement_in_putaway_vals = {
+        #     "name": "Putaway",
+        #     "route_id": route.id,
+        #     "sequence": 20,
+        #     "location_src_id": picking_type_in.default_location_dest_id.id,
+        #     "location_id": picking_type_internal.default_location_dest_id.id,
+        #     "action": "move",
+        #     "picking_type_id": picking_type_internal.id,
+        # }
+        # procurement_in_putaway = Rule.create(procurement_in_putaway_vals)
