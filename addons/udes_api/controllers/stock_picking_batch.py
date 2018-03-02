@@ -7,6 +7,10 @@ from odoo.http import request
 from .main import UdesApi
 
 
+#
+## Helpers
+#
+
 def _get_single_batch_info(batch, allowed_picking_states=None):
     if not batch:
         return {}
@@ -16,6 +20,28 @@ def _get_single_batch_info(batch, allowed_picking_states=None):
 
     return info[0]
 
+
+def _get_batch(env, batch_id_txt):
+    PickingBatch = env['stock.picking.batch']
+    batch_id = None
+
+    try:
+        batch_id = int(batch_id_txt)
+    except ValueError:
+        raise ValidationError(_('You need to provide a valid id for the '
+                                'batch.'))
+
+    batch = PickingBatch.browse(batch_id)
+
+    if not batch.exists():
+        raise ValidationError(_('The specified batch does not exist.'))
+
+    return batch
+
+
+#
+## PickingBatchApi endpoints
+#
 
 class PickingBatchApi(UdesApi):
 
@@ -80,20 +106,27 @@ class PickingBatchApi(UdesApi):
         marked as 'done' if `continue_wave` is flagged (defaults
         to false).
         """
-        PickingBatch = request.env['stock.picking.batch']
-        batch_id = None
+        batch = _get_batch(request.env, ident)
+        updated_batch = batch.drop_off_picked(continue_wave, location_barcode)
 
-        try:
-            batch_id = int(ident)
-        except ValueError:
-            raise ValidationError(_('You need to provide a valid id for the '
-                                    'batch.'))
+        return _get_single_batch_info(updated_batch)
 
-        batch = PickingBatch.browse(batch_id)
+    @http.route('/api/stock-picking-batch/<ident>/is-valid-dest-location/<location>',
+                type='json', methods=['GET'], auth='user')
+    def validate_drop_off_location(self, ident, location):
+        """
+        Validates the specified drop off location for the given
+        batch by checking if the location exists and, if so, whether
+        it's a valid location for putaway for the relevant pickings.
+        The location can be either a location ID, name or barcode.
 
-        if not batch.exists():
-            raise ValidationError(_('The specified batch does not exist.'))
+        Raises a ValidationError in case the batch doesn't exist.
 
-        batch = batch.drop_off_picked(continue_wave, location_barcode)
+        Returns a boolean indicating the outcome of the validation.
+        """
+        batch = _get_batch(request.env, ident)
+        outcome = batch.is_valid_location_dest_id(location)
+        assert any([outcome is x for x in [False, True]]), \
+            "Unexpected outcome from the drop off location validation"
 
-        return _get_single_batch_info(batch)
+        return outcome
