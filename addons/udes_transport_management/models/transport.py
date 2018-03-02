@@ -31,7 +31,6 @@ class Transport(models.Model):
             it is not set at the picking.
         """
         self.ensure_one()
-        from_picking = self.env.context.get('from_picking', False)
         if not self.picking_id.u_transport_id:
             self.picking_id.u_transport_id = self
 
