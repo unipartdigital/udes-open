@@ -540,6 +540,7 @@ class StockPicking(models.Model):
 
         return res
 
+    @api.model
     def get_priorities(self):
         """ Return a list of dicts containing the priorities of the
             all defined priority groups, in the following format:
@@ -566,7 +567,6 @@ class StockPicking(models.Model):
 
         return move_lines.filtered(lambda o: o.qty_done > 0)
 
-    @api.multi
     def is_valid_location_dest_id(self, location_ref):
         """ Whether the specified location (via ID, name or barcode)
             is a valid putaway location for the picking.

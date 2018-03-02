@@ -153,7 +153,6 @@ class StockPickingBatch(models.Model):
             # all the picks in the waves are finished
             batches.done()
 
-    @api.multi
     def drop_off_picked(self, continue_wave, location_barcode):
         """
         Validate the move lines of the batch (expects a singleton)
@@ -212,7 +211,6 @@ class StockPickingBatch(models.Model):
 
         return self
 
-    @api.multi
     def is_valid_location_dest_id(self, location_ref):
         """
         Whether the specified location (via ID, name or barcode)
