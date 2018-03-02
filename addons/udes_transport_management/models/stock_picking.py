@@ -65,8 +65,11 @@ class StockPicking(models.Model):
         # If the stock picking requires transport
         if self.u_requires_transport and (not fields_to_fetch or 'u_transport_id' in fields_to_fetch):
             # Get transport info and add it to data
-            data['u_transport_id'] = {'u_vehicle_sequence': self.u_vehicle_sequence,
-                                      'u_vehicle_description': self.u_vehicle_description,
-                                      'u_license_plate': self.u_license_plate,
-                                      'u_driver_name': self.u_driver_name}
+            transport_dict = {}
+            for field in TRANSPORT_FIELDS:
+                value = getattr(self, field, False)
+                # If sequence number is 0, it will evaluate to false here
+                if value:
+                    transport_dict[field] = value
+            data['u_transport_id'] = transport_dict
         return data
