@@ -382,7 +382,6 @@ class StockPicking(models.Model):
                 total_qty_done = sum(current_mls.mapped('qty_done'))
                 total_ordered_qty = sum(current_mls.mapped('ordered_qty'))
 
-                #is bypass_reservation_update=True required here?
                 bk_move = current_move.copy({'picking_id': False,
                                              'move_line_ids': [],
                                              'move_orig_ids': [],
@@ -404,9 +403,8 @@ class StockPicking(models.Model):
                 'move_line_ids': [],
                 'backorder_id': self.id,
             })
-        new_moves.write({'picking_id': bk_picking.id})
-        new_moves.mapped('move_line_ids').write({'picking_id': bk_picking.id})
-        bk_picking.action_assign()
+        new_moves.write({'picking_id': bk_picking.id, 'state': 'assigned'})
+        new_moves.mapped('move_line_ids').write({'picking_id': bk_picking.id, 'state': 'assigned'})
         return bk_picking
 
     def _real_time_update(self, mls):
