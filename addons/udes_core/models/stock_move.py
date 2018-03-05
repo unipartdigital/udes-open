@@ -47,11 +47,13 @@ class StockMove(models.Model):
         package = move_line.package_id
         #lot and package
         if lot_name and package:
-            return lambda ml: (ml.lot_name == lot_name or ml.lot_id.name == lot_name) and \
+            return lambda ml: (ml.lot_name == lot_name or \
+                               ml.lot_id.name == lot_name) and \
                                ml.result_package_id == package
         # serial
         elif lot_name:
-            return lambda ml: ml.lot_name == lot_name or ml.lot_id.name == lot_name
+            return lambda ml: ml.lot_name == lot_name or \
+                              ml.lot_id.name == lot_name
 
         # package
         elif move_line.package_id:
@@ -71,11 +73,14 @@ class StockMove(models.Model):
             origin_ids for moves in
             self.
         """
-        Move = self.env['stock.move']
         for move in self:
             # Retain incomplete moves
-            updated_origin_ids = move.mapped('move_orig_ids').filtered(lambda x: x.state not in ('done', 'cancel'))
+            updated_origin_ids = move.mapped('move_orig_ids').filtered(
+                                            lambda x: x.state not in ('done', 'cancel')
+                                            )
             for move_line in move.move_line_ids:
-                previous_mls = origin_ids.mapped('move_line_ids').filtered(self._make_mls_comparison_lambda(move_line))
+                previous_mls = origin_ids.mapped('move_line_ids').filtered(
+                                            self._make_mls_comparison_lambda(move_line)
+                                            )
                 updated_origin_ids |= previous_mls.mapped('move_id')
             move.move_orig_ids = updated_origin_ids

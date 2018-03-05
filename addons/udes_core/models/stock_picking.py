@@ -369,7 +369,6 @@ class StockPicking(models.Model):
         if mls is None:
             # or done & canceled?
             mls = self.move_lines.filtered(lambda x: x.state == 'done')
-
         # make empty set
         new_moves = Move.browse()
         for current_move in mls.mapped('move_id'):
@@ -380,22 +379,23 @@ class StockPicking(models.Model):
                             lambda x: x.state not in ('done', 'cancel')):
                 bk_move = current_move
             else:
-                total_qty = sum(current_mls.mapped('qty_done'))
+                total_qty_done = sum(current_mls.mapped('qty_done'))
+                total_ordered_qty = sum(current_mls.mapped('ordered_qty'))
+
                 bk_move = current_move.copy({'picking_id': False,
                                              'move_line_ids': [],
                                              'move_orig_ids': [],
-                                             'ordered_qty': total_qty,
-                                             'product_uom_qty': total_qty,
+                                             'ordered_qty': total_ordered_qty,
+                                             'product_uom_qty': total_qty_done,
                                             })
                 current_mls.write({'move_id': bk_move.id})
                 current_move.with_context(bypass_reservation_update=True).write({
-                                       'ordered_qty': current_move.ordered_qty - total_qty,
-                                       'product_uom_qty': current_move.product_uom_qty - total_qty
+                                       'ordered_qty': current_move.ordered_qty - total_ordered_qty,
+                                       'product_uom_qty': current_move.product_uom_qty - total_qty_done,`
                                     })
                 if current_move.move_orig_ids:
                     (bk_move | current_move).update_orig_ids(current_move.move_orig_ids)
             new_moves |= bk_move
-
         # Create picking for completed move lines
         bk_picking = self.copy({
                 'name': '/',
@@ -405,7 +405,7 @@ class StockPicking(models.Model):
             })
         new_moves.write({'picking_id': bk_picking.id})
         new_moves.mapped('move_line_ids').write({'picking_id': bk_picking.id})
-        #bk_picking.action_done()
+        bk_picking.action_assign()
         return bk_picking
 
     def _real_time_update(self, mls):
@@ -418,7 +418,6 @@ class StockPicking(models.Model):
         rt_picking = self._create_backorder(mls)
         # Tell original picking that the move line is now done?????
         # self.message_post(_('Move line ... done ...DATETIME? ... details ...'))
-
         return rt_picking
 
     def get_pickings(self,
