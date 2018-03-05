@@ -39,6 +39,16 @@ class TestRealTimeUpdate(common.BaseUDES):
 
           cls.location_stock = cls.picking_type_internal.default_location_src_id
 
+     def _check_for_incomplete_backorder(self):
+          """ Checks to make sure that there are no incomplete
+              backorders which may arise from improperly
+              set quantities
+          """
+          Picking = self.env['stock.picking']
+          incomplete_backorders = Picking.search([('state', '!=', 'done'),
+                                                  ('backorder_id', '!=', False)])
+          self.assertEqual(len(incomplete_backorders), 0)
+
      def test01_picking_type_controls_real_time_update(self):
           """ Checks that a backorder is not created when
               the picking_type.u_validate_real_time is false
@@ -98,6 +108,8 @@ class TestRealTimeUpdate(common.BaseUDES):
           backorders = Picking.search([('backorder_id', '=', picking.id)])
           backorders -= backorders_done
           self.assertEqual(len(backorders), 0)
+          # This should catch any backorders creating by action_done()
+          self._check_for_incomplete_backorder()
 
      def test03_backorder_created_previous_pickings_imcomplete(self):
           """ Checks that backorder and move is split
@@ -151,11 +163,7 @@ class TestRealTimeUpdate(common.BaseUDES):
           backorders -= backorders_done
           self.assertEqual(len(backorders), 0)
           self.assertEqual(picking_put.state, 'done')
-
-          # This should catch any backorders creating by action_done()
-          incomplete_backorders = Picking.search([('state', '!=', 'done'),
-                                                 ('backorder_id', '!=', False)])
-          self.assertEqual(len(incomplete_backorders), 0)
+          self._check_for_incomplete_backorder()
 
      def test04_update_move_orig_ids_with_package(self):
           """Checks that move_orig_ids is properly updates
@@ -207,11 +215,7 @@ class TestRealTimeUpdate(common.BaseUDES):
           self.assertEqual(picking_put.state, 'done')
           backorders_2 = Picking.search([('backorder_id', '=', picking_put.id)])
           self.assertEqual(backorders, backorders_2)
-
-          # This should catch any backorders creating by action_done()
-          incomplete_backorders = Picking.search([('state', '!=', 'done'),
-                                                 ('backorder_id', '!=', False)])
-          self.assertEqual(len(incomplete_backorders), 0)
+          self._check_for_incomplete_backorder()
 
      def test05_update_move_orig_ids_with_serial_package(self):
           """Checks that move_orig_ids is properly updates
@@ -271,9 +275,7 @@ class TestRealTimeUpdate(common.BaseUDES):
           self.assertEqual(backorders, backorders_2)
 
           # This should catch any backorders creating by action_done()
-          incomplete_backorders = Picking.search([('state', '!=', 'done'),
-                                                 ('backorder_id', '!=', False)])
-          self.assertEqual(len(incomplete_backorders), 0)
+          self._check_for_incomplete_backorder()
 
 
      def test06_update_move_orig_ids_with_serial_product(self):
@@ -335,9 +337,7 @@ class TestRealTimeUpdate(common.BaseUDES):
           self.assertEqual(backorders, backorders_2)
 
           # This should catch any backorders creating by action_done()
-          incomplete_backorders = Picking.search([('state', '!=', 'done'),
-                                                 ('backorder_id', '!=', False)])
-          self.assertEqual(len(incomplete_backorders), 0)
+          self._check_for_incomplete_backorder()
 
      def test07_mix_of_products_from_multiple_pickings(self):
           """Performs updates on a mix of packages
@@ -397,7 +397,6 @@ class TestRealTimeUpdate(common.BaseUDES):
           picking_1.update_picking(products_info=products_info_1a, result_package_name=package_1a.name)
           picking_1.update_picking(products_info=products_info_1b, result_package_name=package_1b.name)
           #picking 1 is left incomplete
-
           picking_2.update_picking(products_info=products_info_2a, result_package_name=package_2a.name)
           picking_2.update_picking(products_info=products_info_2b, result_package_name=package_2b.name)
           picking_2.update_picking(products_info=products_info_2c, result_package_name=package_2c.name)
@@ -408,7 +407,6 @@ class TestRealTimeUpdate(common.BaseUDES):
           # Part 1
           # validate package_2a and split move becuase of package_2b!
           # move_orig_ids should be same for orignal and new move_line
-
           banana_moves = picking_put.move_lines.filtered(
                                    lambda mv: mv.product_id == self.banana
                                    )
@@ -527,9 +525,7 @@ class TestRealTimeUpdate(common.BaseUDES):
           backorders -= backorders_done
           self.assertEqual(len(backorders), 0)
           # This should catch any backorders creating by action_done()
-          incomplete_backorders = Picking.search([('state', '!=', 'done'),
-                                                 ('backorder_id', '!=', False)])
-          self.assertEqual(len(incomplete_backorders), 0)
+          self._check_for_incomplete_backorder()
 
      def test08_mix_of_products_from_multiple_pickings_multiple_move_update(self):
           """ Tests that mutiple moves within
@@ -612,9 +608,7 @@ class TestRealTimeUpdate(common.BaseUDES):
           backorders_2 = Picking.search([('backorder_id', '=', picking_put.id)])
           self.assertEqual(backorders, backorders_2)
           # This should catch any backorders creating by action_done()
-          incomplete_backorders = Picking.search([('state', '!=', 'done'),
-                                                 ('backorder_id', '!=', False)])
-          self.assertEqual(len(incomplete_backorders), 0)
+          self._check_for_incomplete_backorder()
 
      def test09_update_move_orig_ids_with_product(self):
           """Checks that move_orig_ids updates as
@@ -674,6 +668,4 @@ class TestRealTimeUpdate(common.BaseUDES):
           backorders_2 = Picking.search([('backorder_id', '=', picking_put.id)])
           self.assertEqual(backorders, backorders_2)
           # This should catch any backorders creating by action_done()
-          incomplete_backorders = Picking.search([('state', '!=', 'done'),
-                                                 ('backorder_id', '!=', False)])
-          self.assertEqual(len(incomplete_backorders), 0)
+          self._check_for_incomplete_backorder()
