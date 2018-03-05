@@ -382,6 +382,7 @@ class StockPicking(models.Model):
                 total_qty_done = sum(current_mls.mapped('qty_done'))
                 total_ordered_qty = sum(current_mls.mapped('ordered_qty'))
 
+                #is bypass_reservation_update=True required here?
                 bk_move = current_move.copy({'picking_id': False,
                                              'move_line_ids': [],
                                              'move_orig_ids': [],
@@ -391,7 +392,7 @@ class StockPicking(models.Model):
                 current_mls.write({'move_id': bk_move.id})
                 current_move.with_context(bypass_reservation_update=True).write({
                                        'ordered_qty': current_move.ordered_qty - total_ordered_qty,
-                                       'product_uom_qty': current_move.product_uom_qty - total_qty_done,`
+                                       'product_uom_qty': current_move.product_uom_qty - total_qty_done,
                                     })
                 if current_move.move_orig_ids:
                     (bk_move | current_move).update_orig_ids(current_move.move_orig_ids)
