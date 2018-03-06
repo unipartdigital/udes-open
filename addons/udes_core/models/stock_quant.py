@@ -3,6 +3,8 @@
 from odoo import models, _
 from odoo.exceptions import ValidationError
 
+from collections import defaultdict
+
 class StockQuant(models.Model):
     _inherit = 'stock.quant'
 
@@ -67,9 +69,8 @@ class StockQuant(models.Model):
         """ Returns a dictionary with the total quantity per product,
             mapped by product_id.
         """
-        products = {}
+        products = defaultdict(int)
         for quant in self:
-            products.setdefault(quant.product_id.id, 0)
             value = quant.quantity
             if only_available:
                 value -= quant.reserved_quantity
