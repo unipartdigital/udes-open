@@ -3,7 +3,10 @@
 from odoo import models,  _
 from odoo.exceptions import ValidationError
 from odoo.tools.float_utils import float_compare, float_round
+from copy import deepcopy
+
 from collections import Counter
+
 
 class StockMoveLine(models.Model):
     _inherit = 'stock.move.line'
@@ -54,7 +57,7 @@ class StockMoveLine(models.Model):
             # TODO: move functions into picking instead of parameter
             picking = move_lines.mapped('picking_id')
             # prepare products_info
-            products_info_by_product = move_lines._prepare_products_info(products_info)
+            products_info_by_product = move_lines._prepare_products_info(deepcopy(products_info))
             # filter move_lines by products in producst_info_by_product and undone
             move_lines = move_lines._filter_by_products_info(products_info_by_product)
             # filter unfinished move lines
@@ -108,7 +111,7 @@ class StockMoveLine(models.Model):
         for product in move_lines.mapped('product_id').filtered(lambda ml: ml.tracking == 'serial'):
             serial_numbers = products_info[product]['serial_numbers']
             repeated_serial_numbers = [sn for sn, num in Counter(serial_numbers).items() if num > 1]
-            if len(repeated_serial_numbers) > 0: 
+            if len(repeated_serial_numbers) > 0:
                 raise ValidationError(
                             _('Serial numbers %s are repeated '
                               'in picking %s for product %s') %
@@ -153,11 +156,13 @@ class StockMoveLine(models.Model):
                 if product_mls_in_serial_numbers:
                     raise ValidationError(
                             _('Serial numbers %s already exist in picking %s') %
-                            (product_mls_in_serial_numbers.mapped('lot_name'),
+                            (' '.join(product_mls_in_serial_numbers.mapped('lot_name')),
+
                             product_mls.mapped('picking_id').name))
+                product.assert_serial_numbers(serial_numbers)
             elif product_mls:
                 # new serial numbers
-                pass
+                product.assert_serial_numbers(serial_numbers)
             else:
                 # unexpected part?
                 pass
@@ -325,7 +330,7 @@ class StockMoveLine(models.Model):
         self.write(values)
         if split:
             self._split()
-        
+
         return self
 
     def _split(self):

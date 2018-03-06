@@ -10,6 +10,27 @@ class ProductProduct(models.Model):
     # Add tracking for archiving.
     active = fields.Boolean(track_visibility='onchange')
 
+    def assert_serial_numbers(self, serial_numbers):
+        """
+        If the product in self is tracked by serial numbers, check if
+        the ones in serial_numbers are currently in use in the system.
+        """
+        Lot = self.env['stock.production.lot']
+        self.ensure_one()
+        if self.tracking != 'serial':
+            raise ValidationError(
+                _('Product %s is not tracked by serial numbers.') %
+                self.name
+            )
+        lots = Lot.search([('product_id', '=', self.id),
+                           ('name', 'in', serial_numbers)
+                           ])
+        if lots:
+            raise ValidationError(
+                _('Serial numbers %s already in use for product %s') %
+                (' '.join(serial_numbers), self.name)
+            )
+
     def _prepare_info(self, fields_to_fetch=None):
         """
             Prepares the following info of the product in self:
