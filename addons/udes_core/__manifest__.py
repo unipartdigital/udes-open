@@ -19,6 +19,8 @@
         'views/product_template.xml',
         'views/stock_location.xml',
         'views/stock_picking.xml',
+        'wizard/change_quant_location_view.xml',
+        'views/stock_quant_views.xml',
     ],
     'qweb': [
     ],

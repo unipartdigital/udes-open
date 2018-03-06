@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<odoo>
+
+    <act_window id="action_multi_create_picking_for_packages"
+        name="Create Picking For Packages"
+        src_model="stock.quant.package"
+        res_model="change_quant_location"
+        view_type="form" view_mode="form"
+        key2="client_action_multi" target="new" />
+
+</odoo>

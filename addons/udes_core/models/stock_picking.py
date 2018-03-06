@@ -174,6 +174,7 @@ class StockPicking(models.Model):
             location_dest_id=None,
             result_package_id=None,
             move_parent_package=False,
+            origin=None,
     ):
         """ Creates a stock.picking and stock.moves for a given list
             of stock.quant ids
@@ -191,6 +192,8 @@ class StockPicking(models.Model):
             @param (optional) move_parent_package: Boolean
                 Used in pallets/nested packages, to maintain the move of the entire pallet.
                 Defaults to False
+            @param (optional) origin: string
+                Value of the source document of the new picking
 
         """
         Picking = self.env['stock.picking']
@@ -221,6 +224,8 @@ class StockPicking(models.Model):
             'location_dest_id': location_dest_id,
             'picking_type_id': picking_type.id,
         }
+        if origin:
+            values['origin'] = origin
         picking = Picking.create(values.copy())
 
         # Create stock.moves
@@ -597,3 +602,19 @@ class StockPicking(models.Model):
         invalid_locations = dest_locations - valid_locations
 
         return len(invalid_locations) == 0
+
+    @api.multi
+    def open_stock_picking_form_view(self):
+        self.ensure_one()
+        view_id = self.env.ref('stock.view_picking_form').id
+        return {
+            'name': _('Internal Transfer'),
+            'type': 'ir.actions.act_window',
+            'view_type': 'form',
+            'view_mode': 'form',
+            'res_model': 'stock.picking',
+            'views': [(view_id, 'form')],
+            'view_id': view_id,
+            'res_id': self.id,
+            'context': dict(self.env.context),
+        }
