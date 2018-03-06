@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from odoo.addons.udes_core.tests import common
+from odoo.exceptions import ValidationError
 
 
 class TestRealTimeUpdate(common.BaseUDES):
@@ -16,26 +17,26 @@ class TestRealTimeUpdate(common.BaseUDES):
           # Intermidate location for goods in
           # otherwide infinite loop on pull rules
           cls.recived_location = Location.create({
-                'name': "Recived",
-                'barcode': "Lrecived",
-            })
+               'name': "Recived",
+               'barcode': "Lrecived",
+          })
 
           # Get internal move types
           cls.picking_type_goods_in = user_warehouse.in_type_id
           cls.picking_type_internal = user_warehouse.int_type_id
 
           cls.picking_type_goods_in.write({
-                    'default_location_src_id': cls.env.ref('stock.stock_location_suppliers').id,
-                    'default_location_dest_id': cls.recived_location.id,
-                    'u_target_storage_format': 'pallet_products',
-                  })
+               'default_location_src_id': cls.env.ref('stock.stock_location_suppliers').id,
+               'default_location_dest_id': cls.recived_location.id,
+               'u_target_storage_format': 'pallet_products',
+          })
 
           cls.picking_type_internal.write({
-                    'default_location_src_id': cls.recived_location.id,
-                    'default_location_dest_id': cls.env.ref('stock.stock_location_stock').id,
-                    'u_target_storage_format': 'pallet_products',
-                    'u_validate_real_time': True,
-                  })
+               'default_location_src_id': cls.recived_location.id,
+               'default_location_dest_id': cls.env.ref('stock.stock_location_stock').id,
+               'u_target_storage_format': 'pallet_products',
+               'u_validate_real_time': True,
+          })
 
           cls.location_stock = cls.picking_type_internal.default_location_src_id
 
@@ -98,7 +99,7 @@ class TestRealTimeUpdate(common.BaseUDES):
           mls_before = picking.move_line_ids
           picking.update_picking(package_name=package_1.name)
           backorders = Picking.search([('backorder_id', '=', picking.id)])
-          backorders_done =backorders
+          backorders_done = backorders
           self.assertEqual(len(backorders), 1)
           self.assertEqual(backorders.move_line_ids,
                            mls_before - picking.move_line_ids)
@@ -242,18 +243,20 @@ class TestRealTimeUpdate(common.BaseUDES):
                                           products_info=create_info_2,
                                           confirm=True)
 
-          products_info_1 = [{'product_barcode': self.strawberry.barcode,
-                              'qty': 2,
-                              'serial_numbers': ['Sn1', 'Sn2'],
-                             }]
+          products_info_1 = [{
+               'product_barcode': self.strawberry.barcode,
+               'qty': 2,
+               'serial_numbers': ['Sn1', 'Sn2'],
+          }]
           picking_1.update_picking(products_info=products_info_1,
                                    result_package_name=package_1.name)
           picking_1.update_picking(validate=True)
 
-          products_info_2 = [{'product_barcode': self.strawberry.barcode,
-                              'qty': 1,
-                              'serial_numbers': ['Sn3'],
-                             }]
+          products_info_2 = [{
+               'product_barcode': self.strawberry.barcode,
+               'qty': 1,
+               'serial_numbers': ['Sn3'],
+          }]
           picking_2.update_picking(products_info=products_info_2,
                                    result_package_name=package_2.name)
           picking_2.update_picking(validate=True)
@@ -306,17 +309,19 @@ class TestRealTimeUpdate(common.BaseUDES):
                                           products_info=create_info_2,
                                           confirm=True)
 
-          products_info_1 = [{'product_barcode': self.strawberry.barcode,
-                              'qty': 2,
-                              'serial_numbers': ['Sn1', 'Sn2'],
-                             }]
+          products_info_1 = [{
+               'product_barcode': self.strawberry.barcode,
+               'qty': 2,
+               'serial_numbers': ['Sn1', 'Sn2'],
+          }]
           picking_1.update_picking(products_info=products_info_1)
           picking_1.update_picking(validate=True)
 
-          products_info_2 = [{'product_barcode': self.strawberry.barcode,
-                              'qty': 1,
-                              'serial_numbers': ['Sn3'],
-                             }]
+          products_info_2 = [{
+               'product_barcode': self.strawberry.barcode,
+               'qty': 1,
+               'serial_numbers': ['Sn3'],
+          }]
           picking_2.update_picking(products_info=products_info_2)
           picking_2.update_picking(validate=True)
 
@@ -408,15 +413,13 @@ class TestRealTimeUpdate(common.BaseUDES):
           # validate package_2a and split move becuase of package_2b!
           # move_orig_ids should be same for orignal and new move_line
           banana_moves = picking_put.move_lines.filtered(
-                                   lambda mv: mv.product_id == self.banana
-                                   )
+                                   lambda mv: mv.product_id == self.banana)
           self.assertTrue(banana_moves.move_orig_ids, picking_2.move_lines)
 
           picking_put.update_picking(package_name=package_2a.name)
 
           picking_2_banana_moves = picking_2.move_lines.filtered(
-                                        lambda mv: mv.product_id == self.banana
-                                        )
+                                        lambda mv: mv.product_id == self.banana)
           self.assertEqual(banana_moves.move_orig_ids, picking_2_banana_moves)
 
           backorders = Picking.search([('backorder_id', '=', picking_put.id)])
@@ -429,14 +432,12 @@ class TestRealTimeUpdate(common.BaseUDES):
           # Part 2
           # validate package_2c to complete move
           banana_moves_before = picking_put.move_lines.filtered(
-                                        lambda mv: mv.product_id == self.banana
-                                        )
+                                        lambda mv: mv.product_id == self.banana)
           self.assertEqual(len(banana_moves_before), 1)
 
           picking_put.update_picking(package_name=package_2b.name)
           banana_moves_after = picking_put.move_lines.filtered(
-                                        lambda mv: mv.product_id == self.banana
-                                        )
+                                        lambda mv: mv.product_id == self.banana)
           # move should be complete and therefore is removed from picking_put
           self.assertEqual(len(banana_moves_after), 0)
 
@@ -450,38 +451,34 @@ class TestRealTimeUpdate(common.BaseUDES):
           # validate package_3 which will split move becuase pacakge_2c
           # should spit move_orig_ids
           put_strawberry_moves = picking_put.move_lines.filtered(
-                                        lambda mv: mv.product_id == self.strawberry
-                                        )
+                                        lambda mv: mv.product_id == self.strawberry)
           p2_strawberry_moves = picking_2.move_lines.filtered(
-                                             lambda mv: mv.product_id == self.strawberry
-                                             )
+                                             lambda mv: mv.product_id == self.strawberry)
           # Check the move_orig_id contains the two strawberry move_lines for picks 2 and 3
           self.assertEqual(put_strawberry_moves.move_orig_ids,
-                           p2_strawberry_moves + picking_3.move_lines
-                          )
+                           p2_strawberry_moves + picking_3.move_lines)
           picking_put.update_picking(package_name=package_3.name)
+
 
           backorders = Picking.search([('backorder_id', '=', picking_put.id)])
           backorders -= backorders_done
           backorders_done += backorders
           put_strawberry_moves = picking_put.move_lines.filtered(
-                                        lambda mv: mv.product_id == self.strawberry
-                                        )
+                                        lambda mv: mv.product_id == self.strawberry)
           self.assertEqual(len(backorders), 1)
+          self.assertEqual(len(backorders.mapped('move_line_ids')), 2)
           self.assertEqual(backorders.move_lines.move_orig_ids, picking_3.move_lines)
           self.assertEqual(put_strawberry_moves.move_orig_ids, p2_strawberry_moves)
 
           # Part 4
           # validate package_2c to complete move
           strawberry_moves_before = picking_put.move_lines.filtered(
-                              lambda mv: mv.product_id == self.strawberry
-                              )
+                              lambda mv: mv.product_id == self.strawberry)
           self.assertEqual(len(strawberry_moves_before), 1)
           picking_put.update_picking(package_name=package_2c.name)
 
           strawberry_moves_after = picking_put.move_lines.filtered(
-                                        lambda mv: mv.product_id == self.strawberry
-                                        )
+                                        lambda mv: mv.product_id == self.strawberry)
           self.assertEqual(len(strawberry_moves_after), 0)
 
           backorders = Picking.search([('backorder_id', '=', picking_put.id)])
@@ -493,8 +490,7 @@ class TestRealTimeUpdate(common.BaseUDES):
           # Part 5
           # complete picking_1 which add move.lines for apples
           apple_moves = picking_put.move_lines.filtered(
-                              lambda mv: mv.product_id == self.apple
-                              )
+                              lambda mv: mv.product_id == self.apple)
           self.assertEqual(len(apple_moves.move_line_ids), 0)
           picking_1.update_picking(validate=True)
           self.assertEqual(len(apple_moves.move_line_ids),
@@ -569,11 +565,9 @@ class TestRealTimeUpdate(common.BaseUDES):
           # Leave picking_2 not validated for now
 
           apple_moves = picking_put.move_lines.filtered(
-                                        lambda mv: mv.product_id == self.apple
-                                        )
+                                        lambda mv: mv.product_id == self.apple)
           banana_moves = picking_put.move_lines.filtered(
-                                        lambda mv: mv.product_id == self.banana
-                                        )
+                                        lambda mv: mv.product_id == self.banana)
 
           self.assertEqual(len(apple_moves.move_line_ids), 1)
           self.assertEqual(len(banana_moves.move_line_ids), 1)
@@ -595,7 +589,6 @@ class TestRealTimeUpdate(common.BaseUDES):
           self.assertEqual(picking_put.move_lines.mapped('move_orig_ids'),
                            picking_2.move_lines)
 
-
           self.assertEqual(len(apple_moves.move_line_ids), 0)
           self.assertEqual(len(banana_moves.move_line_ids), 0)
 
@@ -606,6 +599,7 @@ class TestRealTimeUpdate(common.BaseUDES):
           picking_put.update_picking(package_name=package_2.name)
           self.assertEqual(picking_put.state, 'done')
           backorders_2 = Picking.search([('backorder_id', '=', picking_put.id)])
+          # Only one backorder has been made
           self.assertEqual(backorders, backorders_2)
           # This should catch any backorders creating by action_done()
           self._check_for_incomplete_backorder()
@@ -638,15 +632,17 @@ class TestRealTimeUpdate(common.BaseUDES):
                                           products_info=create_info_2,
                                           confirm=True)
 
-          products_info_1 = [{'product_barcode': self.apple.barcode,
-                              'qty': 2,
-                             }]
+          products_info_1 = [{
+               'product_barcode': self.apple.barcode,
+               'qty': 2,
+          }]
           picking_1.update_picking(products_info=products_info_1)
           picking_1.update_picking(validate=True)
 
-          products_info_2 = [{'product_barcode': self.apple.barcode,
-                              'qty': 1,
-                             }]
+          products_info_2 = [{
+               'product_barcode': self.apple.barcode,
+               'qty': 1,
+          }]
           picking_2.update_picking(products_info=products_info_2)
           picking_2.update_picking(validate=True)
 
@@ -659,13 +655,66 @@ class TestRealTimeUpdate(common.BaseUDES):
           picking_put.update_picking(products_info=products_info_1)
           backorders = Picking.search([('backorder_id', '=', picking_put.id)])
           self.assertEqual(len(backorders), 1)
+
+          combined_lines = picking_1.move_lines + picking_2.move_lines
           self.assertEqual(picking_put.move_lines.move_orig_ids,
-                           picking_1.move_lines + picking_2.move_lines)
+                           combined_lines)
           self.assertEqual(backorders.move_lines.move_orig_ids,
-                           picking_1.move_lines + picking_2.move_lines)
+                           combined_lines)
           picking_put.update_picking(products_info=products_info_2)
           self.assertEqual(picking_put.state, 'done')
           backorders_2 = Picking.search([('backorder_id', '=', picking_put.id)])
           self.assertEqual(backorders, backorders_2)
           # This should catch any backorders creating by action_done()
           self._check_for_incomplete_backorder()
+
+     def test10_check_validation_error_on_empty_mls(self):
+          """Checks that correct error is thrown if
+             there is move lines to process
+          """
+          Picking = self.env['stock.picking']
+          MoveLine = self.env['stock.move.line']
+          create_info = [{'product': self.apple, 'qty': 1}]
+          # picking type goods in so I don't have to create quants
+          # for this test the picking doesn't matter
+          # just has to be a singleton
+          picking = self.create_picking(self.picking_type_goods_in,
+                                        products_info=create_info,
+                                        confirm=True)
+
+
+          expected_error_msg = 'There is no move lines within ' \
+                               'picking %s to backorder' % picking.name
+
+          empty_mls = MoveLine.browse()
+          with self.assertRaises(ValidationError) as e:
+               picking._create_backorder(empty_mls)
+          self.assertEqual(e.exception.name, expected_error_msg,
+                          'No/Incorrect error message was thrown')
+
+     def test11_check_validation_error_on_other_pickings_mls(self):
+          """Checks that correct error is thrown if
+             there is move lines to process
+          """
+          Picking = self.env['stock.picking']
+          MoveLine = self.env['stock.move.line']
+          create_info = [{'product': self.apple, 'qty': 1}]
+          # picking type goods in so I don't have to create quants
+          # for this test the picking doesn't matter
+          # just has to be a singleton
+          picking_1 = self.create_picking(self.picking_type_goods_in,
+                                          products_info=create_info,
+                                          confirm=True)
+
+          picking_2 = self.create_picking(self.picking_type_goods_in,
+                                          products_info=create_info,
+                                          confirm=True)
+
+
+          expected_error_msg = 'There is no move lines within ' \
+                               'picking %s to backorder' % picking_1.name
+
+          with self.assertRaises(ValidationError) as e:
+               picking_1._create_backorder(picking_2.move_line_ids)
+          self.assertEqual(e.exception.name, expected_error_msg,
+                          'No/Incorrect error message was thrown')
