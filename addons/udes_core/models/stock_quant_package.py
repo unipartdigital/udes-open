@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from odoo import models, _
+from odoo import api, models, _
 from odoo.exceptions import ValidationError
 
 
@@ -108,7 +108,6 @@ class StockQuantPackage(models.Model):
                 _('Cannot mark as done a partially reserved package.')
             )
 
-
     # TODO Fix in odoo core (copy pasted from there)
     def _get_all_products_quantities(self):
         '''This function computes the different product quantities for the given package
@@ -120,3 +119,44 @@ class StockQuantPackage(models.Model):
                 res[quant.product_id] = 0
             res[quant.product_id] += quant.quantity
         return res
+
+    @api.multi
+    def is_reserved(self):
+        """ Whether the package is reserved for any picking.
+            Expects a singleton.
+        """
+        self.ensure_one()
+
+        return any([q.reserved_quantity > 0 for q in self.quant_ids])
+
+    @api.multi
+    def find_move_lines(self, aux_domain=None):
+        """ Find a move line related to the package (expects a
+            singleton).
+            A further aux domain can be specified for searching
+            for move lines.
+
+            Raises a ValidationError in case multiple move lines
+            are found.
+
+            Returns a recordset with at most one move line record.
+        """
+        self.ensure_one()
+        MoveLine = self.env['stock.move.line']
+
+        domain = [('package_id', '=', self.id),
+                  ('state', 'not in', ['done', 'cancel'])]
+
+        if aux_domain is not None:
+            domain += aux_domain
+
+        move_lines = MoveLine.search(domain)
+        picking_names = move_lines.mapped('picking_id.name')
+
+        if len(picking_names) > 1:
+            pick_names_txt = ", ".join(picking_names)
+            raise ValidationError(
+                _('Package %s found in multiple pickings (%s).')
+                % (self.name, pick_names_txt))
+
+        return move_lines
