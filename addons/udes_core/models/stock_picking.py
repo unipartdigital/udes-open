@@ -344,6 +344,9 @@ class StockPicking(models.Model):
             within a picking is present in mls
         """
         mls_moves = mls.mapped('move_id')
+        # return (mls_moves | self.move_lines) != mls_moves or \
+        # (mls | self.move_line_ids) != mls or \
+        # self.mapped('move_lines.move_orig_ids').filtered(lambda x: x.state not in ('done', 'cancel'))
         for move in self.move_lines:
             if move not in mls_moves or \
             not move.move_line_ids == mls.filtered(lambda x: x.move_id == move) or \
@@ -363,12 +366,20 @@ class StockPicking(models.Model):
         self.ensure_one()
 
         if mls is None:
-            mls = self.move_lines.filtered(lambda x: x.qty_done > 0 )
+            mls = self.move_lines.filtered(lambda x: x.qty_done > 0)
+
+        # test that the intercetion of mls and move lines in picking
+        # therefore we have some relevent move lines
+        if not (mls & self.move_line_ids):
+            raise ValidationError(_('There is no move lines within ' \
+                                    'picking %s to backorder' % self.name))
 
         new_moves = Move.browse()
+
         for current_move in mls.mapped('move_id'):
             bk_move = Move.browse()
             current_mls = mls.filtered(lambda x: x.move_id == current_move)
+
             if current_mls == current_move.move_line_ids and \
                not current_move.move_orig_ids.filtered(
                             lambda x: x.state not in ('done', 'cancel')):
@@ -376,7 +387,6 @@ class StockPicking(models.Model):
             else:
                 total_qty_done = sum(current_mls.mapped('qty_done'))
                 total_ordered_qty = sum(current_mls.mapped('ordered_qty'))
-
                 bk_move = current_move.copy({'picking_id': False,
                                              'move_line_ids': [],
                                              'move_orig_ids': [],
@@ -388,9 +398,12 @@ class StockPicking(models.Model):
                                        'ordered_qty': current_move.ordered_qty - total_ordered_qty,
                                        'product_uom_qty': current_move.product_uom_qty - total_qty_done,
                                     })
+
                 if current_move.move_orig_ids:
                     (bk_move | current_move).update_orig_ids(current_move.move_orig_ids)
+
             new_moves |= bk_move
+
         # Create picking for completed move lines
         bk_picking = self.copy({
                 'name': '/',
@@ -409,6 +422,7 @@ class StockPicking(models.Model):
         """
         if not self._requires_backorder(mls):
             return self
+
         rt_picking = self._create_backorder(mls)
         return rt_picking
 
