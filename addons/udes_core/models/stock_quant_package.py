@@ -80,19 +80,19 @@ class StockQuantPackage(models.Model):
         return frozenset(self._get_all_products_quantities().items()) == \
                frozenset(other._get_all_products_quantities().items())
 
-    def assert_reserved_full_package(self, picking):
-        """ Check that a package is fully reserved for a picking."""
+    def assert_reserved_full_package(self, move_lines):
+        """ Check that a package is fully reserved at move_lines.
+        """
         MoveLine = self.env['stock.move.line']
 
         self.ensure_one()
 
-        move_lines = picking.mapped('move_line_ids').filtered(lambda ml: ml.package_id == self)
         pack_products = frozenset(self._get_all_products_quantities().items())
         mls_products = frozenset(move_lines._get_all_products_quantities().items())
         if pack_products != mls_products:
             # move_lines do not match the quants
-            #picking = move_lines.mapped('picking_id')
-            #picking.ensure_one()
+            picking = move_lines.mapped('picking_id')
+            picking.ensure_one()
             pack_mls = MoveLine.search([('package_id', 'child_of', self.id),
                                         ('state', 'not in', ['done', 'cancel'])
                                         ])
@@ -117,7 +117,6 @@ class StockQuantPackage(models.Model):
                                                    assign=True)
             move_lines = picking.mapped('move_line_ids').filtered(lambda ml: ml.package_id == self)
             """
-        #return move_lines
 
     # TODO Fix in odoo core (copy pasted from there)
     def _get_all_products_quantities(self):

@@ -316,12 +316,11 @@ class StockPicking(models.Model):
             # a package is being marked as done
             values['package'] = package_name
             package = Package.get_package(package_name)
+            move_lines = move_lines.get_package_move_lines(package)
             if not products_info:
                 # a full package is being validated
                 # check if all parts have been reserved
-                # otherwise add them
-                package.assert_reserved_full_package(self)
-            move_lines = move_lines.get_package_move_lines(package)
+                package.assert_reserved_full_package(move_lines)
 
         if products_info:
             values['products_info'] = products_info
