@@ -108,7 +108,7 @@ class StockPicking(models.Model):
 
         # Call _create_moves() with context variable quants_ids in order
         # to filter the quants that stock.quant._gather returns
-        self.with_context(quant_ids=quant_ids)._create_moves(quants.group_quantity_by_product(),**kwargs)
+        self.with_context(quant_ids=quant_ids)._create_moves(quants.group_quantity_by_product(), **kwargs)
 
     def _create_moves(self, products_info, values=None,
                             confirm=False, assign=False,
@@ -316,6 +316,11 @@ class StockPicking(models.Model):
             # a package is being marked as done
             values['package'] = package_name
             package = Package.get_package(package_name)
+            if not products_info:
+                # a full package is being validated
+                # check if all parts have been reserved
+                # otherwise add them
+                package.assert_reserved_full_package(self)
             move_lines = move_lines.get_package_move_lines(package)
 
         if products_info:
