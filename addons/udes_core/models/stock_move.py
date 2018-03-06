@@ -39,7 +39,7 @@ class StockMove(models.Model):
         return res
 
     def _make_mls_comparison_lambda(self, move_line):
-        """ This makes the a lambda for
+        """ This makes the lambda for
             checking the a move_line
             against move_orign_ids
         """
@@ -54,32 +54,28 @@ class StockMove(models.Model):
         elif lot_name:
             return lambda ml: ml.lot_name == lot_name or \
                               ml.lot_id.name == lot_name
-
         # package
-        elif move_line.package_id:
+        elif package:
             return lambda ml: ml.result_package_id == package
-
         # products
         else:
             # This probaly isn't to be trusted
             return lambda ml: ml.location_dest_id == move_line.location_id and \
-                              ml.product_id == move_line.product_id  # and \
-                              # ml.qty_done <= move_line.ordered_qty
-                              # not sure if the qty comparison makes sense
+                              ml.product_id == move_line.product_id
 
     def update_orig_ids(self, origin_ids):
-        """ Updates move_orig_ids
-            based on a given set of
-            origin_ids for moves in
-            self.
+        """ Updates move_orig_ids based on a given set of
+            origin_ids for moves in self by finding the ones
+            relevent to the current moves.
         """
+        origin_mls = origin_ids.mapped('move_line_ids')
         for move in self:
             # Retain incomplete moves
             updated_origin_ids = move.mapped('move_orig_ids').filtered(
                                             lambda x: x.state not in ('done', 'cancel')
                                             )
             for move_line in move.move_line_ids:
-                previous_mls = origin_ids.mapped('move_line_ids').filtered(
+                previous_mls = origin_mls.filtered(
                                             self._make_mls_comparison_lambda(move_line)
                                             )
                 updated_origin_ids |= previous_mls.mapped('move_id')

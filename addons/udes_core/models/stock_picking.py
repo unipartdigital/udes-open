@@ -247,7 +247,7 @@ class StockPicking(models.Model):
             package_name=None,
             move_parent_package=False,
             products_info=None,
-            real_time_update=False,
+            validate_real_time=False,
     ):
         """ Update/mutate the stock picking in self
 
@@ -280,7 +280,7 @@ class StockPicking(models.Model):
                 An array with the products information to be marked as done,
                 where each dictionary contains: product_barcode, qty and
                 serial numbers if needed
-            @param (optional) real_time_update: Boolean
+            @param (optional) validate_real_time: Boolean
                 Used to specify if the update should be should be processed
                 imidately or on confirmation of the picking.
         """
@@ -288,7 +288,7 @@ class StockPicking(models.Model):
         Package = self.env['stock.quant.package']
         self.assert_valid_state()
 
-        picking = self
+
         values = {}
 
         if quant_ids:
@@ -320,11 +320,12 @@ class StockPicking(models.Model):
         if products_info:
             values['products_info'] = products_info
 
+        picking = self
         if package_name or products_info or force_validate:
             # mark_as_done the stock.move.lines
             mls_done = move_lines.mark_as_done(**values)
 
-            if real_time_update:
+            if validate_real_time:
                 picking = self._real_time_update(mls_done)
                 validate = True
 
@@ -338,22 +339,17 @@ class StockPicking(models.Model):
             picking.action_done() # old do_transfer
 
     def _requires_backorder(self, mls):
-        # if we
-        #   have all the moves
-        #   have all the move_lines within them
-        #   are not waiting for any previous moves to complete
-        # then we dont need to backorder
+        """ Checks if a backorder is required
+            by checking if all move.lines
+            within a picking is present in mls
+        """
         mls_moves = mls.mapped('move_id')
         for move in self.move_lines:
-            if move not in mls_moves:
-                break
-            if not move.move_line_ids == mls.filtered(lambda x: x.move_id == move):
-                break
-            if move.move_orig_ids.filtered(lambda x: x.state not in ('done', 'cancel')):
-                break
-        else:
-            return False
-        return True
+            if move not in mls_moves or \
+            not move.move_line_ids == mls.filtered(lambda x: x.move_id == move) or \
+            move.move_orig_ids.filtered(lambda x: x.state not in ('done', 'cancel')):
+                return True
+        return False
 
     def _create_backorder(self, mls=None):
         """ Creates a backorder pick from self and a subset of
@@ -368,12 +364,12 @@ class StockPicking(models.Model):
 
         if mls is None:
             # or done & canceled?
-            mls = self.move_lines.filtered(lambda x: x.state == 'done')
-        # make empty set
+            mls = self.move_lines.filtered(lambda x: x.qty_done > 0 )
+
         new_moves = Move.browse()
         for current_move in mls.mapped('move_id'):
+            bk_move = Move.browse()
             current_mls = mls.filtered(lambda x: x.move_id == current_move)
-
             if current_mls == current_move.move_line_ids and \
                not current_move.move_orig_ids.filtered(
                             lambda x: x.state not in ('done', 'cancel')):
@@ -415,8 +411,6 @@ class StockPicking(models.Model):
         if not self._requires_backorder(mls):
             return self
         rt_picking = self._create_backorder(mls)
-        # Tell original picking that the move line is now done?????
-        # self.message_post(_('Move line ... done ...DATETIME? ... details ...'))
         return rt_picking
 
     def get_pickings(self,
