@@ -62,71 +62,122 @@ class StockPicking(models.Model):
 
         return res
 
-    def update_picking(self, expected_package_name=None, **kwargs):
-        """ Extend update_picking with a new parameter expected_package_name
-            to be used during swapping packages
-            TODO: finish implement and add parameter at README
+    def update_picking(self, **kwargs):
+        """ Extend update_picking with a new parameter
+            expected_package_name if included in the keyword args.
+            That will to be used during swapping packages.
         """
         # extra_context = {}
-        if expected_package_name:
-            # extra_context['expected_package'] = expected_package_name
-            res = super(StockPicking, self).with_context(expected_package=expected_package_name).update_picking(**kwargs)
+
+        # if 'expected_package_name' in kwargs:
+        #     extra_context['expected_package_name'] = \
+        #         kwargs.pop('expected_package_name')
+
+        # return super(StockPicking, self)\
+        #     .with_context(**extra_context)\
+        #     .update_picking(**kwargs)
+
+        if 'expected_package_name' in kwargs:
+            expected_package_name = kwargs.pop('expected_package_name')
+            # extra_context['expected_package_name'] = expected_package_name
+            res = super(StockPicking, self).with_context(
+                expected_package_name=expected_package_name).update_picking(**kwargs)
         else:
             res = super(StockPicking, self).update_picking(**kwargs)
 
         return res
-        #return super(StockPicking, self).with_context(**extra_context).update_picking(**kwargs)
 
-    def handle_swap(self, package):
-        """ Mark package as done Swap expected package for package.
-            that is not in the picking nor int its wave.
+    def maybe_swap(self, package, expected_package):
+        """ Marks package as done Swap expected package for package
+            that is not in the picking nor in its wave.
+
+            Expects a singleton.
             Requires a context variable expected_package with the name
             of the package we want to swap with package
-        """
-        Package = self.env['stock.quant.package']
 
+            Returns the move lines related to the package arg.
+        """
         self.ensure_one()
 
-        # TODO: not handling swap packages yet
-        raise ValidationError(
-                _('Package %s not found in the operations of %s') %
-                (package, self.name))
-
-        allow_swap = self.picking_type_id.u_allow_swapping_packages
-        if not allow_swap:
+        if not self.picking_type_id.u_allow_swapping_packages:
             raise ValidationError(
-                    _('Package %s not found in the operations of %s') %
-                    (package, self.name))
+                _("Cannot swap packages of picking type '%s'")
+                % self.picking_type_id.name)
 
-        expected_package = self.env.context.get('expected_package')
-        if not expected_package:
-            raise ValidationError(
-                    _("Expected package to scan missing."))
+        exp_pack_mls = self.move_line_ids.filtered(
+            lambda ml: ml.package_id == expected_package)
 
-        expected_package = Package.get_package(expected_package_name)
-        exp_pack_mls = self.move_line_ids.filtered(lambda ml: ml.package_id == expected_package)
         if not exp_pack_mls:
             raise ValidationError(
-                    _("Expected package cannot be found in picking %s") %
-                    self.name)
+                _("Expected package cannot be found in picking %s") %
+                self.name)
 
-        # at this point package is not in self, expected_package
-        # it is in self
+        if not package.has_same_content(expected_package):
+            raise ValidationError(
+                _("The contents of %s does not match what you have been "
+                  "asked to pick.") % expected_package.name)
 
-        # 1) check they have the same content
+        if package.location_id != expected_package.location_id:
+            raise ValidationError(
+                _("Packages are in different locations and cannot be swapped"))
 
-        # 1.1) check same wave
-        # 1.2) if not reserved or in another picking of the same picking type
-        #      call _swap_package()
+        # @todo: implement the batch check once we enable multiple
+        # packages for a picking; if the packages are in the same
+        # batch then no-op (check prior art)
 
-        move_lines = self._swap_package(package)
+        scanned_pack_mls = None
 
-        return move_lines
+        if package.is_reserved():
+            scanned_pack_mls = package.find_move_lines([('qty_done', '=', 0)])
 
-    def _swap_package(self):
+            if scanned_pack_mls:
+                # We know that all the move lines have the same picking id
+                ml = scanned_pack_mls[0]
+
+                if ml.picking_id.batch_id == self.batch_id:
+                    # The scanned package and the expected are in
+                    # the same batch; don't need to swap - simply
+                    # return the found move lines
+                    return scanned_pack_mls
+
+                if ml.picking_id.picking_type_id != self.picking_type_id:
+                    raise ValidationError(
+                        _("Packages have different picking types and cannot "
+                          "be swapped"))
+
+        return self._swap_package(package, expected_package,
+                                  scanned_pack_mls, exp_pack_mls)
+
+    def _swap_package(self, scanned_package, expected_package,
+                      scanned_pack_mls, exp_pack_mls):
         """ Performs the swap
         """
-        pass
+        if scanned_pack_mls and exp_pack_mls:
+            # Both packages are in move lines; we simply change
+            # the package ids of the move lines
+            scanned_pack_mls.with_context(bypass_reservation_update=True)\
+                            .write({"package_id": expected_package.id,
+                                    "result_package_id": expected_package.id})
+            exp_pack_mls.with_context(bypass_reservation_update=True)\
+                        .write({"package_id": scanned_package.id,
+                                "result_package_id": scanned_package.id})
+        else:
+            assert exp_pack_mls is not None, "Expected package move lines empty"
+
+            # We know that scanned_pack_mls is empty; we should now
+            # 1) unreserve quants of the expected one, 2) reserve quants
+            # of the scanned package, and 3)
+            expected_package._get_contained_quants()\
+                .write({'reserved_quantity': 0})
+
+            for q in scanned_package._get_contained_quants():
+                q.write({'reserved_quantity': q.quantity})
+
+            exp_pack_mls.with_context(bypass_reservation_update=True)\
+                        .write({"package_id": scanned_package.id,
+                                "result_package_id": scanned_package.id})
+
+        return exp_pack_mls
 
     def action_assign(self):
         """
