@@ -49,6 +49,10 @@ class StockPickingType(models.Model):
         string='What the User Scans',
         help='What the user scans when asked to '
         'scan something from pickings of this type')
+    u_reserve_as_packages = fields.Boolean(string='Reserve entire packages',
+        default=False,
+        help="Flag to indicate reservations should be rounded up to entire packages."
+        )
 
     def _prepare_info(self):
         """
@@ -62,6 +66,7 @@ class StockPickingType(models.Model):
             - u_target_storage_format: string
             - u_user_scans: string
             - u_enforce_location_dest_id: boolean
+            - u_reserve_as_packages: boolean
         """
         info = super(StockPickingType, self)._prepare_info()
         info.update({
@@ -74,5 +79,6 @@ class StockPickingType(models.Model):
             'u_target_storage_format': self.u_target_storage_format,
             'u_user_scans': self.u_user_scans,
             'u_enforce_location_dest_id': self.u_enforce_location_dest_id,
+            'u_reserve_as_packages': self.u_reserve_as_packages,
             })
         return info
