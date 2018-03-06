@@ -363,7 +363,6 @@ class StockPicking(models.Model):
         self.ensure_one()
 
         if mls is None:
-            # or done & canceled?
             mls = self.move_lines.filtered(lambda x: x.qty_done > 0 )
 
         new_moves = Move.browse()
