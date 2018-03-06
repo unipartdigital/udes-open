@@ -68,7 +68,7 @@ class StockPicking(models.Model):
         """
         # extra_context = {}
 
-        kwargs.update({'real_time_update': self.picking_type_id.u_validate_real_time})
+        kwargs.update({'validate_real_time': self.picking_type_id.u_validate_real_time})
         if expected_package_name:
             # extra_context['expected_package'] = expected_package_name
             res = super(StockPicking, self).with_context(expected_package=expected_package_name).update_picking(**kwargs)
