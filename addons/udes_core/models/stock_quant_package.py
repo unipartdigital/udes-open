@@ -80,6 +80,7 @@ class StockQuantPackage(models.Model):
         return frozenset(self._get_all_products_quantities().items()) == \
                frozenset(other._get_all_products_quantities().items())
 
+
     def assert_reserved_full_package(self, move_lines):
         """ Check that a package is fully reserved at move_lines.
         """
@@ -106,17 +107,7 @@ class StockQuantPackage(models.Model):
             raise ValidationError(
                 _('Cannot mark as done a partially reserved package.')
             )
-            """
-            # therefore reserve the remaining quantities
-            # TODO: this code can be used for whole package reservation
-            quants = self._get_contained_quants()
-            remaining_qtys = quants.group_quantity_by_product(only_available=True)
-            picking.with_context(
-                quant_ids=quants.ids)._create_moves(remaining_qtys,
-                                                   confirm=True,
-                                                   assign=True)
-            move_lines = picking.mapped('move_line_ids').filtered(lambda ml: ml.package_id == self)
-            """
+
 
     # TODO Fix in odoo core (copy pasted from there)
     def _get_all_products_quantities(self):

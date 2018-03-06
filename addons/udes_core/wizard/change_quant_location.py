@@ -44,6 +44,10 @@ class ChangeQuantLocation(models.TransientModel):
             params['origin'] = self.reference
 
         new_picking = Picking.create_picking(**params)
+        # the picking is created with default location_dest_id
+        # of the picking type so odoo creates the route if needed
+        # after location_dest_id is updated to the specific
+        # location set at self.location_dest_id
         if self.location_dest_id:
             new_picking.location_dest_id = self.location_dest_id
 
