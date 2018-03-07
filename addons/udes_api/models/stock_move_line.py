@@ -86,7 +86,10 @@ class StockMoveLine(models.Model):
 
     def get_package_move_lines(self, package):
         """ Extend to get move lines of package when package is
-            a parent package and to handle swapping packages.
+            a parent package and to handle swapping packages in
+            case the expected_package_name entry is included in
+            the context.
+            
         """
         Package = self.env['stock.quant.package']
 

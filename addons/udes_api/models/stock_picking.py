@@ -63,23 +63,15 @@ class StockPicking(models.Model):
         return res
 
     def update_picking(self, **kwargs):
-        """ Extend update_picking with a new parameter
-            expected_package_name if included in the keyword args.
-            That will to be used during swapping packages.
+        """ Extend update_picking to process a new parameter
+            expected_package_name that may be included among the 
+            keyword args.
+            If such parameter is included, it will to be propagated
+            within the environment context to the parent method.
+
         """
-        # extra_context = {}
-
-        # if 'expected_package_name' in kwargs:
-        #     extra_context['expected_package_name'] = \
-        #         kwargs.pop('expected_package_name')
-
-        # return super(StockPicking, self)\
-        #     .with_context(**extra_context)\
-        #     .update_picking(**kwargs)
-
         if 'expected_package_name' in kwargs:
             expected_package_name = kwargs.pop('expected_package_name')
-            # extra_context['expected_package_name'] = expected_package_name
             res = super(StockPicking, self).with_context(
                 expected_package_name=expected_package_name).update_picking(**kwargs)
         else:
@@ -87,15 +79,20 @@ class StockPicking(models.Model):
 
         return res
 
-    def maybe_swap(self, package, expected_package):
-        """ Marks package as done Swap expected package for package
-            that is not in the picking nor in its wave.
+    def maybe_swap(self, scanned_package, expected_package):
+        """ Validate the conditions for perfoming a swap of the
+            specified packages by considering the picking instance
+            (expects a singleton picking) and relevant move lines.
 
-            Expects a singleton.
-            Requires a context variable expected_package with the name
-            of the package we want to swap with package
+            Return the move lines related to the expected package,
+            in case a swap is performed, or the ones related to the
+            scanned package, if both packages belong to the same
+            batch.
 
-            Returns the move lines related to the package arg.
+            Raise a ValidationError in case packages cannot be found
+            in the picking or if the conditions for swapping are not
+            met.
+            
         """
         self.ensure_one()
 
@@ -112,12 +109,12 @@ class StockPicking(models.Model):
                 _("Expected package cannot be found in picking %s") %
                 self.name)
 
-        if not package.has_same_content(expected_package):
+        if not scanned_package.has_same_content(expected_package):
             raise ValidationError(
                 _("The contents of %s does not match what you have been "
                   "asked to pick.") % expected_package.name)
 
-        if package.location_id != expected_package.location_id:
+        if scanned_package.location_id != expected_package.location_id:
             raise ValidationError(
                 _("Packages are in different locations and cannot be swapped"))
 
@@ -127,8 +124,9 @@ class StockPicking(models.Model):
 
         scanned_pack_mls = None
 
-        if package.is_reserved():
-            scanned_pack_mls = package.find_move_lines([('qty_done', '=', 0)])
+        if scanned_package.is_reserved():
+            scanned_pack_mls = scanned_package.find_move_lines(
+                [('qty_done', '=', 0)])
 
             if scanned_pack_mls:
                 # We know that all the move lines have the same picking id
@@ -145,13 +143,12 @@ class StockPicking(models.Model):
                         _("Packages have different picking types and cannot "
                           "be swapped"))
 
-        return self._swap_package(package, expected_package,
+        return self._swap_package(scanned_package, expected_package,
                                   scanned_pack_mls, exp_pack_mls)
 
     def _swap_package(self, scanned_package, expected_package,
                       scanned_pack_mls, exp_pack_mls):
-        """ Performs the swap
-        """
+        """ Performs the swap. """
         if scanned_pack_mls and exp_pack_mls:
             # Both packages are in move lines; we simply change
             # the package ids of the move lines
@@ -162,7 +159,8 @@ class StockPicking(models.Model):
                         .write({"package_id": scanned_package.id,
                                 "result_package_id": scanned_package.id})
         else:
-            assert exp_pack_mls is not None, "Expected package move lines empty"
+            assert exp_pack_mls is not None, \
+                "Expected package move lines empty"
 
             # We know that scanned_pack_mls is empty; we should now
             # 1) unreserve quants of the expected one, 2) reserve quants
