@@ -124,6 +124,7 @@ class StockQuantPackage(models.Model):
     def is_reserved(self):
         """ Whether the package is reserved for any picking.
             Expects a singleton.
+            
         """
         self.ensure_one()
 
@@ -131,15 +132,16 @@ class StockQuantPackage(models.Model):
 
     @api.multi
     def find_move_lines(self, aux_domain=None):
-        """ Find a move line related to the package (expects a
-            singleton).
+        """ Find move lines related to the package.
+            Expects a singleton package.
             A further aux domain can be specified for searching
-            for move lines.
+            move lines.
 
-            Raises a ValidationError in case multiple move lines
-            are found.
+            Raises a ValidationError in case multiple pickings
+            are associated with the found move lines.
 
-            Returns a recordset with at most one move line record.
+            Returns a recordset with the move lines.
+
         """
         self.ensure_one()
         MoveLine = self.env['stock.move.line']
