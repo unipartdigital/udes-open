@@ -105,7 +105,6 @@ class StockMoveLine(models.Model):
         if expected_package_name is not None \
            and expected_package_name != package.name:
             expected_package = Package.get_package(expected_package_name)
-            expected_package.ensure_one()
             move_lines = picking.maybe_swap(package, expected_package)
 
         if move_lines is None:
