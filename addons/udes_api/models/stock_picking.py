@@ -5,6 +5,26 @@ from odoo.exceptions import ValidationError
 
 from collections import defaultdict
 
+import logging
+_logger = logging.getLogger(__name__)
+
+
+def _update_move_lines_and_log_swap(move_lines, pack, other_pack):
+    """ Set the package ids of the specified move lines to the one
+        of the other package and signal the package swap by posting
+        a message to the picking instance of the first move line.
+
+        Assumes that both packages are singletons and that the
+        specified move lines are a non empty recordset.
+    """
+    move_lines.with_context(bypass_reservation_update=True)\
+              .write({"package_id": other_pack.id,
+                      "result_package_id": other_pack.id})
+    msg = _("Package %s swapped for package %s.") % (pack.name, other_pack.name)
+    move_lines[0].picking_id.message_post(body=msg)
+    _logger.info(msg)
+
+
 class StockPicking(models.Model):
     _inherit = 'stock.picking'
 
@@ -154,13 +174,13 @@ class StockPicking(models.Model):
         """ Performs the swap. """
         if scanned_pack_mls and exp_pack_mls:
             # Both packages are in move lines; we simply change
-            # the package ids of the move lines
-            scanned_pack_mls.with_context(bypass_reservation_update=True)\
-                            .write({"package_id": expected_package.id,
-                                    "result_package_id": expected_package.id})
-            exp_pack_mls.with_context(bypass_reservation_update=True)\
-                        .write({"package_id": scanned_package.id,
-                                "result_package_id": scanned_package.id})
+            # the package ids of both scanned and expected move lines
+            _update_move_lines_and_log_swap(scanned_pack_mls,
+                                            scanned_package,
+                                            expected_package)
+            _update_move_lines_and_log_swap(exp_pack_mls,
+                                            expected_package,
+                                            scanned_package)
         else:
             assert exp_pack_mls is not None, \
                 "Expected package move lines empty"
@@ -175,9 +195,9 @@ class StockPicking(models.Model):
             for q in scanned_package._get_contained_quants():
                 q.write({'reserved_quantity': q.quantity})
 
-            exp_pack_mls.with_context(bypass_reservation_update=True)\
-                        .write({"package_id": scanned_package.id,
-                                "result_package_id": scanned_package.id})
+            _update_move_lines_and_log_swap(exp_pack_mls,
+                                            expected_package,
+                                            scanned_package)
 
         return exp_pack_mls
 
