@@ -93,7 +93,7 @@ class StockMoveLine(models.Model):
             a parent package and to handle swapping packages in
             case the expected_package_name entry is included in
             the context.
-            
+
         """
         Package = self.env['stock.quant.package']
 

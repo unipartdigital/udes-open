@@ -19,12 +19,12 @@ class StockPicking(models.Model):
             new_move_lines = super(StockPicking, self).add_unexpected_parts(product_quantities)
         else:
             overreceived_qtys = ["%s: %s" % (Product.get_product(id).name, qty)
-                                 for id,qty in product_quantities.items()]
+                                 for id, qty in product_quantities.items()]
             raise ValidationError(
                     _("We are not expecting these extra quantities of"
-                    " these parts:\n%s\nPlease either receive the right"
-                    " amount and move the rest to probres, or if they"
-                    " cannot be split, move all to probres.") %
+                      " these parts:\n%s\nPlease either receive the right"
+                      " amount and move the rest to probres, or if they"
+                      " cannot be split, move all to probres.") %
                     '\n'.join(overreceived_qtys))
 
         return new_move_lines
@@ -86,7 +86,7 @@ class StockPicking(models.Model):
         return res
 
     def maybe_swap(self, scanned_package, expected_package):
-        """ Validate the conditions for perfoming a swap of the
+        """ Validate the conditions for performing a swap of the
             specified packages by considering the picking instance
             (expects a singleton picking) and relevant move lines.
 
@@ -124,10 +124,6 @@ class StockPicking(models.Model):
             raise ValidationError(
                 _("Packages are in different locations and cannot be swapped"))
 
-        # @todo: implement the batch check once we enable multiple
-        # packages for a picking; if the packages are in the same
-        # batch then no-op (check prior art)
-
         scanned_pack_mls = None
 
         if scanned_package.is_reserved():
@@ -136,15 +132,16 @@ class StockPicking(models.Model):
 
             if scanned_pack_mls:
                 # We know that all the move lines have the same picking id
-                ml = scanned_pack_mls[0]
+                mls_picking = scanned_pack_mls[0].picking_id
 
-                if ml.picking_id.batch_id == self.batch_id:
+                if mls_picking.batch_id == self.batch_id:
                     # The scanned package and the expected are in
-                    # the same batch; don't need to swap - simply
-                    # return the found move lines
+                    # the same batch; don't need to be swapped -
+                    # simply return the move lines of the scanned
+                    # package
                     return scanned_pack_mls
 
-                if ml.picking_id.picking_type_id != self.picking_type_id:
+                if mls_picking.picking_type_id != self.picking_type_id:
                     raise ValidationError(
                         _("Packages have different picking types and cannot "
                           "be swapped"))
@@ -170,9 +167,10 @@ class StockPicking(models.Model):
 
             # We know that scanned_pack_mls is empty; we should now
             # 1) unreserve quants of the expected one, 2) reserve quants
-            # of the scanned package, and 3)
+            # of the scanned package, and 3) change the package ids of
+            # the expected move lines
             expected_package._get_contained_quants()\
-                .write({'reserved_quantity': 0})
+                            .write({'reserved_quantity': 0})
 
             for q in scanned_package._get_contained_quants():
                 q.write({'reserved_quantity': q.quantity})
