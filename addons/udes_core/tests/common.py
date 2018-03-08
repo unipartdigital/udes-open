@@ -117,11 +117,11 @@ class BaseUDES(common.SavepointCase):
                 product_info.update(picking=picking)
                 move = cls.create_move(**product_info)
 
-        if confirm:
-            picking.action_confirm()
-            
         if assign:
             picking.action_assign()
+
+        if confirm:
+            picking.action_confirm()
 
         return picking
 
@@ -150,12 +150,11 @@ class BaseUDES(common.SavepointCase):
         vals.update(kwargs)
         return Quant.create(vals)
 
-
     @classmethod
     def create_user(cls, name, login, **kwargs):
         """ Create and return a user"""
         User = cls.env['res.users']
-        # Creating user without company 
+        # Creating user without company
         # takes company from current user
         vals = {
             'name': name,
@@ -163,7 +162,7 @@ class BaseUDES(common.SavepointCase):
         }
         vals.update(kwargs)
         return User.create(vals)
-    
+
     @classmethod
     def create_company(cls, name, **kwargs):
         """Create and return a company"""
@@ -173,3 +172,47 @@ class BaseUDES(common.SavepointCase):
         }
         vals.update(kwargs)
         return Company.create(vals)
+
+    @classmethod
+    def create_simple_inbound_route(cls, picking_type_in, picking_type_internal):
+        Route = cls.env['stock.location.route']
+        Path = cls.env['stock.location.path']
+        Sequence = cls.env['ir.sequence']
+        Rule  = cls.env['procurement.rule']
+
+        route_vals = {
+            "name": "Putaway",
+            "sequence": 10,
+            "product_selectable": False,
+            "warehouse_selectable": True,
+            "warehouse_ids": [(6, 0, [picking_type_internal.warehouse_id.id])]
+        }
+        route = Route.create(route_vals)
+
+        # PUTAWAY
+        sequence_putaway = Sequence.create({"name": "Putaway", "prefix": "PUT", "padding": 5}).id
+        picking_type_internal.write({
+                                        'sequence_id': sequence_putaway,
+                                        'sequence':13
+                                     })
+
+        location_path_vals = {
+            "name": "Putaway",
+            "route_id": route.id,
+            "sequence": 20,
+            "location_from_id": picking_type_in.default_location_dest_id.id,
+            "location_dest_id": picking_type_internal.default_location_dest_id.id,
+            "picking_type_id": picking_type_internal.id,
+        }
+        path_in_putaway = Path.create(location_path_vals)
+
+        # procurement_in_putaway_vals = {
+        #     "name": "Putaway",
+        #     "route_id": route.id,
+        #     "sequence": 20,
+        #     "location_src_id": picking_type_in.default_location_dest_id.id,
+        #     "location_id": picking_type_internal.default_location_dest_id.id,
+        #     "action": "move",
+        #     "picking_type_id": picking_type_internal.id,
+        # }
+        # procurement_in_putaway = Rule.create(procurement_in_putaway_vals)
