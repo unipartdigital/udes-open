@@ -64,12 +64,18 @@ class StockPicking(models.Model):
 
     def update_picking(self, **kwargs):
         """ Extend update_picking to process a new parameter
-            expected_package_name that may be included among the 
-            keyword args.
-            If such parameter is included, it will to be propagated
-            within the environment context to the parent method.
+            'expected_package_name' that may be included among the
+            keyword args. If such parameter is included, it will be
+            propagated within the environment context to the parent
+            method.
+
+            Also include the 'validate_real_time' flag to the keyword
+            args.
 
         """
+        kwargs.update(
+            {'validate_real_time': self.picking_type_id.u_validate_real_time})
+
         if 'expected_package_name' in kwargs:
             expected_package_name = kwargs.pop('expected_package_name')
             res = super(StockPicking, self).with_context(
@@ -92,7 +98,7 @@ class StockPicking(models.Model):
             Raise a ValidationError in case packages cannot be found
             in the picking or if the conditions for swapping are not
             met.
-            
+
         """
         self.ensure_one()
 

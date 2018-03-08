@@ -66,6 +66,10 @@ class StockMoveLine(models.Model):
                 # Moving stock into a pallet of products, result_package
                 # might be new pallet id
                 result_package = Package.get_package(result_package, create=True).name
+            elif products_info and not result_package:
+                raise ValidationError(
+                        _('Invalid parameters for target storage format,'
+                          ' expecting result package.'))
 
         elif target_storage_format == 'package':
             if products_info and not package and not result_package:
