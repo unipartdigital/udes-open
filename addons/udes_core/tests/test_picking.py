@@ -86,5 +86,6 @@ class TestGoodsInPicking(common.BaseUDES):
 
     def test07_get_priorities(self):
         """ Tests get_priorities by trivially exercising it """
-        priorities = self.get_priorities()
+        Picking = self.env['stock.picking']
+        priorities = Picking.get_priorities()
         self.assertNotEqual(priorities, [])
