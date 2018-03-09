@@ -195,7 +195,7 @@ class BaseUDES(common.SavepointCase):
         Rule  = cls.env['procurement.rule']
 
         route_vals = {
-            "name": "Putaway",
+            "name": "TestPutaway",
             "sequence": 10,
             "product_selectable": False,
             "warehouse_selectable": True,
@@ -204,14 +204,14 @@ class BaseUDES(common.SavepointCase):
         route = Route.create(route_vals)
 
         # PUTAWAY
-        sequence_putaway = Sequence.create({"name": "Putaway", "prefix": "PUT", "padding": 5}).id
+        sequence_putaway = Sequence.create({"name": "TestPutaway", "prefix": "TESTPUT", "padding": 5}).id
         picking_type_internal.write({
                                         'sequence_id': sequence_putaway,
                                         'sequence':13
                                      })
 
         location_path_vals = {
-            "name": "Putaway",
+            "name": "TestPutaway",
             "route_id": route.id,
             "sequence": 20,
             "location_from_id": picking_type_in.default_location_dest_id.id,
