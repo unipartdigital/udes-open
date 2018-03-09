@@ -139,7 +139,7 @@ class BaseUDES(common.SavepointCase):
         return Product.create(vals)
 
     @classmethod
-    def create_quant(cls, product_id, location_id, qty, **kwargs):
+    def create_quant(cls, product_id, location_id, qty, serial_number=None, **kwargs):
         """ Create and return a quant of a product at location."""
         Quant = cls.env['stock.quant']
         vals = {
@@ -147,8 +147,22 @@ class BaseUDES(common.SavepointCase):
             'location_id': location_id,
             'quantity': qty,
         }
+        if serial_number:
+            lot = cls.create_lot(product_id, serial_number)
+            vals['lot_id'] = lot.id
         vals.update(kwargs)
         return Quant.create(vals)
+
+    @classmethod
+    def create_lot(cls, product_id, serial_number, **kwargs):
+        Lot = cls.env['stock.production.lot']
+
+        vals = {
+            'name': serial_number,
+            'product_id': product_id,
+        }
+        vals.update(kwargs)
+        return Lot.create(vals)
 
     @classmethod
     def create_user(cls, name, login, **kwargs):
