@@ -236,6 +236,7 @@ class TestGoodsInUpdatePicking(common.BaseUDES):
         picking.update_picking(products_info=products_info)
         # check ordered_qty and qty_done  are as expected
         self.assertEqual(picking.move_line_ids.ordered_qty, 4)
+        self.assertEqual(picking.move_lines.ordered_qty, 4)
         self.assertEqual(picking.move_line_ids.qty_done, 5)
         picking.update_picking(validate=True)
         self.assertEqual(picking.state, 'done',
@@ -262,6 +263,7 @@ class TestGoodsInUpdatePicking(common.BaseUDES):
         picking.update_picking(products_info=products_info2)
         unexpected_move_lines = picking.move_line_ids.filtered(lambda x: x.ordered_qty == 0)
         self.assertEqual(unexpected_move_lines.qty_done, 2.0)
+        self.assertEqual(picking.move_lines.ordered_qty, 4)
 
         picking.update_picking(validate=True)
         self.assertEqual(picking.state, 'done',
@@ -280,6 +282,8 @@ class TestGoodsInUpdatePicking(common.BaseUDES):
         picking.update_picking(products_info=products_info)
         cherry_move_lines = picking.move_line_ids.filtered(lambda x: x.product_id == self.cherry and x.ordered_qty ==0)
         self.assertEqual(cherry_move_lines.qty_done, 2)
+        cherry_moves = cherry_move_lines.mapped('move_id')
+        self.assertEqual(cherry_moves.ordered_qty, 0)
         apple_move_lines = picking.move_line_ids.filtered(lambda x: x.product_id == self.apple and x.ordered_qty ==4)
         self.assertEqual(apple_move_lines.qty_done, 0)
 
@@ -301,6 +305,8 @@ class TestGoodsInUpdatePicking(common.BaseUDES):
 
         cherry_move_lines = picking.move_line_ids.filtered(lambda x: x.product_id == self.cherry and x.ordered_qty == 0)
         self.assertEqual(cherry_move_lines.qty_done, 4)
+        cherry_moves = cherry_move_lines.mapped('move_id')
+        self.assertEqual(cherry_moves.ordered_qty, 0)
 
         apple_move_lines = picking.move_line_ids.filtered(lambda x: x.product_id == self.apple and x.ordered_qty == 4)
         self.assertEqual(apple_move_lines.qty_done, 4)

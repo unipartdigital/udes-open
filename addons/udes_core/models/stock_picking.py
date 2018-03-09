@@ -62,7 +62,7 @@ class StockPicking(models.Model):
         """
         self.ensure_one()
         old_move_lines = self.move_line_ids
-        self._create_moves(product_quantities, confirm=True, assign=True)
+        self._create_moves(product_quantities, confirm=True, assign=True, unexpected=True)
         new_move_lines = (self.move_line_ids - old_move_lines)
 
         for ml in old_move_lines:
@@ -108,7 +108,7 @@ class StockPicking(models.Model):
 
     def _create_moves(self, products_info, values=None,
                             confirm=False, assign=False,
-                            result_package=None):
+                            result_package=None, unexpected=False):
         """ Creates moves from products_info and adds it to the picking
             in self. Where products_info is a dictionary mapped by
             product ids and the value are the quantities.
@@ -144,6 +144,8 @@ class StockPicking(models.Model):
                 }
             move_vals.update(values)
             move = Move.create(move_vals)
+            if unexpected:
+                move.ordered_qty = 0
 
         if confirm:
             # Use picking.action_confirm, which will merge moves of the same
