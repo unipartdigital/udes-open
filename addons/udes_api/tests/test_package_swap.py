@@ -68,9 +68,13 @@ class TestPackageSwap(common.BaseUDES):
         self.assertTrue(self.scanned_package.is_reserved())
         self.assertFalse(self.expected_package.is_reserved())
 
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(ValidationError) as err:
             picking.update_picking(package_name=SCANNED_PACKAGE_NAME,
                                    expected_package_name=EXPECTED_PACKAGE_NAME)
+
+        self.assertEqual(
+            err.exception.name,
+            "Expected package cannot be found in picking %s" % picking.name)
 
     def test03_unreserved_and_reserved(self):
         """
@@ -139,24 +143,28 @@ class TestPackageSwap(common.BaseUDES):
         """
         self.create_quant(self.apple.id, self.test_location_01.id, 4,
                           package_id=self.expected_package.id)
+        picking01 = self.create_picking(
+            self.picking_type_pick,
+            products_info=self.pack_4apples_info,
+            confirm=True,
+            assign=True)
+
         self.create_quant(self.apple.id, self.test_location_01.id, 4,
                           package_id=self.scanned_package.id)
-        picking = self.create_picking(self.picking_type_pick,
-                                      products_info=self.pack_4apples_info,
-                                      confirm=True,
-                                      assign=True)
-        self.create_picking(self.picking_type_pick,
-                            products_info=self.pack_4apples_info,
-                            confirm=True,
-                            assign=True)
+        picking02 = self.create_picking(
+            self.picking_type_pick,
+            products_info=self.pack_4apples_info,
+            confirm=True,
+            assign=True)
 
         # checking pre-conditions
         self.assertTrue(self.scanned_package.is_reserved())
         self.assertTrue(self.expected_package.is_reserved())
 
         # method under test
-        picking.update_picking(package_name=SCANNED_PACKAGE_NAME,
-                               expected_package_name=EXPECTED_PACKAGE_NAME)
+        picking01.update_picking(
+            package_name=SCANNED_PACKAGE_NAME,
+            expected_package_name=EXPECTED_PACKAGE_NAME)
 
         # checking outcome
 
@@ -173,6 +181,8 @@ class TestPackageSwap(common.BaseUDES):
 
         self.assertEqual(len(scanned_mls), 1,
                          "Don't have unique move line for the scanned package")
+        self.assertEqual(scanned_mls[0].picking_id.id, picking01.id,
+                         "Move lines don't point to expected picking")
         self.assertEqual(scanned_mls[0].package_id, self.scanned_package,
                          "Move lines don't point to scanned package")
         self.assertEqual(scanned_mls[0].result_package_id, self.scanned_package,
@@ -242,13 +252,10 @@ class TestPackageSwap(common.BaseUDES):
                                       products_info=self.pack_4apples_info,
                                       confirm=True,
                                       assign=True)
-
-        other_picking_type = \
-            PickingType.search([('name', '=', 'Internal Transfer')])
-        other_picking_type.ensure_one()
-        other_picking_type.u_reserve_as_packages = True
-        other_picking_type.u_allow_swapping_packages = True
-        self.create_picking(other_picking_type,
+        
+        self.picking_type_internal.u_reserve_as_packages = True
+        self.picking_type_internal.u_allow_swapping_packages = True
+        self.create_picking(self.picking_type_internal,
                             products_info=self.pack_4apples_info,
                             confirm=True,
                             assign=True)
