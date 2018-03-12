@@ -100,8 +100,14 @@ class StockPicking(models.Model):
 
         if 'expected_package_name' in kwargs:
             expected_package_name = kwargs.pop('expected_package_name')
-            res = super(StockPicking, self).with_context(
-                expected_package_name=expected_package_name).update_picking(**kwargs)
+
+            # NB: super().with_context() would return the current
+            # instance and, as a result, concatenating update_picking()
+            # would result in invoking this very method instead of
+            # the parent from udes_core...
+            self_with_context = self.with_context(
+                expected_package_name=expected_package_name)
+            res = super(StockPicking, self_with_context).update_picking(**kwargs)
         else:
             res = super(StockPicking, self).update_picking(**kwargs)
 
