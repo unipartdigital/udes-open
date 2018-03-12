@@ -2,6 +2,7 @@
 
 from odoo.tests import common
 
+
 class BaseUDES(common.SavepointCase):
 
     @classmethod
@@ -37,7 +38,6 @@ class BaseUDES(common.SavepointCase):
         # Serial tracking
         cls.strawberry = cls.create_product('Strawberry', tracking='serial')
         cls.tangerine = cls.create_product('Tangerine', tracking='serial')
-
 
         # Picking types
         cls.picking_type_internal = cls.env.ref('stock.picking_type_internal')
@@ -110,9 +110,9 @@ class BaseUDES(common.SavepointCase):
         }
 
         vals.update(kwargs)
-        picking =  Picking.create(vals)
+        picking = Picking.create(vals)
 
-        if  products_info:
+        if products_info:
             for product_info in products_info:
                 product_info.update(picking=picking)
                 move = cls.create_move(**product_info)
