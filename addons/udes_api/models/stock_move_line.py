@@ -5,6 +5,7 @@ from odoo.exceptions import ValidationError
 
 # TODO: add enumeration for pallet_products, etc
 
+
 class StockMoveLine(models.Model):
     _inherit = 'stock.move.line'
 
@@ -65,6 +66,10 @@ class StockMoveLine(models.Model):
                 # Moving stock into a pallet of products, result_package
                 # might be new pallet id
                 result_package = Package.get_package(result_package, create=True).name
+            elif products_info and not result_package:
+                raise ValidationError(
+                        _('Invalid parameters for target storage format,'
+                          ' expecting result package.'))
 
         elif target_storage_format == 'package':
             if products_info and not package and not result_package:
@@ -85,21 +90,36 @@ class StockMoveLine(models.Model):
 
     def get_package_move_lines(self, package):
         """ Extend to get move lines of package when package is
-            a parent package and to handle swapping packages.
+            a parent package and to handle swapping packages in
+            case the expected_package_name entry is included in
+            the context.
+
         """
-        if package.children_ids:
-            res = self.filtered(lambda ml: ml.package_id in package.children_ids)
-        else:
-            res = super(StockMoveLine, self).get_package_move_lines(package)
+        Package = self.env['stock.quant.package']
 
-        if not res:
-            # The package is not found in the move lines,
-            # check if the package can be swapped and get
-            # move_lines
-            picking = self.mapped('picking_id')
-            res = picking.handle_swap(package)
+        package.ensure_one()
+        move_lines = None
+        expected_package_name = self.env.context.get('expected_package_name')
+        picking = self.mapped('picking_id')
 
-        return res
+        if expected_package_name is not None \
+           and expected_package_name != package.name:
+            expected_package = Package.get_package(expected_package_name)
+            move_lines = picking.maybe_swap(package, expected_package)
+
+        if move_lines is None:
+            if package.children_ids:
+                move_lines = self.filtered(
+                    lambda ml: ml.package_id in package.children_ids)
+            else:
+                move_lines = super(StockMoveLine, self).get_package_move_lines(package)
+
+        if not move_lines:
+            raise ValidationError(
+                    _("Package %s not found in the operations of picking '%s'")
+                    % (package.name, picking.name))
+
+        return move_lines
 
     def _prepare_info(self, **kwargs):
         """

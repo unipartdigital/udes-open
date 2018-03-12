@@ -150,6 +150,16 @@ Configuration information for the an entire warehouse.
 | u_pallet_barcode_regex            | string           | |
 
 
+## Picking Batches (model: stock.picking.batch)
+
+Group of pickings to be completed by a user.
+
+| Field Name  | Type          | Description |
+| ----------- | ------------- | ----------- |
+| id | int | |
+| picking_ids | [stock.picking] | List of stock.picking objects|
+
+
 # API End Points
 
 ## Stock Warehouse
@@ -163,7 +173,7 @@ Load the warehouse config for the stock.warehouse associated with the current us
 
 If it is simple, filter picking types to only show the ones that the user has permission to view.
 
-IMPORTANT - N.B. migrate code from the sg branch, as one of the fields is only in that branch! 
+IMPORTANT - N.B. migrate code from the sg branch, as one of the fields is only in that branch!
 
 Expected output format:
 
@@ -202,7 +212,7 @@ Search for pickings by various criteria and return an array of stock.picking obj
                        If present only pickings in the states present in the
                        list are returned.
                        Defaults to all, possible values: 'draft', 'cancel', 'waiting', 'confirmed', 'assigned', 'done'
-                      
+
 * @param (optional) result_package_id: If an id is supplied all pickings that are
                         registered to this package id will be returned.
                         This can also be used in conjunction with the states
@@ -276,7 +286,8 @@ Update/mutate the stock picking
 * @param (optional) location_dest_name - target destination
 * @param (optional) location_dest_barcode - target destination
 * @param (optional) result_package_name - If it corresponds to an existing package/pallet that is not in an other location, we will set it to the `result_package_id` of the operations of the picking (i.e. transfer). If the target storage format of the picking type is pallet of packages it will set `result_parent_package_id`.
-* @param (optional) package_name - Name of the package of the picking to be marked as done
+* @param (optional) package_name - Name of the package of the picking that has been effectively scanned, to be marked as done.
+* @param (optional) expected_package_name - Name of the package that was expected to be scanned as part of the picking, to be swapped with the `package_name`.
 * @param (optional) products_info - An array with the products information to be marked as done, where each dictionary contains: product_barcode, qty and serial numbers if needed
 * @param (optional) u_transport_id - A dictionary of transport information to update the stock picking with
 
@@ -351,4 +362,68 @@ Search for a product by id, name or barcode and returns a product object that ma
 * @param product_barcode - (optional) this is a string that entirely matches the barcode
 * @param fields_to_fetch - (optional): Subset of the default returned fields to return
 
+## Stock Picking Batch
 
+### Get picking batch
+```
+URI: /api/stock-picking-batch
+HTTP Method: GET
+Old method(s): get_users_wave
+```
+Search for a picking batch in progress for the current user. It returns the id of the batch and the list of pickings.
+
+### Create picking batch
+```
+URI: /api/stock-picking-batch
+HTTP Method: POST
+Old method(s): generate_wave_for_user
+```
+Generate a new batch for the current user.
+
+* @param picking_priorities - (optional) List of priorities to search for the pickings
+* @param max_locations - (optional) Max number of locations to pick from (not used)
+
+### Update picking batch
+```
+URI: /api/stock-picking-batch/:id
+HTTP Method: POST
+Old method(s): drop_off_picked
+```
+Update current user's picking batch.
+
+* @param id - id of the batch to process
+* @param location_barcode - Barcode of the location where the picked stock is dropped off
+* @param continue_wave - (optional) Determines if the batch should continue or finish the batch (not used)
+
+### Validate drop off location of picking batch
+```
+URI: /api/stock-picking-batch/:id/is-valid-dest-location/
+HTTP Method: GET
+Old method(s): is_valid_location_dest_id
+```
+
+* @param id - id of the batch to process
+* @param location_id - (optional) id of the drop off location to be validated
+* @param location_name - (optional) name of the drop off location to be validated
+* @param location_barcode - (optional) barcode of the drop off location to be validated
+
+One of [`location_id`, `location_name`, `location_barcode`] must
+be specified in the request.
+
+## Stock Picking Priorities
+```
+URI: /api/stock-picking-priorities/
+HTTP Method: GET
+Old method(s): get_priority_groups
+```
+Returns the list of possible groups of priorities with the following format:
+
+```
+[{
+    name: 'Picking',
+    priorities: [
+        {'id': 2, 'name': 'Urgent'},
+        {'id': 1, 'name': 'Normal'}
+        ]
+}]
+```
