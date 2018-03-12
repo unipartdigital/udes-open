@@ -11,12 +11,17 @@ class TestGoodsInPickingBatch(common.BaseUDES):
     def setUpClass(cls):
         super(TestGoodsInPickingBatch, cls).setUpClass()
         User = cls.env['res.users']
+        Location = cls.env['stock.location'] 
 
         user_warehouse = User.get_user_warehouse()
         cls.picking_type_pick = user_warehouse.pick_type_id
-        cls.picking_type_pick.u_reserve_as_packages = True
         cls.pack_4apples_info = [{'product': cls.apple,
                                   'qty': 4}]
+        
+        cls.test_output_location_01 = Location.create({
+            'name': "Test output location 01",
+            'barcode': "LTESTOUT01",
+            'location_id': user_warehouse.pick_type_id.default_location_dest_id.id})
 
     def setUp(self):
         super(TestGoodsInPickingBatch, self).setUp()
@@ -28,8 +33,10 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         """ Should error if passed an empty id """
         batch = self.create_batch()
 
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(ValidationError) as err:
             batch._check_user_id("")
+        
+        self.assertEqual(err.exception.name, "Cannot determine the user.")
 
     def test02_check_user_id_valid_id(self):
         """ Should return a non empty string """
@@ -83,15 +90,19 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         """
         Batch = self.env['stock.picking.batch']
 
-        self.create_batch(name="one", state='in_progress')
-        self.create_batch(name="two", state='in_progress')
+        self.create_batch(state='in_progress')
+        self.create_batch(state='in_progress')
         batches = Batch.search([('user_id', '=', self.env.user.id)])
 
         # check pre-conditions
         self.assertEqual(len(batches), 2)
 
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(ValidationError) as err:
             Batch.get_single_batch()
+
+        self.assertEqual(
+            err.exception.name,
+            "Found 2 batches for the user, please contact administrator.")
 
     def test07_get_single_batch_no_batch_multiple_pickings(self):
         """
@@ -165,7 +176,8 @@ class TestGoodsInPickingBatch(common.BaseUDES):
                                       confirm=True,
                                       assign=True)
         batch = Batch.get_single_batch()
-        picking.state = 'done'
+        picking.update_picking(force_validate=True,
+                               location_dest_id=self.test_output_location_01.id)
 
         # create a new picking to be included in the new batch
         other_pack = Package.get_package("test_other_package", create=True)
@@ -177,6 +189,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
                                             assign=True)
 
         # check pre-conditions
+        self.assertEqual(picking.state, 'done')
         self.assertEqual(len(batch.picking_ids), 1)
         self.assertEqual(batch.state, 'in_progress')
         self.assertEqual(batch.picking_ids[0].state, 'done')
@@ -204,12 +217,11 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         # set a batch with a complete picking
         self.create_quant(self.apple.id, self.test_location_01.id, 4,
                           package_id=self.package_one.id)
-        picking = self.create_picking(self.picking_type_pick,
-                                      products_info=self.pack_4apples_info,
-                                      confirm=True,
-                                      assign=True)
+        self.create_picking(self.picking_type_pick,
+                            products_info=self.pack_4apples_info,
+                            confirm=True,
+                            assign=True)
         batch = Batch.get_single_batch()
-        picking.state = 'assigned'
 
         # create a new picking to be included in the new batch
         other_pack = Package.get_package("test_other_package", create=True)
@@ -226,8 +238,11 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         self.assertEqual(batch.picking_ids[0].state, 'assigned')
 
         # method under test
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(ValidationError) as err:
             Batch.create_batch(None)
+
+        self.assertTrue(
+            err.exception.name.startswith("The user already has pickings"))
 
     def test11_drop_off_picked(self):
         """ Marks the batch as done if the picking is complete """
@@ -240,7 +255,8 @@ class TestGoodsInPickingBatch(common.BaseUDES):
                                       confirm=True,
                                       assign=True)
         batch = Batch.create_batch(None)
-        picking.state = 'done'
+        picking.update_picking(force_validate=True,
+                               location_dest_id=self.test_output_location_01.id)
 
         # check pre-conditions
         self.assertEqual(len(batch.picking_ids), 1)
@@ -248,7 +264,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         self.assertEqual(batch.picking_ids[0].state, 'done')
 
         # method under test
-        batch.drop_off_picked(True, self.test_location_01.barcode)
+        batch.drop_off_picked(False, self.test_location_01.barcode)
 
         self.assertEqual(batch.state, 'done', "Batch was not completed")
 
@@ -266,41 +282,25 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
     def test12_is_valid_location_dest_success(self):
         """ Returns True for a valid location """
+        picking, batch = self._create_valid_batch_for_location_tests()
+        picking.update_picking(package_name=self.package_one.name)
+            
+        self.assertTrue(
+            batch.is_valid_location_dest_id(self.test_output_location_01.id),
+            "A valid dest location is wrongly marked as invalid")
+
+    def test13_is_valid_location_dest_failure_invalid_location(self):
+        """ Returns False for a invalid location """
         _, batch = self._create_valid_batch_for_location_tests()
 
         self.assertTrue(
             batch.is_valid_location_dest_id(self.test_location_02.id),
             "A valid dest location is wrongly marked as invalid")
 
-    def test13_is_valid_location_dest_failure_invalid_location(self):
-        """ Returns False for a invalid location """
-        Location = self.env['stock.location']
-
-        some_location = Location.create(
-            {'name': "some location name",
-             'barcode': "LTEST13",
-             'location_id': self.test_location_02.id})
-        picking, batch = self._create_valid_batch_for_location_tests()
-        picking.location_dest_id = some_location
-
-        for ml in picking.mapped('move_line_ids'):
-            ml.qty_done = 4
-
-        # check pre-conditions
-        self.assertEqual(len(batch.picking_ids), 1)
-        self.assertEqual(batch.state, 'in_progress')
-        self.assertEqual(batch.picking_ids[0].id, picking.id)
-        self.assertEqual(batch.picking_ids[0].location_dest_id.id,
-                         some_location.id)
-
-        # method under test
-        self.assertFalse(
-            batch.is_valid_location_dest_id(self.test_location_02.id),
-            "An invalid dest location is wrongly marked as valid")
-
     def test14_is_valid_location_dest_failure_unknown_location(self):
         """ Returns False for an unknown location """
-        _, batch = self._create_valid_batch_for_location_tests()
+        picking, batch = self._create_valid_batch_for_location_tests()
+        picking.update_picking(package_name=self.package_one.name)
 
         self.assertFalse(
             batch.is_valid_location_dest_id("this location does not exist"),
