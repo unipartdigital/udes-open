@@ -89,6 +89,8 @@ class StockPicking(models.Model):
             propagated within the environment context to the parent
             method.
 
+            Expects a singleton.
+
             Also include the 'validate_real_time' flag to the keyword
             args.
 
