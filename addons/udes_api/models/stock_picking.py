@@ -252,9 +252,8 @@ class StockPicking(models.Model):
                             other_pickings = pack_mls.mapped('picking_id') - picking
                             if other_pickings:
                                 raise ValidationError(
-                                    _('The package is reserved in other pickings:') %
-                                    ','.join(other_pickings.mapped('name'))
-                                )
+                                    _('The package is reserved in other pickings: %s')
+                                    % ','.join(other_pickings.mapped('name')))
 
                             quants = package._get_contained_quants()
                             all_quants |= quants
