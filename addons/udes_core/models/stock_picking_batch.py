@@ -12,7 +12,7 @@ class StockPickingBatch(models.Model):
             user_id = self.env.user.id
 
         if not user_id:
-            raise ValidationError(_("Cannot determine the user"))
+            raise ValidationError(_("Cannot determine the user."))
 
         return user_id
 
