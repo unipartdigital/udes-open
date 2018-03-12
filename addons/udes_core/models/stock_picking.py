@@ -6,10 +6,13 @@ from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
 
 from ..common import check_many2one_validity
+from . import common
 
 
 class StockPicking(models.Model):
     _inherit = 'stock.picking'
+
+    priority = fields.Selection(selection=common.PRIORITIES)
 
     # compute previous and next pickings
     u_prev_picking_ids = fields.One2many(
@@ -104,7 +107,7 @@ class StockPicking(models.Model):
 
         # Call _create_moves() with context variable quants_ids in order
         # to filter the quants that stock.quant._gather returns
-        self.with_context(quant_ids=quant_ids)._create_moves(quants.group_quantity_by_product(),**kwargs)
+        self.with_context(quant_ids=quant_ids)._create_moves(quants.group_quantity_by_product(), **kwargs)
 
     def _create_moves(self, products_info, values=None,
                             confirm=False, assign=False,
@@ -172,6 +175,7 @@ class StockPicking(models.Model):
             location_dest_id=None,
             result_package_id=None,
             move_parent_package=False,
+            origin=None,
     ):
         """ Creates a stock.picking and stock.moves for a given list
             of stock.quant ids
@@ -189,6 +193,8 @@ class StockPicking(models.Model):
             @param (optional) move_parent_package: Boolean
                 Used in pallets/nested packages, to maintain the move of the entire pallet.
                 Defaults to False
+            @param (optional) origin: string
+                Value of the source document of the new picking
 
         """
         Picking = self.env['stock.picking']
@@ -219,6 +225,8 @@ class StockPicking(models.Model):
             'location_dest_id': location_dest_id,
             'picking_type_id': picking_type.id,
         }
+        if origin:
+            values['origin'] = origin
         picking = Picking.create(values.copy())
 
         # Create stock.moves
@@ -318,6 +326,10 @@ class StockPicking(models.Model):
             values['package'] = package_name
             package = Package.get_package(package_name)
             move_lines = move_lines.get_package_move_lines(package)
+            if not products_info:
+                # a full package is being validated
+                # check if all parts have been reserved
+                package.assert_reserved_full_package(move_lines)
 
         if products_info:
             values['products_info'] = products_info
@@ -548,7 +560,7 @@ class StockPicking(models.Model):
             ]
             if picking_ids is not None:
                 domain.append(('id', 'in', picking_ids))
-            order='priority desc, scheduled_date, id'
+            order = 'priority desc, scheduled_date, id'
             # TODO: add bulky field
             #if bulky is not None:
             #    domain.append(('u_contains_bulky', '=', bulky))
@@ -599,10 +611,13 @@ class StockPicking(models.Model):
                 Dictionary of priority_id:priority_name
         """
         self.ensure_one()
+
         if not priorities:
             priorities = OrderedDict(self._fields['priority'].selection)
+
         priority_name = priorities[self.priority]
 
+        # @todo: (ale) move this out of the method as it's static code
         info = {"id": lambda p: p.id,
                 "name": lambda p: p.name,
                 "priority": lambda p: p.priority,
@@ -612,8 +627,8 @@ class StockPicking(models.Model):
                 "state": lambda p: p.state,
                 "location_dest_id": lambda p: p.location_dest_id.id,
                 "picking_type_id": lambda p: p.picking_type_id.id,
-                "moves_lines": lambda p: p.move_lines.get_info()
-               }
+                "moves_lines": lambda p: p.move_lines.get_info()}
+
         if not fields_to_fetch:
             fields_to_fetch = info.keys()
 
@@ -630,3 +645,73 @@ class StockPicking(models.Model):
             res.append(picking._prepare_info(priorities, **kwargs))
 
         return res
+
+    @api.model
+    def get_priorities(self):
+        """ Return a list of dicts containing the priorities of the
+            all defined priority groups, in the following format:
+                [
+                    {
+                        'name': 'Picking',
+                        'priorities': [
+                            OrderedDict([('id', '2'), ('name', 'Urgent')]),
+                            OrderedDict([('id', '1'), ('name', 'Normal')])
+                        ]
+                    },
+                    {
+                        ...
+                    },
+                    ...
+                ]
+        """
+        return list(common.PRIORITY_GROUPS.values())
+
+    @api.multi
+    def get_move_lines_done(self):
+        """ Return the recordset of move lines done. """
+        move_lines = self.mapped('move_line_ids')
+
+        return move_lines.filtered(lambda o: o.qty_done > 0)
+
+    def is_valid_location_dest_id(self, location=None, location_ref=None):
+        """ Whether the specified location or location reference
+            (i.e. ID, name or barcode) is a valid putaway location
+            for the picking.
+            Expects a singleton instance.
+
+            Returns a boolean indicating the validity check outcome.
+        """
+        Location = self.env['stock.location']
+        self.ensure_one()
+        assert location or location_ref, "Must specify a location or ref"
+        dest_locations = None
+
+        if location is not None:
+            dest_locations = location
+        else:
+            dest_locations = Location.get_location(location_ref)
+
+        if not dest_locations:
+            raise ValidationError(_("The specified location is unknown."))
+
+        valid_locations = Location.search(
+            [('id', 'child_of', self.location_dest_id.id)])
+        invalid_locations = dest_locations - valid_locations
+
+        return len(invalid_locations) == 0
+
+    @api.multi
+    def open_stock_picking_form_view(self):
+        self.ensure_one()
+        view_id = self.env.ref('stock.view_picking_form').id
+        return {
+            'name': _('Internal Transfer'),
+            'type': 'ir.actions.act_window',
+            'view_type': 'form',
+            'view_mode': 'form',
+            'res_model': 'stock.picking',
+            'views': [(view_id, 'form')],
+            'view_id': view_id,
+            'res_id': self.id,
+            'context': dict(self.env.context),
+        }

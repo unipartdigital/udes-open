@@ -2,6 +2,7 @@
 
 from odoo.tests import common
 
+
 class BaseUDES(common.SavepointCase):
 
     @classmethod
@@ -37,7 +38,6 @@ class BaseUDES(common.SavepointCase):
         # Serial tracking
         cls.strawberry = cls.create_product('Strawberry', tracking='serial')
         cls.tangerine = cls.create_product('Tangerine', tracking='serial')
-
 
         # Picking types
         cls.picking_type_internal = cls.env.ref('stock.picking_type_internal')
@@ -110,9 +110,9 @@ class BaseUDES(common.SavepointCase):
         }
 
         vals.update(kwargs)
-        picking =  Picking.create(vals)
+        picking = Picking.create(vals)
 
-        if  products_info:
+        if products_info:
             for product_info in products_info:
                 product_info.update(picking=picking)
                 move = cls.create_move(**product_info)
@@ -139,7 +139,7 @@ class BaseUDES(common.SavepointCase):
         return Product.create(vals)
 
     @classmethod
-    def create_quant(cls, product_id, location_id, qty, **kwargs):
+    def create_quant(cls, product_id, location_id, qty, serial_number=None, **kwargs):
         """ Create and return a quant of a product at location."""
         Quant = cls.env['stock.quant']
         vals = {
@@ -147,8 +147,22 @@ class BaseUDES(common.SavepointCase):
             'location_id': location_id,
             'quantity': qty,
         }
+        if serial_number:
+            lot = cls.create_lot(product_id, serial_number)
+            vals['lot_id'] = lot.id
         vals.update(kwargs)
         return Quant.create(vals)
+
+    @classmethod
+    def create_lot(cls, product_id, serial_number, **kwargs):
+        Lot = cls.env['stock.production.lot']
+
+        vals = {
+            'name': serial_number,
+            'product_id': product_id,
+        }
+        vals.update(kwargs)
+        return Lot.create(vals)
 
     @classmethod
     def create_user(cls, name, login, **kwargs):
@@ -181,7 +195,7 @@ class BaseUDES(common.SavepointCase):
         Rule  = cls.env['procurement.rule']
 
         route_vals = {
-            "name": "Putaway",
+            "name": "TestPutaway",
             "sequence": 10,
             "product_selectable": False,
             "warehouse_selectable": True,
@@ -190,14 +204,14 @@ class BaseUDES(common.SavepointCase):
         route = Route.create(route_vals)
 
         # PUTAWAY
-        sequence_putaway = Sequence.create({"name": "Putaway", "prefix": "PUT", "padding": 5}).id
+        sequence_putaway = Sequence.create({"name": "TestPutaway", "prefix": "TESTPUT", "padding": 5}).id
         picking_type_internal.write({
                                         'sequence_id': sequence_putaway,
                                         'sequence':13
                                      })
 
         location_path_vals = {
-            "name": "Putaway",
+            "name": "TestPutaway",
             "route_id": route.id,
             "sequence": 20,
             "location_from_id": picking_type_in.default_location_dest_id.id,
@@ -216,3 +230,10 @@ class BaseUDES(common.SavepointCase):
         #     "picking_type_id": picking_type_internal.id,
         # }
         # procurement_in_putaway = Rule.create(procurement_in_putaway_vals)
+
+    @classmethod
+    def create_batch(cls, **kwargs):
+        Batch = cls.env['stock.picking.batch']
+        vals = {"user_id": cls.env.user.id}
+        vals.update(kwargs)
+        return Batch.create(vals)
