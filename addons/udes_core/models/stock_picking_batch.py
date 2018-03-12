@@ -70,9 +70,8 @@ class StockPickingBatch(models.Model):
         """
         Creeate and return a batch for the specified user if pickings
         exist. Return None otherwise. Pickings are filtered based on
-        the specified picking priorities.
-
-        Raise a ValidationError in case the user ID is not specified.
+        the specified picking priorities (list of int strings, for
+        example ['2', '3']).
 
         If the user already has batches assigned, a ValidationError
         is raised in case of pickings that need to be completed,
@@ -86,7 +85,8 @@ class StockPickingBatch(models.Model):
     def _create_batch(self, user_id, picking_priorities=None):
         """
         Create a batch for the specified user, by including only
-        those with the specified picking priorities (optional).
+        those pickings with the specified picking priorities
+        (optional).
         In case no pickings exist, return None.
         """
         Picking = self.env['stock.picking']
