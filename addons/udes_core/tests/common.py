@@ -230,3 +230,10 @@ class BaseUDES(common.SavepointCase):
         #     "picking_type_id": picking_type_internal.id,
         # }
         # procurement_in_putaway = Rule.create(procurement_in_putaway_vals)
+
+    @classmethod
+    def create_batch(cls, **kwargs):
+        Batch = cls.env['stock.picking.batch']
+        vals = {"user_id": cls.env.user.id}
+        vals.update(kwargs)
+        return Batch.create(vals)
