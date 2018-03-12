@@ -162,17 +162,20 @@ class StockPicking(models.Model):
                 # We know that all the move lines have the same picking id
                 mls_picking = scanned_pack_mls[0].picking_id
 
+                if mls_picking.picking_type_id != self.picking_type_id:
+                    raise ValidationError(
+                        _("Packages have different picking types and cannot "
+                          "be swapped"))
+
                 if mls_picking.batch_id == self.batch_id:
                     # The scanned package and the expected are in
                     # the same batch; don't need to be swapped -
                     # simply return the move lines of the scanned
                     # package
                     return scanned_pack_mls
-
-                if mls_picking.picking_type_id != self.picking_type_id:
-                    raise ValidationError(
-                        _("Packages have different picking types and cannot "
-                          "be swapped"))
+                else:
+                    # We should swap the packages...
+                    pass
 
         return self._swap_package(scanned_package, expected_package,
                                   scanned_pack_mls, exp_pack_mls)
