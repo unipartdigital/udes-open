@@ -35,7 +35,7 @@ class StockPicking(models.Model):
         # Instantiate Transport object
         Transport = self.env['udes_transport_management.transport']
         # Filter values for transport info and substring the 'u_' from the keys to create correct transport field names
-        filtered_transport = dict((k[2:], values[k]) for k in TRANSPORT_FIELDS if k in values)
+        filtered_transport = dict((k[2:], values[k]) for k in TRANSPORT_FIELDS if k in values and values[k])
         # Only create a transport object if transport data exists in values
         if filtered_transport:
             for record in self:
