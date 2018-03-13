@@ -176,6 +176,7 @@ class StockPicking(models.Model):
             result_package_id=None,
             move_parent_package=False,
             origin=None,
+            group_id=None,
     ):
         """ Creates a stock.picking and stock.moves for a given list
             of stock.quant ids
@@ -195,6 +196,8 @@ class StockPicking(models.Model):
                 Defaults to False
             @param (optional) origin: string
                 Value of the source document of the new picking
+            @param (optional) group_id: int
+                ID of the group where the stock is being assigned to
 
         """
         Picking = self.env['stock.picking']
@@ -227,6 +230,8 @@ class StockPicking(models.Model):
         }
         if origin:
             values['origin'] = origin
+        if group_id is not None:
+            values['group_id'] = group_id
         picking = Picking.create(values.copy())
 
         # Create stock.moves
@@ -715,3 +720,14 @@ class StockPicking(models.Model):
             'res_id': self.id,
             'context': dict(self.env.context),
         }
+
+    @api.multi
+    def _refine_picking(self, text=None):
+        """
+        By default refining the picking is cancel
+        """
+        for pick in self:
+            if text:
+                pick.message_post(body=_(text))
+            pick.action_cancel()
+        return

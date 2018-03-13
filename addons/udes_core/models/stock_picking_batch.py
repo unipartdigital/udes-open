@@ -2,6 +2,9 @@
 
 from odoo import api, models, _
 from odoo.exceptions import ValidationError
+import logging
+
+_logger = logging.getLogger(__name__)
 
 
 class StockPickingBatch(models.Model):
@@ -237,3 +240,79 @@ class StockPickingBatch(models.Model):
 
         return all([pick.is_valid_location_dest_id(location=location)
                     for pick in all_done_pickings])
+
+    @api.multi
+    def unpickable_item(self, move_line_id, reason):
+        """
+        Given a valid operation_id create a stock investigation
+        picking for it. If it is the last operation of the wave,
+        the wave is set as done.
+
+        The operation is valid if it is in the current wave (self)
+        and its picking is not done or cancel.
+        """
+        self.ensure_one()
+        StockMoveLine = self.env['stock.move.line']
+        Picking = self.env['stock.picking']
+        Groups = self.env['procurement.group']
+        StockQuant = self.env['stock.quant']
+
+        move_line = StockMoveLine.browse(move_line_id)
+        picking = move_line.picking_id
+        package = move_line.package_id
+        location = move_line.location_id
+
+        if not move_line.exists():
+            raise ValidationError(_('Cannot find the operation'))
+        if picking.batch_id != self:
+            raise ValidationError(_('Move line is not part of the batch.'))
+        if picking.state in ['cancel', 'done']:
+            raise ValidationError(_('Cannot mark a move line as unpickable '
+                                    'when it is part of a completed Picking.'))
+
+        if package:
+            # This move line is part of a package.  Get all quants that are
+            # also on this package as well as all other move lines in the
+            # package as they will have been affected as well.
+            quants = package._get_contained_quants()
+            move_lines = picking.move_line_ids.filtered(lambda x:
+                                                        x.package_id == package)  # noqa
+
+            _logger.info('Unpickable package %s at location %s',
+                         package.name, location.name)
+
+        else:
+            # The move line is not part of a package.  Therefore, just get all
+            # reserved quants at the same location.
+            quants = StockQuant.search([('reserved_quantity', '>=', 0),
+                                        ('location_id', '=', location.id)])
+            move_lines = move_line
+
+        if len(picking.move_line_ids - move_lines):
+            # Create a backorder for the affected move lines if there are
+            # move lines that are not affected
+            picking = picking._create_backorder(move_lines)
+
+        # Remove the pick from the wave, and refine it
+        picking.batch_id = False
+        # By default the pick is cancelled
+        picking._refine_picking(reason)
+
+        group = Groups.get_group(group_identifier=reason)
+
+        picking_type_id = self.env.user.get_user_warehouse().u_stock_investigation_picking_type.id  # noqa
+        # create new "investigation pick"
+        Picking.create_picking(quant_ids=quants.mapped('id'),
+                               location_id=location.id,
+                               picking_type_id=picking_type_id,
+                               group_id=group.id)
+
+        # If the wave does not contain any remaining picking to do, it can
+        # be set as done
+        remaining_pickings = self.picking_ids.filtered(
+            lambda x: x.state in ['assigned', ]
+        )
+        if not remaining_pickings.exists():
+            self.state = 'done'
+
+        return True
