@@ -99,5 +99,7 @@ class StockWarehouse(models.Model):
             'u_print_labels_picking_type_ids': self.u_print_labels_picking_type_ids.ids,
             'u_pallet_barcode_regex': self.u_pallet_barcode_regex,
             'u_package_barcode_regex': self.u_package_barcode_regex,
+            'u_pi_count_move_picking_type': self.u_pi_count_move_picking_type.id,
+            'u_stock_investigation_picking_type': self.u_stock_investigation_picking_type.id,
             })
         return info
