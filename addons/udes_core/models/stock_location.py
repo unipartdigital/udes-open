@@ -15,6 +15,15 @@ class StockLocation(models.Model):
     # Add tracking for archiving.
     active = fields.Boolean(track_visibility='onchange')
 
+    u_date_last_checked = fields.Datetime(
+        'Date Last Checked',
+        help="The date that the location stock was last checked")
+
+    u_date_last_checked_correct = fields.Datetime(
+        'Date Last Checked correct',
+        help="The date that the location stock was last checked and all "
+             "products were correct")
+
     def _prepare_info(self, extended=False, load_quants=False):
         """
             Prepares the following info of the location in self:
