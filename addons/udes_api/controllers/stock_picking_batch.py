@@ -150,3 +150,16 @@ class PickingBatchApi(UdesApi):
             "Unexpected outcome from the drop off location validation"
 
         return outcome
+
+    @http.route('/api/stock-picking-batch/<ident>/unpickable',
+                type='json', methods=['POST'], auth='user')
+    def unpickable_item(self, ident, move_line_id, reason):
+        """
+        Creates a Stock Investigation for the specified move_line_id for the
+        given batch.  If necessary a backorder will be created.  A Stock
+        Investigation picking will be created for the affected move_lines
+        """
+        batch = _get_batch(request.env, ident)
+        unpickable_item = batch.unpickable_item(move_line_id=move_line_id,
+                                                reason=reason)
+        return unpickable_item
