@@ -5,11 +5,11 @@
         "location_id": {"type": "integer"},
         "pi_count_moves": {
             "type": "array",
-            "items": {"$ref": "#/definitions/pi_count_moves"}
+            "items": {"$ref": "#/definitions/pi_count_move"}
         },
         "inventory_adjustments": {
             "type": "array",
-            "items": {"$ref": "#/definitions/inventory_adjustments"}
+            "items": {"$ref": "#/definitions/inventory_adjustment"}
         },
         "preceding_inventory_adjustment": {
             "type": "array",
@@ -19,7 +19,7 @@
                     "location_id": {"type": "integer"},
                     "inventory_adjustments": {
                         "type": "array",
-                        "items": {"$ref": "#/definitions/inventory_adjustments"}
+                        "items": {"$ref": "#/definitions/inventory_adjustment"}
                     }
                 },
                 "required": ["location_id", "inventory_adjustments"]
@@ -28,13 +28,8 @@
     },
     "additionalItems": false,
     "required": ["location_id"],
-    "anyOf": [
-        {"required": ["pi_count_moves"]},
-        {"required": ["inventory_adjustments"]},
-        {"required": ["preceding_inventory_adjustment"]}
-    ],
     "definitions": {
-        "pi_count_moves": {
+        "pi_count_move": {
             "type": "object",
             "properties": {
                 "quants_ids": {
@@ -51,12 +46,13 @@
                 {"required": ["package_id"]}
             ]
         },
-        "inventory_adjustments": {
+        "inventory_adjustment": {
             "type": "object",
             "properties": {
                 "product_id": {"type": "integer"},
                 "package_name": {"type": "string"},
-                "quantity": {"type": "number"}
+                "quantity": {"type": "number"},
+                "lot_name": {"type": "string"}
             },
             "required": ["product_id", "package_name", "quantity"]
         }
