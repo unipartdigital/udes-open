@@ -1,34 +1,9 @@
 # -*- coding: utf-8 -*-
 
-import json
-import os
-
-import jsonschema
-
 from odoo import http, _
 from odoo.http import request as odoo_http_request
 from .main import UdesApi
 from odoo.exceptions import ValidationError
-
-
-PIRequestValidator = None
-SCHEMA_FILE_REL_PATH = '../schemas/stock-location-pi-count.json'
-
-
-def _validate_pi_request(request):
-    """ Raises a ValidationError for invalid request """
-    global PIRequestValidator
-
-    if PIRequestValidator is None:
-        tests_dir = os.path.dirname(os.path.abspath(__file__))
-        schema_path = os.path.abspath(
-            os.path.join(tests_dir, SCHEMA_FILE_REL_PATH))
-
-        with open(schema_path, 'r') as f_r:
-            request_schema = json.loads(f_r.read())
-            PIRequestValidator = jsonschema.Draft4Validator(request_schema)
-
-    return PIRequestValidator.is_valid(request)
 
 
 class Location(UdesApi):
@@ -79,7 +54,6 @@ class Location(UdesApi):
         """
         Location = odoo_http_request.env['stock.location']
 
-        _validate_pi_request(request)
         location_id = None
 
         try:
