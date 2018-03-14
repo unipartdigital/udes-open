@@ -2,9 +2,6 @@
 
 from odoo import api, models, _
 from odoo.exceptions import ValidationError
-import logging
-
-_logger = logging.getLogger(__name__)
 
 
 class StockPickingBatch(models.Model):
@@ -279,11 +276,10 @@ class StockPickingBatch(models.Model):
             # also on this package as well as all other move lines in the
             # package as they will have been affected as well.
             quants = package._get_contained_quants()
-            move_lines = picking.move_line_ids.filtered(lambda x:
-                                                        x.package_id == package)  # noqa
-
-            _logger.info('Unpickable package %s at location %s',
-                         package.name, location.name)
+            move_lines = picking.move_line_ids.get_package_move_lines(package)
+            msg = 'Unpickable package %s at location %s' % (package.name,
+                                                            location.name)
+            picking.message_post(body=_(msg))
 
         else:
             raise ValidationError("Not Implemented")
