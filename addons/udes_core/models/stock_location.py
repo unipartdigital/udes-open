@@ -63,12 +63,20 @@ class StockLocation(models.Model):
             domain = ['|', ('barcode', '=', location_identifier),
                            ('name', '=', location_identifier)]
         else:
-            raise ValidationError(_('Unable to create domain for location search from identifier of type %s') % type(location_identifier))
+            raise ValidationError(
+                _('Unable to create domain for location search from '
+                  'identifier of type %s') % type(location_identifier))
 
         results = self.search(domain)
+
         if not results:
-            raise ValidationError(_('Location not found for identifier %s') % str(location_identifier))
-        if  len(results) > 1:
-            raise ValidationError(_('Too many locations found for identifier %s') % str(location_identifier))
+            raise ValidationError(
+                _('Location not found for identifier %s')
+                % str(location_identifier))
+
+        if len(results) > 1:
+            raise ValidationError(
+                _('Too many locations found for identifier %s')
+                % str(location_identifier))
 
         return results
