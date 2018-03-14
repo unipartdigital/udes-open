@@ -410,14 +410,16 @@ Old method(s): is_valid_location_dest_id
 One of [`location_id`, `location_name`, `location_barcode`] must
 be specified in the request.
 
-### Create stock investigation
+### Create unpickable item
 ```
-URI: /api/stock-picking-batch/:ident/unpickable
+URI: /api/stock-picking-batch/:id/unpickable
 HTTP Method: POST
 Old method(s): unpickable_item
 ```
-* @param ident - id of the batch to mark as having an unpickable move line
+* @param id - id of the batch to mark as having an unpickable move line
 * @param move_line_id - id of the move_line that is unpickable
+* @param reason - string describing the reason that this move line is unpickable
+
 For the given batch_id and move_line_id will generate a stock investigation picking for the relevant stock move lines.
 This will create a backorder if necessary.
 
