@@ -40,7 +40,7 @@ class Location(UdesApi):
         return location.get_info(extended=True, load_quants=load_quants)[0]
 
     @http.route('/api/stock-location-pi-count/',
-                type='json', methods='POST', auth='user')
+                type='json', methods=['POST'], auth='user')
     def pi_count(self, request):
         """
             Process a Perpetual Inventory (PI) count request.
