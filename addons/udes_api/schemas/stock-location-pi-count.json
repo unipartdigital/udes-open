@@ -58,7 +58,7 @@
                 "package_name": {"type": "string"},
                 "quantity": {"type": "number"}
             },
-            "required": ["product_id", "quantity"]
+            "required": ["product_id", "package_name", "quantity"]
         }
     }
 }
