@@ -340,10 +340,10 @@ Params:
 URI: /api/stock-location-pi-count/
 Method: POST
 Params:
-@param request: JSON object with "pi_count_moves", "inventory_adjustments", "preceding_inventory_adjustments" and "location_id" entries
+@param pi_request: JSON object with "pi_count_moves", "inventory_adjustments", "preceding_inventory_adjustments" and "location_id" entries
 ```
 
-The JSON schema for the `request` object can be found
+The JSON schema for the `pi_request` object can be found
 [here](schemas/stock-location-pi-count.json).
 
 ## Packages

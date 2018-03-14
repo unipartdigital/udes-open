@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from odoo import http, _
-from odoo.http import request as odoo_http_request
+from odoo.http import request
 from .main import UdesApi
 from odoo.exceptions import ValidationError
 
@@ -26,7 +26,7 @@ class Location(UdesApi):
                 When enabled, checks if the location is blocked, in which case
                 an error will be raise.
         """
-        Location = odoo_http_request.env['stock.location']
+        Location = request.env['stock.location']
         identifier = location_id or location_name or location_barcode
         if not identifier:
             raise ValidationError(
@@ -41,7 +41,7 @@ class Location(UdesApi):
 
     @http.route('/api/stock-location-pi-count/',
                 type='json', methods=['POST'], auth='user')
-    def pi_count(self, request):
+    def pi_count(self, pi_request):
         """
             Process a Perpetual Inventory (PI) count request.
 
@@ -52,13 +52,12 @@ class Location(UdesApi):
             "inventory_adjustments", "preceding_inventory_adjustments"
             and "location_id" entries
         """
-        Location = odoo_http_request.env['stock.location']
+        Location = request.env['stock.location']
 
         location_id = None
 
         try:
-            # @todo: check if UI is passing strings for numbers...
-            location_id = int(request.get('location_id'))
+            location_id = int(pi_request.get('location_id'))
         except ValueError:
             pass
 
@@ -71,4 +70,4 @@ class Location(UdesApi):
         if not location.exists():
             raise ValidationError(_("Unknown location id '%d'." % location_id))
 
-        return location.process_perpetual_inventory_request(request)
+        return location.process_perpetual_inventory_request(pi_request)
