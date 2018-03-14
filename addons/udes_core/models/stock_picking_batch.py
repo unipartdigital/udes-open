@@ -242,7 +242,7 @@ class StockPickingBatch(models.Model):
                     for pick in all_done_pickings])
 
     @api.multi
-    def unpickable_item(self, move_line_id, reason):
+    def unpickable_item(self, move_line_id, reason, picking_type_id=None):
         """
         Given a valid operation_id create a stock investigation
         picking for it. If it is the last operation of the wave,
@@ -251,6 +251,9 @@ class StockPickingBatch(models.Model):
         The operation is valid if it is in the current wave (self)
         and its picking is not done or cancel.
         """
+        if picking_type_id is None:
+            ResUsers = self.env['res.users']
+            picking_type_id = ResUsers.get_user_warehouse().int_type_id.id
         self.ensure_one()
         StockMoveLine = self.env['stock.move.line']
         Picking = self.env['stock.picking']
@@ -298,9 +301,9 @@ class StockPickingBatch(models.Model):
         # By default the pick is cancelled
         picking._refine_picking(reason)
 
-        group = Groups.get_group(group_identifier=reason)
+        group = Groups.get_group(group_identifier=reason,
+                                 create=True)
 
-        picking_type_id = self.env.user.get_user_warehouse().u_stock_investigation_picking_type.id  # noqa
         # create new "investigation pick"
         Picking.create_picking(quant_ids=quants.mapped('id'),
                                location_id=location.id,
