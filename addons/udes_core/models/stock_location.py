@@ -120,12 +120,15 @@ class StockLocation(models.Model):
             adjustments. Updates the PI date time attributes (last
             check dates) accordingly.
 
+            Expects a singleton.
+
             Raises a ValidationError in case of invalid request (e.g.
             one of the specified locations doesn't exist).
 
             Returns True in case any change as been made, False
             otherwise.
         """
+        self.ensure_one()
         self._validate_perpetual_inventory_request(request)
         pi_outcome = defaultdict()
 
