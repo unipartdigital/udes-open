@@ -160,6 +160,9 @@ class PickingBatchApi(UdesApi):
         Investigation picking will be created for the affected move_lines
         """
         batch = _get_batch(request.env, ident)
+        ResUsers = request.env['res.users']
+        picking_type_id = ResUsers.get_user_warehouse().u_stock_investigation_picking_type.id  # noqa
         unpickable_item = batch.unpickable_item(move_line_id=move_line_id,
-                                                reason=reason)
+                                                reason=reason,
+                                                picking_type_id=picking_type_id)  # noqa
         return unpickable_item
