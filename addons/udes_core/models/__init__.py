@@ -2,6 +2,7 @@
 
 from . import product_product
 from . import product_template
+from . import stock_inventory
 from . import stock_location
 from . import stock_move
 from . import stock_move_line

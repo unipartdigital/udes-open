@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<odoo>
+    <data>
+        <!-- Change default stock.view_inventory_form with dependencies -->
+        <record id="view_inventory_form_dependencies" model="ir.ui.view">
+            <field name="name">Inventory with dependencies</field>
+            <field name="model">stock.inventory</field>
+            <field name="inherit_id" ref="stock.view_inventory_form"/>
+            <field name="arch" type="xml">
+                <!-- Add page for dependency information -->
+                <xpath expr="//notebook/page[2]" position="after">
+                    <page string="Dependencies" attrs="{'invisible': ['|', ('state', '=', 'draft') ]}">
+                        <field name="u_next_inventory_id" string="Next inventory" />
+                        <field name="u_preceding_inventory_ids" />
+                    </page>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>
