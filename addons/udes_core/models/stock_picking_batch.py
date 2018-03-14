@@ -244,27 +244,28 @@ class StockPickingBatch(models.Model):
     @api.multi
     def unpickable_item(self, move_line_id, reason, picking_type_id=None):
         """
-        Given a valid operation_id create a stock investigation
-        picking for it. If it is the last operation of the wave,
+        Given a valid move_line_id create a new picking of type picking_type_id
+        picking for it. If it is the last move_line_id of the wave,
         the wave is set as done.
 
-        The operation is valid if it is in the current wave (self)
+        The move_line_id is valid if it is in the current wave (self)
         and its picking is not done or cancel.
         """
-        if picking_type_id is None:
-            ResUsers = self.env['res.users']
-            picking_type_id = ResUsers.get_user_warehouse().int_type_id.id
+
         self.ensure_one()
+
+        ResUsers = self.env['res.users']
         StockMoveLine = self.env['stock.move.line']
         Picking = self.env['stock.picking']
-        Groups = self.env['procurement.group']
-        StockQuant = self.env['stock.quant']
+        Group = self.env['procurement.group']
 
         move_line = StockMoveLine.browse(move_line_id)
         picking = move_line.picking_id
         package = move_line.package_id
         location = move_line.location_id
 
+        if picking_type_id is None:
+            picking_type_id = ResUsers.get_user_warehouse().int_type_id.id
         if not move_line.exists():
             raise ValidationError(_('Cannot find the operation'))
         if picking.batch_id != self:
@@ -285,11 +286,7 @@ class StockPickingBatch(models.Model):
                          package.name, location.name)
 
         else:
-            # The move line is not part of a package.  Therefore, just get all
-            # reserved quants at the same location.
-            quants = StockQuant.search([('reserved_quantity', '>=', 0),
-                                        ('location_id', '=', location.id)])
-            move_lines = move_line
+            raise ValidationError("Not Implemented")
 
         if len(picking.move_line_ids - move_lines):
             # Create a backorder for the affected move lines if there are
@@ -301,7 +298,7 @@ class StockPickingBatch(models.Model):
         # By default the pick is cancelled
         picking._refine_picking(reason)
 
-        group = Groups.get_group(group_identifier=reason,
+        group = Group.get_group(group_identifier=reason,
                                  create=True)
 
         # create new "investigation pick"
@@ -313,7 +310,7 @@ class StockPickingBatch(models.Model):
         # If the wave does not contain any remaining picking to do, it can
         # be set as done
         remaining_pickings = self.picking_ids.filtered(
-            lambda x: x.state in ['assigned', ]
+            lambda x: x.state in ['assigned']
         )
         if not remaining_pickings.exists():
             self.state = 'done'
