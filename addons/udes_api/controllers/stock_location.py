@@ -68,7 +68,7 @@ class Location(UdesApi):
 
         location = Location.browse(location_id)
 
-        if not location:
+        if not location.exists():
             raise ValidationError(_("Unknown location id '%d'." % location_id))
 
         return location.process_perpetual_inventory_request(request)
