@@ -179,7 +179,7 @@ class StockLocation(models.Model):
         current_time = datetime.now()
         self.write({'u_date_last_checked': current_time})
 
-        if all([pi_outcome[key] is None
+        if all([pi_outcome.get(key) is None
                 for key in [PI_COUNT_MOVES, INVENTORY_ADJUSTMENTS]]):
             # No PI changes - the location is in a correct state
             self.write({'u_date_last_checked_correct': current_time})
