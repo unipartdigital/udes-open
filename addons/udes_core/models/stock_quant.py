@@ -3,6 +3,8 @@
 from odoo import models, _
 from odoo.exceptions import ValidationError
 
+from collections import defaultdict
+
 class StockQuant(models.Model):
     _inherit = 'stock.quant'
 
@@ -21,7 +23,7 @@ class StockQuant(models.Model):
         """Ensure the recordset self contains all the quants in package present
         in the recordset."""
         packages = self.mapped('package_id')
-        package_quant_ids = packages.mapped('quant_ids')
+        package_quant_ids = packages._get_contained_quants()
 
         diff = package_quant_ids - self
         if diff:
@@ -63,14 +65,16 @@ class StockQuant(models.Model):
         """
         return sum(self.mapped('quantity'))
 
-    def group_quantity_by_product(self):
+    def group_quantity_by_product(self, only_available=False):
         """ Returns a dictionary with the total quantity per product,
             mapped by product_id.
         """
-        products = {}
+        products = defaultdict(int)
         for quant in self:
-            products.setdefault(quant.product_id.id, 0)
-            products[quant.product_id.id] += quant.quantity
+            value = quant.quantity
+            if only_available:
+                value -= quant.reserved_quantity
+            products[quant.product_id.id] += value
         return products
 
     def _prepare_info(self):

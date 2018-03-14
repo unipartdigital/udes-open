@@ -5,7 +5,7 @@ from odoo.exceptions import ValidationError
 from odoo.tools.float_utils import float_compare, float_round
 from copy import deepcopy
 
-from collections import Counter
+from collections import Counter, defaultdict
 
 
 class StockMoveLine(models.Model):
@@ -372,9 +372,18 @@ class StockMoveLine(models.Model):
                         {'product_uom_qty': done_to_keep,
                          'qty_done': qty_done,
                          })
-            self.ordered_qty= ordered_qty
+            self.ordered_qty = ordered_qty
             res = new_ml
 
+        return res
+
+
+    def _get_all_products_quantities(self):
+        '''This function computes the different product quantities for the given move_lines
+        '''
+        res = defaultdict(int)
+        for move_line in self:
+            res[move_line.product_id] += move_line.product_uom_qty
         return res
 
     def _prepare_info(self):
