@@ -147,8 +147,7 @@ class StockLocation(models.Model):
 
         self._process_pi_datetime(pi_outcome)
 
-        # @todo: reponse format?
-        return bool(pi_outcome)
+        return True
 
     def _process_pi_count_moves(self, moves_request):
         """
