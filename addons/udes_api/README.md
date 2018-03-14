@@ -322,6 +322,7 @@ Check that a package is not in use and hence is compatible with the stock pickin
 
 ## Stock Location
 
+### Stock Location
 ```
 URI: /api/stock-location
 HTTP Method: GET
@@ -334,6 +335,16 @@ Params:
 @return stock.location (as described above, containing the quants in the format also listed above).
 ```
 
+### Stock Location PI Count
+```
+URI: /api/stock-location-pi-count/
+Method: POST
+Params:
+@param request: JSON object with "pi_count_moves", "inventory_adjustments", "preceding_inventory_adjustments" and "location_id" entries
+```
+
+The JSON schema for the `request` object can be found
+[here](schemas/stock-location-pi-count.json).
 
 ## Packages
 

@@ -1,0 +1,64 @@
+{
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+        "location_id": {"type": "integer"},
+        "pi_count_moves": {
+            "type": "array",
+            "items": {"$ref": "#/definitions/pi_count_moves"}
+        },
+        "inventory_adjustments": {
+            "type": "array",
+            "items": {"$ref": "#/definitions/inventory_adjustments"}
+        },
+        "preceding_inventory_adjustment": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "location_id": {"type": "integer"},
+                    "inventory_adjustments": {
+                        "type": "array",
+                        "items": {"$ref": "#/definitions/inventory_adjustments"}
+                    }
+                },
+                "required": ["location_id", "inventory_adjustments"]
+            }
+        }
+    },
+    "additionalItems": false,
+    "required": ["location_id"],
+    "anyOf": [
+        {"required": ["pi_count_moves"]},
+        {"required": ["inventory_adjustments"]},
+        {"required": ["preceding_inventory_adjustment"]}
+    ],
+    "definitions": {
+        "pi_count_moves": {
+            "type": "object",
+            "properties": {
+                "quants_ids": {
+                    "type": "array",
+                    "items": {"type": "integer"}
+                },
+                "package_id": {"type": "integer"},
+                "location_id": {"type": "integer"},
+                "location_dest_id": {"type": "integer"}
+            },
+            "required": ["location_id", "location_dest_id"],
+            "oneOf": [
+                {"required": ["quants_ids"]},
+                {"required": ["package_id"]}
+            ]
+        },
+        "inventory_adjustments": {
+            "type": "object",
+            "properties": {
+                "product_id": {"type": "integer"},
+                "package_name": {"type": "string"},
+                "quantity": {"type": "number"}
+            },
+            "required": ["product_id", "quantity"]
+        }
+    }
+}
