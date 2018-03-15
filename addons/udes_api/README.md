@@ -343,6 +343,11 @@ Params:
 @param pi_request: JSON object with "pi_count_moves", "inventory_adjustments", "preceding_inventory_adjustments" and "location_id" entries
 ```
 
+Creates inventory adjustments and count moves as specified in the request.
+Returns an error in case any of the specified references (locations, packages,
+products) is unknown.
+Returns `true` in case the request is successfully processed.
+
 The JSON schema for the `pi_request` object can be found
 [here](schemas/stock-location-pi-count.json).
 

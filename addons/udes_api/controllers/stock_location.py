@@ -43,12 +43,15 @@ class Location(UdesApi):
                 type='json', methods=['POST'], auth='user')
     def pi_count(self, pi_request):
         """
-            Process a Perpetual Inventory (PI) count request.
+            Process a Perpetual Inventory (PI) count request by creating
+            inventory adjustments and count moves as specified.
+
+            Returns True in case of success.
 
             Raises a ValidationError in case of invalid request or if
             any of the specified location is unknown.
 
-            @param req is a JSON object with the "pi_count_moves",
+            @param pi_request is a JSON object with the "pi_count_moves",
             "inventory_adjustments", "preceding_inventory_adjustments"
             and "location_id" entries
         """
