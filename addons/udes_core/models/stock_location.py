@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from collections import defaultdict, namedtuple
+from collections import namedtuple
 from datetime import datetime
 
 from odoo import fields, models,  _
@@ -17,6 +17,15 @@ NEW_PACKAGE_TOKEN = 'NEWPACKAGE'
 
 StockInfoPI = namedtuple('StockInfoPI', ['product_id', 'package_id', 'lot_id'])
 
+
+class PIOutcome:
+    def __init__(self):
+        self.moves_inventory = None
+        self.adjustment_inventory = None
+
+    def got_inventory_changes(self):
+        return self.moves_inventory is not None \
+            or self.adjustment_inventory is not None
 
 class StockLocation(models.Model):
     _name = 'stock.location'
@@ -138,21 +147,20 @@ class StockLocation(models.Model):
         """
         self.ensure_one()
         self._validate_perpetual_inventory_request(request)
-        pi_outcome = defaultdict()
+        pi_outcome = PIOutcome()
 
         if PI_COUNT_MOVES in request:
-            pi_outcome[PI_COUNT_MOVES] = \
+            pi_outcome.moves_inventory = \
                 self._process_pi_count_moves(request[PI_COUNT_MOVES])
 
         if INVENTORY_ADJUSTMENTS in request:
-            adjusted_inv = \
+            pi_outcome.adjustment_inventory = \
                 self._process_inventory_adjustments(request[INVENTORY_ADJUSTMENTS])
 
             for pre_adjs_req in request.get(PRECEDING_INVENTORY_ADJUSTMENTS, []):
-                self._process_single_preceding_adjustments_request(pre_adjs_req,
-                                                                   adjusted_inv)
-
-            pi_outcome[INVENTORY_ADJUSTMENTS] = adjusted_inv
+                self._process_single_preceding_adjustments_request(
+                    pre_adjs_req,
+                    pi_outcome.adjustment_inventory)
 
         self._process_pi_datetime(pi_outcome)
 
@@ -181,8 +189,7 @@ class StockLocation(models.Model):
         current_time = datetime.now()
         self.write({'u_date_last_checked': current_time})
 
-        if all([pi_outcome.get(key) is None
-                for key in [PI_COUNT_MOVES, INVENTORY_ADJUSTMENTS]]):
+        if not pi_outcome.got_inventory_changes():
             # No PI changes - the location is in a correct state
             self.write({'u_date_last_checked_correct': current_time})
 
