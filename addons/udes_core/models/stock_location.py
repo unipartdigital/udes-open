@@ -113,7 +113,7 @@ class StockLocation(models.Model):
             self._check_request_locations(['location_id'],
                                           request[INVENTORY_ADJUSTMENTS])
 
-    def process_perpetual_inventory(self, request):
+    def process_perpetual_inventory_request(self, request):
         """
             Executes the specified PI request by processing PI count
             moves, inventory adjustments, and preceding inventory
