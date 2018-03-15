@@ -134,8 +134,7 @@ class StockLocation(models.Model):
             one of the specified locations, packages, or products
             doesn't exist).
 
-            Returns True in case any change as been made, False
-            otherwise.
+            Returns True.
         """
         self.ensure_one()
         self._validate_perpetual_inventory_request(request)
