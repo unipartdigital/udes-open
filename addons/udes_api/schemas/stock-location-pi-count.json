@@ -11,7 +11,7 @@
             "type": "array",
             "items": {"$ref": "#/definitions/inventory_adjustment"}
         },
-        "preceding_inventory_adjustment": {
+        "preceding_inventory_adjustments": {
             "type": "array",
             "items": {
                 "type": "object",
