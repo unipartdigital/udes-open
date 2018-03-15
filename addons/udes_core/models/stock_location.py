@@ -182,25 +182,6 @@ class StockLocation(models.Model):
 
         return True
 
-    def _process_single_preceding_adjustments_request(self,
-                                                      pre_adjs_request,
-                                                      next_adjusted_inv):
-        """
-            Process the inventory adjustments for the location
-            specified in the request.
-            Assings the next inventory field of the new inventory
-            to the specified next adjusted inventory instance.
-
-            Raises a ValidationError in case the location does not
-            exist.
-        """
-        Location = self.env['stock.location']
-
-        location = Location.get_location(int(pre_adjs_request['location_id']))
-        inv = location._process_inventory_adjustments(
-            pre_adjs_request[INVENTORY_ADJUSTMENTS])
-        inv.u_next_inventory_id = next_adjusted_inv
-
     def _process_pi_datetime(self, pi_outcome):
         current_time = datetime.now()
         self.write({'u_date_last_checked': current_time})
@@ -278,6 +259,25 @@ class StockLocation(models.Model):
                                       location_dest_id=location_dest_id)
 
     # PI Inventory Adjustments
+
+    def _process_single_preceding_adjustments_request(self,
+                                                      pre_adjs_request,
+                                                      next_adjusted_inv):
+        """
+            Process the inventory adjustments for the location
+            specified in the request.
+            Assings the next inventory field of the new inventory
+            to the specified next adjusted inventory instance.
+
+            Raises a ValidationError in case the location does not
+            exist.
+        """
+        Location = self.env['stock.location']
+
+        location = Location.get_location(int(pre_adjs_request['location_id']))
+        inv = location._process_inventory_adjustments(
+            pre_adjs_request[INVENTORY_ADJUSTMENTS])
+        inv.u_next_inventory_id = next_adjusted_inv
 
     def _process_inventory_adjustments(self, adjustments_request):
         """
