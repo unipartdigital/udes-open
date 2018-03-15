@@ -26,7 +26,9 @@ class ProcurementGroup(models.Model):
                 ' identifier of type %s') % type(group_identifier))
         results = self.search(domain)
         if not results:
-            if create and name is not None:
+            if create and name:
+                # This handles name being None (i.e. not specified) but also
+                # name being a blank string (i.e. '')
                 results = self.create({'name': name})
             else:
                 raise ValidationError(

@@ -238,7 +238,6 @@ class StockPickingBatch(models.Model):
         return all([pick.is_valid_location_dest_id(location=location)
                     for pick in all_done_pickings])
 
-    @api.multi
     def unpickable_item(self, move_line_id, reason, picking_type_id=None):
         """
         Given a valid move_line_id create a new picking of type picking_type_id
