@@ -14,6 +14,9 @@ PRECEDING_INVENTORY_ADJUSTMENTS = 'preceding_inventory_adjustments'
 NO_PACKAGE_TOKEN = 'NO_PACKAGE'
 NEW_PACKAGE_TOKEN = 'NEWPACKAGE'
 
+#
+## Auxiliary types
+#
 
 StockInfoPI = namedtuple('StockInfoPI', ['product_id', 'package_id', 'lot_id'])
 
@@ -206,18 +209,83 @@ class StockLocation(models.Model):
             # No PI changes - the location is in a correct state
             self.write({'u_date_last_checked_correct': current_time})
 
-    def _process_pi_count_moves(self, count_moves_request):
+    # PI Count Moves
+
+    def _process_pi_count_moves(self, count_moves, picking_type_id=None):
         """
-            Returns the modified inventory in case changes were
-            necessary, None otherwise.
+            Returns the modified inventory in case consistent move
+            changes are specified in the request, None otherwise.
+
+            Creates an internal transfer by default, if no
+            picking type is specified.
+
+            Raises a ValidationError in case of invalid request.
         """
-        # @todo
-        pass
+        Picking = self.env['stock.picking']
+
+        created_pickings = Picking.browse()
+
+        for count_move in count_moves:
+            created_pickings += \
+                self._create_pi_count_move_picking(count_move, picking_type_id)
+
+        return created_pickings if created_pickings.exists() else None
+
+    def _create_pi_count_move_picking(self, count_move, picking_type_id):
+        """
+            Validates the single PI count move request.
+            Creates and returns the related picking.
+
+            Raises a ValidationError in case of invalid request
+            or if the quants (either specified in the request or
+            related to a package) are already reserved.
+        """
+        Package = self.env['stock.quant.package']
+        Picking = self.env['stock.picking']
+        Quant = self.env['stock.quant']
+
+        # NB: locations are already validated
+        location_id = int(count_move['location_id'])
+        location_dest_id = int(count_move['location_dest_id'])
+        quants = None
+        quant_ids = []
+
+        if 'package_id' in count_move:
+            # NB: ignoring a possible 'quant_ids' entry, in case
+            # there's no previous schema validation
+            package = Package.get_package(int(count_move['package_id']))
+            quants = package._get_contained_quants()
+            quant_ids = quants.ids
+        elif 'quant_ids' in count_move:
+            quant_ids = [int(x) for x in count_move['quant_ids']]
+            quants = Quant.browse(quant_ids)
+
+            if len(quants) != len(quant_ids):
+                raise ValidationError(
+                    _("Unknown quants in PI count move request; searched "
+                      "for %d, found %d.") % (len(quant_ids), len(quants)))
+        else:
+            raise ValidationError(
+                _("Invalid request; missing one of quant_ids or "
+                  "package_id entries in PI count move request."))
+
+        if any(map(lambda q: q.reserved_quantity > 0, quants)):
+            raise ValidationError(_("Some quants are already reserved."))
+
+        return Picking.create_picking(quant_ids,
+                                      location_id,
+                                      picking_type_id=picking_type_id,
+                                      location_dest_id=location_dest_id)
+
+    # PI Inventory Adjustments
 
     def _process_inventory_adjustments(self, adjustments_request):
         """
-            Returns the modified inventory in case changes were
-            necessary, None otherwise.
+            Returns the modified inventory in case consistent
+            adjustments changes are specified in the request,
+            None otherwise.
+
+            Raises a ValidationError in case of invalid request.
         """
         Inventory = self.env['stock.inventory']
         InventoryLine = self.env['stock.inventory.line']
