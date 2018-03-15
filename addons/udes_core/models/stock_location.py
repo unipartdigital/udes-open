@@ -27,6 +27,11 @@ class PIOutcome:
         return self.moves_inventory is not None \
             or self.adjustment_inventory is not None
 
+#
+## StockLocation
+#
+
+
 class StockLocation(models.Model):
     _name = 'stock.location'
     # Add messages to locations.
@@ -107,20 +112,26 @@ class StockLocation(models.Model):
 
         return results
 
-    def _check_locations(self, loc_keys, obj):
+    #
+    ## Perpetual Inventory
+    #
+
+    def _check_obj_locations(self, loc_keys, obj):
         Location = self.env['stock.location']
 
         for key in loc_keys:
-            loc_id = obj[key]
+            loc_id = int(obj[key])
 
             if not Location.browse(loc_id).exists():
-                raise ValidationError(
-                    _("The request has an unknown location, id: '%d'.") % loc_id)
+                raise ValidationError(_("The request has an unknown location, "
+                                        "id: '%d'.") % loc_id)
 
     def _validate_perpetual_inventory_request(self, request):
+        keys = ['location_id', 'location_dest_id']
+
         if PI_COUNT_MOVES in request:
             for obj in request[PI_COUNT_MOVES]:
-                self._check_locations(['location_id', 'location_dest_id'], obj)
+                self._check_obj_locations(keys, obj)
 
         if PRECEDING_INVENTORY_ADJUSTMENTS in request:
             if not request.get(INVENTORY_ADJUSTMENTS):
@@ -128,8 +139,7 @@ class StockLocation(models.Model):
                     _('You must specify inventory adjustments if you require '
                       'preceding adjustments.'))
 
-            self._check_request_locations(['location_id'],
-                                          request[INVENTORY_ADJUSTMENTS])
+            self._check_obj_locations(keys[:1], request[INVENTORY_ADJUSTMENTS])
 
     def process_perpetual_inventory_request(self, request):
         """
