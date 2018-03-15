@@ -161,6 +161,15 @@ class StockLocation(models.Model):
     def _process_single_preceding_adjustments_request(self,
                                                       pre_adjs_request,
                                                       next_adjusted_inv):
+        """
+            Process the inventory adjustments for the location
+            specified in the request.
+            Assings the next inventory field of the new inventory
+            to the specified next adjusted inventory instance.
+
+            Raises a ValidationError in case the location does not
+            exist.
+        """
         Location = self.env['stock.location']
 
         location = Location.get_location(int(pre_adjs_request['location_id']))
@@ -218,7 +227,7 @@ class StockLocation(models.Model):
 
     def _get_stock_drift(self, adjustments_request):
         """
-            Returns a dictionary where keys are StockInfo instances
+            Returns a dictionary where keys are StockInfoPI instances
             and values are integers representing a product quantity.
             Each StockInfo is the result of the processing of an
             adjustments_request entry.
