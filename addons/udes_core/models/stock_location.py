@@ -127,9 +127,12 @@ class StockLocation(models.Model):
             check dates) accordingly.
 
             Expects a singleton.
+            Expects a `request` argument that complies with the PI
+            endpoint request schema.
 
             Raises a ValidationError in case of invalid request (e.g.
-            one of the specified locations doesn't exist).
+            one of the specified locations, packages, or products
+            doesn't exist).
 
             Returns True in case any change as been made, False
             otherwise.
@@ -143,26 +146,28 @@ class StockLocation(models.Model):
                 self._process_pi_count_moves(request[PI_COUNT_MOVES])
 
         if INVENTORY_ADJUSTMENTS in request:
-            adjs = request[INVENTORY_ADJUSTMENTS]
-            adj_inv = self._process_inventory_adjustments(adjs)
+            adjusted_inv = \
+                self._process_inventory_adjustments(request[INVENTORY_ADJUSTMENTS])
 
-            for pre_adj in request.get(PRECEDING_INVENTORY_ADJUSTMENTS, []):
-                self._process_preceding_inventory_adjustments(pre_adj, adj_inv)
+            for pre_adjs_req in request.get(PRECEDING_INVENTORY_ADJUSTMENTS, []):
+                self._process_single_preceding_adjustments_request(pre_adjs_req,
+                                                                   adjusted_inv)
 
-            pi_outcome[INVENTORY_ADJUSTMENTS] = adj_inv
+            pi_outcome[INVENTORY_ADJUSTMENTS] = adjusted_inv
 
         self._process_pi_datetime(pi_outcome)
 
         return True
 
-    def _process_preceding_inventory_adjustments(self, pre_adj, next_adj_inv):
+    def _process_single_preceding_adjustments_request(self,
+                                                      pre_adjs_request,
+                                                      next_adjusted_inv):
         Location = self.env['stock.location']
 
-        location_id = int(pre_adj['location_id'])
-        location = Location.browse(location_id)
-        other_adjs = pre_adj[INVENTORY_ADJUSTMENTS]
-        inv = location._process_inventory_adjustment(other_adjs)
-        inv.u_next_inventory_id = next_adj_inv
+        location = Location.get_location(int(pre_adjs_request['location_id']))
+        inv = location._process_inventory_adjustments(
+            pre_adjs_request[INVENTORY_ADJUSTMENTS])
+        inv.u_next_inventory_id = next_adjusted_inv
 
     def _process_pi_datetime(self, pi_outcome):
         current_time = datetime.now()
@@ -173,7 +178,7 @@ class StockLocation(models.Model):
             # No PI changes - the location is in a correct state
             self.write({'u_date_last_checked_correct': current_time})
 
-    def _process_pi_count_moves(self, moves_request):
+    def _process_pi_count_moves(self, count_moves_request):
         """
             Returns the modified inventory in case changes were
             necessary, None otherwise.
