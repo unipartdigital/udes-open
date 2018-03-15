@@ -257,14 +257,17 @@ class StockPickingBatch(models.Model):
         Group = self.env['procurement.group']
 
         move_line = StockMoveLine.browse(move_line_id)
+        if not move_line.exists():
+            # We need to check these here lest we throw exceptions
+            # when getting picking_id, package_id etc
+            raise ValidationError(_('Cannot find the operation'))
+
         picking = move_line.picking_id
         package = move_line.package_id
         location = move_line.location_id
 
         if picking_type_id is None:
             picking_type_id = ResUsers.get_user_warehouse().int_type_id.id
-        if not move_line.exists():
-            raise ValidationError(_('Cannot find the operation'))
         if picking.batch_id != self:
             raise ValidationError(_('Move line is not part of the batch.'))
         if picking.state in ['cancel', 'done']:

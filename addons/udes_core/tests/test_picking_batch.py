@@ -14,10 +14,11 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         Location = cls.env['stock.location'] 
 
         user_warehouse = User.get_user_warehouse()
+        cls.user_warehouse = user_warehouse
         cls.picking_type_pick = user_warehouse.pick_type_id
         cls.pack_4apples_info = [{'product': cls.apple,
                                   'qty': 4}]
-        
+
         cls.test_output_location_01 = Location.create({
             'name': "Test output location 01",
             'barcode': "LTESTOUT01",
@@ -28,6 +29,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         Package = self.env['stock.quant.package']
 
         self.package_one = Package.get_package("test_package_one", create=True)
+        self.package_two = Package.get_package("test_package_two", create=True)
 
     def test01_check_user_id_raise_with_empty_id_string(self):
         """ Should error if passed an empty id """
@@ -305,3 +307,161 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         self.assertFalse(
             batch.is_valid_location_dest_id("this location does not exist"),
             "An invalid dest location is wrongly marked as valid")
+
+    def test15_unpickable_item_single_move_line_has_package_success_internal_transfer(self):  # noqa
+        """
+        Tests that the picking is cancelled and an internal transfer is created
+        if a picking type is not specified.
+        """
+        picking, batch = self._create_valid_batch_for_location_tests()
+        picking.update_picking(package_name=self.package_one.name)
+        move_line_id = picking.move_line_ids[0].id
+        reason = 'missing item'
+        batch.unpickable_item(move_line_id=move_line_id,
+                              reason=reason,
+                              picking_type_id=None)
+        picking_type = self.package_one.move_line_ids.picking_id.picking_type_id  # noqa
+
+        self.assertEqual(picking.state, 'cancel')
+        self.assertEqual(batch.state, 'done')
+        self.assertEqual(picking_type.name, 'Internal Transfer')
+
+    def test16_unpickable_item_single_move_line_has_package_success_picking_type_specified(self):  # noqa
+        """
+        Tests that the picking is cancelled and the specified picking type
+        is created for the unpickable stock
+        """
+        picking, batch = self._create_valid_batch_for_location_tests()
+        picking.update_picking(package_name=self.package_one.name)
+        move_line_id = picking.move_line_ids[0].id
+        reason = 'missing item'
+
+        # It doesn't actually matter what the picking type is for this test.
+        # The important thing is that the new picking is of type picking_type
+        picking_type = self.picking_type_pick
+        batch.unpickable_item(move_line_id=move_line_id,
+                              reason=reason,
+                              picking_type_id=picking_type.id)
+        picking_type = self.package_one.move_line_ids.picking_id.picking_type_id  # noqa
+
+        self.assertEqual(picking.state, 'cancel')
+        self.assertEqual(batch.state, 'done')
+        self.assertEqual(picking_type.name, picking_type.name)
+
+    def test17_unpickable_item_move_line_not_found(self):
+        """
+        Tests that a ValidationError is raised if the move_line_id cannot be
+        found
+        """
+        picking, batch = self._create_valid_batch_for_location_tests()
+        picking.state = 'done'
+        reason = 'missing item'
+        with self.assertRaises(ValidationError):
+            batch.unpickable_item(move_line_id=999,
+                                  reason=reason,
+                                  picking_type_id=None)
+
+    def test18_unpickable_item_wrong_batch(self):
+        """
+        Tests that a ValidationError is raised if the move_line_id is not on
+        the Batch that we requested.
+        """
+        picking, batch = self._create_valid_batch_for_location_tests()
+        # Create a quant and picking for a different package
+        self.create_quant(self.apple.id, self.test_location_01.id, 4,
+                          package_id=self.package_two.id)
+        different_picking = self.create_picking(
+            self.picking_type_pick,
+            products_info=self.pack_4apples_info,
+            confirm=True,
+            assign=True)
+        different_picking.update_picking(package_name=self.package_two.name)
+        move_line_id = different_picking.move_line_ids[0].id
+        reason = 'missing item'
+        with self.assertRaises(ValidationError):
+            batch.unpickable_item(move_line_id=move_line_id,
+                                  reason=reason,
+                                  picking_type_id=None)
+
+    def test19_unpickable_item_invalid_state_cancel(self):
+        """
+        Tests that a ValidationError is raised if the picking is on a state
+        of cancel
+        """
+        picking, batch = self._create_valid_batch_for_location_tests()
+        picking.state = 'cancel'
+        move_line_id = picking.move_line_ids[0].id
+        reason = 'missing item'
+        with self.assertRaises(ValidationError):
+            batch.unpickable_item(move_line_id=move_line_id,
+                                  reason=reason,
+                                  picking_type_id=None)
+
+    def test20_unpickable_item_invalid_state_done(self):
+        """
+        Tests that a ValidationError is raised if the picking is on a state of
+        done
+        """
+        picking, batch = self._create_valid_batch_for_location_tests()
+        picking.state = 'done'
+        move_line_id = picking.move_line_ids[0].id
+        reason = 'missing item'
+        with self.assertRaises(ValidationError):
+            batch.unpickable_item(move_line_id=move_line_id,
+                                  reason=reason,
+                                  picking_type_id=None)
+
+    def test18_unpickable_item_no_package_vaidation_error(self):
+        """
+        Tests that ValidationError is raised if the move_line does not have
+        a package.  This functionality is not yet handled by the system.
+        :return:
+        """
+        picking, batch = self._create_valid_batch_for_location_tests()
+        reason = 'missing item'
+        move_line = picking.move_line_ids[0]
+        # Make the move_line not have a package.
+        move_line.package_id = None
+        with self.assertRaises(ValidationError):
+            batch.unpickable_item(move_line_id=move_line.id,
+                                  reason=reason,
+                                  picking_type_id=None)
+
+    def test19_unpickable_item_multiple_move_lines(self):
+        """
+        Tests that a backorder is created if there are multiple move lines
+        on the picking
+        """
+        Picking = self.env['stock.picking']
+        PickingType = self.env['stock.picking.type']
+        picking_type = PickingType.search([('name', '=', 'Internal Transfer')])
+        picking, batch = self._create_valid_batch_for_location_tests()
+
+        unpickable_move_line = picking.move_line_ids[0]
+        bananas_pack = {'product': self.banana,
+                        'picking': picking,
+                        'qty': 7}
+        # Create another move_line_id that is still pickable
+        move = self.create_move(**bananas_pack)
+        self.create_move_line(move=move,
+                              qty=7,
+                              picking_id=picking.id)
+        reason = 'missing item'
+
+        batch.unpickable_item(move_line_id=unpickable_move_line.id,
+                              reason=reason,
+                              # We use a picking type here so it's easier to
+                              # assert that the move_line was created on a new
+                              # picking
+                              picking_type_id=picking_type.id)
+        # Because there are other move_line_ids that are still pickable we
+        # need to ensure that the original picking is not cancelled
+        investigation_picking = Picking.search(
+            [('picking_type_id', '=', picking_type.id,),
+             ('product_id', '=', self.apple.id)])
+
+        self.assertNotEqual(picking.state, 'cancel')
+        # Ensure that our unpickable move_line is not in the picking
+        self.assertNotEqual(unpickable_move_line, picking.move_line_ids)
+        self.assertEqual(investigation_picking.picking_type_id.name,
+                         'Internal Transfer')
