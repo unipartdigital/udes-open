@@ -32,7 +32,7 @@
         "pi_count_move": {
             "type": "object",
             "properties": {
-                "quants_ids": {
+                "quant_ids": {
                     "type": "array",
                     "items": {"type": "integer"}
                 },
@@ -42,7 +42,7 @@
             },
             "required": ["location_id", "location_dest_id"],
             "oneOf": [
-                {"required": ["quants_ids"]},
+                {"required": ["quant_ids"]},
                 {"required": ["package_id"]}
             ]
         },
