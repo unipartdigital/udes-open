@@ -11,7 +11,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
     def setUpClass(cls):
         super(TestGoodsInPickingBatch, cls).setUpClass()
         User = cls.env['res.users']
-        Location = cls.env['stock.location'] 
+        Location = cls.env['stock.location']
 
         user_warehouse = User.get_user_warehouse()
         cls.user_warehouse = user_warehouse
@@ -37,7 +37,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
         with self.assertRaises(ValidationError) as err:
             batch._check_user_id("")
-        
+
         self.assertEqual(err.exception.name, "Cannot determine the user.")
 
     def test02_check_user_id_valid_id(self):
@@ -286,7 +286,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         """ Returns True for a valid location """
         picking, batch = self._create_valid_batch_for_location_tests()
         picking.update_picking(package_name=self.package_one.name)
-            
+
         self.assertTrue(
             batch.is_valid_location_dest_id(self.test_output_location_01.id),
             "A valid dest location is wrongly marked as invalid")
@@ -342,11 +342,11 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         batch.unpickable_item(move_line_id=move_line_id,
                               reason=reason,
                               picking_type_id=picking_type.id)
-        picking_type = self.package_one.move_line_ids.picking_id.picking_type_id  # noqa
+        new_picking_type = self.package_one.move_line_ids.picking_id.picking_type_id  # noqa
 
         self.assertEqual(picking.state, 'cancel')
         self.assertEqual(batch.state, 'done')
-        self.assertEqual(picking_type.name, picking_type.name)
+        self.assertEqual(new_picking_type.name, picking_type.name)
 
     def test17_unpickable_item_move_line_not_found(self):
         """
@@ -356,10 +356,13 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         picking, batch = self._create_valid_batch_for_location_tests()
         picking.state = 'done'
         reason = 'missing item'
-        with self.assertRaises(ValidationError):
+
+        with self.assertRaises(ValidationError) as err:
             batch.unpickable_item(move_line_id=999,
                                   reason=reason,
                                   picking_type_id=None)
+            self.assertEqual(err.exception.name,
+                             'Cannot find the operation')
 
     def test18_unpickable_item_wrong_batch(self):
         """
@@ -378,10 +381,12 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         different_picking.update_picking(package_name=self.package_two.name)
         move_line_id = different_picking.move_line_ids[0].id
         reason = 'missing item'
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(ValidationError) as err:
             batch.unpickable_item(move_line_id=move_line_id,
                                   reason=reason,
                                   picking_type_id=None)
+            self.assertEqual(err.exception.name,
+                             'Move line is not part of the batch')
 
     def test19_unpickable_item_invalid_state_cancel(self):
         """
@@ -392,10 +397,13 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         picking.state = 'cancel'
         move_line_id = picking.move_line_ids[0].id
         reason = 'missing item'
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(ValidationError) as err:
             batch.unpickable_item(move_line_id=move_line_id,
                                   reason=reason,
                                   picking_type_id=None)
+            self.assertEqual(err.exception.name,
+                             'Cannot mark a move line as unpickable '
+                             'when it is part of a completed Picking')
 
     def test20_unpickable_item_invalid_state_done(self):
         """
@@ -406,10 +414,13 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         picking.state = 'done'
         move_line_id = picking.move_line_ids[0].id
         reason = 'missing item'
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(ValidationError) as err:
             batch.unpickable_item(move_line_id=move_line_id,
                                   reason=reason,
                                   picking_type_id=None)
+            self.assertEqual(err.exception.name,
+                             'Cannot mark a move line as unpickable '
+                             'when it is part of a completed Picking')
 
     def test18_unpickable_item_no_package_vaidation_error(self):
         """
@@ -422,10 +433,13 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         move_line = picking.move_line_ids[0]
         # Make the move_line not have a package.
         move_line.package_id = None
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(ValidationError) as err:
             batch.unpickable_item(move_line_id=move_line.id,
                                   reason=reason,
                                   picking_type_id=None)
+
+            self.assertEqual(err.exception.name,
+                             'Not Implemented')
 
     def test19_unpickable_item_multiple_move_lines(self):
         """
