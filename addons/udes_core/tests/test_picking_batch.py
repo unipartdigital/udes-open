@@ -453,7 +453,6 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         move lines on the picking.  The original picking should continue to
         have the still pickable product on it.
         """
-        picking_type_internal = self.picking_type_internal
         self.create_quant(self.apple.id, self.test_location_01.id, 4,
                           package_id=self.package_one.id)
         self.create_quant(self.banana.id, self.test_location_01.id, 4,
@@ -493,7 +492,6 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         the picking is cancelled and a new picking is created of type
         picking_types
         """
-        picking_type_internal = self.picking_type_internal
         self.create_quant(self.apple.id, self.test_location_01.id, 4,
                           package_id=self.package_one.id)
         self.create_quant(self.banana.id, self.test_location_01.id, 4,
