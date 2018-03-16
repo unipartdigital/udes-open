@@ -319,7 +319,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         batch.unpickable_item(move_line_id=move_line_id,
                               reason=reason,
                               picking_type_id=None)
-        picking_type = self.package_one.move_line_ids.picking_id.picking_type_id  # noqa
+        picking_type = self.package_one.find_move_lines().picking_id.picking_type_id  # noqa
 
         self.assertEqual(picking.state, 'cancel')
         self.assertEqual(batch.state, 'done')
