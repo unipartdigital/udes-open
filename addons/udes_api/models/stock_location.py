@@ -29,8 +29,7 @@ class StockLocation(models.Model):
         Users = self.env['res.users']
 
         warehouse = Users.get_user_warehouse()
-        picking_type_id = warehouse.pick_type_id.id
 
         return super(StockLocation, self)._process_pi_count_moves(
                      count_moves_request,
-                     picking_type_id=picking_type_id)
+                     picking_type_id=warehouse.u_pi_count_move_picking_type)
