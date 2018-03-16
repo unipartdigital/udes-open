@@ -319,11 +319,12 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         batch.unpickable_item(move_line_id=move_line_id,
                               reason=reason,
                               picking_type_id=None)
-        picking_type = self.package_one.find_move_lines().picking_id.picking_type_id  # noqa
+        internal_picking = self.package_one.find_move_lines().picking_id  # noqa
 
         self.assertEqual(picking.state, 'cancel')
         self.assertEqual(batch.state, 'done')
-        self.assertEqual(picking_type, self.picking_type_internal)
+        self.assertEqual(internal_picking.picking_type_id, self.picking_type_internal)
+        self.assertEqual(internal_picking.state, 'assigned')
         self.assertEqual(batch.state, 'done')
 
     def test16_unpickable_item_single_move_line_has_package_success_picking_type_specified(self):  # noqa
@@ -341,11 +342,12 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         batch.unpickable_item(move_line_id=move_line_id,
                               reason=reason,
                               picking_type_id=picking_type.id)
-        new_picking_type = self.package_one.find_move_lines().picking_id.picking_type_id  # noqa
+        internal_picking = self.package_one.find_move_lines().picking_id  # noqa
 
         self.assertEqual(picking.state, 'cancel')
         self.assertEqual(batch.state, 'done')
-        self.assertEqual(new_picking_type.name, picking_type.name)
+        self.assertEqual(internal_picking.picking_type_id, picking_type)
+        self.assertEqual(internal_picking.state, 'assigned')
 
     def test17_unpickable_item_move_line_not_found_done(self):
         """
@@ -413,7 +415,9 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         done
         """
         picking, batch = self._create_valid_batch_for_location_tests()
-        picking.state = 'done'
+        picking.update_picking(force_validate=True,
+                               location_dest_id=self.test_output_location_01.id)
+
         move_line_id = picking.move_line_ids[0].id
         reason = 'missing item'
         with self.assertRaises(ValidationError) as err:
@@ -472,18 +476,15 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
         batch.unpickable_item(move_line_id=unpickable_move_line.id,
                               reason=reason,
-                              # We use a picking type here so it's easier to
-                              # assert that the move_line was created on a new
-                              # picking
-                              picking_type_id=picking_type_internal.id)
+                              picking_type_id=None)
+
+        new_picking = unpickable_package.find_move_lines().picking_id
 
         # Because there are other move_line_ids that are still pickable we
         # need to ensure that the original picking is not cancelled
-        new_picking = unpickable_package.find_move_lines().picking_id
-
         self.assertNotEqual(picking.state, 'cancel')
         # Ensure that our unpickable move_line is not in the picking
-        self.assertNotEqual(unpickable_move_line, picking.move_line_ids)
+        self.assertTrue(unpickable_move_line not in picking.move_line_ids)
         self.assertEqual(new_picking.state, 'assigned')
 
     def test20_unpickable_item_multiple_move_lines_same_packages(self):
@@ -515,10 +516,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
         batch.unpickable_item(move_line_id=unpickable_move_line.id,
                               reason=reason,
-                              # We use a picking type here so it's easier to
-                              # assert that the move_line was created on a new
-                              # picking
-                              picking_type_id=picking_type_internal.id)
+                              picking_type_id=None)
 
         new_picking = unpickable_package.find_move_lines().mapped('picking_id')
         self.assertEqual(picking.state, 'cancel')
