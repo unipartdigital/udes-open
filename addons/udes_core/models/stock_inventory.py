@@ -20,11 +20,12 @@ class StockInventory(models.Model):
 
     @api.multi
     def action_done(self):
-        self.mapped('location_id').check_blocked(
-            prefix='Cannot validate inventory adjustment.')
-        self.mapped('line_ids.location_id').check_blocked(
-            prefix='Cannot validate inventory adjustment line.')
+        """
+        Extends the parent method by ensuring that there are no
+        incomplete preceding inventories.
 
+        Raises a ValidationError otherwise.
+        """
         for prec in self.u_preceding_inventory_ids:
             if prec.state != 'done':
                 raise ValidationError(
