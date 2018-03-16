@@ -32,4 +32,4 @@ class StockLocation(models.Model):
 
         return super(StockLocation, self)._process_pi_count_moves(
                      count_moves_request,
-                     picking_type_id=warehouse.u_pi_count_move_picking_type)
+                     picking_type_id=warehouse.u_pi_count_move_picking_type.id)
