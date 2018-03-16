@@ -241,7 +241,7 @@ class StockLocation(models.Model):
         elif 'quant_ids' in count_move:
             quant_ids = [int(x) for x in count_move['quant_ids']]
             quants = Quant.browse(quant_ids)
-            num_found_quants = len(list(filter(lambda q: q.exists(), quants)))
+            num_found_quants = len(quants.exists())
 
             if num_found_quants != len(quant_ids):
                 raise ValidationError(
