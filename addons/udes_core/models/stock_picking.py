@@ -730,4 +730,3 @@ class StockPicking(models.Model):
             if text:
                 pick.message_post(body=_(text))
             pick.action_cancel()
-        return

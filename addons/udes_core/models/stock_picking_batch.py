@@ -291,7 +291,7 @@ class StockPickingBatch(models.Model):
             # move lines that are not affected
             picking = picking._create_backorder(move_lines)
 
-        # Remove the pick from the wave, and refine it
+        # Remove the pick from the batch, and refine it
         picking.batch_id = False
         # By default the pick is cancelled
         picking._refine_picking(reason)
@@ -305,7 +305,7 @@ class StockPickingBatch(models.Model):
                                picking_type_id=picking_type_id,
                                group_id=group.id)
 
-        # If the wave does not contain any remaining picking to do, it can
+        # If the batch does not contain any remaining picking to do, it can
         # be set as done
         remaining_pickings = self.picking_ids.filtered(
             lambda x: x.state in ['assigned']
