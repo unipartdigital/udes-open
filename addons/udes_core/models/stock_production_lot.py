@@ -45,7 +45,9 @@ class StockProductionLot(models.Model):
         results = self.search(domain)
 
         if not results and not no_results:
-            if not create or name is None:
+            if not create or not name:
+                # if `create` was flagged, `name` was not provided
+                # or an empty string was passed
                 raise ValidationError(_('Lot not found for identifier %s')
                                       % str(lot_identifier))
 

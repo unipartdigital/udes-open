@@ -142,7 +142,8 @@ class StockLocation(models.Model):
                     _('You must specify inventory adjustments if you require '
                       'preceding adjustments.'))
 
-            self._check_obj_locations(keys[:1], request[INVENTORY_ADJUSTMENTS])
+            self._check_obj_locations(keys[:1],
+                                      request[PRECEDING_INVENTORY_ADJUSTMENTS])
 
     def process_perpetual_inventory_request(self, request):
         """
@@ -210,7 +211,7 @@ class StockLocation(models.Model):
             created_pickings += \
                 self._create_pi_count_move_picking(count_move, picking_type_id)
 
-        return created_pickings if created_pickings.exists() else None
+        return created_pickings if created_pickings else None
 
     def _create_pi_count_move_picking(self, count_move, picking_type_id):
         """
@@ -240,11 +241,12 @@ class StockLocation(models.Model):
         elif 'quant_ids' in count_move:
             quant_ids = [int(x) for x in count_move['quant_ids']]
             quants = Quant.browse(quant_ids)
+            num_found_quants = len(list(filter(lambda q: q.exists(), quants)))
 
-            if len(quants) != len(quant_ids):
+            if num_found_quants != len(quant_ids):
                 raise ValidationError(
-                    _("Unknown quants in PI count move request; searched "
-                      "for %d, found %d.") % (len(quant_ids), len(quants)))
+                    _("Unknown quants in PI count move request; searched for "
+                      "%d, found %d.") % (len(quant_ids), num_found_quants))
         else:
             raise ValidationError(
                 _("Invalid request; missing one of quant_ids or "
