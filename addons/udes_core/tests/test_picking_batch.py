@@ -354,11 +354,13 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         Tests that a ValidationError is raised if the move_line_id cannot be
         found
         """
+        StockMoveLine= self.env['stock.move.line']
         picking, batch = self._create_valid_batch()
         picking.update_picking(force_validate=True,
                                location_dest_id=self.test_output_location_01.id)  # noqa
         reason = 'missing item'
 
+        self.assertFalse(StockMoveLine.browse(999).exists())
         with self.assertRaisesRegex(ValidationError,
                                     'Cannot find the operation'):
             batch.unpickable_item(move_line_id=999,
@@ -427,7 +429,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
                                   reason=reason,
                                   picking_type_id=None)
 
-    def test18_unpickable_item_no_package_vaildation_error(self):
+    def test21_unpickable_item_no_package_vaildation_error(self):
         """
         Tests that ValidationError is raised if the move_line does not have
         a package.  This functionality is not yet handled by the system.
@@ -443,7 +445,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
                                   reason=reason,
                                   picking_type_id=None)
 
-    def test19_unpickable_item_multiple_move_lines_different_packages(self):
+    def test22_unpickable_item_multiple_move_lines_different_packages(self):
         """
         Tests that a backorder is created and cancelled if there are multiple
         move lines on the picking.  The original picking should continue to
@@ -464,6 +466,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
                                       assign=True)
         batch = Batch.create_batch(None)
 
+        self.assertTrue(len(picking.move_line_ids) > 1)
         unpickable_move_line = picking.move_line_ids[0]
         unpickable_package = unpickable_move_line.package_id
 
@@ -482,7 +485,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         self.assertNotIn(unpickable_move_line, picking.move_line_ids)
         self.assertEqual(new_picking.state, 'assigned')
 
-    def test20_unpickable_item_multiple_move_lines_same_packages(self):
+    def test23_unpickable_item_multiple_move_lines_same_packages(self):
         """
         Tests that if there are multiple move lines on the same package that
         the picking is cancelled and a new picking is created of type
@@ -503,6 +506,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         Batch = self.env['stock.picking.batch']
         batch = Batch.create_batch(None)
 
+        self.assertTrue(len(picking.move_line_ids) > 1)
         unpickable_move_line = picking.move_line_ids[0]
         unpickable_package = unpickable_move_line.package_id
 
