@@ -484,7 +484,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         # need to ensure that the original picking is not cancelled
         self.assertNotEqual(picking.state, 'cancel')
         # Ensure that our unpickable move_line is not in the picking
-        self.assertTrue(unpickable_move_line not in picking.move_line_ids)
+        self.assertNotIn(unpickable_move_line, picking.move_line_ids)
         self.assertEqual(new_picking.state, 'assigned')
 
     def test20_unpickable_item_multiple_move_lines_same_packages(self):
