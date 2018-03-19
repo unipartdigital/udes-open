@@ -289,7 +289,7 @@ Update/mutate the stock picking
 * @param (optional) package_name - Name of the package of the picking that has been effectively scanned, to be marked as done.
 * @param (optional) expected_package_name - Name of the package that was expected to be scanned as part of the picking, to be swapped with the `package_name`.
 * @param (optional) products_info - An array with the products information to be marked as done, where each dictionary contains: product_barcode, qty and serial numbers if needed
-
+* @param (optional) u_transport_id - A dictionary of transport information to update the stock picking with
 
 Api call example to mark as done one unit of product test01 from picking with id 60.
 If the target storage format of the picking type is pallet of packages, test01 move line will have as `result_package_id` a new package and as `result_parent_package_id` the package with name PAL007. If the target storage format of the picking type is pallet of products, test01 move line will have as `result_package_id` the package with name PAL007.

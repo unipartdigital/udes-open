@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from odoo import models,  _
+from odoo import models, _
 from odoo.exceptions import ValidationError
 
 from collections import defaultdict
@@ -54,7 +54,7 @@ class StockPicking(models.Model):
         """
         return ['|', ('move_line_ids.package_id', 'child_of', package.id),
                 '|', ('move_line_ids.result_package_id', 'child_of', package.id),
-                     ('move_line_ids.u_result_parent_package_id', '=', package.id)]
+                ('move_line_ids.u_result_parent_package_id', '=', package.id)]
 
     def is_compatible_package(self, package_name):
         """ The package with name package_name is compatible
@@ -95,12 +95,22 @@ class StockPicking(models.Model):
             args.
 
         """
+        # If transport data has been sent in kwargs, add it to picking_info
+        if 'u_transport_id' in kwargs:
+            # retrieve transport info changes, and then remove them from kwargs
+            u_transport_id = kwargs.pop('u_transport_id')
+            # if picking_info already exists in kwargs, update with trailer info
+            if 'picking_info' in kwargs:
+                kwargs['picking_info'].update(u_transport_id)
+            # else add picking_info to kwargs with the trailer info
+            else:
+                kwargs['picking_info'] = u_transport_id
+
         kwargs.update(
             {'validate_real_time': self.picking_type_id.u_validate_real_time})
 
         if 'expected_package_name' in kwargs:
             expected_package_name = kwargs.pop('expected_package_name')
-
             # NB: super().with_context() would return the current
             # instance and, as a result, concatenating update_picking()
             # would result in invoking this very method instead of
@@ -137,6 +147,7 @@ class StockPicking(models.Model):
 
         exp_pack_mls = self.move_line_ids.filtered(
             lambda ml: ml.package_id == expected_package)
+
 
         if not exp_pack_mls:
             raise ValidationError(
