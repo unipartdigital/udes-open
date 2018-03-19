@@ -368,7 +368,8 @@ class TestGoodsInPickingBatch(common.BaseUDES):
                                location_dest_id=self.test_output_location_01.id)
         reason = 'missing item'
 
-        self.assertFalse(StockMoveLine.browse(999).exists())
+        self.assertFalse(StockMoveLine.browse(999).exists(),
+                         'Move line id=999 already exists')
         with self.assertRaisesRegex(ValidationError,
                                     'Cannot find the operation',
                                     msg='Incorrect error thrown'):
