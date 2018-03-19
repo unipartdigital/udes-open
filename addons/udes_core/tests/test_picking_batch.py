@@ -308,7 +308,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
             batch.is_valid_location_dest_id("this location does not exist"),
             "An invalid dest location is wrongly marked as valid")
 
-    def test15_unpickable_item_single_move_line_has_package_success_internal_transfer(self):  # noqa
+    def test15_unpickable_item_single_move_line_success_default_type(self):
         """
         Tests that the picking is cancelled and an internal transfer is created
         if a picking type is not specified.
@@ -319,15 +319,19 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         batch.unpickable_item(move_line_id=move_line_id,
                               reason=reason,
                               picking_type_id=None)
-        internal_picking = self.package_one.find_move_lines().picking_id  # noqa
+        internal_picking = self.package_one.find_move_lines().picking_id
 
-        self.assertEqual(picking.state, 'cancel')
-        self.assertEqual(batch.state, 'done')
-        self.assertEqual(internal_picking.picking_type_id, self.picking_type_internal)
-        self.assertEqual(internal_picking.state, 'assigned')
-        self.assertEqual(batch.state, 'done')
+        self.assertEqual(picking.state, 'cancel',
+                         'picking was not cancelled')
+        self.assertEqual(batch.state, 'done',
+                         'batch state was not completed')
+        self.assertEqual(internal_picking.picking_type_id,
+                         self.picking_type_internal,
+                         'internal picking type not set by unpickable_item')
+        self.assertEqual(internal_picking.state, 'assigned',
+                         'internal picking creation has not completed')
 
-    def test16_unpickable_item_single_move_line_has_package_success_picking_type_specified(self):  # noqa
+    def test16_unpickable_item_single_move_line_success_specified_type(self):
         """
         Tests that the picking is cancelled and the specified picking type
         is created for the unpickable stock
@@ -342,27 +346,32 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         batch.unpickable_item(move_line_id=move_line_id,
                               reason=reason,
                               picking_type_id=picking_type.id)
-        internal_picking = self.package_one.find_move_lines().picking_id  # noqa
+        internal_picking = self.package_one.find_move_lines().picking_id
 
-        self.assertEqual(picking.state, 'cancel')
-        self.assertEqual(batch.state, 'done')
-        self.assertEqual(internal_picking.picking_type_id, picking_type)
-        self.assertEqual(internal_picking.state, 'assigned')
+        self.assertEqual(picking.state, 'cancel',
+                         'picking was not cancelled')
+        self.assertEqual(batch.state, 'done',
+                         'batch state was not completed')
+        self.assertEqual(internal_picking.picking_type_id, picking_type,
+                         'internal picking type not set by unpickable_item')
+        self.assertEqual(internal_picking.state, 'assigned',
+                         'internal picking creation has not completed')
 
     def test17_unpickable_item_move_line_not_found_done(self):
         """
         Tests that a ValidationError is raised if the move_line_id cannot be
         found
         """
-        StockMoveLine= self.env['stock.move.line']
+        StockMoveLine = self.env['stock.move.line']
         picking, batch = self._create_valid_batch()
         picking.update_picking(force_validate=True,
-                               location_dest_id=self.test_output_location_01.id)  # noqa
+                               location_dest_id=self.test_output_location_01.id)
         reason = 'missing item'
 
         self.assertFalse(StockMoveLine.browse(999).exists())
         with self.assertRaisesRegex(ValidationError,
-                                    'Cannot find the operation'):
+                                    'Cannot find the operation',
+                                    msg='Incorrect error thrown'):
             batch.unpickable_item(move_line_id=999,
                                   reason=reason,
                                   picking_type_id=None)
@@ -385,7 +394,8 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         reason = 'missing item'
 
         with self.assertRaisesRegex(ValidationError,
-                                    'Move line is not part of the batch'):
+                                    'Move line is not part of the batch',
+                                    msg='Incorrect error thrown'):
             batch.unpickable_item(move_line_id=move_line_id,
                                   reason=reason,
                                   picking_type_id=None)
@@ -405,7 +415,8 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
         expected_error = 'Cannot mark a move line as unpickable ' \
                          'when it is part of a completed Picking'
-        with self.assertRaisesRegex(ValidationError, expected_error):
+        with self.assertRaisesRegex(ValidationError, expected_error,
+                                    msg='Incorrect error thrown'):
             batch.unpickable_item(move_line_id=move_line_id,
                                   reason=reason,
                                   picking_type_id=None)
@@ -424,7 +435,8 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
         expected_error = 'Cannot mark a move line as unpickable ' \
                          'when it is part of a completed Picking'
-        with self.assertRaisesRegex(ValidationError, expected_error):
+        with self.assertRaisesRegex(ValidationError, expected_error,
+                                    msg='Incorrect error thrown'):
             batch.unpickable_item(move_line_id=move_line_id,
                                   reason=reason,
                                   picking_type_id=None)
@@ -440,7 +452,8 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         move_line = picking.move_line_ids[0]
         # Make the move_line not have a package.
         move_line.package_id = None
-        with self.assertRaisesRegex(ValidationError, 'Not Implemented'):
+        with self.assertRaisesRegex(ValidationError, 'Not Implemented',
+                                    msg='Incorrect error thrown'):
             batch.unpickable_item(move_line_id=move_line.id,
                                   reason=reason,
                                   picking_type_id=None)
@@ -466,7 +479,8 @@ class TestGoodsInPickingBatch(common.BaseUDES):
                                       assign=True)
         batch = Batch.create_batch(None)
 
-        self.assertTrue(len(picking.move_line_ids) > 1)
+        self.assertTrue(len(picking.move_line_ids) > 1,
+                        'number of move_lines not expected')
         unpickable_move_line = picking.move_line_ids[0]
         unpickable_package = unpickable_move_line.package_id
 
@@ -480,10 +494,16 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
         # Because there are other move_line_ids that are still pickable we
         # need to ensure that the original picking is not cancelled
-        self.assertNotEqual(picking.state, 'cancel')
+        self.assertNotEqual(picking.state, 'cancel',
+                            'picking was not cancelled')
         # Ensure that our unpickable move_line is not in the picking
-        self.assertNotIn(unpickable_move_line, picking.move_line_ids)
-        self.assertEqual(new_picking.state, 'assigned')
+        self.assertNotIn(unpickable_move_line, picking.move_line_ids,
+                         'unpickable_move_line has not been removed '
+                         'from picking')
+        self.assertEqual(new_picking.state, 'assigned',
+                         'picking creation has not completed properly')
+        self.assertEqual(new_picking.group_id.name, reason,
+                         'reason was not assigned correctly')
 
     def test23_unpickable_item_multiple_move_lines_same_packages(self):
         """
@@ -506,7 +526,8 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         Batch = self.env['stock.picking.batch']
         batch = Batch.create_batch(None)
 
-        self.assertTrue(len(picking.move_line_ids) > 1)
+        self.assertTrue(len(picking.move_line_ids) > 1,
+                        'number of move_lines not expected')
         unpickable_move_line = picking.move_line_ids[0]
         unpickable_package = unpickable_move_line.package_id
 
@@ -517,5 +538,9 @@ class TestGoodsInPickingBatch(common.BaseUDES):
                               picking_type_id=None)
 
         new_picking = unpickable_package.find_move_lines().mapped('picking_id')
-        self.assertEqual(picking.state, 'cancel')
-        self.assertEqual(new_picking.state, 'assigned')
+        self.assertEqual(picking.state, 'cancel',
+                         'picking was not cancelled')
+        self.assertEqual(new_picking.state, 'assigned',
+                         'picking creation has not completed properly')
+        self.assertEqual(new_picking.group_id.name, reason,
+                         'reason was not assigned correctly')
