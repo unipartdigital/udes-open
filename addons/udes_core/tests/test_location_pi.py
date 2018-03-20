@@ -167,7 +167,72 @@ class TestLocationPI(common.BaseUDES):
                                     'The request has an unknown location'):
             self.test_location_01._validate_perpetual_inventory_request(req)
 
-    def test06_process_pi_datetime_no_changes(self):
+    def test06_validate_pi_request_failure_lot_with_untracked_product(self):
+        """
+        Errors if the request contains an inventory adjustment entry
+        for an untracked product with a lot name specified
+        """
+        req = {
+            'location_id': self.test_location_01.id,
+            'inventory_adjustments': [
+                {
+                    'product_id': self.apple.id,
+                    'package_name': self.package_one.name,
+                    'quantity': 1,
+                    'lot_name': 'awesome_lot'
+                }
+            ]
+        }
+
+        with self.assertRaisesRegex(
+                ValidationError, "Product '%s' is not tracked, but a lot name "
+                                 "has been specified." % self.apple.name):
+            self.test_location_01._validate_perpetual_inventory_request(req)
+
+    def test07_validate_pi_request_failure_tracked_product_without_lot(self):
+        """
+        Errors if the request contains an inventory adjustment entry
+        for a tracked product without a lot name
+        """
+        req = {
+            'location_id': self.test_location_01.id,
+            'inventory_adjustments': [
+                {
+                    'product_id': self.strawberry.id,
+                    'package_name': self.package_one.name,
+                    'quantity': 1
+                }
+            ]
+        }
+
+        with self.assertRaisesRegex(
+                ValidationError, "Product '%s' is tracked, but the lot name "
+                                 "is not specified." % self.strawberry.name):
+            self.test_location_01._validate_perpetual_inventory_request(req)
+
+    def test08_validate_pi_request_failure_tracked_product_invalid_qty(self):
+        """
+        Errors if the request contains an inventory adjustment entry
+        for a tracked product with an invalid quantity value
+        """
+        req = {
+            'location_id': self.test_location_01.id,
+            'inventory_adjustments': [
+                {
+                    'product_id': self.strawberry.id,
+                    'package_name': self.package_one.name,
+                    'quantity': 4,
+                    'lot_name': 'beautiful_lot'
+                }
+            ]
+        }
+
+        with self.assertRaisesRegex(
+                ValidationError, "Product '%s' is tracked, but the quantity "
+                                 "is 4." % self.strawberry.name):
+            self.test_location_01._validate_perpetual_inventory_request(req)
+
+    def test09_process_pi_datetime_no_changes(self):
         """
         Both last check & last correct PI datetime are updated if
         the PIOutcome is empty
