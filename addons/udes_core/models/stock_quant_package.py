@@ -20,7 +20,7 @@ class StockQuantPackage(models.Model):
 
         info = {"id": self.id,
                 "name": self.name,
-               }
+                "location_id": self.location_id.get_info()[0]}
 
         if extended:
             info['quants'] = self.quant_ids.get_info()
@@ -124,7 +124,7 @@ class StockQuantPackage(models.Model):
     def is_reserved(self):
         """ Whether the package is reserved for any picking.
             Expects a singleton.
-            
+
         """
         self.ensure_one()
 
