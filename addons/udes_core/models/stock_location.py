@@ -150,7 +150,9 @@ class StockLocation(models.Model):
                     _("Product '%s' is tracked, but the lot name is not "
                       "specified.") % product.name)
         else:
-            if product.tracking == 'serial':
+            if product.tracking == 'lot':
+                return
+            elif product.tracking == 'serial':
                 qty = int(request['quantity'])
 
                 if qty not in VALID_SERIAL_TRACKING_QUANTITIES:
