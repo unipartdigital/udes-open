@@ -2,6 +2,7 @@
 
 from odoo import models, fields
 
+
 class StockWarehouse(models.Model):
     _inherit = 'stock.warehouse'
 
@@ -61,7 +62,16 @@ class StockWarehouse(models.Model):
     )
     u_pallet_barcode_regex = fields.Char('Pallet Barcode Format', default='^PAL(\\d)+$')
     u_package_barcode_regex = fields.Char('Package Barcode Format', default='^PACK(\\d)+$')
-
+    u_pi_count_move_picking_type = fields.Many2one(
+        comodel_name='stock.picking.type',
+        string='PI Count Picking Type',
+        help="Picking type used to create PI Count move pickings."
+    )
+    u_stock_investigation_picking_type = fields.Many2one(
+        comodel_name='stock.picking.type',
+        string='Stock Investigation Picking Type',
+        help="Picking type used to create stock investigation pickings."
+    )
 
     def _prepare_info(self):
         """
@@ -89,5 +99,7 @@ class StockWarehouse(models.Model):
             'u_print_labels_picking_type_ids': self.u_print_labels_picking_type_ids.ids,
             'u_pallet_barcode_regex': self.u_pallet_barcode_regex,
             'u_package_barcode_regex': self.u_package_barcode_regex,
+            'u_pi_count_move_picking_type': self.u_pi_count_move_picking_type.id,
+            'u_stock_investigation_picking_type': self.u_stock_investigation_picking_type.id,
             })
         return info
