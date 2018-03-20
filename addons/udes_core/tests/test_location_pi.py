@@ -287,7 +287,8 @@ class TestLocationPI(common.BaseUDES):
 
         if check_single_move_line:
             self.assertEqual(len(picking.move_line_ids), 1,
-                            "Picking %d has not single move line" % picking_idx)
+                             "Picking %d has not single move line"
+                             % picking_idx)
 
     def test11_process_pi_count_moves_valid_request_with_package(self):
         """ Successfully creates the expected picking """
