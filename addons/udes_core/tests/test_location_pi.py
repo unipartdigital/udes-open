@@ -136,7 +136,10 @@ class TestLocationPI(common.BaseUDES):
             self.test_location_01._validate_perpetual_inventory_request(req)
 
     def test05_process_pi_datetime_no_changes(self):
-        """ The success PI datetime is updated if the PIOutcome is empty """
+        """
+        Both last check & last correct PI datetime are updated if
+        the PIOutcome is empty
+        """
         outcome = MockPIOutcome(False)
         old_dt_checked = self.test_location_01.u_date_last_checked
         old_dt_success = self.test_location_01.u_date_last_checked_correct
@@ -153,7 +156,10 @@ class TestLocationPI(common.BaseUDES):
                             "The last correct datetime was not updated.")
 
     def test06_process_pi_datetime_with_inventory_changes(self):
-        """ The success PI datetime is updated if the PIOutcome is empty """
+        """
+        Only the last check datetime is updated if the PIOutcome
+        is not empty
+        """
         outcome = MockPIOutcome(True)
         old_dt_checked = self.test_location_01.u_date_last_checked
         old_dt_success = self.test_location_01.u_date_last_checked_correct
