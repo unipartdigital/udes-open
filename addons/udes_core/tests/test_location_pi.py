@@ -82,16 +82,18 @@ class TestLocationPI(common.BaseUDES):
                     'quantity': 4
                 }
             ],
-            'preceding_inventory_adjustments': {
-                'location_id': self.test_location_01.id,
-                'inventory_adjustments': [
-                    {
-                        'product_id': self.banana.id,
-                        'package_name': self.package_two,
-                        'quantity': 0
-                    }
-                ]
-            }
+            'preceding_inventory_adjustments': [
+                {
+                    'location_id': self.test_location_01.id,
+                    'inventory_adjustments': [
+                        {
+                            'product_id': self.banana.id,
+                            'package_name': self.package_two,
+                            'quantity': 0
+                        }
+                    ]
+                }
+            ]
         }
 
         self.test_location_01._validate_perpetual_inventory_request(req)
@@ -128,12 +130,14 @@ class TestLocationPI(common.BaseUDES):
                     'location_dest_id': self.test_location_02.id
                 }
             ],
-            'preceding_inventory_adjustments': {
-                'location_id': self.test_location_01.id,
-                'inventory_adjustments': [
-                    {'product_id': 7, 'package_name': 'foo', 'quantity': 0}
-                ]
-            }
+            'preceding_inventory_adjustments': [
+                {
+                    'location_id': self.test_location_01.id,
+                    'inventory_adjustments': [
+                        {'product_id': 7, 'package_name': 'foo', 'quantity': 0}
+                    ]
+                }
+            ]
         }
 
         with self.assertRaisesRegex(ValidationError,
@@ -151,16 +155,18 @@ class TestLocationPI(common.BaseUDES):
                     'quantity': 4
                 }
             ],
-            'preceding_inventory_adjustments': {
-                'location_id': self.unknown_location_id,
-                'inventory_adjustments': [
-                    {
-                        'product_id': self.banana.id,
-                        'package_name': self.package_two,
-                        'quantity': 0
-                    }
-                ]
-            }
+            'preceding_inventory_adjustments': [
+                {
+                    'location_id': self.unknown_location_id,
+                    'inventory_adjustments': [
+                        {
+                            'product_id': self.banana.id,
+                            'package_name': self.package_two,
+                            'quantity': 0
+                        }
+                    ]
+                }
+            ]
         }
 
         with self.assertRaisesRegex(ValidationError,
