@@ -131,23 +131,25 @@ A move of a specific, handleable item of stock - such as 5 phones, or 1 car door
 
 Configuration information for the an entire warehouse.
 
-| Field Name                        | Type             | Description                    |
-| --------------------------------- | ---------------- | ------------------------------ |
-| u_handle_damages_picking_type_ids | [int]            | |
-| u_print_labels_picking_type_ids   | [int]            | |
-| in_type_id                        | int              | |
-| out_type_id                       | int              | |
-| pack_type_id                      | int              | |
-| pick_type_id                      | int              | |
-| int_type_id                       | int              | |
-| u_missing_stock_location_id       | int              | |
-| u_damaged_location_id             | int              | |
-| u_temp_dangerous_location_id      | int              | |
-| u_probres_location_id             | int              | |
-| u_incomplete_location_id          | int              | |
-| u_dangerous_location_id           | int              | |
-| u_package_barcode_regex           | string           | |
-| u_pallet_barcode_regex            | string           | |
+| Field Name                         | Type             | Description                    |
+| ---------------------------------- | ---------------- | ------------------------------ |
+| u_handle_damages_picking_type_ids  | [int]            | |
+| u_print_labels_picking_type_ids    | [int]            | |
+| in_type_id                         | int              | |
+| out_type_id                        | int              | |
+| pack_type_id                       | int              | |
+| pick_type_id                       | int              | |
+| int_type_id                        | int              | |
+| u_missing_stock_location_id        | int              | |
+| u_damaged_location_id              | int              | |
+| u_temp_dangerous_location_id       | int              | |
+| u_probres_location_id              | int              | |
+| u_incomplete_location_id           | int              | |
+| u_dangerous_location_id            | int              | |
+| u_package_barcode_regex            | string           | |
+| u_pallet_barcode_regex             | string           | |
+| u_pi_count_move_picking_type       | string           | |
+| u_stock_investigation_picking_type | string           | |
 
 
 ## Picking Batches (model: stock.picking.batch)
@@ -322,6 +324,7 @@ Check that a package is not in use and hence is compatible with the stock pickin
 
 ## Stock Location
 
+### Stock Location
 ```
 URI: /api/stock-location
 HTTP Method: GET
@@ -334,6 +337,21 @@ Params:
 @return stock.location (as described above, containing the quants in the format also listed above).
 ```
 
+### Stock Location PI Count
+```
+URI: /api/stock-location-pi-count/
+Method: POST
+Params:
+@param pi_request: JSON object with "pi_count_moves", "inventory_adjustments", "preceding_inventory_adjustments" and "location_id" entries
+```
+
+Creates inventory adjustments and count moves as specified in the request.
+Returns an error in case any of the specified references (locations, packages,
+products) is unknown.
+Returns `true` in case the request is successfully processed.
+
+The JSON schema for the `pi_request` object can be found
+[here](schemas/stock-location-pi-count.json).
 
 ## Packages
 

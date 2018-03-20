@@ -242,8 +242,6 @@ class TestPackageSwap(common.BaseUDES):
            with different picking types.
 
         """
-        PickingType = self.env['stock.picking.type']
-
         self.create_quant(self.apple.id, self.test_location_01.id, 4,
                           package_id=self.expected_package.id)
         self.create_quant(self.apple.id, self.test_location_01.id, 4,
@@ -252,7 +250,7 @@ class TestPackageSwap(common.BaseUDES):
                                       products_info=self.pack_4apples_info,
                                       confirm=True,
                                       assign=True)
-        
+
         self.picking_type_internal.u_reserve_as_packages = True
         self.picking_type_internal.u_allow_swapping_packages = True
         self.create_picking(self.picking_type_internal,

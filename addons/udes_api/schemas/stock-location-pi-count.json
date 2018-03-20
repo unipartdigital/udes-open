@@ -1,0 +1,60 @@
+{
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+        "location_id": {"type": "integer"},
+        "pi_count_moves": {
+            "type": "array",
+            "items": {"$ref": "#/definitions/pi_count_move"}
+        },
+        "inventory_adjustments": {
+            "type": "array",
+            "items": {"$ref": "#/definitions/inventory_adjustment"}
+        },
+        "preceding_inventory_adjustments": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "location_id": {"type": "integer"},
+                    "inventory_adjustments": {
+                        "type": "array",
+                        "items": {"$ref": "#/definitions/inventory_adjustment"}
+                    }
+                },
+                "required": ["location_id", "inventory_adjustments"]
+            }
+        }
+    },
+    "additionalItems": false,
+    "required": ["location_id"],
+    "definitions": {
+        "pi_count_move": {
+            "type": "object",
+            "properties": {
+                "quant_ids": {
+                    "type": "array",
+                    "items": {"type": "integer"}
+                },
+                "package_id": {"type": "integer"},
+                "location_id": {"type": "integer"},
+                "location_dest_id": {"type": "integer"}
+            },
+            "required": ["location_id", "location_dest_id"],
+            "oneOf": [
+                {"required": ["quant_ids"]},
+                {"required": ["package_id"]}
+            ]
+        },
+        "inventory_adjustment": {
+            "type": "object",
+            "properties": {
+                "product_id": {"type": "integer"},
+                "package_name": {"type": "string"},
+                "quantity": {"type": "number"},
+                "lot_name": {"type": "string"}
+            },
+            "required": ["product_id", "package_name", "quantity"]
+        }
+    }
+}
