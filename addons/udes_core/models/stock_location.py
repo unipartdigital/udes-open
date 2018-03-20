@@ -14,6 +14,9 @@ PRECEDING_INVENTORY_ADJUSTMENTS = 'preceding_inventory_adjustments'
 NO_PACKAGE_TOKEN = 'NO_PACKAGE'
 NEW_PACKAGE_TOKEN = 'NEWPACKAGE'
 
+VALID_SERIAL_TRACKING_QUANTITIES = [1, 0]
+
+
 #
 ## Auxiliary types
 #
@@ -129,6 +132,36 @@ class StockLocation(models.Model):
                 raise ValidationError(_("The request has an unknown location, "
                                         "id: '%d'.") % loc_id)
 
+    def _validate_inventory_adjustment_request(self, request):
+        """
+            Ensures that the specified product exists and that
+            its `tracking` value is compatible with the request
+            lot (which may or may not be specified).
+
+            Raises a ValidationError otherwise.
+        """
+        Product = self.env['product.product']
+
+        product = Product.get_product(int(request['product_id']))
+
+        if 'lot_name' not in request:
+            if product.tracking != 'none':
+                raise ValidationError(
+                    _("Product '%s' is tracked, but the lot name is not "
+                      "specified.") % product.name)
+        else:
+            if product.tracking == 'serial':
+                qty = int(request['quantity'])
+
+                if qty not in VALID_SERIAL_TRACKING_QUANTITIES:
+                    raise ValidationError(
+                        _("Product '%s' is tracked, but the quantity is %d.")
+                        % (product.name, qty))
+            else:
+                raise ValidationError(
+                    _("Product '%s' is not tracked, but a lot name has been "
+                      "specified.") % product.name)
+
     def _validate_perpetual_inventory_request(self, request):
         keys = ['location_id', 'location_dest_id']
 
@@ -142,8 +175,15 @@ class StockLocation(models.Model):
                     _('You must specify inventory adjustments if you require '
                       'preceding adjustments.'))
 
-            self._check_obj_locations(keys[:1],
-                                      request[PRECEDING_INVENTORY_ADJUSTMENTS])
+            pre_adjs_req = request[PRECEDING_INVENTORY_ADJUSTMENTS]
+            self._check_obj_locations(keys[:1], pre_adjs_req)
+
+            for req in pre_adjs_req[INVENTORY_ADJUSTMENTS]:
+                self._validate_inventory_adjustment_request(req)
+
+        if INVENTORY_ADJUSTMENTS in request:
+            for req in request[INVENTORY_ADJUSTMENTS]:
+                self._validate_inventory_adjustment_request(req)
 
     def process_perpetual_inventory_request(self, request):
         """
@@ -360,7 +400,8 @@ class StockLocation(models.Model):
 
             lot_id = False
 
-            if product.tracking != 'none' and 'lot_name' in adj:
+            if product.tracking != 'none':
+                assert 'lot_name' in adj, "Request should contain lot_name"
                 lot = Lot.get_lot(adj['lot_name'], product.id, create=True)
                 lot_id = lot.id
 
