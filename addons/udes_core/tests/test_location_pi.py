@@ -595,7 +595,7 @@ class TestLocationPI(common.BaseUDES):
 
         self.create_quant(self.apple.id, self.test_location_01.id, 4)
         adjs_req = [{"product_id": self.apple.id,
-                     "package_name": "test16_NO_PACKAGE",
+                     "package_name": "test21_NO_PACKAGE",
                      "quantity": 3}]
         expected_name = 'PI inventory adjustment ' + self.test_location_01.name
 
@@ -621,15 +621,16 @@ class TestLocationPI(common.BaseUDES):
         self.assertEqual(inv_line.location_id.id, self.test_location_01.id,
                          "Inventory line associated to the wrong location")
 
-    def test16_plus_1_process_single_preceding_adjustments_request_mss(self):
+    def test22_process_single_preceding_adjustments_request_mss(self):
         """
         Correctly processes the specified preceding adjustment
         request and links it to the specified inventory adjustment.
         """
         Inventory = self.env['stock.inventory']
 
+        package_name = "test22_NO_PACKAGE_with_lot"
         adjs_req = [{"product_id": self.banana.id,
-                     "package_name": "test16_1_NO_PACKAGE_with_lot",
+                     "package_name": package_name,
                      "quantity": 28,
                      "lot_name": "beautiful_lot"}]
         inv_adj = self.test_location_01\
@@ -644,7 +645,7 @@ class TestLocationPI(common.BaseUDES):
         prec_req = {
             "location_id": self.test_location_01.id,
             "inventory_adjustments": [{"product_id": self.apple.id,
-                                       "package_name": "tes16_1_NO_PACKAGE",
+                                       "package_name": package_name,
                                        "quantity": 3}]
         }
 
