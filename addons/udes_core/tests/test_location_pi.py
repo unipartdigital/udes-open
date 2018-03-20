@@ -58,7 +58,7 @@ class TestLocationPI(common.BaseUDES):
             'location_id': self.test_location_01.id,
             'pi_count_moves': [
                 {
-                    'quants_ids': [1, 2, 3],
+                    'quant_ids': [1, 2, 3],
                     'location_id': self.test_location_01.id,
                     'location_dest_id': self.test_location_02.id
                 }
@@ -103,7 +103,7 @@ class TestLocationPI(common.BaseUDES):
             'location_id': self.test_location_01.id,
             'pi_count_moves': [
                 {
-                    'quants_ids': [1, 2, 3],
+                    'quant_ids': [1, 2, 3],
                     'location_id': self.test_location_01.id,
                     'location_dest_id': self.unknown_location_id
                 }
@@ -252,7 +252,7 @@ class TestLocationPI(common.BaseUDES):
                             self.test_location_01.u_date_last_checked_correct,
                             "The last correct datetime was not updated.")
 
-    def test07_process_pi_datetime_with_inventory_changes(self):
+    def test10_process_pi_datetime_with_inventory_changes(self):
         """
         Only the last check datetime is updated if the PIOutcome
         is not empty
@@ -289,7 +289,7 @@ class TestLocationPI(common.BaseUDES):
             self.assertEqual(len(picking.move_line_ids), 1,
                             "Picking %d has not single move line" % picking_idx)
 
-    def test08_process_pi_count_moves_valid_request_with_package(self):
+    def test11_process_pi_count_moves_valid_request_with_package(self):
         """ Successfully creates the expected picking """
         self.create_quant(self.apple.id, self.test_location_01.id, 4,
                           package_id=self.package_one.id)
@@ -306,7 +306,7 @@ class TestLocationPI(common.BaseUDES):
                          self.package_one.id,
                          "Picking is not related to the specified package")
 
-    def test09_process_pi_count_moves_valid_request_with_2_packages(self):
+    def test12_process_pi_count_moves_valid_request_with_2_packages(self):
         """
         Successfully creates the two expected pickings when two
         count moves items are specified, both with packages.
@@ -343,7 +343,7 @@ class TestLocationPI(common.BaseUDES):
                          self.package_two.id,
                          "Picking 1 is not related to the specified package")
 
-    def test10_process_pi_count_moves_valid_request_with_quant(self):
+    def test13_process_pi_count_moves_valid_request_with_quant(self):
         """
         Successfully creates the expected picking when a quant is
         specified.
@@ -363,7 +363,7 @@ class TestLocationPI(common.BaseUDES):
                          self.package_one.id,
                          "Picking is not related to the specified package")
 
-    def test11_process_pi_count_moves_valid_request_with_two_quants(self):
+    def test14_process_pi_count_moves_valid_request_with_two_quants(self):
         """
         Successfully creates the expected picking when two quants are
         specified (two quants for different products, same package);
@@ -387,12 +387,11 @@ class TestLocationPI(common.BaseUDES):
         self.assertEqual(len(pickings[0].move_line_ids), 2,
                          "Did not create a picking with 2 move lines")
 
-        for idx in range(2):
-            self.assertEqual(pickings[0].move_line_ids[idx].package_id.id,
-                             self.package_one.id,
+        for move_line in pickings[0].move_line_ids:
+            self.assertEqual(move_line.package_id.id, self.package_one.id,
                              "Picking is not related to the specified package")
 
-    def test12_process_pi_count_moves_bad_request_with_reserved_package(self):
+    def test15_process_pi_count_moves_bad_request_with_reserved_package(self):
         """
         Throws a ValidationError in case the specified package is
         reserved. Checking by specifying both package / quants list.
@@ -426,13 +425,13 @@ class TestLocationPI(common.BaseUDES):
     ## PI Inventory Adjustments
     #
 
-    def test13_process_inventory_adjustments_returns_None_when_no_drift(self):
+    def test16_process_inventory_adjustments_returns_None_when_no_drift(self):
         """ Returns None when no request item is specified """
         inv = self.test_location_01._process_inventory_adjustments([])
 
         self.assertIsNone(inv, "Returned a new inventory for empty request")
 
-    def test14_get_stock_drift_no_package_token(self):
+    def test17_get_stock_drift_no_package_token(self):
         """
         Returns the correct metadata for the picking creation if
         a request item contains a 'NO_PACKAGE' package.
@@ -454,7 +453,7 @@ class TestLocationPI(common.BaseUDES):
         self.assertFalse(stock_info.package_id, "Wrongly added a product id")
         self.assertFalse(stock_info.lot_id, "Wrongly added a lot id")
 
-    def test15_get_stock_drift_new_package_token(self):
+    def test18_get_stock_drift_new_package_token(self):
         """
         Returns the correct metadata for the picking creation if
         a request item contains a 'NEWPACKAGE' package.
@@ -488,7 +487,7 @@ class TestLocationPI(common.BaseUDES):
                         "New package does not seem new")
         self.assertFalse(stock_info.lot_id, "Wrongly added a lot id")
 
-    def test16_get_stock_drift_new_package_token_multiple_products(self):
+    def test19_get_stock_drift_new_package_token_multiple_products(self):
         """
         Returns the correct metadata for the picking creation if
         a request item contains a 'NEWPACKAGE' package; multiple
@@ -523,7 +522,7 @@ class TestLocationPI(common.BaseUDES):
         self.assertEqual(package_ids[0], package_ids[1],
                          "Did not use the same package")
 
-    def test17_get_stock_drift_two_new_package_token_multiple_products(self):
+    def test20_get_stock_drift_two_new_package_token_multiple_products(self):
         """
         Returns the correct metadata for the picking creation if
         a request item contains two 'NEWPACKAGE' packages; multiple
@@ -559,7 +558,7 @@ class TestLocationPI(common.BaseUDES):
         self.assertNotEqual(package_ids[0], package_ids[1],
                             "Did use the same package")
 
-    def test18_get_stock_drift_new_package_token_more_products_one_adj(self):
+    def test21_get_stock_drift_new_package_token_more_products_one_adj(self):
         """
         Returns the correct metadata for the picking creation if
         a request item contains a single existent package; multiple
@@ -572,7 +571,7 @@ class TestLocationPI(common.BaseUDES):
                           package_id=self.package_one.id)
         adjs_req = [{"product_id": self.apple.id,
                      "package_name": self.package_one.name,
-                     "quantity": 65}]
+                     "quantity": 34}]
 
         stock_drift = self.test_location_01._get_stock_drift(adjs_req)
 
@@ -583,9 +582,9 @@ class TestLocationPI(common.BaseUDES):
 
         self.assertEqual(stock_info.product_id, self.apple.id,
                          "Wrong product in the stock drift dictionary")
-        self.assertEqual(qty, 65, "Wrong quantity")
+        self.assertEqual(qty, 34, "Wrong quantity")
 
-    def test19_get_stock_drift_no_package_token_with_new_lot(self):
+    def test22_get_stock_drift_no_package_token_with_new_lot(self):
         """
         Returns the correct metadata for the picking creation if
         a request item contains a 'NO_PACKAGE' package and a lot
@@ -598,7 +597,7 @@ class TestLocationPI(common.BaseUDES):
         lot_name = "test_19_lot"
         adjs_req = [{"product_id": self.strawberry.id,
                      "package_name": "tes19_NO_PACKAGE_with_new_lot",
-                     "quantity": 78,
+                     "quantity": 1,
                      "lot_name": lot_name}]
 
         stock_drift = self.test_location_01._get_stock_drift(adjs_req)
@@ -607,7 +606,7 @@ class TestLocationPI(common.BaseUDES):
 
         (stock_info, qty), = stock_drift.items()
 
-        self.assertEqual(qty, 78, "Wrong adjustment quantity")
+        self.assertEqual(qty, 1, "Wrong adjustment quantity")
         self.assertEqual(stock_info.product_id, self.strawberry.id,
                          "Wrong product id")
         self.assertFalse(stock_info.package_id, "Wrongly added a product id")
@@ -620,7 +619,7 @@ class TestLocationPI(common.BaseUDES):
         self.assertEqual(lot.product_id.id, self.strawberry.id,
                          "New lot is linked to an unexpected product")
 
-    def test20_get_stock_drift_no_package_token_with_existent_lot(self):
+    def test23_get_stock_drift_no_package_token_with_existent_lot(self):
         """
         Returns the correct metadata for the picking creation if
         a request item contains a 'NO_PACKAGE' package and an
@@ -636,7 +635,7 @@ class TestLocationPI(common.BaseUDES):
                           lot_id=lot.id)
         adjs_req = [{"product_id": self.strawberry.id,
                      "package_name": "test20_NO_PACKAGE_with_existent_lot",
-                     "quantity": 98,
+                     "quantity": 0,
                      "lot_name": lot_name}]
 
         stock_drift = self.test_location_01._get_stock_drift(adjs_req)
@@ -645,13 +644,13 @@ class TestLocationPI(common.BaseUDES):
 
         (stock_info, qty), = stock_drift.items()
 
-        self.assertEqual(qty, 98, "Wrong adjustment quantity")
+        self.assertEqual(qty, 0, "Wrong adjustment quantity")
         self.assertEqual(stock_info.product_id, self.strawberry.id,
                          "Wrong product id")
         self.assertFalse(stock_info.package_id, "Wrongly added a product id")
         self.assertEqual(stock_info.lot_id, lot.id, "Wrong lot specified")
 
-    def test21_process_inventory_adjustment_mss(self):
+    def test24_process_inventory_adjustment_mss(self):
         """
         Returns the expected stock.inventory.line representing
         the requested inventory adjustment, after a valid request.
@@ -686,7 +685,7 @@ class TestLocationPI(common.BaseUDES):
         self.assertEqual(inv_line.location_id.id, self.test_location_01.id,
                          "Inventory line associated to the wrong location")
 
-    def test22_process_single_preceding_adjustments_request_mss(self):
+    def test25_process_single_preceding_adjustments_request_mss(self):
         """
         Correctly processes the specified preceding adjustment
         request and links it to the specified inventory adjustment.
@@ -696,17 +695,15 @@ class TestLocationPI(common.BaseUDES):
         package_name = "test22_NO_PACKAGE_with_lot"
         adjs_req = [{"product_id": self.banana.id,
                      "package_name": package_name,
-                     "quantity": 28,
-                     "lot_name": "beautiful_lot"}]
+                     "quantity": 28}]
         inv_adj = self.test_location_01\
                       ._process_inventory_adjustments(adjs_req)
-        inv = Inventory.search([('name', '=', inv_adj.name)])
 
         # pre-conditions
-        self.assertEqual(len(inv), 1)
-        self.assertEqual(len(inv.u_preceding_inventory_ids), 0)
+        self.assertEqual(len(inv_adj), 1)
+        self.assertEqual(len(inv_adj.u_preceding_inventory_ids), 0)
 
-        inv_id = inv.id
+        inv_id = inv_adj.id
         prec_req = {
             "location_id": self.test_location_01.id,
             "inventory_adjustments": [{"product_id": self.apple.id,
@@ -717,10 +714,10 @@ class TestLocationPI(common.BaseUDES):
         self.test_location_01\
             ._process_single_preceding_adjustments_request(prec_req, inv_adj)
 
-        self.assertEqual(len(inv.u_preceding_inventory_ids), 1,
+        self.assertEqual(len(inv_adj.u_preceding_inventory_ids), 1,
                          "The preceding adjustments were not linked")
 
-        prec_inv_id = inv.u_preceding_inventory_ids.id
+        prec_inv_id = inv_adj.u_preceding_inventory_ids.id
         prec_inv = Inventory.browse(prec_inv_id)
 
         self.assertTrue(prec_inv.exists(),
