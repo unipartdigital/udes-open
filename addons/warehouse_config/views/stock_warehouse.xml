@@ -27,6 +27,8 @@
                         <group>
                             <field name="u_missing_stock_location_id" />
                             <field name="u_damaged_location_id" />
+                            <field name="u_pi_count_move_picking_type" />
+                            <field name="u_stock_investigation_picking_type" />
                             <field name="u_temp_dangerous_location_id" />
                             <field name="u_probres_location_id" />
                             <field name="u_incomplete_location_id" />
