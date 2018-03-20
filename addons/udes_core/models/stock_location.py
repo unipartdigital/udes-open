@@ -177,11 +177,11 @@ class StockLocation(models.Model):
                     _('You must specify inventory adjustments if you require '
                       'preceding adjustments.'))
 
-            pre_adjs_req = request[PRECEDING_INVENTORY_ADJUSTMENTS]
-            self._check_obj_locations(keys[:1], pre_adjs_req)
+            for pre_adjs_req in request[PRECEDING_INVENTORY_ADJUSTMENTS]:
+                self._check_obj_locations(keys[:1], pre_adjs_req)
 
-            for req in pre_adjs_req[INVENTORY_ADJUSTMENTS]:
-                self._validate_inventory_adjustment_request(req)
+                for req in pre_adjs_req[INVENTORY_ADJUSTMENTS]:
+                    self._validate_inventory_adjustment_request(req)
 
         if INVENTORY_ADJUSTMENTS in request:
             for req in request[INVENTORY_ADJUSTMENTS]:
