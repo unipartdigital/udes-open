@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <t t-extend="ListView.buttons">
+        <t t-jquery="button.o_list_button_add" t-operation="replace">
+            <button class="btn btn-primary btn-sm o_list_button_add_planned" type="button">New Planned Transfer</button>
+            <!--<a name="%(action_picking_form)d" type="action" context="{'planned_picking': True}">Planned Transfer</a>-->
+        </t>
+    </t>
+
+    <t t-extend="ListView.buttons">
+        <t t-jquery="button.o_list_button_add" t-operation="after">
+           <t t-call="ImportView.import_button"/>
+        </t>
+    </t>
+
+</templates>
