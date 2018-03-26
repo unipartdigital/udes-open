@@ -36,17 +36,40 @@ odoo.define('udes_core.CreatePlannedTransferButton', function (require) {
           // });
         },
 
+        // this.do_action({
+        //     type: "ir.actions.act_window",
+        //     name: "New Transfer",
+        //     res_model: "stock.picking",
+        //     views: [[false, 'form']],
+        //     target: 'current',
+        //     view_type: 'form',
+        //     view_mode: 'form',
+        //     context: "{'search_default_picking_type_id': '" + this.action.context.active_id +
+        //     "','default_picking_type_id': '" + this.action.context.active_id +
+        //     "',contact_display': 'partner_address'," +
+        //     "}",
+        //     flags: {'form': {'action_buttons': true, 'options': {'mode': 'edit'}}}
+        //   });
+
         tree_view_action: function () {
 
           console.log("=========================================2");
+          // debugger
+          // console.log("ActiveId:" + this.action.context.active_id);
+
+
           this.do_action({
             type: "ir.actions.act_window",
-            name: "product",
-            res_model: "product.template",
+            name: "New Transfer",
+            res_model: "stock.picking",
             views: [[false, 'form']],
             target: 'current',
             view_type: 'form',
             view_mode: 'form',
+            context: "{'planned_picking': True," +
+            " 'contact_display': 'partner_address'," +
+            // " 'search_default_picking_type_id': '" + this.action.context.active_id + "'," +
+            " 'default_picking_type_id': 9}",
             flags: {'form': {'action_buttons': true, 'options': {'mode': 'edit'}}}
           });
           return {'type': 'ir.actions.client', 'tag': 'reload',}
