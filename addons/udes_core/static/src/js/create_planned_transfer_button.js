@@ -6,9 +6,6 @@ odoo.define('udes_core.CreatePlannedTransferButton', function (require) {
   var udesListController = ListController.extend({
 
     init: function () {
-      console.log(window.location.hash)
-      console.log(parseParms(window.location.hash));
-      alert('Called')
       this.replace_transfer_button();
     },
 
