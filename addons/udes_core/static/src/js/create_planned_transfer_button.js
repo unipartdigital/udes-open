@@ -1,23 +1,13 @@
 odoo.define('udes_core.CreatePlannedTransferButton', function (require) {
   "use strict";
 
-  var core = require('web.core');
-  var ListView = require('web.ListView');
   var ListController = require('web.ListController');
-  // var QWeb = require('core.qweb');
-  //
-
-
-  var BasicController = require('web.BasicController');
-  var DataExport = require('web.DataExport');
-  var pyeval = require('web.pyeval');
-  var Sidebar = require('web.Sidebar');
-  var _t = core._t;
-  var qweb = core.qweb;
 
   var udesListController = ListController.extend({
 
     init: function () {
+      console.log(window.location.hash)
+      console.log(parseParms(window.location.hash));
       alert('Called')
       this.replace_transfer_button();
     },
@@ -27,37 +17,13 @@ odoo.define('udes_core.CreatePlannedTransferButton', function (require) {
       ListController.include({
 
         renderButtons: function ($node) {
-          console.log("=========================================1");
-          var self = this;
-          this._super($node);
+          this._super.apply(this, arguments)
           this.$buttons.find('.o_list_button_add_planned').click(this.proxy('tree_view_action'));
-          // this.$buttons.find('.o_list_button_add_planned').click(function () {
-          //   alert('Hello');
-          // });
         },
-
-        // this.do_action({
-        //     type: "ir.actions.act_window",
-        //     name: "New Transfer",
-        //     res_model: "stock.picking",
-        //     views: [[false, 'form']],
-        //     target: 'current',
-        //     view_type: 'form',
-        //     view_mode: 'form',
-        //     context: "{'search_default_picking_type_id': '" + this.action.context.active_id +
-        //     "','default_picking_type_id': '" + this.action.context.active_id +
-        //     "',contact_display': 'partner_address'," +
-        //     "}",
-        //     flags: {'form': {'action_buttons': true, 'options': {'mode': 'edit'}}}
-        //   });
 
         tree_view_action: function () {
 
-          console.log("=========================================2");
-          // debugger
-          // console.log("ActiveId:" + this.action.context.active_id);
-
-
+          var hashDict = parseParms(window.location.hash);
           this.do_action({
             type: "ir.actions.act_window",
             name: "New Transfer",
@@ -68,8 +34,7 @@ odoo.define('udes_core.CreatePlannedTransferButton', function (require) {
             view_mode: 'form',
             context: "{'planned_picking': True," +
             " 'contact_display': 'partner_address'," +
-            // " 'search_default_picking_type_id': '" + this.action.context.active_id + "'," +
-            " 'default_picking_type_id': 9}",
+            " 'default_picking_type_id': " + hashDict["active_id"] + "}",
             flags: {'form': {'action_buttons': true, 'options': {'mode': 'edit'}}}
           });
           return {'type': 'ir.actions.client', 'tag': 'reload',}
@@ -77,7 +42,7 @@ odoo.define('udes_core.CreatePlannedTransferButton', function (require) {
 
       })
 
-    },
+    }
 
   });
 
@@ -92,27 +57,20 @@ odoo.define('udes_core.createPlannedTransferButton', function (require) {
   new UdesListController();
 });
 
-// ListView = require('web.ListView')
-//
-//   ListView.include({
-//     render_buttons: function () {
-//       console.log("=========================================2");
-//       // GET BUTTON REFERENCE
-//       this._super.apply(this, arguments)
-//       if (this.$buttons) {
-//         var btn = this.$buttons.find('.o_list_button_add_2')
-//       }
-//
-//       // PERFORM THE ACTION
-//       btn.on('click', this.proxy('do_new_button'))
-//
-//     },
-//     do_new_button: function () {
-//
-//       instance.web.Model('sale.order')
-//           .call('update_sale_button', [[]])
-//           .done(function (result) {
-//
-//           })
-//     });
-// });
+/**
+ * Parse params from the location hash
+ * @param str String to parse
+ * @returns {Dictionary of hash values}
+ */
+function parseParms(str) {
+  var pieces = str.split("&"), data = {}, i, parts;
+  // process each query pair
+  for (i = 0; i < pieces.length; i++) {
+    parts = pieces[i].split("=");
+    if (parts.length < 2) {
+      parts.push("");
+    }
+    data[decodeURIComponent(parts[0])] = decodeURIComponent(parts[1]);
+  }
+  return data;
+}
