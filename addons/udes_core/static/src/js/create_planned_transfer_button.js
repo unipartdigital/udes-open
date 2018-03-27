@@ -21,6 +21,18 @@ odoo.define('udes_core.CreatePlannedTransferButton', function (require) {
         tree_view_action: function () {
 
           var hashDict = parseParms(window.location.hash);
+
+          //Build the context string based on active_id
+          var contextString =
+              "{" +
+              "'planned_picking': True," +
+              "'contact_display': 'partner_address',";
+          if ("active_id" in hashDict) {
+            contextString +=
+                "'default_picking_type_id': " + hashDict["active_id"];
+          }
+          contextString += "}";
+
           this.do_action({
             type: "ir.actions.act_window",
             name: "New Transfer",
@@ -29,9 +41,7 @@ odoo.define('udes_core.CreatePlannedTransferButton', function (require) {
             target: 'current',
             view_type: 'form',
             view_mode: 'form',
-            context: "{'planned_picking': True," +
-            " 'contact_display': 'partner_address'," +
-            " 'default_picking_type_id': " + hashDict["active_id"] + "}",
+            context: contextString,
             flags: {'form': {'action_buttons': true, 'options': {'mode': 'edit'}}}
           });
           return {'type': 'ir.actions.client', 'tag': 'reload',}
