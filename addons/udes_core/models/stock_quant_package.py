@@ -17,10 +17,11 @@ class StockQuantPackage(models.Model):
             - quant_ids: [{stock.quants}]
         """
         self.ensure_one()
+        location_info = self.location_id.get_info()
 
         info = {"id": self.id,
                 "name": self.name,
-                "location_id": self.location_id.get_info()[0]}
+                "location_id": location_info[0] if location_info else {}}
 
         if extended:
             info['quants'] = self.quant_ids.get_info()
@@ -61,7 +62,7 @@ class StockQuantPackage(models.Model):
             if not create or name is None:
                 raise ValidationError(_('Package not found for identifier %s') % str(package_identifier))
             results = self.create({'name': name})
-        if  len(results) > 1:
+        if len(results) > 1:
             raise ValidationError(_('Too many packages found for identifier %s') % str(package_identifier))
 
         return results
@@ -79,7 +80,6 @@ class StockQuantPackage(models.Model):
         self.ensure_one()
         return frozenset(self._get_all_products_quantities().items()) == \
                frozenset(other._get_all_products_quantities().items())
-
 
     def assert_reserved_full_package(self, move_lines):
         """ Check that a package is fully reserved at move_lines.
