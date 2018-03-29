@@ -295,10 +295,12 @@ class StockLocation(models.Model):
         if any(map(lambda q: q.reserved_quantity > 0, quants)):
             raise ValidationError(_("Some quants are already reserved."))
 
-        return Picking.create_picking(quant_ids,
-                                      location_id,
-                                      picking_type_id=picking_type_id,
-                                      location_dest_id=location_dest_id)
+        picking = Picking.create_picking(quant_ids,
+                                         location_id,
+                                         picking_type_id=picking_type_id,
+                                         location_dest_id=location_dest_id)
+        picking.move_line_ids.mark_as_done()
+        return picking
 
     # PI Inventory Adjustments
 
