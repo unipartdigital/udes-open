@@ -17,18 +17,18 @@ class StockPicking(models.Model):
     # compute previous and next pickings
     u_prev_picking_ids = fields.One2many(
         'stock.picking', string='Previous Pickings',
-        compute='_compute_prev_next_picking_ids',
+        compute='_compute_related_picking_ids',
         help='Previous pickings',
     )
     u_next_picking_ids = fields.One2many(
         'stock.picking', string='Next Pickings',
-        compute='_compute_prev_next_picking_ids',
+        compute='_compute_related_picking_ids',
         help='Next pickings',
     )
 
     u_created_back_orders = fields.One2many(
         'stock.picking', string='Created Back Orders',
-        compute='_compute_created_back_orders',
+        compute='_compute_related_picking_ids',
         help='Created Back Orders',
     )
 
@@ -44,15 +44,15 @@ class StockPicking(models.Model):
         # print("===================================================")
         # print(created_backorder)
 
-        print("===============> Self: ")
+        print("===============> back orders Self: ")
         print(self)
 
         Picking = self.env['stock.picking']
         # created_backorders =  Picking.get_pickings(backorder_id=.id)
         # print("===============> Created Backorders returned as: ")
         # print(created_backorders)
-        print("===============> Caps Picking: ")
-        print(Picking)
+        # print("===============> Caps Picking: ")
+        # print(Picking)
 
         # import pdb;
         # pdb.set_trace()
@@ -60,9 +60,14 @@ class StockPicking(models.Model):
         # print("===============> Caps Picking ID: ")
         # print(Picking.id)
 
-        self[0].u_created_back_orders = Picking.get_pickings(backorder_id=self[0].id)
+        # self[0].u_created_back_orders = Picking.get_pickings(backorder_id=self[0].id)
 
-        # for picking in self:
+        for picking in self:
+            # append to this list here
+            picking.u_created_back_orders = Picking.get_pickings(backorder_id=picking.id)
+
+
+
         #     print("\n===============> New Loop: ")
         #
         #     print("===============> Picking: ")
@@ -95,8 +100,14 @@ class StockPicking(models.Model):
                  'move_lines.move_dest_ids',
                  'move_lines.move_orig_ids.picking_id',
                  'move_lines.move_dest_ids.picking_id')
-    def _compute_prev_next_picking_ids(self):
+    def _compute_related_picking_ids(self):
+        print("===============> next pickings self: ")
+        print(self)
+
+        Picking = self.env['stock.picking']
         for picking in self:
+            picking.u_created_back_orders = Picking.get_pickings(backorder_id=picking.id)
+
             picking.u_prev_picking_ids = picking.mapped(
                 'move_lines.move_orig_ids.picking_id'
             )
@@ -596,15 +607,15 @@ class StockPicking(models.Model):
         if picking_type_ids is None:
             picking_type_ids = warehouse.get_picking_types().ids
 
-        print ("====================> Function received self as:")
-        print (self)
+        # print ("====================> Function received self as:")
+        # print (self)
         if self:
-            print ("====================> Entered self statement")
+            # print ("====================> Entered self statement")
             domain = [('id', 'in', self.mapped('id'))]
         elif origin:
             domain = [('origin', '=', origin)]
         elif backorder_id:
-            print ("====================> Entered backorder_id statement")
+            # print ("====================> Entered backorder_id statement")
             domain = [('backorder_id', '=', backorder_id)]
         elif result_package_id:
             domain = [('move_line_ids.result_package_id', '=', result_package_id)]
