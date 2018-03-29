@@ -25,6 +25,60 @@ class StockPicking(models.Model):
         compute='_compute_prev_next_picking_ids',
         help='Next pickings',
     )
+
+    u_created_back_orders = fields.One2many(
+        'stock.picking', string='Created Back Orders',
+        compute='_compute_created_back_orders',
+        help='Created Back Orders',
+    )
+
+    # Need to loop over backorders and create a list of backorders with this pickings id
+    def _compute_created_back_orders(self):
+
+        # find all picking with backorder_id == picking.id
+
+        # when a backorder is created, that backorders 'backorder_id' is the id of the picking that created it
+        # If picking id 11 created backorder 'x', backorder x's 'backorder_id' == 11
+
+        #
+        # print("===================================================")
+        # print(created_backorder)
+
+        print("===============> Self: ")
+        print(self)
+
+        Picking = self.env['stock.picking']
+        # created_backorders =  Picking.get_pickings(backorder_id=.id)
+        # print("===============> Created Backorders returned as: ")
+        # print(created_backorders)
+        print("===============> Caps Picking: ")
+        print(Picking)
+
+        # import pdb;
+        # pdb.set_trace()
+
+        # print("===============> Caps Picking ID: ")
+        # print(Picking.id)
+
+        self[0].u_created_back_orders = Picking.get_pickings(backorder_id=self[0].id)
+
+        # for picking in self:
+        #     print("\n===============> New Loop: ")
+        #
+        #     print("===============> Picking: ")
+        #     print(picking)
+        #
+        #     print("===============> Picking ID: ")
+        #     print(picking.id)
+        #
+        #     # this is apparently the wrong picking
+        #     created_backorders = Picking.get_pickings(backorder_id=picking.id)
+        #     print("===============> Created Backorders returned as: ")
+        #     print(created_backorders)
+
+
+
+
     # search helpers for source and destination package
     u_package_id = fields.Many2one('stock.quant.package', 'Package',
                                    related='move_line_ids.package_id',
@@ -109,8 +163,8 @@ class StockPicking(models.Model):
         self.with_context(quant_ids=quant_ids)._create_moves(quants.group_quantity_by_product(), **kwargs)
 
     def _create_moves(self, products_info, values=None,
-                            confirm=False, assign=False,
-                            result_package=None, unexpected=False):
+                      confirm=False, assign=False,
+                      result_package=None, unexpected=False):
         """ Creates moves from products_info and adds it to the picking
             in self. Where products_info is a dictionary mapped by
             product ids and the value are the quantities.
@@ -305,7 +359,6 @@ class StockPicking(models.Model):
         Package = self.env['stock.quant.package']
         self.assert_valid_state()
 
-
         values = {}
 
         # Updates stock picking with generic picking info
@@ -361,7 +414,7 @@ class StockPicking(models.Model):
                       ' are move lines todo'))
             # by default action_done will backorder the stock.move.lines todo
             # validate stock.picking
-            picking.action_done() # old do_transfer
+            picking.action_done()  # old do_transfer
 
     def _requires_backorder(self, mls):
         """ Checks if a backorder is required
@@ -374,8 +427,8 @@ class StockPicking(models.Model):
         # self.mapped('move_lines.move_orig_ids').filtered(lambda x: x.state not in ('done', 'cancel'))
         for move in self.move_lines:
             if move not in mls_moves or \
-            not move.move_line_ids == mls.filtered(lambda x: x.move_id == move) or \
-            move.move_orig_ids.filtered(lambda x: x.state not in ('done', 'cancel')):
+                    not move.move_line_ids == mls.filtered(lambda x: x.move_id == move) or \
+                    move.move_orig_ids.filtered(lambda x: x.state not in ('done', 'cancel')):
                 return True
         return False
 
@@ -406,8 +459,8 @@ class StockPicking(models.Model):
             current_mls = mls.filtered(lambda x: x.move_id == current_move)
 
             if current_mls == current_move.move_line_ids and \
-               not current_move.move_orig_ids.filtered(
-                            lambda x: x.state not in ('done', 'cancel')):
+                    not current_move.move_orig_ids.filtered(
+                        lambda x: x.state not in ('done', 'cancel')):
                 bk_move = current_move
             else:
                 total_qty_done = sum(current_mls.mapped('qty_done'))
@@ -417,12 +470,12 @@ class StockPicking(models.Model):
                                              'move_orig_ids': [],
                                              'ordered_qty': total_ordered_qty,
                                              'product_uom_qty': total_qty_done,
-                                            })
+                                             })
                 current_mls.write({'move_id': bk_move.id})
                 current_move.with_context(bypass_reservation_update=True).write({
-                                       'ordered_qty': current_move.ordered_qty - total_ordered_qty,
-                                       'product_uom_qty': current_move.product_uom_qty - total_qty_done,
-                                    })
+                    'ordered_qty': current_move.ordered_qty - total_ordered_qty,
+                    'product_uom_qty': current_move.product_uom_qty - total_qty_done,
+                })
 
                 if current_move.move_orig_ids:
                     (bk_move | current_move).update_orig_ids(current_move.move_orig_ids)
@@ -431,11 +484,11 @@ class StockPicking(models.Model):
 
         # Create picking for completed move lines
         bk_picking = self.copy({
-                'name': '/',
-                'move_lines': [],
-                'move_line_ids': [],
-                'backorder_id': self.id,
-            })
+            'name': '/',
+            'move_lines': [],
+            'move_line_ids': [],
+            'backorder_id': self.id,
+        })
         new_moves.write({'picking_id': bk_picking.id, 'state': 'assigned'})
         new_moves.mapped('move_line_ids').write({'picking_id': bk_picking.id, 'state': 'assigned'})
         return bk_picking
@@ -543,11 +596,15 @@ class StockPicking(models.Model):
         if picking_type_ids is None:
             picking_type_ids = warehouse.get_picking_types().ids
 
+        print ("====================> Function received self as:")
+        print (self)
         if self:
+            print ("====================> Entered self statement")
             domain = [('id', 'in', self.mapped('id'))]
         elif origin:
             domain = [('origin', '=', origin)]
         elif backorder_id:
+            print ("====================> Entered backorder_id statement")
             domain = [('backorder_id', '=', backorder_id)]
         elif result_package_id:
             domain = [('move_line_ids.result_package_id', '=', result_package_id)]
@@ -594,6 +651,9 @@ class StockPicking(models.Model):
         # add extra domain if there is any
         if extra_domain:
             domain.extend(extra_domain)
+
+        # import pdb;
+        # pdb.set_trace()
 
         pickings = Picking.search(domain, order=order)
 
