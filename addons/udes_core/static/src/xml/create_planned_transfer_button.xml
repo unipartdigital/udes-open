@@ -12,7 +12,41 @@
         </t>
     </t>
 
+    <t t-extend="FormView.buttons">
+        <t t-jquery="button.o_form_button_create" t-operation="replace">
+            <t t-if="widget.modelName=='stock.picking'">
+                <button class="btn btn-primary btn-sm o_list_button_add_planned" type="button">Create</button>
+            </t>
+            <t t-else="">
+                <button class="btn btn-primary btn-sm o_form_button_create" type="button">Create</button>
+            </t>
+        </t>
+    </t>
+
+    <t t-extend="KanbanView.buttons">
+        <t t-jquery="button.o-kanban-button-new" t-operation="replace">
+            <t t-if="widget.modelName=='stock.picking'">
+                <button class="btn btn-primary btn-sm o_list_button_add_planned" type="button">Create</button>
+            </t>
+            <t t-else="">
+                <button class="btn btn-primary btn-sm o-kanban-button-new" type="button">Create</button>
+            </t>
+        </t>
+    </t>
+
+    <!--<t t-extend="KanbanView.buttons">-->
+        <!--<t t-jquery="button.o-kanban-button-new" t-operation="after">-->
+            <!--<t t-call="ImportView.import_button"/>-->
+        <!--</t>-->
+    <!--</t>-->
+
     <t t-extend="ListView.buttons">
+        <t t-if="widget.modelName=='stock.picking'" t-jquery="button.o_list_button_add_planned" t-operation="after">
+           <t t-call="ImportView.import_button"/>
+        </t>
+    </t>
+
+    <t t-extend="KanbanView.buttons">
         <t t-if="widget.modelName=='stock.picking'" t-jquery="button.o_list_button_add_planned" t-operation="after">
            <t t-call="ImportView.import_button"/>
         </t>

@@ -6,19 +6,19 @@ odoo.define('udes_core.CreatePlannedTransferButton', function (require) {
   var udesListController = ListController.extend({
 
     init: function () {
-      this.replace_transfer_button();
+      this.replaceTransferButton();
     },
 
-    replace_transfer_button: function () {
+    replaceTransferButton: function () {
 
       ListController.include({
 
         renderButtons: function ($node) {
           this._super.apply(this, arguments)
-          this.$buttons.find('.o_list_button_add_planned').click(this.proxy('tree_view_action'));
+          this.$buttons.find('.o_list_button_add_planned').click(this.proxy('treeViewAction'));
         },
 
-        tree_view_action: function () {
+        treeViewAction: function () {
 
           var hashDict = parseParms(window.location.hash);
 
