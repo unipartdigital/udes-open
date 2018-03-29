@@ -96,7 +96,7 @@ class StockMoveLine(models.Model):
         # it might be useful when extending the method
         return mls_done
 
-    def _filter_by_product_ids(self, product_ids):
+    def _filter_by_products_info(self, products_info):
         """ Filter the move_lines in self by the products in product_ids.
             When a product is tracked by lot number:
             - when they have lot_id set, they are also filtered by
@@ -105,11 +105,11 @@ class StockMoveLine(models.Model):
               serial numbers
         """
         # get all move lines of the products in products_info
-        move_lines = self.filtered(lambda ml: ml.product_id in product_ids)
+        move_lines = self.filtered(lambda ml: ml.product_id in products_info)
 
         # if any of the products is tracked by serial number, filter if needed
         for product in move_lines.mapped('product_id').filtered(lambda ml: ml.tracking == 'serial'):
-            serial_numbers = product_ids[product]['lot_numbers']
+            serial_numbers = products_info[product]['lot_numbers']
             repeated_serial_numbers = [sn for sn, num in Counter(serial_numbers).items() if num > 1]
             if len(repeated_serial_numbers) > 0:
                 raise ValidationError(
@@ -192,8 +192,7 @@ class StockMoveLine(models.Model):
                           ' but you are using another one (%s)' %
                           (ml_result_package.name, result_package.name)))
 
-
-    def _update_product_ids(self, product, product_ids, info):
+    def _update_products_info(self, product, products_info, info):
         """ For each (key, value) in info it merges to the corresponding
             produc info if it alreay exists.
 
@@ -215,19 +214,19 @@ class StockMoveLine(models.Model):
                         _('The number of serial numbers and quantity done'
                           ' does not match for product %s') % product.name)
 
-        if not product in product_ids:
-            product_ids[product] = info.copy()
+        if not product in products_info:
+            products_info[product] = info.copy()
         else:
             for key, value in info.items():
                 if isinstance(value, int) or isinstance(value,float):
-                    product_ids[product][key] += value
+                    products_info[product][key] += value
                 elif isinstance(value, list):
-                    product_ids[product][key].extend(value)
+                    products_info[product][key].extend(value)
                 else:
                     raise ValidationError(
                             _('Unexpected type for move line parameter %s') % key)
 
-        return product_ids
+        return products_info
 
     def _check_enough_quantity(self, products_info, picking_id=None):
         """ Check that move_lines in self can fulfill the quantity done
