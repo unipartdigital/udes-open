@@ -32,58 +32,6 @@ class StockPicking(models.Model):
         help='Created Back Orders',
     )
 
-    # Need to loop over backorders and create a list of backorders with this pickings id
-    def _compute_created_back_orders(self):
-
-        # find all picking with backorder_id == picking.id
-
-        # when a backorder is created, that backorders 'backorder_id' is the id of the picking that created it
-        # If picking id 11 created backorder 'x', backorder x's 'backorder_id' == 11
-
-        #
-        # print("===================================================")
-        # print(created_backorder)
-
-        print("===============> back orders Self: ")
-        print(self)
-
-        Picking = self.env['stock.picking']
-        # created_backorders =  Picking.get_pickings(backorder_id=.id)
-        # print("===============> Created Backorders returned as: ")
-        # print(created_backorders)
-        # print("===============> Caps Picking: ")
-        # print(Picking)
-
-        # import pdb;
-        # pdb.set_trace()
-
-        # print("===============> Caps Picking ID: ")
-        # print(Picking.id)
-
-        # self[0].u_created_back_orders = Picking.get_pickings(backorder_id=self[0].id)
-
-        for picking in self:
-            # append to this list here
-            picking.u_created_back_orders = Picking.get_pickings(backorder_id=picking.id)
-
-
-
-        #     print("\n===============> New Loop: ")
-        #
-        #     print("===============> Picking: ")
-        #     print(picking)
-        #
-        #     print("===============> Picking ID: ")
-        #     print(picking.id)
-        #
-        #     # this is apparently the wrong picking
-        #     created_backorders = Picking.get_pickings(backorder_id=picking.id)
-        #     print("===============> Created Backorders returned as: ")
-        #     print(created_backorders)
-
-
-
-
     # search helpers for source and destination package
     u_package_id = fields.Many2one('stock.quant.package', 'Package',
                                    related='move_line_ids.package_id',
@@ -101,12 +49,11 @@ class StockPicking(models.Model):
                  'move_lines.move_orig_ids.picking_id',
                  'move_lines.move_dest_ids.picking_id')
     def _compute_related_picking_ids(self):
-        print("===============> next pickings self: ")
-        print(self)
-
         Picking = self.env['stock.picking']
         for picking in self:
-            picking.u_created_back_orders = Picking.get_pickings(backorder_id=picking.id)
+
+            if picking.id:
+                picking.u_created_back_orders = Picking.get_pickings(backorder_id=picking.id)
 
             picking.u_prev_picking_ids = picking.mapped(
                 'move_lines.move_orig_ids.picking_id'
