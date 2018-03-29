@@ -554,15 +554,11 @@ class StockPicking(models.Model):
         if picking_type_ids is None:
             picking_type_ids = warehouse.get_picking_types().ids
 
-        # print ("====================> Function received self as:")
-        # print (self)
         if self:
-            # print ("====================> Entered self statement")
             domain = [('id', 'in', self.mapped('id'))]
         elif origin:
             domain = [('origin', '=', origin)]
         elif backorder_id:
-            # print ("====================> Entered backorder_id statement")
             domain = [('backorder_id', '=', backorder_id)]
         elif result_package_id:
             domain = [('move_line_ids.result_package_id', '=', result_package_id)]
@@ -609,9 +605,6 @@ class StockPicking(models.Model):
         # add extra domain if there is any
         if extra_domain:
             domain.extend(extra_domain)
-
-        # import pdb;
-        # pdb.set_trace()
 
         pickings = Picking.search(domain, order=order)
 

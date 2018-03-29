@@ -23,7 +23,6 @@
         'wizard/change_quant_location_view.xml',
         'views/stock_quant_views.xml',
         'views/create_planned_transfer_asset.xml',
-        # 'views/create_planned_transfer_asset.xml',
     ],
     'qweb': [
         'static/src/xml/create_planned_transfer_button.xml'
