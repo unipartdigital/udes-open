@@ -36,6 +36,7 @@ Physical instances of products at a location are modelled as quants. Short of "q
 | id | int | |
 | package_id | stock.quant.package | (see representation of the packages below) |
 | product_id | product.product | (see representation of the products above) |
+| location_id | stock.location | (See representation of the location above) |
 | quantity | float | The physical quantity of the stock |
 | reserved_quantity | float | The number of this quantity that has been reserved |
 
@@ -50,7 +51,7 @@ Physical packages of products. They can be used to represent parcels sent to cus
 | name             | string  | |
 | package_id       | int     | ID of the parent package if it exists |
 | children_ids     | [{stock.quant.package}] | Children packages information if there is any |
-| quants           | [{stock.quant}] | Stock inside the package |
+| quant_ids           | [{stock.quant}] | Stock inside the package |
 
 ## Stock Picking (model: stock.picking)
 
