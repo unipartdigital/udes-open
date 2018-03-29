@@ -51,7 +51,6 @@ class StockPicking(models.Model):
     def _compute_related_picking_ids(self):
         Picking = self.env['stock.picking']
         for picking in self:
-
             if picking.id:
                 picking.u_created_back_orders = Picking.get_pickings(backorder_id=picking.id)
 
