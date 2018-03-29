@@ -75,10 +75,8 @@ class StockLocation(models.Model):
                 "barcode": self.barcode,
                 }
 
-        # @todo: (ale) consider renaming the entry to `quant_ids`
-        # for consistency
         if load_quants:
-            info['quants_ids'] = self.quant_ids.get_info()
+            info['quant_ids'] = self.quant_ids.get_info()
 
         return info
 
