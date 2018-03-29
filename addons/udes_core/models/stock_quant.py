@@ -88,6 +88,7 @@ class StockQuant(models.Model):
         """
         self.ensure_one()
 
+        location_info = self.location_id.get_info()
         package_info = False
         if self.package_id:
             package_info = self.package_id.get_info()[0]
@@ -95,9 +96,10 @@ class StockQuant(models.Model):
         return {"id": self.id,
                 "package_id": package_info,
                 "product_id": self.product_id.get_info()[0],
+                "location_id": location_info[0],
                 "quantity": self.quantity,
                 "reserved_quantity": self.reserved_quantity,
-               }
+        }
 
     def get_info(self):
         """ Return a list with the information of each quant in self.

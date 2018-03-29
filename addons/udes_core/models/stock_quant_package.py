@@ -17,14 +17,12 @@ class StockQuantPackage(models.Model):
             - quant_ids: [{stock.quants}]
         """
         self.ensure_one()
-        location_info = self.location_id.get_info()
 
         info = {"id": self.id,
-                "name": self.name,
-                "location_id": location_info[0] if location_info else {}}
+                "name": self.name}
 
         if extended:
-            info['quants'] = self.quant_ids.get_info()
+            info['quant_ids'] = self.quant_ids.get_info()
 
         return info
 
