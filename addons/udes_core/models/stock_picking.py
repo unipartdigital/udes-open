@@ -17,14 +17,21 @@ class StockPicking(models.Model):
     # compute previous and next pickings
     u_prev_picking_ids = fields.One2many(
         'stock.picking', string='Previous Pickings',
-        compute='_compute_prev_next_picking_ids',
+        compute='_compute_related_picking_ids',
         help='Previous pickings',
     )
     u_next_picking_ids = fields.One2many(
         'stock.picking', string='Next Pickings',
-        compute='_compute_prev_next_picking_ids',
+        compute='_compute_related_picking_ids',
         help='Next pickings',
     )
+
+    u_created_back_orders = fields.One2many(
+        'stock.picking', string='Created Back Orders',
+        compute='_compute_related_picking_ids',
+        help='Created Back Orders',
+    )
+
     # search helpers for source and destination package
     u_package_id = fields.Many2one('stock.quant.package', 'Package',
                                    related='move_line_ids.package_id',
@@ -41,8 +48,12 @@ class StockPicking(models.Model):
                  'move_lines.move_dest_ids',
                  'move_lines.move_orig_ids.picking_id',
                  'move_lines.move_dest_ids.picking_id')
-    def _compute_prev_next_picking_ids(self):
+    def _compute_related_picking_ids(self):
+        Picking = self.env['stock.picking']
         for picking in self:
+            if picking.id:
+                picking.u_created_back_orders = Picking.get_pickings(backorder_id=picking.id)
+
             picking.u_prev_picking_ids = picking.mapped(
                 'move_lines.move_orig_ids.picking_id'
             )
@@ -109,8 +120,8 @@ class StockPicking(models.Model):
         self.with_context(quant_ids=quant_ids)._create_moves(quants.group_quantity_by_product(), **kwargs)
 
     def _create_moves(self, products_info, values=None,
-                            confirm=False, assign=False,
-                            result_package=None, unexpected=False):
+                      confirm=False, assign=False,
+                      result_package=None, unexpected=False):
         """ Creates moves from products_info and adds it to the picking
             in self. Where products_info is a dictionary mapped by
             product ids and the value are the quantities.
@@ -305,7 +316,6 @@ class StockPicking(models.Model):
         Package = self.env['stock.quant.package']
         self.assert_valid_state()
 
-
         values = {}
 
         # Updates stock picking with generic picking info
@@ -361,7 +371,7 @@ class StockPicking(models.Model):
                       ' are move lines todo'))
             # by default action_done will backorder the stock.move.lines todo
             # validate stock.picking
-            picking.action_done() # old do_transfer
+            picking.action_done()  # old do_transfer
 
     def _requires_backorder(self, mls):
         """ Checks if a backorder is required
@@ -374,8 +384,8 @@ class StockPicking(models.Model):
         # self.mapped('move_lines.move_orig_ids').filtered(lambda x: x.state not in ('done', 'cancel'))
         for move in self.move_lines:
             if move not in mls_moves or \
-            not move.move_line_ids == mls.filtered(lambda x: x.move_id == move) or \
-            move.move_orig_ids.filtered(lambda x: x.state not in ('done', 'cancel')):
+                    not move.move_line_ids == mls.filtered(lambda x: x.move_id == move) or \
+                    move.move_orig_ids.filtered(lambda x: x.state not in ('done', 'cancel')):
                 return True
         return False
 
@@ -406,8 +416,8 @@ class StockPicking(models.Model):
             current_mls = mls.filtered(lambda x: x.move_id == current_move)
 
             if current_mls == current_move.move_line_ids and \
-               not current_move.move_orig_ids.filtered(
-                            lambda x: x.state not in ('done', 'cancel')):
+                    not current_move.move_orig_ids.filtered(
+                        lambda x: x.state not in ('done', 'cancel')):
                 bk_move = current_move
             else:
                 total_qty_done = sum(current_mls.mapped('qty_done'))
@@ -417,12 +427,12 @@ class StockPicking(models.Model):
                                              'move_orig_ids': [],
                                              'ordered_qty': total_ordered_qty,
                                              'product_uom_qty': total_qty_done,
-                                            })
+                                             })
                 current_mls.write({'move_id': bk_move.id})
                 current_move.with_context(bypass_reservation_update=True).write({
-                                       'ordered_qty': current_move.ordered_qty - total_ordered_qty,
-                                       'product_uom_qty': current_move.product_uom_qty - total_qty_done,
-                                    })
+                    'ordered_qty': current_move.ordered_qty - total_ordered_qty,
+                    'product_uom_qty': current_move.product_uom_qty - total_qty_done,
+                })
 
                 if current_move.move_orig_ids:
                     (bk_move | current_move).update_orig_ids(current_move.move_orig_ids)
@@ -431,11 +441,11 @@ class StockPicking(models.Model):
 
         # Create picking for completed move lines
         bk_picking = self.copy({
-                'name': '/',
-                'move_lines': [],
-                'move_line_ids': [],
-                'backorder_id': self.id,
-            })
+            'name': '/',
+            'move_lines': [],
+            'move_line_ids': [],
+            'backorder_id': self.id,
+        })
         new_moves.write({'picking_id': bk_picking.id, 'state': 'assigned'})
         new_moves.mapped('move_line_ids').write({'picking_id': bk_picking.id, 'state': 'assigned'})
         return bk_picking
