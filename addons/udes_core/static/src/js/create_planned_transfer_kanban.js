@@ -2,6 +2,7 @@ odoo.define('udes_core.CreatePlannedTransferKanban', function (require) {
   "use strict";
 
   var KanbanController = require('web.KanbanController');
+  var GenericHelperFunctions = require('udes_core.GenericHelperFunctions');
 
   var udesKanbanController = KanbanController.extend({
 
@@ -22,7 +23,7 @@ odoo.define('udes_core.CreatePlannedTransferKanban', function (require) {
 
         treeViewAction: function () {
 
-          var hashDict = parseParms(window.location.hash);
+          var hashDict = GenericHelperFunctions.parseUrlParams(window.location.hash);
 
           //Build the context string based on active_id
           var contextString =
@@ -65,21 +66,3 @@ odoo.define('udes_core.createPlannedTransferKanban', function (require) {
   var KanbanController = require('udes_core.CreatePlannedTransferKanban');
   new KanbanController();
 });
-
-/**
- * Parse params from the location hash
- * @param str String to parse
- * @returns {Dictionary of hash values}
- */
-function parseParms(str) {
-  var pieces = str.split("&"), data = {}, i, parts;
-  // process each query pair
-  for (i = 0; i < pieces.length; i++) {
-    parts = pieces[i].split("=");
-    if (parts.length < 2) {
-      parts.push("");
-    }
-    data[decodeURIComponent(parts[0])] = decodeURIComponent(parts[1]);
-  }
-  return data;
-}
