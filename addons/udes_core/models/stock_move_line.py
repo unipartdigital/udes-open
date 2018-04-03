@@ -28,7 +28,7 @@ class StockMoveLine(models.Model):
             - result_package = string or id
             - package = string or id
             - product_ids = list of dictionaries, whose keys will be
-                              barcode, qty, lot_numbers
+                              barcode, qty, lot_names
         """
         MoveLine = self.env['stock.move.line']
         Location = self.env['stock.location']
@@ -109,7 +109,7 @@ class StockMoveLine(models.Model):
 
         # if any of the products is tracked by serial number, filter if needed
         for product in move_lines.mapped('product_id').filtered(lambda ml: ml.tracking == 'serial'):
-            serial_numbers = products_info[product]['lot_numbers']
+            serial_numbers = products_info[product]['lot_names']
             repeated_serial_numbers = [sn for sn, num in Counter(serial_numbers).items() if num > 1]
             if len(repeated_serial_numbers) > 0:
                 raise ValidationError(
@@ -205,11 +205,11 @@ class StockMoveLine(models.Model):
                 damaged_qty, damaged_serial_numbers
         """
         if product.tracking == 'serial':
-            if not 'lot_numbers' in info:
+            if not 'lot_names' in info:
                 raise ValidationError(
                         _('Validating a serial numbered product without'
                           ' serial numbers'))
-            if len(info['lot_numbers']) != info['qty']:
+            if len(info['lot_names']) != info['qty']:
                 raise ValidationError(
                         _('The number of serial numbers and quantity done'
                           ' does not match for product %s') % product.name)
@@ -303,17 +303,17 @@ class StockMoveLine(models.Model):
             ml_lot_name = self.lot_id.name
             if ml_lot_name:
                 # check that is in the serial numbers list
-                if ml_lot_name not in info['lot_numbers']:
+                if ml_lot_name not in info['lot_names']:
                     raise ValidationError(
                             _('Cannot find serial number %s in the list'
                               ' of serial numbers to validate') %
                             ml_lot_name)
-                i = info['lot_numbers'].index(ml_lot_name)
+                i = info['lot_names'].index(ml_lot_name)
                 # remove it from the list, no need to set lot_name because
                 # the move line already has a lot_id
-                info['lot_numbers'].pop(i)
+                info['lot_names'].pop(i)
             else:
-                values['lot_name'] = info['lot_numbers'].pop()
+                values['lot_name'] = info['lot_names'].pop()
 
         return (values, products_info)
 
