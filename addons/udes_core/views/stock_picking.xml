@@ -12,12 +12,20 @@
             <xpath expr="//page[@name='extra']" position="inside">
                 <group>
                     <group>
-                        <field name="u_prev_picking_ids" widget="one2many_list" mode="kanban" />
+                        <field name="u_prev_picking_ids" widget="one2many_list" mode="kanban"/>
                     </group>
                     <group>
-                        <field name="u_next_picking_ids" widget="one2many_list" mode="kanban" />
+                        <field name="u_next_picking_ids" widget="one2many_list" mode="kanban"/>
+                    </group>
+                    <group>
+                        <field name="u_created_back_orders" widget="one2many_list" mode="kanban"/>
                     </group>
                 </group>
+            </xpath>
+
+            <!--Hide unlock/lock button-->
+            <xpath expr="//button[@name='action_toggle_is_locked']" position="attributes">
+                <attribute name="invisible">1</attribute>
             </xpath>
 
             <xpath expr="//field[@name='group_id']" position="attributes">
@@ -41,5 +49,34 @@
             </xpath>
         </field>
     </record>
+
+    <!-- Change the Dashboard -->
+    <record id="stock_picking_type_kanban_items" model="ir.ui.view">
+        <field name="name">stock_picking_type_kanban drafts</field>
+        <field name="model">stock.picking.type</field>
+        <field name="inherit_id" ref="stock.stock_picking_type_kanban"/>
+        <field name="arch" type="xml">
+
+            <!-- Change the Late count to Red -->
+            <xpath expr="//div[@t-if='record.count_picking_late.raw_value > 0']" position="attributes">
+                <attribute name="style">color:red;font-weight:bold</attribute>
+            </xpath>
+
+        </field>
+    </record>
+
+    <!--Customisations for stock.stock_picking_type_kanban-->
+    <record id="stock_view_picking_type_kanban" model="ir.ui.view">
+        <field name="name">stock_view_picking_type_kanban</field>
+        <field name="model">stock.picking.type</field>
+        <field name="inherit_id" ref="stock.stock_picking_type_kanban"/>
+        <field name="arch" type="xml">
+            <!-- Add option to remove immediate transfer button -->
+            <xpath expr="//a[contains(., 'Immediate Transfer')]" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+        </field>
+    </record>
+
 
 </odoo>
