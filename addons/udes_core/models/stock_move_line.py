@@ -17,18 +17,18 @@ class StockMoveLine(models.Model):
         """
         return self.filtered(lambda ml: ml.qty_done < ml.product_uom_qty)
 
-    def mark_as_done(self, location_dest=None, result_package=None, package=None, products_info=None):
+    def mark_as_done(self, location_dest=None, result_package=None, package=None, product_ids=None):
         """ Marks as done the move lines in self and updates location_dest_id
             and result_package_id if they are set.
 
-            When products_info is set, only matching move lines from self will
+            When product_ids is set, only matching move lines from self will
             be marked as done for a specific quantity.
 
             - location_dest = string or id
             - result_package = string or id
             - package = string or id
-            - products_info = list of dictionaries, whose keys will be
-                              product_barcode, qty, serial_numbers
+            - product_ids = list of dictionaries, whose keys will be
+                              barcode, qty, lot_names
         """
         MoveLine = self.env['stock.move.line']
         Location = self.env['stock.location']
@@ -53,11 +53,11 @@ class StockMoveLine(models.Model):
             package = Package.get_package(package)
 
         products_info_by_product = {}
-        if products_info:
+        if product_ids:
             # TODO: move functions into picking instead of parameter
             picking = move_lines.mapped('picking_id')
             # prepare products_info
-            products_info_by_product = move_lines._prepare_products_info(deepcopy(products_info))
+            products_info_by_product = move_lines._prepare_products_info(deepcopy(product_ids))
             # filter move_lines by products in producst_info_by_product and undone
             move_lines = move_lines._filter_by_products_info(products_info_by_product)
             # filter unfinished move lines
@@ -97,8 +97,8 @@ class StockMoveLine(models.Model):
         return mls_done
 
     def _filter_by_products_info(self, products_info):
-        """ Filter the move_lines in self by the products in products_info.
-            When a product is tracked by serial number:
+        """ Filter the move_lines in self by the products in product_ids.
+            When a product is tracked by lot number:
             - when they have lot_id set, they are also filtered by
               serial number and check that they are not done
             - when they have lot_name, it is checked to avoid repeated
@@ -109,7 +109,7 @@ class StockMoveLine(models.Model):
 
         # if any of the products is tracked by serial number, filter if needed
         for product in move_lines.mapped('product_id').filtered(lambda ml: ml.tracking == 'serial'):
-            serial_numbers = products_info[product]['serial_numbers']
+            serial_numbers = products_info[product]['lot_names']
             repeated_serial_numbers = [sn for sn, num in Counter(serial_numbers).items() if num > 1]
             if len(repeated_serial_numbers) > 0:
                 raise ValidationError(
@@ -192,7 +192,6 @@ class StockMoveLine(models.Model):
                           ' but you are using another one (%s)' %
                           (ml_result_package.name, result_package.name)))
 
-
     def _update_products_info(self, product, products_info, info):
         """ For each (key, value) in info it merges to the corresponding
             produc info if it alreay exists.
@@ -206,11 +205,11 @@ class StockMoveLine(models.Model):
                 damaged_qty, damaged_serial_numbers
         """
         if product.tracking == 'serial':
-            if not 'serial_numbers' in info:
+            if not 'lot_names' in info:
                 raise ValidationError(
                         _('Validating a serial numbered product without'
                           ' serial numbers'))
-            if len(info['serial_numbers']) != info['qty']:
+            if len(info['lot_names']) != info['qty']:
                 raise ValidationError(
                         _('The number of serial numbers and quantity done'
                           ' does not match for product %s') % product.name)
@@ -262,16 +261,16 @@ class StockMoveLine(models.Model):
 
         return move_lines
 
-    def _prepare_products_info(self, products_info):
+    def _prepare_products_info(self, product_ids):
         """ Reindex products_info by product.product model, merge repeated
             products info into one
         """
         Product = self.env['product.product']
 
         products_info_by_product = {}
-        for info in products_info:
-            product = Product.get_product(info['product_barcode'])
-            del info['product_barcode']
+        for info in product_ids:
+            product = Product.get_product(info['barcode'])
+            del info['barcode']
             products_info_by_product = self._update_products_info(product, products_info_by_product, info)
         return products_info_by_product
 
@@ -304,17 +303,17 @@ class StockMoveLine(models.Model):
             ml_lot_name = self.lot_id.name
             if ml_lot_name:
                 # check that is in the serial numbers list
-                if ml_lot_name not in info['serial_numbers']:
+                if ml_lot_name not in info['lot_names']:
                     raise ValidationError(
                             _('Cannot find serial number %s in the list'
                               ' of serial numbers to validate') %
                             ml_lot_name)
-                i = info['serial_numbers'].index(ml_lot_name)
+                i = info['lot_names'].index(ml_lot_name)
                 # remove it from the list, no need to set lot_name because
                 # the move line already has a lot_id
-                info['serial_numbers'].pop(i)
+                info['lot_names'].pop(i)
             else:
-                values['lot_name'] = info['serial_numbers'].pop()
+                values['lot_name'] = info['lot_names'].pop()
 
         return (values, products_info)
 

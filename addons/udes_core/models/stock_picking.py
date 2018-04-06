@@ -271,7 +271,7 @@ class StockPicking(models.Model):
             result_package_name=None,
             package_name=None,
             move_parent_package=False,
-            products_info=None,
+            product_ids=None,
             picking_info=None,
             validate_real_time=False,
     ):
@@ -302,10 +302,10 @@ class StockPicking(models.Model):
                 Defaults to False
             @param package_name: string
                 Name of the package of the picking to be marked as done
-            @param products_info: Array of dictionaries
+            @param product_ids: Array of dictionaries
                 An array with the products information to be marked as done,
-                where each dictionary contains: product_barcode, qty and
-                serial numbers if needed
+                where each dictionary contains: barcode, qty and
+                lot numbers if needed
             @param picking_info: dictionary
                 Generic picking information to update the stock picking with
             @param (optional) validate_real_time: Boolean
@@ -347,16 +347,16 @@ class StockPicking(models.Model):
             values['package'] = package_name
             package = Package.get_package(package_name)
             move_lines = move_lines.get_package_move_lines(package)
-            if not products_info:
+            if not product_ids:
                 # a full package is being validated
                 # check if all parts have been reserved
                 package.assert_reserved_full_package(move_lines)
 
-        if products_info:
-            values['products_info'] = products_info
+        if product_ids:
+            values['product_ids'] = product_ids
 
         picking = self
-        if package_name or products_info or force_validate:
+        if package_name or product_ids or force_validate:
             # mark_as_done the stock.move.lines
             mls_done = move_lines.mark_as_done(**values)
 
