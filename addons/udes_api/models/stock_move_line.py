@@ -9,17 +9,17 @@ from odoo.exceptions import ValidationError
 class StockMoveLine(models.Model):
     _inherit = 'stock.move.line'
 
-    def mark_as_done(self, location_dest=None, result_package=None, package=None, products_info=None):
+    def mark_as_done(self, location_dest=None, result_package=None, package=None, product_ids=None):
         """ Extend mark_as_done function to handle another level of packages and
             use u_target_storage_format.
         """
         result_package, parent_package = \
-                self._prepare_result_packages(package, result_package, products_info)
+                self._prepare_result_packages(package, result_package, product_ids)
 
         res = super(StockMoveLine, self).mark_as_done(location_dest=location_dest,
                                                       result_package=result_package,
                                                       package=package,
-                                                      products_info=products_info)
+                                                      product_ids=product_ids)
 
         if parent_package:
             res.write({'u_result_parent_package_id': parent_package.id})
