@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="add_create_planned_transfer" name="create_planned" inherit_id="web.assets_backend">
+        <xpath expr="." position="inside">
+            <script type="text/javascript" src="/udes_core/static/src/js/create_planned_transfer_button.js"></script>
+            <script type="text/javascript" src="/udes_core/static/src/js/create_planned_transfer_kanban.js"></script>
+            <script type="text/javascript" src="/udes_core/static/src/js/create_planned_transfer_formview.js"></script>
+            <script type="text/javascript" src="/udes_core/static/src/js/generic_helper_functions.js"></script>
+        </xpath>
+    </template>
+</odoo>
