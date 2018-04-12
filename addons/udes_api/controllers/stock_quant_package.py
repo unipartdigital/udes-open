@@ -26,9 +26,14 @@ class Package(UdesApi):
         if not identifier:
             raise ValidationError(_('You need to provide an id or name for the package.'))
 
-        package = Package.get_package(identifier)
+        package = Package.get_package(identifier, no_results=True)
 
-        if check_reserved:
-            package.assert_not_reserved()
+        if package:
+            if check_reserved:
+                package.assert_not_reserved()
 
-        return package.get_info(extended=True)[0]
+        package_info = package.get_info(extended=True)
+
+        if package:
+            return package_info[0]
+        return package_info
