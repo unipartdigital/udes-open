@@ -362,6 +362,7 @@ HTTP Method: GET
 Old method(s): get_quants_from_barcode
 ```
 Search for a package by id or name and returns a stock.quant.package object that match the given criteria.
+If no package can be found then this will return an empty array
 
 * @param package_id - (optional) the package's id
 * @param package_name - (optional) this is a string that entirely matches the name
