@@ -394,7 +394,8 @@ class StockLocation(models.Model):
                     package = Package.create({})
                     new_packages[package_name] = package
             else:
-                package = Package.get_package(package_name)
+                # It might be a new package, so create=True
+                package = Package.get_package(package_name, create=True)
 
             package_id = False if package is None else package.id
 
