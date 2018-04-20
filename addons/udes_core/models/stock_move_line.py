@@ -4,7 +4,7 @@ from odoo import models,  _
 from odoo.exceptions import ValidationError
 from odoo.tools.float_utils import float_compare, float_round
 from copy import deepcopy
-
+from itertools import groupby
 from collections import Counter, defaultdict
 
 
@@ -376,7 +376,6 @@ class StockMoveLine(models.Model):
 
         return res
 
-
     def _get_all_products_quantities(self):
         '''This function computes the different product quantities for the given move_lines
         '''
@@ -424,5 +423,51 @@ class StockMoveLine(models.Model):
         res = []
         for line in self:
             res.append(line._prepare_info())
+
+        return res
+
+    def sort_move_lines(self):
+        """ TODO: better name
+
+            Sort by location and merge move lines by key
+                where key = location, product, package
+                    mabye also lot number
+
+            Returns list of dictionaries:
+                location_id, product_id, package_id, lot_ids, picking_ids,
+                picking_type_id, qty_todo and qty_done
+
+            TODO: add result_package to key and result
+        """
+        MoveLine = self.env['stock.move.line']
+        Location = self.env['stock.location']
+
+        by_key = lambda ml: (ml.location_id.id,
+                             ml.product_id.id,
+                             ml.package_id.id)
+
+        grouped_mls = groupby(self.sorted(by_key), key=by_key)
+        res = []
+        for (loc_id, prod_id, pack_id), _mls in grouped_mls:
+            mls = MoveLine.union(*_mls)
+            lot_ids = mls.mapped('lot_id')
+            pickings = mls.mapped('picking_id')
+            picking_type = pickings.mapped('picking_type_id')[0]
+            location = Location.browse(loc_id)
+            action = {'location_id': {'id': loc_id,
+                                      'name': location.name,
+                                      },
+                      'product_id': prod_id,
+                      'package_id': pack_id,
+                      'lot_ids': lot_ids if lot_ids else None,
+                      'picking_ids': pickings.ids,
+                      'picking_type_id': picking_type.id,
+                      'qty_done': sum(mls.mapped('qty_done')),
+                      'product_qty': sum(mls.mapped('product_qty'))
+                      }
+
+            res.append(action)
+
+        res.sort(key=lambda x: x['location_id']['name'])
 
         return res
