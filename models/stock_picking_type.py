@@ -53,6 +53,13 @@ class StockPickingType(models.Model):
         default=False,
         help="Flag to indicate reservations should be rounded up to entire packages."
         )
+    u_confirm_serial_numbers = fields.Selection([
+        ('no', 'No'),
+        ('yes', 'Yes'),
+        ('first_last', 'First/Last'),
+    ],
+        string='Confirm Serial Numbers',
+    )
 
     def _prepare_info(self):
         """
@@ -67,6 +74,7 @@ class StockPickingType(models.Model):
             - u_user_scans: string
             - u_enforce_location_dest_id: boolean
             - u_reserve_as_packages: boolean
+            - u_confirm_serial_numbers: string
         """
         info = super(StockPickingType, self)._prepare_info()
         info.update({
@@ -80,5 +88,6 @@ class StockPickingType(models.Model):
             'u_user_scans': self.u_user_scans,
             'u_enforce_location_dest_id': self.u_enforce_location_dest_id,
             'u_reserve_as_packages': self.u_reserve_as_packages,
+            'u_confirm_serial_numbers': self.u_confirm_serial_numbers,
             })
         return info
