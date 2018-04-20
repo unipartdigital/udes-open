@@ -401,7 +401,7 @@ class StockPicking(models.Model):
         self.ensure_one()
 
         if mls is None:
-            mls = self.move_lines.filtered(lambda x: x.qty_done > 0)
+            mls = self.move_line_ids.filtered(lambda x: x.qty_done > 0)
 
         # test that the intercetion of mls and move lines in picking
         # therefore we have some relevent move lines
