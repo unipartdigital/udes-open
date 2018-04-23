@@ -17,7 +17,7 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         cls.picking_type_in.default_location_src_id = cls.env.ref('stock.stock_location_suppliers')
 
     def validate_move_lines(self, move_lines, product, ordered_qty, qty_done, is_package=False,
-                            is_pallet=False, package_name=False, serial_numbers=False):
+                            is_pallet=False, package_name=False, lot_names=False):
         """ Validates move lines based on the inputs"""
 
         self.assertTrue(len(move_lines) > 0)
@@ -25,8 +25,8 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         self.assertEqual(sum(move_lines.mapped('qty_done')), qty_done)
         self.assertEqual(sum(move_lines.mapped('ordered_qty')), ordered_qty)
 
-        if serial_numbers:
-            self.assertEqual(sorted(move_lines.mapped('lot_name')), sorted(serial_numbers))
+        if lot_names:
+            self.assertEqual(sorted(move_lines.mapped('lot_name')), sorted(lot_names))
 
         if is_pallet and not package_name:
             # In case the person writting the test forgets package_name
@@ -105,15 +105,15 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
-        products_info = [{'product_barcode': self.apple.barcode, 'qty': 4}]
+        product_ids = [{'barcode': self.apple.barcode, 'qty': 4}]
         self.picking_type_in.u_target_storage_format = 'product'
         self.validate_move_lines(picking.move_line_ids, self.apple, 4, 0)
         with self.assertRaises(ValidationError) as e:
-            picking.update_picking(products_info=products_info, result_package_name=package.name)
+            picking.update_picking(product_ids=product_ids, result_package_name=package.name)
         self.assertEqual(e.exception.name, 'Invalid parameters for products target'
                                            ' storage format.',
                          'No/Incorrect error message was thrown')
-        picking.update_picking(products_info=products_info)
+        picking.update_picking(product_ids=product_ids)
         self.validate_move_lines(picking.move_line_ids, self.apple, 4, 4)
         picking.update_picking(validate=True)
         qnt_domain = [
@@ -136,11 +136,11 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
-        products_info = [{'product_barcode': self.apple.barcode, 'qty': 4}]
+        product_ids = [{'barcode': self.apple.barcode, 'qty': 4}]
         self.picking_type_in.u_target_storage_format = 'package'
 
         self.validate_move_lines(picking.move_line_ids, self.apple, 4, 0)
-        picking.update_picking(products_info=products_info, result_package_name=package.name)
+        picking.update_picking(product_ids=product_ids, result_package_name=package.name)
         self.validate_move_lines(picking.move_line_ids, self.apple, 4, 4, package_name=package.name,
                                  **validation_args)
         picking.update_picking(validate=True)
@@ -161,16 +161,16 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
-        products_info = [{'product_barcode': self.apple.barcode, 'qty': 4}]
+        product_ids = [{'barcode': self.apple.barcode, 'qty': 4}]
         self.picking_type_in.u_target_storage_format = 'pallet_products'
 
         with self.assertRaises(ValidationError) as e:
-            picking.update_picking(products_info=products_info)
+            picking.update_picking(product_ids=product_ids)
         self.assertEqual(e.exception.name, 'Invalid parameters for target storage format,'
                                            ' expecting result package.',
                          'No/Incorrect error message was thrown')
 
-        picking.update_picking(products_info=products_info, result_package_name='test_package')
+        picking.update_picking(product_ids=product_ids, result_package_name='test_package')
         self.validate_move_lines(picking.move_line_ids, self.apple, 4, 4,
                                  package_name='test_package', **validation_args)
         picking.update_picking(validate=True)
@@ -192,16 +192,16 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
-        products_info = [{'product_barcode': self.apple.barcode, 'qty': 4}]
+        product_ids = [{'barcode': self.apple.barcode, 'qty': 4}]
         self.picking_type_in.u_target_storage_format = 'pallet_packages'
 
         self.validate_move_lines(picking.move_line_ids, self.apple, 4, 0)
         with self.assertRaises(ValidationError) as e:
-            picking.update_picking(products_info=products_info)
+            picking.update_picking(product_ids=product_ids)
         self.assertEqual(e.exception.name, 'Invalid parameters for target storage format,'
                                            ' expecting result package.',
                          'No/Incorrect error message was thrown')
-        picking.update_picking(products_info=products_info, result_package_name='test_package')
+        picking.update_picking(product_ids=product_ids, result_package_name='test_package')
         self.validate_move_lines(picking.move_line_ids, self.apple, 4, 4,
                                  package_name='test_package', **validation_args)
         picking.update_picking(validate=True)
@@ -222,8 +222,8 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
                                       confirm=True)
         self.validate_move_lines(picking.move_line_ids, self.apple, 2, 0)
         self.picking_type_in.u_target_storage_format = 'product'
-        products_info = [{'product_barcode': self.apple.barcode, 'qty': 4}]
-        picking.update_picking(products_info=products_info)
+        product_ids = [{'barcode': self.apple.barcode, 'qty': 4}]
+        picking.update_picking(product_ids=product_ids)
         self.validate_move_lines(picking.move_line_ids, self.apple, 2, 4)
         picking.update_picking(validate=True)
         qnt_domain = [
@@ -251,8 +251,8 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
 
         self.validate_move_lines(picking.move_line_ids, self.apple, 2, 0)
         self.picking_type_in.u_target_storage_format = 'package'
-        products_info = [{'product_barcode': self.apple.barcode, 'qty': 4}]
-        picking.update_picking(products_info=products_info, result_package_name=package.name)
+        product_ids = [{'barcode': self.apple.barcode, 'qty': 4}]
+        picking.update_picking(product_ids=product_ids, result_package_name=package.name)
         self.validate_move_lines(picking.move_line_ids, self.apple, 2, 4,
                                  package_name=package.name, **validation_args)
         picking.update_picking(validate=True)
@@ -278,8 +278,8 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
 
         self.validate_move_lines(picking.move_line_ids, self.apple, 2, 0)
         self.picking_type_in.u_target_storage_format = 'pallet_products'
-        products_info = [{'product_barcode': self.apple.barcode, 'qty': 4}]
-        picking.update_picking(products_info=products_info, result_package_name=package.name)
+        product_ids = [{'barcode': self.apple.barcode, 'qty': 4}]
+        picking.update_picking(product_ids=product_ids, result_package_name=package.name)
         self.validate_move_lines(picking.move_line_ids, self.apple, 2, 4,
                                  is_pallet=True, package_name=package.name)
         picking.update_picking(validate=True)
@@ -305,8 +305,8 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
 
         self.validate_move_lines(picking.move_line_ids, self.apple, 2, 0)
         self.picking_type_in.u_target_storage_format = 'pallet_packages'
-        products_info = [{'product_barcode': self.apple.barcode, 'qty': 4}]
-        picking.update_picking(products_info=products_info, result_package_name=package.name)
+        product_ids = [{'barcode': self.apple.barcode, 'qty': 4}]
+        picking.update_picking(product_ids=product_ids, result_package_name=package.name)
         self.validate_move_lines(picking.move_line_ids, self.apple, 2, 4,
                                  package_name=package.name, **validation_args)
         picking.update_picking(validate=True)
@@ -328,18 +328,18 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
                                       products_info=create_info,
                                       confirm=True)
         strawberry_sn = ['Strawberry0', 'Strawberry1']
-        products_info = [{
-                            'product_barcode': self.strawberry.barcode,
+        product_ids = [{
+                            'barcode': self.strawberry.barcode,
                             'qty': 2,
-                            'serial_numbers': strawberry_sn
+                            'lot_names': strawberry_sn
                         }]
 
 
         self.picking_type_in.u_target_storage_format = 'product'
         self.validate_move_lines(picking.move_line_ids, self.strawberry, 2, 0)
-        picking.update_picking(products_info=products_info)
+        picking.update_picking(product_ids=product_ids)
         self.validate_move_lines(picking.move_line_ids, self.strawberry, 2, 2,
-                                 serial_numbers=strawberry_sn)
+                                 lot_names=strawberry_sn)
         picking.update_picking(validate=True)
         validation_args = {'expected_location': self.picking_type_in.default_location_dest_id}
         qnt_domain = [
@@ -364,16 +364,16 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
                                       products_info=create_info,
                                       confirm=True)
         strawberry_sn = ['Strawberry0', 'Strawberry1']
-        products_info = [{
-                            'product_barcode': self.strawberry.barcode,
+        product_ids = [{
+                            'barcode': self.strawberry.barcode,
                             'qty': 2,
-                            'serial_numbers': strawberry_sn
+                            'lot_names': strawberry_sn
                         }]
         self.picking_type_in.u_target_storage_format = 'package'
         self.validate_move_lines(picking.move_line_ids, self.strawberry, 2, 0)
-        picking.update_picking(products_info=products_info, result_package_name=package.name)
+        picking.update_picking(product_ids=product_ids, result_package_name=package.name)
         self.validate_move_lines(picking.move_line_ids, self.strawberry, 2, 2,
-                                 serial_numbers=strawberry_sn, package_name=package.name,
+                                 lot_names=strawberry_sn, package_name=package.name,
                                  **validation_args)
         picking.update_picking(validate=True)
         validation_args.update({'expected_location': self.picking_type_in.default_location_dest_id})
@@ -394,16 +394,16 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
                                       products_info=create_info,
                                       confirm=True)
         strawberry_sn = ['Strawberry0', 'Strawberry1']
-        products_info = [{
-                            'product_barcode': self.strawberry.barcode,
+        product_ids = [{
+                            'barcode': self.strawberry.barcode,
                             'qty': 2,
-                            'serial_numbers': strawberry_sn
+                            'lot_names': strawberry_sn
                         }]
         self.picking_type_in.u_target_storage_format = 'pallet_products'
         self.validate_move_lines(picking.move_line_ids, self.strawberry, 2, 0)
-        picking.update_picking(products_info=products_info, result_package_name=package.name)
+        picking.update_picking(product_ids=product_ids, result_package_name=package.name)
         self.validate_move_lines(picking.move_line_ids, self.strawberry, 2, 2,
-                                 serial_numbers=strawberry_sn, package_name=package.name,
+                                 lot_names=strawberry_sn, package_name=package.name,
                                  **validation_args)
         picking.update_picking(validate=True)
         validation_args.update({'expected_location': self.picking_type_in.default_location_dest_id})
@@ -426,16 +426,16 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
                                       products_info=create_info,
                                       confirm=True)
         strawberry_sn = ['Strawberry0', 'Strawberry1']
-        products_info = [{
-                            'product_barcode': self.strawberry.barcode,
+        product_ids = [{
+                            'barcode': self.strawberry.barcode,
                             'qty': 2,
-                            'serial_numbers': strawberry_sn
+                            'lot_names': strawberry_sn
                         }]
         self.picking_type_in.u_target_storage_format = 'pallet_packages'
         self.validate_move_lines(picking.move_line_ids, self.strawberry, 2, 0)
-        picking.update_picking(products_info=products_info, result_package_name=package.name)
+        picking.update_picking(product_ids=product_ids, result_package_name=package.name)
         self.validate_move_lines(picking.move_line_ids, self.strawberry, 2, 2,
-                                 serial_numbers=strawberry_sn, package_name=package.name,
+                                 lot_names=strawberry_sn, package_name=package.name,
                                  **validation_args)
         picking.update_picking(validate=True)
         validation_args.update({
@@ -461,12 +461,12 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         banana_move_lines = picking.move_line_ids.filtered(lambda x: x.product_id == self.banana)
         self.validate_move_lines(apple_move_lines, self.apple, 4, 0)
         self.validate_move_lines(banana_move_lines, self.banana, 4, 0)
-        products_info = [
-                         {'product_barcode': self.apple.barcode, 'qty': 4},
-                         {'product_barcode': self.banana.barcode, 'qty': 4},
+        product_ids = [
+                         {'barcode': self.apple.barcode, 'qty': 4},
+                         {'barcode': self.banana.barcode, 'qty': 4},
                         ]
         self.picking_type_in.u_target_storage_format = 'product'
-        picking.update_picking(products_info=products_info)
+        picking.update_picking(product_ids=product_ids)
         self.validate_move_lines(apple_move_lines, self.apple, 4, 4)
         self.validate_move_lines(banana_move_lines, self.banana, 4, 4)
         picking.update_picking(validate=True)
@@ -500,12 +500,12 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         banana_move_lines = picking.move_line_ids.filtered(lambda x: x.product_id == self.banana)
         self.validate_move_lines(apple_move_lines, self.apple, 4, 0)
         self.validate_move_lines(banana_move_lines, self.banana, 4, 0)
-        products_info = [
-                         {'product_barcode': self.apple.barcode, 'qty': 4},
-                         {'product_barcode': self.banana.barcode, 'qty': 4},
+        product_ids = [
+                         {'barcode': self.apple.barcode, 'qty': 4},
+                         {'barcode': self.banana.barcode, 'qty': 4},
                         ]
         self.picking_type_in.u_target_storage_format = 'package'
-        picking.update_picking(products_info=products_info, result_package_name=package.name)
+        picking.update_picking(product_ids=product_ids, result_package_name=package.name)
         self.validate_move_lines(apple_move_lines, self.apple, 4, 4,
                                  package_name=package.name, **validation_args)
         self.validate_move_lines(banana_move_lines, self.banana, 4, 4,
@@ -534,12 +534,12 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         banana_move_lines = picking.move_line_ids.filtered(lambda x: x.product_id == self.banana)
         self.validate_move_lines(apple_move_lines, self.apple, 4, 0)
         self.validate_move_lines(banana_move_lines, self.banana, 4, 0)
-        products_info = [
-                         {'product_barcode': self.apple.barcode, 'qty': 4},
-                         {'product_barcode': self.banana.barcode, 'qty': 4},
+        product_ids = [
+                         {'barcode': self.apple.barcode, 'qty': 4},
+                         {'barcode': self.banana.barcode, 'qty': 4},
                         ]
         self.picking_type_in.u_target_storage_format = 'pallet_products'
-        picking.update_picking(products_info=products_info, result_package_name=package.name)
+        picking.update_picking(product_ids=product_ids, result_package_name=package.name)
         self.validate_move_lines(apple_move_lines, self.apple, 4, 4,
                                  package_name=package.name, **validation_args)
         self.validate_move_lines(banana_move_lines, self.banana, 4, 4,
@@ -569,12 +569,12 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         banana_move_lines = picking.move_line_ids.filtered(lambda x: x.product_id == self.banana)
         self.validate_move_lines(apple_move_lines, self.apple, 4, 0)
         self.validate_move_lines(banana_move_lines, self.banana, 4, 0)
-        products_info = [
-                         {'product_barcode': self.apple.barcode, 'qty': 4},
-                         {'product_barcode': self.banana.barcode, 'qty': 4},
+        product_ids = [
+                         {'barcode': self.apple.barcode, 'qty': 4},
+                         {'barcode': self.banana.barcode, 'qty': 4},
                         ]
         self.picking_type_in.u_target_storage_format = 'pallet_packages'
-        picking.update_picking(products_info=products_info, result_package_name=package.name)
+        picking.update_picking(product_ids=product_ids, result_package_name=package.name)
         self.validate_move_lines(apple_move_lines, self.apple, 4, 4,
                                  package_name=package.name, **validation_args)
         self.validate_move_lines(banana_move_lines, self.banana, 4, 4,
@@ -604,16 +604,16 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
-        products_info1 = [{'product_barcode': self.apple.barcode, 'qty': 2}]
-        products_info2 = [{'product_barcode': self.apple.barcode, 'qty': 3}]
+        product_ids1 = [{'barcode': self.apple.barcode, 'qty': 2}]
+        product_ids2 = [{'barcode': self.apple.barcode, 'qty': 3}]
         self.validate_move_lines(picking.move_line_ids, self.apple, 5, 0)
 
         self.picking_type_in.u_target_storage_format = 'package'
-        picking.update_picking(products_info=products_info1, result_package_name=package1.name)
+        picking.update_picking(product_ids=product_ids1, result_package_name=package1.name)
         apple_lines_done = picking.move_line_ids.filtered(lambda x: x.product_id == self.apple and x.qty_done > 0)
         self.validate_move_lines(apple_lines_done, self.apple, 2, 2, package_name=package1.name, **validation_args)
 
-        picking.update_picking(products_info=products_info2, result_package_name=package2.name)
+        picking.update_picking(product_ids=product_ids2, result_package_name=package2.name)
         apple_lines_done2 = picking.move_line_ids.filtered(lambda x: x.product_id == self.apple and x.qty_done > 0)
         apple_lines_done2 -= apple_lines_done
         self.validate_move_lines(apple_lines_done2, self.apple, 3, 3, package_name=package2.name, **validation_args)
@@ -644,17 +644,17 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
-        products_info1 = [{'product_barcode': self.apple.barcode, 'qty': 2}]
-        products_info2 = [{'product_barcode': self.apple.barcode, 'qty': 3}]
+        product_ids1 = [{'barcode': self.apple.barcode, 'qty': 2}]
+        product_ids2 = [{'barcode': self.apple.barcode, 'qty': 3}]
         self.validate_move_lines(picking.move_line_ids, self.apple, 5, 0)
 
         self.picking_type_in.u_target_storage_format = 'pallet_products'
-        picking.update_picking(products_info=products_info1, result_package_name=package1.name)
+        picking.update_picking(product_ids=product_ids1, result_package_name=package1.name)
         apple_lines_done = picking.move_line_ids.filtered(lambda x: x.product_id == self.apple and x.qty_done > 0)
         self.validate_move_lines(apple_lines_done, self.apple, 2, 2,
                                  package_name=package1.name, **validation_args)
 
-        picking.update_picking(products_info=products_info2, result_package_name=package2.name)
+        picking.update_picking(product_ids=product_ids2, result_package_name=package2.name)
         apple_lines_done2 = picking.move_line_ids.filtered(lambda x: x.product_id == self.apple and x.qty_done > 0)
         apple_lines_done2 -= apple_lines_done
         self.validate_move_lines(apple_lines_done2, self.apple, 3, 3,
@@ -686,18 +686,18 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
-        products_info1 = [{'product_barcode': self.apple.barcode, 'qty': 2}]
-        products_info2 = [{'product_barcode': self.apple.barcode, 'qty': 3}]
+        product_ids1 = [{'barcode': self.apple.barcode, 'qty': 2}]
+        product_ids2 = [{'barcode': self.apple.barcode, 'qty': 3}]
         self.validate_move_lines(picking.move_line_ids, self.apple, 5, 0)
 
         self.picking_type_in.u_target_storage_format = 'pallet_packages'
-        picking.update_picking(products_info=products_info1, result_package_name=package1.name)
+        picking.update_picking(product_ids=product_ids1, result_package_name=package1.name)
         apple_lines_done = picking.move_line_ids.filtered(lambda x: x.product_id == self.apple and x.qty_done > 0)
         self.validate_move_lines(apple_lines_done, self.apple, 2, 2,
                                  package_name=package1.name,
                                  **validation_args)
 
-        picking.update_picking(products_info=products_info2, result_package_name=package1.name)
+        picking.update_picking(product_ids=product_ids2, result_package_name=package1.name)
         apple_lines_done2 = picking.move_line_ids.filtered(lambda x: x.product_id == self.apple and x.qty_done > 0)
         apple_lines_done2 -= apple_lines_done
         self.validate_move_lines(apple_lines_done2, self.apple, 3, 3,
@@ -731,12 +731,12 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
-        products_info1 = [{'product_barcode': self.apple.barcode, 'qty': 2}]
-        products_info2 = [{'product_barcode': self.apple.barcode, 'qty': 3}]
+        product_ids1 = [{'barcode': self.apple.barcode, 'qty': 2}]
+        product_ids2 = [{'barcode': self.apple.barcode, 'qty': 3}]
         self.validate_move_lines(picking.move_line_ids, self.apple, 5, 0)
 
         self.picking_type_in.u_target_storage_format = 'pallet_packages'
-        picking.update_picking(products_info=products_info1, result_package_name=package1.name)
+        picking.update_picking(product_ids=product_ids1, result_package_name=package1.name)
         apple_lines_done = picking.move_line_ids.filtered(lambda x: x.product_id == self.apple and x.qty_done > 0)
         self.validate_move_lines(apple_lines_done,
                                  self.apple, 2, 2,
@@ -744,7 +744,7 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
                                  **validation_args
                                  )
 
-        picking.update_picking(products_info=products_info2, result_package_name=package2.name)
+        picking.update_picking(product_ids=product_ids2, result_package_name=package2.name)
         apple_lines_done2 = picking.move_line_ids.filtered(lambda x: x.product_id == self.apple and x.qty_done > 0)
         apple_lines_done2 -= apple_lines_done
         self.validate_move_lines(apple_lines_done2,
@@ -782,13 +782,13 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
-        products_info1 = [
-                           {'product_barcode': self.apple.barcode, 'qty': 2},
-                           {'product_barcode': self.banana.barcode, 'qty': 2},
+        product_ids1 = [
+                           {'barcode': self.apple.barcode, 'qty': 2},
+                           {'barcode': self.banana.barcode, 'qty': 2},
                          ]
-        products_info2 = [
-                           {'product_barcode': self.apple.barcode, 'qty': 3},
-                           {'product_barcode': self.banana.barcode, 'qty': 3},
+        product_ids2 = [
+                           {'barcode': self.apple.barcode, 'qty': 3},
+                           {'barcode': self.banana.barcode, 'qty': 3},
                          ]
 
         self.picking_type_in.u_target_storage_format = 'package'
@@ -798,13 +798,13 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         self.validate_move_lines(apple_lines, self.apple, 5, 0)
         self.validate_move_lines(banana_lines, self.banana, 5, 0)
 
-        picking.update_picking(products_info=products_info1, result_package_name=package1.name)
+        picking.update_picking(product_ids=product_ids1, result_package_name=package1.name)
         apple_lines_done = picking.move_line_ids.filtered(lambda x: x.product_id == self.apple and x.qty_done > 0)
         banana_lines_done = picking.move_line_ids.filtered(lambda x: x.product_id == self.banana and x.qty_done > 0)
         self.validate_move_lines(apple_lines_done, self.apple, 2, 2, package_name=package1.name, **validation_args)
         self.validate_move_lines(banana_lines_done, self.banana, 2, 2, package_name=package1.name, **validation_args)
 
-        picking.update_picking(products_info=products_info2, result_package_name=package2.name)
+        picking.update_picking(product_ids=product_ids2, result_package_name=package2.name)
         apple_lines_done2 = picking.move_line_ids.filtered(lambda x: x.product_id == self.apple and x.qty_done > 0)
         banana_lines_done2 = picking.move_line_ids.filtered(lambda x: x.product_id == self.banana and x.qty_done > 0)
         apple_lines_done2 -= apple_lines_done
@@ -838,13 +838,13 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
-        products_info1 = [
-                           {'product_barcode': self.apple.barcode, 'qty': 2},
-                           {'product_barcode': self.banana.barcode, 'qty': 2},
+        product_ids1 = [
+                           {'barcode': self.apple.barcode, 'qty': 2},
+                           {'barcode': self.banana.barcode, 'qty': 2},
                          ]
-        products_info2 = [
-                           {'product_barcode': self.apple.barcode, 'qty': 3},
-                           {'product_barcode': self.banana.barcode, 'qty': 3},
+        product_ids2 = [
+                           {'barcode': self.apple.barcode, 'qty': 3},
+                           {'barcode': self.banana.barcode, 'qty': 3},
                          ]
         self.picking_type_in.u_target_storage_format = 'pallet_products'
 
@@ -853,13 +853,13 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         self.validate_move_lines(apple_lines, self.apple, 5, 0)
         self.validate_move_lines(banana_lines, self.banana, 5, 0)
 
-        picking.update_picking(products_info=products_info1, result_package_name=package1.name)
+        picking.update_picking(product_ids=product_ids1, result_package_name=package1.name)
         apple_lines_done = picking.move_line_ids.filtered(lambda x: x.product_id == self.apple and x.qty_done > 0)
         banana_lines_done = picking.move_line_ids.filtered(lambda x: x.product_id == self.banana and x.qty_done > 0)
         self.validate_move_lines(apple_lines_done, self.apple, 2, 2, package_name=package1.name, **validation_args)
         self.validate_move_lines(banana_lines_done, self.banana, 2, 2, package_name=package1.name, **validation_args)
 
-        picking.update_picking(products_info=products_info2, result_package_name=package2.name)
+        picking.update_picking(product_ids=product_ids2, result_package_name=package2.name)
         apple_lines_done2 = picking.move_line_ids.filtered(lambda x: x.product_id == self.apple and x.qty_done > 0)
         banana_lines_done2 = picking.move_line_ids.filtered(lambda x: x.product_id == self.banana and x.qty_done > 0)
         apple_lines_done2 -= apple_lines_done
@@ -895,13 +895,13 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
-        products_info1 = [
-                           {'product_barcode': self.apple.barcode, 'qty': 2},
-                           {'product_barcode': self.banana.barcode, 'qty': 2},
+        product_ids1 = [
+                           {'barcode': self.apple.barcode, 'qty': 2},
+                           {'barcode': self.banana.barcode, 'qty': 2},
                          ]
-        products_info2 = [
-                           {'product_barcode': self.apple.barcode, 'qty': 3},
-                           {'product_barcode': self.banana.barcode, 'qty': 3},
+        product_ids2 = [
+                           {'barcode': self.apple.barcode, 'qty': 3},
+                           {'barcode': self.banana.barcode, 'qty': 3},
                          ]
         self.picking_type_in.u_target_storage_format = 'pallet_packages'
 
@@ -910,13 +910,13 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         self.validate_move_lines(apple_lines, self.apple, 5, 0)
         self.validate_move_lines(banana_lines, self.banana, 5, 0)
 
-        picking.update_picking(products_info=products_info1, result_package_name=package1.name)
+        picking.update_picking(product_ids=product_ids1, result_package_name=package1.name)
         apple_lines_done = picking.move_line_ids.filtered(lambda x: x.product_id == self.apple and x.qty_done > 0)
         banana_lines_done = picking.move_line_ids.filtered(lambda x: x.product_id == self.banana and x.qty_done > 0)
         self.validate_move_lines(apple_lines_done, self.apple, 2, 2, package_name=package1.name, **validation_args)
         self.validate_move_lines(banana_lines_done, self.banana, 2, 2, package_name=package1.name, **validation_args)
 
-        picking.update_picking(products_info=products_info2, result_package_name=package2.name)
+        picking.update_picking(product_ids=product_ids2, result_package_name=package2.name)
         apple_lines_done2 = picking.move_line_ids.filtered(lambda x: x.product_id == self.apple and x.qty_done > 0)
         banana_lines_done2 = picking.move_line_ids.filtered(lambda x: x.product_id == self.banana and x.qty_done > 0)
         apple_lines_done2 -= apple_lines_done
@@ -947,9 +947,9 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
                                       products_info=create_info,
                                       confirm=True)
 
-        products_info = [{'product_barcode': self.apple.barcode, 'qty': receive_qty}]
+        product_ids = [{'barcode': self.apple.barcode, 'qty': receive_qty}]
         with self.assertRaises(ValidationError) as e:
-            picking.update_picking(products_info=products_info)
+            picking.update_picking(product_ids=product_ids)
 
         expected_error = 'We are not expecting these extra quantities of these parts:\n' \
                          '%s: %.1f\n' \
@@ -975,9 +975,9 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
                                       products_info=create_info,
                                       confirm=True)
 
-        products_info = [{'product_barcode': self.banana.barcode, 'qty': receive_qty}]
+        product_ids = [{'barcode': self.banana.barcode, 'qty': receive_qty}]
         with self.assertRaises(ValidationError) as e:
-            picking.update_picking(products_info=products_info)
+            picking.update_picking(product_ids=product_ids)
 
         expected_error = 'We are not expecting these extra quantities of these parts:\n' \
                          '%s: %i\n' \
