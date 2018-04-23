@@ -4,7 +4,7 @@
     <!--Replace the create button on a picking listview to have 'Planned Transfer' functionality instead of 'Immediate Transfer'-->
     <t t-extend="ListView.buttons">
         <t t-jquery="button.o_list_button_add" t-operation="replace">
-            <t t-if="widget.modelName=='stock.picking'">
+            <t t-if="widget and widget.modelName=='stock.picking'">
                 <button class="btn btn-primary btn-sm o_list_button_add_planned" type="button">Create</button>
             </t>
             <t t-else="">
@@ -16,7 +16,7 @@
     <!--Replace the create button on a picking formview to have 'Planned Transfer' functionality instead of 'Immediate Transfer'-->
     <t t-extend="FormView.buttons">
         <t t-jquery="button.o_form_button_create" t-operation="replace">
-            <t t-if="widget.modelName=='stock.picking'">
+            <t t-if="widget and widget.modelName=='stock.picking'">
                 <button class="btn btn-primary btn-sm o_form_button_add_planned" type="button">Create</button>
             </t>
             <t t-else="">
@@ -28,7 +28,7 @@
     <!--Replace the create button on a picking kanban view to have 'Planned Transfer' functionality instead of 'Immediate Transfer'-->
     <t t-extend="KanbanView.buttons">
         <t t-jquery="button.o-kanban-button-new" t-operation="replace">
-            <t t-if="widget.modelName=='stock.picking'">
+            <t t-if="widget and widget.modelName=='stock.picking'">
                 <button class="btn btn-primary btn-sm o_list_button_add_planned" type="button">Create</button>
             </t>
             <t t-else="">
@@ -39,14 +39,14 @@
 
     <!--Reposition the Import button when the Create button has been replaced on a picking listview-->
     <t t-extend="ListView.buttons">
-        <t t-if="widget.modelName=='stock.picking'" t-jquery="button.o_list_button_add_planned" t-operation="after">
+        <t t-if="widget and widget.modelName=='stock.picking'" t-jquery="button.o_list_button_add_planned" t-operation="after">
            <t t-call="ImportView.import_button"/>
         </t>
     </t>
 
     <!--Reposition the Import button when the Create button has been replaced on a picking kanban view-->
     <t t-extend="KanbanView.buttons">
-        <t t-if="widget.modelName=='stock.picking'" t-jquery="button.o_list_button_add_planned" t-operation="after">
+        <t t-if="widget and widget.modelName=='stock.picking'" t-jquery="button.o_list_button_add_planned" t-operation="after">
            <t t-call="ImportView.import_button"/>
         </t>
     </t>
