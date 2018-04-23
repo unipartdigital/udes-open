@@ -140,10 +140,10 @@ class TestRealTimeUpdate(common.BaseUDES):
                                         products_info=create_info_2,
                                         confirm=True)
 
-        products_info_1 = [{'product_barcode': self.apple.barcode, 'qty': 5}]
-        products_info_2 = [{'product_barcode': self.apple.barcode, 'qty': 10}]
+        product_ids_1 = [{'barcode': self.apple.barcode, 'qty': 5}]
+        product_ids_2 = [{'barcode': self.apple.barcode, 'qty': 10}]
 
-        picking_1.update_picking(products_info=products_info_1,
+        picking_1.update_picking(product_ids=product_ids_1,
                                  result_package_name=package_1.name)
         picking_1.update_picking(validate=True)
 
@@ -159,7 +159,7 @@ class TestRealTimeUpdate(common.BaseUDES):
         self.assertTrue(picking_put.state != 'done')
 
         # Check that after picking_2 completes picking_put completes
-        picking_2.update_picking(products_info=products_info_2,
+        picking_2.update_picking(product_ids=product_ids_2,
                                  result_package_name=package_2.name)
         picking_2.update_picking(validate=True)
 
@@ -195,13 +195,13 @@ class TestRealTimeUpdate(common.BaseUDES):
                                         products_info=create_info_2,
                                         confirm=True)
 
-        products_info_1 = [{'product_barcode': self.apple.barcode, 'qty': 5}]
-        picking_1.update_picking(products_info=products_info_1,
+        product_ids_1 = [{'barcode': self.apple.barcode, 'qty': 5}]
+        picking_1.update_picking(product_ids=product_ids_1,
                                  result_package_name=package_1.name)
         picking_1.update_picking(validate=True)
 
-        products_info_2 = [{'product_barcode': self.apple.barcode, 'qty': 10}]
-        picking_2.update_picking(products_info=products_info_2,
+        product_ids_2 = [{'barcode': self.apple.barcode, 'qty': 10}]
+        picking_2.update_picking(product_ids=product_ids_2,
                                  result_package_name=package_2.name)
         picking_2.update_picking(validate=True)
 
@@ -250,21 +250,21 @@ class TestRealTimeUpdate(common.BaseUDES):
                                         products_info=create_info_2,
                                         confirm=True)
 
-        products_info_1 = [{
-            'product_barcode': self.strawberry.barcode,
+        product_ids_1 = [{
+            'barcode': self.strawberry.barcode,
             'qty': 2,
-            'serial_numbers': ['Sn1', 'Sn2'],
+            'lot_names': ['Sn1', 'Sn2'],
         }]
-        picking_1.update_picking(products_info=products_info_1,
+        picking_1.update_picking(product_ids=product_ids_1,
                                  result_package_name=package_1.name)
         picking_1.update_picking(validate=True)
 
-        products_info_2 = [{
-            'product_barcode': self.strawberry.barcode,
+        product_ids_2 = [{
+            'barcode': self.strawberry.barcode,
             'qty': 1,
-            'serial_numbers': ['Sn3'],
+            'lot_names': ['Sn3'],
         }]
-        picking_2.update_picking(products_info=products_info_2,
+        picking_2.update_picking(product_ids=product_ids_2,
                                  result_package_name=package_2.name)
         picking_2.update_picking(validate=True)
 
@@ -318,20 +318,20 @@ class TestRealTimeUpdate(common.BaseUDES):
                                         products_info=create_info_2,
                                         confirm=True)
 
-        products_info_1 = [{
-            'product_barcode': self.strawberry.barcode,
+        product_ids_1 = [{
+            'barcode': self.strawberry.barcode,
             'qty': 2,
-            'serial_numbers': ['Sn1', 'Sn2'],
+            'lot_names': ['Sn1', 'Sn2'],
         }]
-        picking_1.update_picking(products_info=products_info_1)
+        picking_1.update_picking(product_ids=product_ids_1)
         picking_1.update_picking(validate=True)
 
-        products_info_2 = [{
-            'product_barcode': self.strawberry.barcode,
+        product_ids_2 = [{
+            'barcode': self.strawberry.barcode,
             'qty': 1,
-            'serial_numbers': ['Sn3'],
+            'lot_names': ['Sn3'],
         }]
-        picking_2.update_picking(products_info=products_info_2)
+        picking_2.update_picking(product_ids=product_ids_2)
         picking_2.update_picking(validate=True)
 
         pick_domain = [('picking_type_id', '=', self.picking_type_internal.id)]
@@ -340,12 +340,12 @@ class TestRealTimeUpdate(common.BaseUDES):
         self.assertEqual(picking_put.move_lines.move_orig_ids,
                       picking_1.move_lines + picking_2.move_lines)
 
-        picking_put.update_picking(products_info=products_info_1)
+        picking_put.update_picking(product_ids=product_ids_1)
         backorders_1 = Picking.search([('backorder_id', '=', picking_put.id)])
         self.assertEqual(len(backorders_1), 1)
         self.assertEqual(picking_put.move_lines.move_orig_ids, picking_2.move_lines)
         self.assertEqual(backorders_1.move_lines.move_orig_ids, picking_1.move_lines)
-        picking_put.update_picking(products_info=products_info_2)
+        picking_put.update_picking(product_ids=product_ids_2)
         self.assertEqual(picking_put.state, 'done')
         backorders_2 = Picking.search([('backorder_id', '=', picking_put.id)])
         self.assertEqual(backorders_1, backorders_2)
@@ -399,23 +399,23 @@ class TestRealTimeUpdate(common.BaseUDES):
 
         picking_put = Picking.search([('picking_type_id', '=', self.picking_type_internal.id)])
 
-        products_info_1a = [{'product_barcode': self.apple.barcode, 'qty': 10}]
-        products_info_1b = [{'product_barcode': self.apple.barcode, 'qty': 5}]
-        products_info_2a = [{'product_barcode': self.banana.barcode, 'qty': 10}]
-        products_info_2b = [{'product_barcode': self.banana.barcode, 'qty': 5}]
-        products_info_2c = [{'product_barcode': self.strawberry.barcode, 'qty': 2,
-                         'serial_numbers': ['Sn%i' % i for i in range(1,3)]}]
-        products_info_3 = [{'product_barcode': self.strawberry.barcode, 'qty': 2,
-                         'serial_numbers': ['Sn%i' % i for i in range(3,5)]}]
+        product_ids_1a = [{'barcode': self.apple.barcode, 'qty': 10}]
+        product_ids_1b = [{'barcode': self.apple.barcode, 'qty': 5}]
+        product_ids_2a = [{'barcode': self.banana.barcode, 'qty': 10}]
+        product_ids_2b = [{'barcode': self.banana.barcode, 'qty': 5}]
+        product_ids_2c = [{'barcode': self.strawberry.barcode, 'qty': 2,
+                         'lot_names': ['Sn%i' % i for i in range(1,3)]}]
+        product_ids_3 = [{'barcode': self.strawberry.barcode, 'qty': 2,
+                         'lot_names': ['Sn%i' % i for i in range(3,5)]}]
 
-        picking_1.update_picking(products_info=products_info_1a, result_package_name=package_1a.name)
-        picking_1.update_picking(products_info=products_info_1b, result_package_name=package_1b.name)
+        picking_1.update_picking(product_ids=product_ids_1a, result_package_name=package_1a.name)
+        picking_1.update_picking(product_ids=product_ids_1b, result_package_name=package_1b.name)
         #picking 1 is left incomplete
-        picking_2.update_picking(products_info=products_info_2a, result_package_name=package_2a.name)
-        picking_2.update_picking(products_info=products_info_2b, result_package_name=package_2b.name)
-        picking_2.update_picking(products_info=products_info_2c, result_package_name=package_2c.name)
+        picking_2.update_picking(product_ids=product_ids_2a, result_package_name=package_2a.name)
+        picking_2.update_picking(product_ids=product_ids_2b, result_package_name=package_2b.name)
+        picking_2.update_picking(product_ids=product_ids_2c, result_package_name=package_2c.name)
         picking_2.update_picking(validate=True)
-        picking_3.update_picking(products_info=products_info_3, result_package_name=package_3.name)
+        picking_3.update_picking(product_ids=product_ids_3, result_package_name=package_3.name)
         picking_3.update_picking(validate=True)
 
         # Part 1
@@ -567,15 +567,15 @@ class TestRealTimeUpdate(common.BaseUDES):
 
         picking_put = Picking.search([('picking_type_id', '=', self.picking_type_internal.id)])
 
-        products_info_1 = [{'product_barcode': self.apple.barcode, 'qty': 10},
-                        {'product_barcode': self.banana.barcode, 'qty': 5}]
-        products_info_2 = [{'product_barcode': self.apple.barcode, 'qty': 5},
-                        {'product_barcode': self.banana.barcode, 'qty': 10}]
+        product_ids_1 = [{'barcode': self.apple.barcode, 'qty': 10},
+                        {'barcode': self.banana.barcode, 'qty': 5}]
+        product_ids_2 = [{'barcode': self.apple.barcode, 'qty': 5},
+                        {'barcode': self.banana.barcode, 'qty': 10}]
 
-        picking_1.update_picking(products_info=products_info_1,
+        picking_1.update_picking(product_ids=product_ids_1,
                                  result_package_name=package_1.name)
         picking_1.update_picking(validate=True)
-        picking_2.update_picking(products_info=products_info_2,
+        picking_2.update_picking(product_ids=product_ids_2,
                                  result_package_name=package_2.name)
         # Leave picking_2 not validated for now
 
@@ -649,18 +649,18 @@ class TestRealTimeUpdate(common.BaseUDES):
                                         products_info=create_info_2,
                                         confirm=True)
 
-        products_info_1 = [{
-            'product_barcode': self.apple.barcode,
+        product_ids_1 = [{
+            'barcode': self.apple.barcode,
             'qty': 2,
         }]
-        picking_1.update_picking(products_info=products_info_1)
+        picking_1.update_picking(product_ids=product_ids_1)
         picking_1.update_picking(validate=True)
 
-        products_info_2 = [{
-            'product_barcode': self.apple.barcode,
+        product_ids_2 = [{
+            'barcode': self.apple.barcode,
             'qty': 1,
         }]
-        picking_2.update_picking(products_info=products_info_2)
+        picking_2.update_picking(product_ids=product_ids_2)
         picking_2.update_picking(validate=True)
 
         pick_domain = [('picking_type_id', '=', self.picking_type_internal.id)]
@@ -669,7 +669,7 @@ class TestRealTimeUpdate(common.BaseUDES):
         self.assertEqual(picking_put.move_lines.move_orig_ids,
                       picking_1.move_lines + picking_2.move_lines)
 
-        picking_put.update_picking(products_info=products_info_1)
+        picking_put.update_picking(product_ids=product_ids_1)
         backorders_1 = Picking.search([('backorder_id', '=', picking_put.id)])
         self.assertEqual(len(backorders_1), 1)
 
@@ -678,7 +678,7 @@ class TestRealTimeUpdate(common.BaseUDES):
                       combined_lines)
         self.assertEqual(backorders_1.move_lines.move_orig_ids,
                       combined_lines)
-        picking_put.update_picking(products_info=products_info_2)
+        picking_put.update_picking(product_ids=product_ids_2)
         self.assertEqual(picking_put.state, 'done')
         backorders_2 = Picking.search([('backorder_id', '=', picking_put.id)])
         self.assertEqual(backorders_1, backorders_2)
