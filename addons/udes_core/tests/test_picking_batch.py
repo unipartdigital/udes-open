@@ -428,16 +428,12 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         done
         """
         picking, batch = self._create_valid_batch()
-        # Not ideal but it allows the test to work.  If we did:
-        # update_picking(force_validate) it would move the move line to a
-        # new picking which is not part of the batch.
-        # The test in the unpickable_item is the 'state' of the picking
-        # so forcing it works.
-        picking.state = 'done'
+        picking.update_picking(force_validate=True,
+                               location_dest_id=self.test_output_location_01.id)
 
         move_line_id = picking.move_line_ids[0].id
-
         reason = 'missing item'
+
         expected_error = 'Cannot mark a move line as unpickable ' \
                          'when it is part of a completed Picking'
         with self.assertRaisesRegex(ValidationError, expected_error,
