@@ -1,11 +1,12 @@
 from . import common
 from odoo.exceptions import ValidationError
 
-class TestGoodsInUpdatePicking(common.BaseUDES):
+
+class TestGoodsInUpdatePickingBase(common.BaseUDES):
 
     @classmethod
     def setUpClass(cls):
-        super(TestGoodsInUpdatePicking, cls).setUpClass()
+        super(TestGoodsInUpdatePickingBase, cls).setUpClass()
         # Pretty much TestGoodsInPicking Setup
         User = cls.env['res.users']
         PickingType = cls.env['stock.picking.type']
@@ -16,6 +17,14 @@ class TestGoodsInUpdatePicking(common.BaseUDES):
         # Setting default source location as goods_in doesn't have one
         cls.picking_type_in.default_location_src_id = cls.env.ref('stock.stock_location_suppliers')
 
+
+class TestGoodsInUpdatePickingProducts(TestGoodsInUpdatePickingBase):
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestGoodsInUpdatePickingProducts, cls).setUpClass()
+        cls.picking_type_in.u_target_storage_format = 'product'
+
     def test01_update_picking_validate_complete(self):
         """ Test update_picking completes in the simpliest
             case a single untracked product in a single line.
@@ -25,10 +34,10 @@ class TestGoodsInUpdatePicking(common.BaseUDES):
                                       products_info=create_info,
                                       confirm=True)
 
-        products_info = [{'product_barcode': self.apple.barcode, 'qty': 4}]
+        product_ids = [{'barcode': self.apple.barcode, 'qty': 4}]
 
         self.assertEqual(picking.move_lines.quantity_done, 0)
-        picking.update_picking(products_info=products_info)
+        picking.update_picking(product_ids=product_ids)
         self.assertEqual(picking.move_lines.quantity_done, 4)
         picking.update_picking(validate=True)
         self.assertEqual(picking.state, 'done',
@@ -42,14 +51,13 @@ class TestGoodsInUpdatePicking(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
-        products_info = [{
-                            'product_barcode': self.strawberry.barcode,
-                            'qty': 4,
-                            'serial_numbers': ['Strawberry0', 'Strawberry1',
-                                               'Strawberry2', 'Strawberry3']
+        product_ids = [{'barcode': self.strawberry.barcode,
+                        'qty': 4,
+                        'lot_names': ['Strawberry0', 'Strawberry1',
+                                      'Strawberry2', 'Strawberry3']
                         }]
         self.assertEqual(sum(picking.mapped('move_line_ids.qty_done')), 0)
-        picking.update_picking(products_info=products_info)
+        picking.update_picking(product_ids=product_ids)
         self.assertEqual(sum(picking.mapped('move_line_ids.qty_done')), 4)
 
         picking.update_picking(validate=True)
@@ -66,10 +74,10 @@ class TestGoodsInUpdatePicking(common.BaseUDES):
                                       products_info=create_info,
                                       confirm=True)
 
-        products_info = [{'product_barcode': self.apple.barcode, 'qty': 2}]
+        product_ids = [{'barcode': self.apple.barcode, 'qty': 2}]
 
         self.assertEqual(sum(picking.mapped('move_line_ids.qty_done')), 0.0)
-        picking.update_picking(products_info=products_info)
+        picking.update_picking(product_ids=product_ids)
 
         move_lines = picking.move_line_ids
         self.assertEqual(sorted(move_lines.mapped('qty_done')), sorted([2.0, 0.0]),
@@ -77,7 +85,7 @@ class TestGoodsInUpdatePicking(common.BaseUDES):
                          'should be two movelines with qty_done ' \
                          'of 0 and 2')
 
-        picking.update_picking(products_info=products_info)
+        picking.update_picking(product_ids=product_ids)
         self.assertEqual(move_lines.mapped('qty_done'), [2.0, 2.0],
                          'After processing (2 moves of 2)/4 ' \
                          'apples there should be two movelines ' \
@@ -96,25 +104,25 @@ class TestGoodsInUpdatePicking(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
-        products_info_1 = [{
-                            'product_barcode': self.strawberry.barcode,
+        product_ids_1 = [{
+                            'barcode': self.strawberry.barcode,
                             'qty': 2,
-                            'serial_numbers': ['Strawberry0', 'Strawberry1']
+                            'lot_names': ['Strawberry0', 'Strawberry1']
                         }]
-        products_info_2 = [{
-                            'product_barcode': self.strawberry.barcode,
+        product_ids_2 = [{
+                            'barcode': self.strawberry.barcode,
                             'qty': 2,
-                            'serial_numbers': ['Strawberry2', 'Strawberry3']
+                            'lot_names': ['Strawberry2', 'Strawberry3']
                         }]
 
         self.assertEqual(sum(picking.mapped('move_line_ids.qty_done')), 0.0)
 
-        picking.update_picking(products_info=products_info_1)
+        picking.update_picking(product_ids=product_ids_1)
         self.assertEqual(len(picking.move_line_ids.filtered(lambda x: x.qty_done == 1.0)),
                          2,
                          'Two of the 4 expected should be done here')
 
-        picking.update_picking(products_info=products_info_2)
+        picking.update_picking(product_ids=product_ids_2)
         self.assertEqual(len(picking.move_line_ids.filtered(lambda x: x.qty_done == 1.0)),
                          4,
                          'All move lines should be done here')
@@ -134,8 +142,8 @@ class TestGoodsInUpdatePicking(common.BaseUDES):
                                       products_info=create_info,
                                       confirm=True)
 
-        products_info = [{'product_barcode': self.apple.barcode, 'qty': 3}]
-        picking.update_picking(products_info=products_info)
+        product_ids = [{'barcode': self.apple.barcode, 'qty': 3}]
+        picking.update_picking(product_ids=product_ids)
 
         with self.assertRaises(ValidationError) as e:
             picking.update_picking(validate=True)
@@ -160,13 +168,13 @@ class TestGoodsInUpdatePicking(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
-        products_info = [{
-                            'product_barcode': self.strawberry.barcode,
+        product_ids = [{
+                            'barcode': self.strawberry.barcode,
                             'qty': 4,
-                            'serial_numbers': ['Strawberry0','Strawberry1', 'Strawberry2']
+                            'lot_names': ['Strawberry0','Strawberry1', 'Strawberry2']
                         }]
         with self.assertRaises(ValidationError) as e:
-            picking.update_picking(products_info=products_info)
+            picking.update_picking(product_ids=product_ids)
         self.assertEqual(e.exception.name, 'The number of serial numbers and quantity done does not ' \
                                            'match for product Test product Strawberry',
                          'No/Incorrect error message was thrown')
@@ -181,20 +189,20 @@ class TestGoodsInUpdatePicking(common.BaseUDES):
                                       products_info=create_info,
                                       confirm=True)
         sn0 = ['Strawberry0']
-        products_info = [{
-                            'product_barcode': self.strawberry.barcode,
+        product_ids = [{
+                            'barcode': self.strawberry.barcode,
                             'qty': 1,
-                            'serial_numbers': sn0
+                            'lot_names': sn0
                         },
                         {
-                            'product_barcode': self.strawberry.barcode,
+                            'barcode': self.strawberry.barcode,
                             'qty': 1,
-                            'serial_numbers': sn0
+                            'lot_names': sn0
                         }]
 
         einfo = (' '.join(sn0), picking.name, self.strawberry.name)
         with self.assertRaises(ValidationError) as e:
-            picking.update_picking(products_info=products_info)
+            picking.update_picking(product_ids=product_ids)
         self.assertEqual(e.exception.name, 'Serial numbers %s are repeated '
                                            'in picking %s for product %s' % einfo,
                          'No/Incorrect error message was thrown')
@@ -208,15 +216,15 @@ class TestGoodsInUpdatePicking(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
-        products_info = [{
-                            'product_barcode': self.strawberry.barcode,
+        product_ids = [{
+                            'barcode': self.strawberry.barcode,
                             'qty': 1,
-                            'serial_numbers': ['Strawberry0']
+                            'lot_names': ['Strawberry0']
                         }]
-        picking.update_picking(products_info=products_info)
+        picking.update_picking(product_ids=product_ids)
 
         with self.assertRaises(ValidationError) as e:
-            picking.update_picking(products_info=products_info)
+            picking.update_picking(product_ids=product_ids)
         self.assertEqual(e.exception.name, 'Serial numbers Strawberry0 already exist '
                                              'in picking %s' % picking.name,
                          'No/Incorrect error message was thrown')
@@ -230,10 +238,10 @@ class TestGoodsInUpdatePicking(common.BaseUDES):
                                       products_info=create_info,
                                       confirm=True)
 
-        products_info = [{'product_barcode': self.apple.barcode, 'qty': 5}]
+        product_ids = [{'barcode': self.apple.barcode, 'qty': 5}]
 
         self.assertEqual(picking.move_line_ids.qty_done, 0.0)
-        picking.update_picking(products_info=products_info)
+        picking.update_picking(product_ids=product_ids)
         # check ordered_qty and qty_done  are as expected
         self.assertEqual(picking.move_line_ids.ordered_qty, 4)
         self.assertEqual(picking.move_lines.ordered_qty, 4)
@@ -252,15 +260,15 @@ class TestGoodsInUpdatePicking(common.BaseUDES):
                                       origin='self_picking_origin',
                                       products_info=create_info,
                                       confirm=True)
-        products_info1 = [{'product_barcode': self.apple.barcode, 'qty': 4}]
-        products_info2 = [{'product_barcode': self.apple.barcode, 'qty': 2}]
+        product_ids1 = [{'barcode': self.apple.barcode, 'qty': 4}]
+        product_ids2 = [{'barcode': self.apple.barcode, 'qty': 2}]
 
         self.assertEqual(picking.move_line_ids.qty_done, 0.0)
-        picking.update_picking(products_info=products_info1)
+        picking.update_picking(product_ids=product_ids1)
         expected_move_lines = picking.move_line_ids.filtered(lambda x: x.ordered_qty == 4)
         self.assertEqual(expected_move_lines.qty_done, 4.0)
 
-        picking.update_picking(products_info=products_info2)
+        picking.update_picking(product_ids=product_ids2)
         unexpected_move_lines = picking.move_line_ids.filtered(lambda x: x.ordered_qty == 0)
         self.assertEqual(unexpected_move_lines.qty_done, 2.0)
         self.assertEqual(picking.move_lines.ordered_qty, 4)
@@ -277,9 +285,9 @@ class TestGoodsInUpdatePicking(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
-        products_info = [{'product_barcode': self.cherry.barcode, 'qty': 2}]
+        product_ids = [{'barcode': self.cherry.barcode, 'qty': 2}]
         self.assertEqual(sum(picking.mapped('move_line_ids.qty_done')), 0.0)
-        picking.update_picking(products_info=products_info)
+        picking.update_picking(product_ids=product_ids)
         cherry_move_lines = picking.move_line_ids.filtered(lambda x: x.product_id == self.cherry and x.ordered_qty ==0)
         self.assertEqual(cherry_move_lines.qty_done, 2)
         cherry_moves = cherry_move_lines.mapped('move_id')
@@ -295,13 +303,13 @@ class TestGoodsInUpdatePicking(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
-        products_info = [
-                            {'product_barcode': self.cherry.barcode, 'qty': 4},
-                            {'product_barcode': self.apple.barcode, 'qty': 4},
+        product_ids = [
+                            {'barcode': self.cherry.barcode, 'qty': 4},
+                            {'barcode': self.apple.barcode, 'qty': 4},
                         ]
 
         self.assertEqual(sum(picking.move_line_ids.mapped('qty_done')), 0.0)
-        picking.update_picking(products_info=products_info)
+        picking.update_picking(product_ids=product_ids)
 
         cherry_move_lines = picking.move_line_ids.filtered(lambda x: x.product_id == self.cherry and x.ordered_qty == 0)
         self.assertEqual(cherry_move_lines.qty_done, 4)
@@ -327,12 +335,15 @@ class TestGoodsInUpdatePicking(common.BaseUDES):
                                       products_info=creation_info,
                                       confirm=True)
 
-        products_info = [
-                            {'product_barcode': self.cherry.barcode, 'qty': 4},
-                            {'product_barcode': self.apple.barcode, 'qty': 4},
+        print("@" * 10)
+        print(picking, picking.state, picking.move_lines, picking.move_line_ids)
+
+        product_ids = [
+                            {'barcode': self.cherry.barcode, 'qty': 4},
+                            {'barcode': self.apple.barcode, 'qty': 4},
                         ]
         self.assertEqual(sum(picking.mapped('move_line_ids.qty_done')), 0.0)
-        picking.update_picking(products_info=products_info)
+        picking.update_picking(product_ids=product_ids)
         cherry_move_lines = picking.move_line_ids.filtered(lambda x: x.product_id == self.cherry and x.ordered_qty == 4)
         apple_move_lines = picking.move_line_ids.filtered(lambda x: x.product_id == self.apple and x.ordered_qty == 4)
         self.assertEqual(cherry_move_lines.qty_done, 4)
@@ -351,23 +362,23 @@ class TestGoodsInUpdatePicking(common.BaseUDES):
                                       products_info=creation_info,
                                       confirm=True)
 
-        cherry_info = [{'product_barcode': self.cherry.barcode, 'qty': 4}]
-        apple_info = [{'product_barcode': self.apple.barcode, 'qty': 4}]
+        cherry_info = [{'barcode': self.cherry.barcode, 'qty': 4}]
+        apple_info = [{'barcode': self.apple.barcode, 'qty': 4}]
 
         cherry_move_lines = picking.move_line_ids.filtered(lambda x: x.product_id == self.cherry and x.ordered_qty ==4)
         apple_move_lines = picking.move_line_ids.filtered(lambda x: x.product_id == self.apple and x.ordered_qty ==4)
 
         self.assertEqual(sum(picking.move_line_ids.mapped('qty_done')), 0.0)
 
-        picking.update_picking(products_info=cherry_info)
+        picking.update_picking(product_ids=cherry_info)
         self.assertEqual(cherry_move_lines.qty_done, 4)
         self.assertEqual(apple_move_lines.qty_done, 0)
 
-        picking.update_picking(products_info=apple_info)
+        picking.update_picking(product_ids=apple_info)
         self.assertEqual(cherry_move_lines.qty_done, 4)
         self.assertEqual(apple_move_lines.qty_done, 4)
 
-    def test15_update_picking_two_products_one_with_serial_numbers(self):
+    def test15_update_picking_two_products_one_with_lot_names(self):
         """ Checks update_picking with two expected products when
             one product is tracked using serial numbers.
         """
@@ -385,18 +396,18 @@ class TestGoodsInUpdatePicking(common.BaseUDES):
         apple_move_lines = picking.move_line_ids.filtered(lambda x: x.product_id == self.apple)
         self.assertEqual(len(strawberry_move_lines), 2)
         self.assertEqual(len(apple_move_lines), 1)
-        products_info = [
+        product_ids = [
                             {
-                                'product_barcode': self.apple.barcode,
+                                'barcode': self.apple.barcode,
                                 'qty':2
                             },
                             {
-                                'product_barcode': self.strawberry.barcode,
+                                'barcode': self.strawberry.barcode,
                                 'qty': 2,
-                                'serial_numbers': ['Strawberry0', 'Strawberry1'],
+                                'lot_names': ['Strawberry0', 'Strawberry1'],
                             },
                         ]
-        picking.update_picking(products_info=products_info)
+        picking.update_picking(product_ids=product_ids)
 
         strawberry_move_lines = picking.move_line_ids.filtered(lambda x: x.product_id == self.strawberry)
         self.assertEqual(sum(strawberry_move_lines.mapped('qty_done')), 2)
@@ -406,6 +417,13 @@ class TestGoodsInUpdatePicking(common.BaseUDES):
 
         picking.update_picking(validate=True)
         self.assertEqual(picking.state, 'done', 'Stock picking is not in state done after validation.')
+
+
+class TestGoodsInUpdatePickingPallet(TestGoodsInUpdatePickingBase):
+    @classmethod
+    def setUpClass(cls):
+        super(TestGoodsInUpdatePickingPallet, cls).setUpClass()
+        cls.picking_type_in.u_target_storage_format = 'pallet_products'
 
     def test16_update_picking_set_result_package_id(self):
         """ Checks the correct result_package_id is set when
@@ -420,8 +438,8 @@ class TestGoodsInUpdatePicking(common.BaseUDES):
                                      products_info=creation_info,
                                      confirm=True)
 
-        products_info = [{'product_barcode': self.apple.barcode, 'qty':2}]
-        picking.update_picking(products_info=products_info, result_package_name=package.name)
+        product_ids = [{'barcode': self.apple.barcode, 'qty':2}]
+        picking.update_picking(product_ids=product_ids, result_package_name=package.name)
         packaged_move_lines = picking.mapped('move_line_ids').filtered(lambda x: x.result_package_id == package)
         self.assertEqual(len(packaged_move_lines), 1)
 
@@ -443,12 +461,12 @@ class TestGoodsInUpdatePicking(common.BaseUDES):
                                      origin='test_picking_origin',
                                      products_info=creation_info,
                                      confirm=True)
-        products_info = [
-                            {'product_barcode': self.apple.barcode, 'qty': 2},
-                            {'product_barcode': self.cherry.barcode, 'qty': 2},
+        product_ids = [
+                            {'barcode': self.apple.barcode, 'qty': 2},
+                            {'barcode': self.cherry.barcode, 'qty': 2},
                         ]
 
-        picking.update_picking(products_info=products_info, result_package_name=package.name)
+        picking.update_picking(product_ids=product_ids, result_package_name=package.name)
         packaged_move_lines = picking.mapped('move_line_ids').filtered(lambda x: x.result_package_id == package)
         self.assertEqual(len(packaged_move_lines), 2)
 
@@ -456,7 +474,7 @@ class TestGoodsInUpdatePicking(common.BaseUDES):
         self.assertEqual(picking.state, 'done',
                          'Stock picking is not in state done after validation.')
 
-    def test18_update_picking_set_result_package_id_serial_numbers_one_per_update(self):
+    def test18_update_picking_set_result_package_id_lot_names_one_per_update(self):
         """ Checks the correct result_package_id is set by update_picking
             when using result_package_name over two calls when the
             product is tracked.
@@ -468,20 +486,20 @@ class TestGoodsInUpdatePicking(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=creation_info,
                                       confirm=True)
-        products_info_1 = [{
-                            'product_barcode': self.strawberry.barcode,
+        product_ids_1 = [{
+                            'barcode': self.strawberry.barcode,
                             'qty': 1,
-                            'serial_numbers': ['Strawberry0']
+                            'lot_names': ['Strawberry0']
                         }]
 
-        products_info_2 = [{
-                            'product_barcode': self.strawberry.barcode,
+        product_ids_2 = [{
+                            'barcode': self.strawberry.barcode,
                             'qty': 1,
-                            'serial_numbers': ['Strawberry1']
+                            'lot_names': ['Strawberry1']
                         }]
 
-        picking.update_picking(products_info=products_info_1, result_package_name=package.name)
-        picking.update_picking(products_info=products_info_2, result_package_name=package.name)
+        picking.update_picking(product_ids=product_ids_1, result_package_name=package.name)
+        picking.update_picking(product_ids=product_ids_2, result_package_name=package.name)
         packaged_move_lines = picking.mapped('move_line_ids').filtered(lambda x: x.result_package_id == package)
         self.assertEqual(len(packaged_move_lines), 2)
 
@@ -489,7 +507,7 @@ class TestGoodsInUpdatePicking(common.BaseUDES):
         self.assertEqual(picking.state, 'done',
                          'Stock picking is not in state done after validation.')
 
-    def test19_update_picking_set_result_package_id_mixed_package_one_with_serial_numbers(self):
+    def test19_update_picking_set_result_package_id_mixed_package_one_with_lot_names(self):
         """ Checks the correct result_package_id is set by update_picking
             when using result_package_name for two products when one is tracked.
         """
@@ -503,18 +521,18 @@ class TestGoodsInUpdatePicking(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=creation_info,
                                       confirm=True)
-        products_info = [
+        product_ids = [
                             {
-                                'product_barcode': self.apple.barcode,
+                                'barcode': self.apple.barcode,
                                 'qty': 2,
                             },
                             {
-                                'product_barcode': self.strawberry.barcode,
+                                'barcode': self.strawberry.barcode,
                                 'qty': 2,
-                                'serial_numbers': ['Strawberry0', 'Strawberry1'],
+                                'lot_names': ['Strawberry0', 'Strawberry1'],
                             },
                         ]
-        picking.update_picking(products_info=products_info, result_package_name=package.name)
+        picking.update_picking(product_ids=product_ids, result_package_name=package.name)
         packaged_move_lines = picking.mapped('move_line_ids').filtered(lambda x: x.result_package_id == package)
         self.assertEqual(len(packaged_move_lines), 3)
         picking.update_picking(validate=True)
