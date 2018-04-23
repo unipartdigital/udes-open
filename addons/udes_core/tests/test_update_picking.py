@@ -335,9 +335,6 @@ class TestGoodsInUpdatePickingProducts(TestGoodsInUpdatePickingBase):
                                       products_info=creation_info,
                                       confirm=True)
 
-        print("@" * 10)
-        print(picking, picking.state, picking.move_lines, picking.move_line_ids)
-
         product_ids = [
                             {'barcode': self.cherry.barcode, 'qty': 4},
                             {'barcode': self.apple.barcode, 'qty': 4},
