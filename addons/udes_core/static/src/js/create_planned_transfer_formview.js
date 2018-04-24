@@ -15,8 +15,10 @@ odoo.define('udes_core.CreatePlannedTransferFormview', function (require) {
       FormController.include({
 
         renderButtons: function ($node) {
-          this._super.apply(this, arguments)
-          this.$buttons.find('.o_form_button_add_planned').click(this.proxy('treeViewAction'));
+          this._super.apply(this, arguments);
+          if (this.$buttons){
+            this.$buttons.find('.o_form_button_add_planned').click(this.proxy('treeViewAction'));
+          }
         },
 
         treeViewAction: function () {
