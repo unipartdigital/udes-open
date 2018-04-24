@@ -444,7 +444,7 @@ class StockMoveLine(models.Model):
         picking_type = pickings.mapped('picking_type_id')[0]
         task = {'location_id': location.get_info()[0],
                 'product_id': product.get_info()[0],
-                'package_id': package.get_info()[0],
+                'package_id': package.get_info()[0] if package_id else None,
                 'lot_names': lot_names if lot_names else None,
                 'transaction_id': self.ids,
                 'picking_type_id': picking_type.id,
