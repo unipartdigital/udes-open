@@ -426,47 +426,73 @@ class StockMoveLine(models.Model):
 
         return res
 
-    def sort_move_lines(self):
-        """ TODO: better name
+    def _prepare_task_info(self, location_id, product_id, package_id):
+        """ Prepares info of a task
+        """
+        Location = self.env['stock.location']
+        Product = self.env['product.product']
+        Package = self.env['stock.quant.package']
 
-            Sort by location and merge move lines by key
+        location = Location.browse(location_id)
+        product = Product.browse(product_id)
+        if package_id:
+            package = Package.browse(package_id)
+
+        lot_ids = self.mapped('lot_id')
+        pickings = self.mapped('picking_id')
+        picking_type = pickings.mapped('picking_type_id')[0]
+        task = {'location_id': location.get_info()[0],
+                'product_id': product.get_info()[0],
+                'package_id': package.get_info()[0],
+                'lot_ids': lot_ids if lot_ids else None,
+                'transaction_id': self.ids,
+                'picking_type_id': picking_type.id,
+                'qty_done': sum(self.mapped('qty_done')),
+                'product_qty': sum(self.mapped('product_qty'))
+                }
+
+        return task
+
+    def generate_tasks(self, type=None):
+        """ Sort by location and merge move lines by key
                 where key = location, product, package
-                    mabye also lot number
+                    maybe also lot number
 
             Returns list of dictionaries:
                 location_id, product_id, package_id, lot_ids, picking_ids,
-                picking_type_id, qty_todo and qty_done
+                operation_ids, picking_type_id, qty_todo and qty_done
 
             TODO: add result_package to key and result
         """
         MoveLine = self.env['stock.move.line']
-        Location = self.env['stock.location']
+
+        mls = self
+        if type is None:
+            type = 'all'
+        if type not in ['all', 'done', 'not_done']:
+            raise ValidationError(_('Type not valid to generate tasks.'))
+
+        filter = None
+        if type == 'done':
+            filter = lambda ml: ml.qty_done == ml.product_qty
+        elif type == 'not_done':
+            filter = lambda ml: ml.qty_done < ml.product_qty
+
+        if filter:
+            mls = mls.filtered(filter)
 
         by_key = lambda ml: (ml.location_id.id,
                              ml.product_id.id,
                              ml.package_id.id)
 
-        grouped_mls = groupby(self.sorted(by_key), key=by_key)
+        grouped_mls = groupby(mls.sorted(by_key), key=by_key)
         res = []
         for (loc_id, prod_id, pack_id), _mls in grouped_mls:
             mls = MoveLine.union(*_mls)
-            lot_ids = mls.mapped('lot_id')
-            pickings = mls.mapped('picking_id')
-            picking_type = pickings.mapped('picking_type_id')[0]
-            location = Location.browse(loc_id)
-            action = {'location_id': {'id': loc_id,
-                                      'name': location.name,
-                                      },
-                      'product_id': prod_id,
-                      'package_id': pack_id,
-                      'lot_ids': lot_ids if lot_ids else None,
-                      'picking_ids': pickings.ids,
-                      'picking_type_id': picking_type.id,
-                      'qty_done': sum(mls.mapped('qty_done')),
-                      'product_qty': sum(mls.mapped('product_qty'))
-                      }
-
-            res.append(action)
+            task = mls._prepare_task_info(location_id=loc_id,
+                                          product_id=prod_id,
+                                          package_id=pack_id)
+            res.append(task)
 
         res.sort(key=lambda x: x['location_id']['name'])
 
