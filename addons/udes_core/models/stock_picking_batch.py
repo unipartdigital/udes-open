@@ -314,3 +314,19 @@ class StockPickingBatch(models.Model):
             self.state = 'done'
 
         return True
+
+    def get_next_task(self):
+        """ TODO: XXX
+        """
+
+        res = []
+
+        available_pickings =  self.picking_ids.filtered(lambda p: p.state == 'assigned')
+        mls = available_pickings.mapped('move_line_ids')
+
+        tasks = mls.generate_tasks(type='not_done')
+
+        if tasks:
+            res = tasks[0]
+
+        return res
