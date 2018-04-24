@@ -11,14 +11,19 @@ from .main import UdesApi
 ## Helpers
 #
 
-def _get_single_batch_info(batch, allowed_picking_states=None):
+def _get_single_batch_info(batch, allowed_picking_states=None, completed_tasks=False):
     if not batch:
         return {}
 
     info = batch.get_info(allowed_picking_states)
     assert len(info) == 1, "expected exactly one batch"
 
-    return info[0]
+    res = info[0]
+
+    if completed_tasks:
+        res['completed_tasks'] = batch.get_tasks(state='done')
+
+    return res
 
 
 def _get_batch(env, batch_id_txt):
@@ -57,6 +62,10 @@ class PickingBatchApi(UdesApi):
         array of stock.picking objects), otherwise return an empty
         object.
 
+        When getting a user batch also look for and return completed tasks,
+        to save another end-point call or computation. A completed task is
+        stock we have picked but it has not been dropped of yet.
+
         Raises a ValidationError in case multiple batches are found
         for the current user.
         """
@@ -64,7 +73,8 @@ class PickingBatchApi(UdesApi):
         batch = PickingBatch.get_single_batch()
 
         return _get_single_batch_info(batch,
-                                      allowed_picking_states=['assigned'])
+                                      allowed_picking_states=['assigned'],
+                                      completed_tasks=True)
 
     @http.route('/api/stock-picking-batch/',
                 type='json', methods=['POST'], auth='user')
