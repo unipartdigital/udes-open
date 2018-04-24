@@ -438,13 +438,14 @@ class StockMoveLine(models.Model):
         if package_id:
             package = Package.browse(package_id)
 
-        lot_ids = self.mapped('lot_id')
+        # TODO: create get_info for lot_id ?
+        lot_names = self.mapped('lot_id.name')
         pickings = self.mapped('picking_id')
         picking_type = pickings.mapped('picking_type_id')[0]
         task = {'location_id': location.get_info()[0],
                 'product_id': product.get_info()[0],
                 'package_id': package.get_info()[0],
-                'lot_ids': lot_ids if lot_ids else None,
+                'lot_names': lot_names if lot_names else None,
                 'transaction_id': self.ids,
                 'picking_type_id': picking_type.id,
                 'qty_done': sum(self.mapped('qty_done')),
@@ -453,10 +454,13 @@ class StockMoveLine(models.Model):
 
         return task
 
-    def generate_tasks(self, type=None):
-        """ Sort by location and merge move lines by key
+    def generate_tasks(self, state=None):
+        """ Generate tasks merging move lines by key and
+            sort them by location.
                 where key = location, product, package
                     maybe also lot number
+
+            Generated tasks can be filtered by done, not_done.
 
             Returns list of dictionaries:
                 location_id, product_id, package_id, lot_ids, picking_ids,
@@ -467,19 +471,17 @@ class StockMoveLine(models.Model):
         MoveLine = self.env['stock.move.line']
 
         mls = self
-        if type is None:
-            type = 'all'
-        if type not in ['all', 'done', 'not_done']:
-            raise ValidationError(_('Type not valid to generate tasks.'))
+        if state and state not in ['done', 'not_done']:
+            raise ValidationError(_('State not valid to generate tasks.'))
 
-        filter = None
-        if type == 'done':
-            filter = lambda ml: ml.qty_done == ml.product_qty
-        elif type == 'not_done':
-            filter = lambda ml: ml.qty_done < ml.product_qty
+        criteria = None
+        if state == 'done':
+            criteria = lambda ml: ml.qty_done == ml.product_qty
+        elif state == 'not_done':
+            criteria = lambda ml: ml.qty_done < ml.product_qty
 
-        if filter:
-            mls = mls.filtered(filter)
+        if criteria:
+            mls = mls.filtered(criteria)
 
         by_key = lambda ml: (ml.location_id.id,
                              ml.product_id.id,
