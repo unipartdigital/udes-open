@@ -16,7 +16,8 @@ def _get_single_batch_info(batch, allowed_picking_states=None, completed_tasks=F
         return {}
 
     info = batch.get_info(allowed_picking_states)
-    assert len(info) == 1, "expected exactly one batch"
+    if len(info) != 1:
+        raise ValidationError(_("Expected exactly one batch"))
 
     res = info[0]
 
