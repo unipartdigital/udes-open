@@ -442,11 +442,12 @@ class StockMoveLine(models.Model):
         lot_names = self.mapped('lot_id.name')
         pickings = self.mapped('picking_id')
         picking_type = pickings.mapped('picking_type_id')[0]
+        transaction_id = {'move_line_ids': self.ids}
         task = {'location_id': location.get_info()[0],
                 'product_id': product.get_info()[0],
                 'package_id': package.get_info()[0] if package_id else None,
                 'lot_names': lot_names if lot_names else None,
-                'transaction_id': self.ids,
+                'transaction_id': transaction_id,
                 'picking_type_id': picking_type.id,
                 'qty_done': sum(self.mapped('qty_done')),
                 'product_qty': sum(self.mapped('product_qty'))

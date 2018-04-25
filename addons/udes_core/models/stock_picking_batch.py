@@ -319,6 +319,7 @@ class StockPickingBatch(models.Model):
         """ Generate all the tasks not completed of the batch in self.
             Optionally filter them by the state: done or not_done.
         """
+        self.ensure_one()
 
         available_pickings = self.picking_ids.filtered(lambda p: p.state == 'assigned')
         mls = available_pickings.mapped('move_line_ids')
@@ -328,9 +329,42 @@ class StockPickingBatch(models.Model):
     def get_next_task(self):
         """ Gets the next not completed task of the batch to be done
         """
+        self.ensure_one()
+
         res = []
         tasks = self.get_tasks(state='not_done')
         if tasks:
             res = tasks[0]
 
         return res
+
+    def validate_task(self,
+                      transaction_id,
+                      **kwargs):
+        """ TODO: better name?
+
+
+        """
+        MoveLine = self.env['stock.move.line']
+
+        self.ensure_one()
+        next_task = self.get_next_task()
+        if next_task['transaction_id'] != transaction_id:
+            raise ValidationError(
+                _('Transaction does not match, your batch might have changed. '
+                  'Please contact team leader.')
+            )
+
+        mls = MoveLine.browse(transaction_id['move_line_ids'])
+        pickings = mls.mapped('picking_id')
+
+        if len(picking) == 1:
+            pickings.update_picking(**kwargs)
+        else:
+            # group mls by picking_id
+            # for picking, mls in XXX:
+            #   compute product_ids for current picking
+            #   picking.update_picking
+            raise ValidationError('Not implemented yet')
+
+        return True
