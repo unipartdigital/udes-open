@@ -435,6 +435,7 @@ class StockMoveLine(models.Model):
 
         location = Location.browse(location_id)
         product = Product.browse(product_id)
+
         if package_id:
             package = Package.browse(package_id)
 
@@ -471,24 +472,22 @@ class StockMoveLine(models.Model):
         MoveLine = self.env['stock.move.line']
 
         mls = self
-        if state and state not in ['done', 'not_done']:
-            raise ValidationError(_('State not valid to generate tasks.'))
 
-        criteria = None
+        if state is None:
+            pass
         if state == 'done':
-            criteria = lambda ml: ml.qty_done == ml.product_qty
+            mls = mls.filtered(lambda ml: ml.qty_done == ml.product_qty)
         elif state == 'not_done':
-            criteria = lambda ml: ml.qty_done < ml.product_qty
-
-        if criteria:
-            mls = mls.filtered(criteria)
+            mls = mls.filtered(lambda ml: ml.qty_done < ml.product_qty)
+        else:
+            assert False, 'State not valid to generate tasks'
 
         by_key = lambda ml: (ml.location_id.id,
                              ml.product_id.id,
                              ml.package_id.id)
-
         grouped_mls = groupby(mls.sorted(by_key), key=by_key)
         res = []
+
         for (loc_id, prod_id, pack_id), _mls in grouped_mls:
             mls = MoveLine.union(*_mls)
             task = mls._prepare_task_info(location_id=loc_id,
