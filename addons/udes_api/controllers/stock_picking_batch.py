@@ -77,6 +77,27 @@ class PickingBatchApi(UdesApi):
                                       allowed_picking_states=['assigned'],
                                       completed_tasks=True)
 
+    @http.route('/api/stock-picking-batch/<ident>/next-task',
+                type='json', methods=['GET'], auth='user')
+    def get_next_task(self, ident):
+        """
+        Returns the next pick task from the picking batch in
+        progress for the current user.
+        A task will include one or more move lines from
+        different pickings.
+
+        Raises a ValidationError if the specified batch does
+        not exist.
+
+        In case the batch is not completed, returns an object
+        containing information regarding the next task:
+        location, lot, package, product, quantity, pickings.
+        Returns an empty object otherwise.
+        """
+        batch = _get_batch(request.env, ident)
+
+        return batch.get_next_task()
+
     @http.route('/api/stock-picking-batch/',
                 type='json', methods=['POST'], auth='user')
     def create_batch_for_user(self,
