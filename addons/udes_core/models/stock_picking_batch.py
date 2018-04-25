@@ -331,12 +331,10 @@ class StockPickingBatch(models.Model):
         """
         self.ensure_one()
 
-        res = []
         tasks = self.get_tasks(state='not_done')
-        if tasks:
-            res = tasks[0]
 
-        return res
+
+        return tasks[0] if tasks else {}
 
     def validate_task(self,
                       transaction_id,
