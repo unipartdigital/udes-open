@@ -478,7 +478,7 @@ class StockMoveLine(models.Model):
 
         if state is None:
             pass
-        if state == 'done':
+        elif state == 'done':
             mls = mls.filtered(lambda ml: ml.qty_done == ml.product_qty)
         elif state == 'not_done':
             mls = mls.filtered(lambda ml: ml.qty_done < ml.product_qty)
