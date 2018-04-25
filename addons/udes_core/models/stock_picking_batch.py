@@ -331,13 +331,17 @@ class StockPickingBatch(models.Model):
         """
         self.ensure_one()
 
+        res = {'num_tasks_done': len(self.get_tasks(state='done'))}
+
         tasks = self.get_tasks(state='not_done')
 
+        if tasks:
+            res.update(tasks[0])
 
-        return tasks[0] if tasks else {}
+        return res
 
     def validate_task(self,
-                      transaction_id,
+                      transaction_data,
                       **kwargs):
         """ TODO: better name?
 
@@ -347,16 +351,16 @@ class StockPickingBatch(models.Model):
 
         self.ensure_one()
         next_task = self.get_next_task()
-        if next_task['transaction_id'] != transaction_id:
+        if next_task['transaction_data'] != transaction_data:
             raise ValidationError(
                 _('Transaction does not match, your batch might have changed. '
                   'Please contact team leader.')
             )
 
-        mls = MoveLine.browse(transaction_id['move_line_ids'])
+        mls = MoveLine.browse(transaction_data['move_line_ids'])
         pickings = mls.mapped('picking_id')
 
-        if len(picking) == 1:
+        if len(pickings) == 1:
             pickings.update_picking(**kwargs)
         else:
             # group mls by picking_id
