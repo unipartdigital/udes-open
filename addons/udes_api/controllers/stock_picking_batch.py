@@ -77,7 +77,7 @@ class PickingBatchApi(UdesApi):
                                       allowed_picking_states=['assigned'],
                                       completed_tasks=True)
 
-    @http.route('/api/stock-picking-batch/<ident>/next-task',
+    @http.route('/api/stock-picking-batch/<ident>/next',
                 type='json', methods=['GET'], auth='user')
     def get_next_task(self, ident):
         """
