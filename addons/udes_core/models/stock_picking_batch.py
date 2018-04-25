@@ -319,7 +319,6 @@ class StockPickingBatch(models.Model):
         """ Generate all the tasks not completed of the batch in self.
             Optionally filter them by the state: done or not_done.
         """
-
         available_pickings = self.picking_ids.filtered(lambda p: p.state == 'assigned')
         mls = available_pickings.mapped('move_line_ids')
 
@@ -328,9 +327,6 @@ class StockPickingBatch(models.Model):
     def get_next_task(self):
         """ Gets the next not completed task of the batch to be done
         """
-        res = []
         tasks = self.get_tasks(state='not_done')
-        if tasks:
-            res = tasks[0]
 
-        return res
+        return tasks[0] if tasks else {}
