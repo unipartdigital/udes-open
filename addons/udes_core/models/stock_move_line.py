@@ -194,10 +194,10 @@ class StockMoveLine(models.Model):
 
     def _update_products_info(self, product, products_info, info):
         """ For each (key, value) in info it merges to the corresponding
-            produc info if it alreay exists.
+            product info if it already exists.
 
             where key:
-                qty, serial_numbers
+                qty, lot_names
 
             Only for products not tracked or tracked by serial numbers
 

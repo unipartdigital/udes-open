@@ -274,6 +274,7 @@ class StockPicking(models.Model):
             product_ids=None,
             picking_info=None,
             validate_real_time=False,
+            location_id=None,
     ):
         """ Update/mutate the stock picking in self
 
@@ -311,6 +312,8 @@ class StockPicking(models.Model):
             @param (optional) validate_real_time: Boolean
                 Used to specify if the update should be should be processed
                 imidately or on confirmation of the picking.
+            @param (optional) location_id: int
+                Used when validating products from a location.
         """
         Location = self.env['stock.location']
         Package = self.env['stock.quant.package']
@@ -354,6 +357,11 @@ class StockPicking(models.Model):
 
         if product_ids:
             values['product_ids'] = product_ids
+            # when updating products we migth want
+            # to filter by location
+            if location_id:
+                location = Location.get_location(location_id)
+                move_lines = move_lines.filtered(lambda ml: ml.location_id == location)
 
         picking = self
         if package_name or product_ids or force_validate:
