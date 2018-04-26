@@ -63,9 +63,9 @@ class StockProductionLot(models.Model):
 
     def _prepare_info(self):
         """
-            Prepares the following info of the quant in self:
+            Prepares the following info of the lot in self:
             - id: int
-            - name: {stock.quant.package}
+            - name: string
         """
         self.ensure_one()
 
@@ -76,7 +76,7 @@ class StockProductionLot(models.Model):
         return res
 
     def get_info(self):
-        """ Return a list with the information of each quant in self.
+        """ Return a list with the information of each lot in self.
         """
         res = []
         for lot in self:

@@ -84,7 +84,7 @@ class StockQuant(models.Model):
             - package_id: {stock.quant.package}
             - product_id: {product.product}
             - quantity: float
-            - reserved_quantit: float
+            - reserved_quantity: float
             - lot_id (optional): {stock.production.lot}
         """
         self.ensure_one()
