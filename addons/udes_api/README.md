@@ -449,9 +449,9 @@ URI: /api/stock-picking-batch/:id/next
 HTTP Method: POST
 Old method(s): none
 ```
-* @param id - id of the batch to mark as having an unpickable move line
+* @param id - id of the batch to get next task to pick
 
-Returns the information of the next task to pick: location, product, package, serial numbers, quantity to pick.
+Returns the information of the next task to pick: picking_id and quant_id or package_id.
 
 ## Stock Picking Priorities
 ```
