@@ -73,7 +73,7 @@ class PickingBatchApi(UdesApi):
 
     @http.route('/api/stock-picking-batch/<ident>/next',
                 type='json', methods=['GET'], auth='user')
-    def get_next_task(self, ident):
+    def get_next_task(self, ident, skipped_product_ids=None):
         """
         Returns the next pick task from the picking batch in
         progress for the current user.
@@ -85,12 +85,12 @@ class PickingBatchApi(UdesApi):
 
         In case the batch is not completed, returns an object
         containing information regarding the next task:
-        location, lot, package, product, quantity, pickings.
+        picking_id and package/product information.
         Returns an empty object otherwise.
         """
         batch = _get_batch(request.env, ident)
 
-        return batch.get_next_task()
+        return batch.get_next_task(skipped_product_ids=skipped_product_ids)
 
     @http.route('/api/stock-picking-batch/',
                 type='json', methods=['POST'], auth='user')
