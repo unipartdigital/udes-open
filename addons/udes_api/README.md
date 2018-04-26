@@ -443,6 +443,16 @@ Old method(s): unpickable_item
 For the given batch_id and move_line_id will generate a stock investigation picking for the relevant stock move lines.
 This will create a backorder if necessary.
 
+### Get next task to pick
+```
+URI: /api/stock-picking-batch/:id/next
+HTTP Method: POST
+Old method(s): none
+```
+* @param id - id of the batch to get next task to pick
+
+Returns the information of the next task to pick: picking_id and quant_id or package_id.
+
 ## Stock Picking Priorities
 ```
 URI: /api/stock-picking-priorities/
