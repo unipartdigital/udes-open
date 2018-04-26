@@ -4,7 +4,6 @@ from odoo import models,  _
 from odoo.exceptions import ValidationError
 from odoo.tools.float_utils import float_compare, float_round
 from copy import deepcopy
-from itertools import groupby
 from collections import Counter, defaultdict
 
 
