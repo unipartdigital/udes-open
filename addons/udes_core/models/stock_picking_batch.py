@@ -315,30 +315,43 @@ class StockPickingBatch(models.Model):
 
         return True
 
-    def get_sorted_move_lines(self, state=None, skipped_product_ids=None):
-        """ Generate all the tasks not completed of the batch in self.
-            Optionally filter them by the state: done or not_done.
+    def get_available_move_lines(self, state=None, skipped_product_ids=None, sorted=False):
+        """ Get all the move lines from available pickings
         """
         self.ensure_one()
 
         available_pickings = self.picking_ids.filtered(lambda p: p.state == 'assigned')
+
         mls = available_pickings.mapped('move_line_ids')
 
         if skipped_product_ids:
             mls = mls.filtered(lambda ml: ml.product_id.id not in skipped_product_ids)
 
-        return mls.sort_by_location_product(state=state)
+        if sorted:
+            mls = mls.sort_by_location_product(state=state)
+
+        return mls
 
     def get_next_task(self, skipped_product_ids=None):
         """ Gets the next not completed task of the batch to be done
         """
         self.ensure_one()
 
-        mls = self.get_sorted_move_lines(state='not_done', skipped_product_ids=skipped_product_ids)
+        mls = self.get_available_move_lines(state='not_done', skipped_product_ids=skipped_product_ids, sorted=True)
+        tasks_picked = len(self.get_available_move_lines().filtered(lambda ml: ml.qty_done == ml.product_qty)) > 0
 
-        task = {}
+        task = {'tasks_picked': tasks_picked,
+                'num_tasks_to_pick': 0,
+                }
         if mls:
-            task = mls[0]._prepare_task_info()
+            task.update(mls[0]._prepare_task_info())
+            user_scans = mls[0].picking_id.picking_type_id.u_user_scans
+            if user_scans == 'product':
+                num_tasks_to_pick = len(mls)
+            else:
+                # TODO: check pallets
+                num_tasks_to_pick = len(mls.mapped('package_id'))
+            task['num_tasks_to_pick'] = num_tasks_to_pick
 
         return task
 
