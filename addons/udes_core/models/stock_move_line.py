@@ -461,6 +461,6 @@ class StockMoveLine(models.Model):
         elif state == 'not_done':
             mls = mls.filtered(lambda ml: ml.qty_done < ml.product_qty)
         else:
-            assert False, 'State not valid to sort tasks'
+            raise AssertionError('State not valid to sort tasks')
 
         return mls.sorted(key=lambda x: (x.location_id.name, x.product_id.id))
