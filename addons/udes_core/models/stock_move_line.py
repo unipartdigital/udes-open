@@ -426,51 +426,30 @@ class StockMoveLine(models.Model):
 
         return res
 
-    def _prepare_task_info(self, location_id, product_id, package_id):
+    def _prepare_task_info(self):
         """ Prepares info of a task
         """
-        Location = self.env['stock.location']
-        Product = self.env['product.product']
-        Package = self.env['stock.quant.package']
+        Quant = self.env['stock.quant']
 
-        location = Location.browse(location_id)
-        product = Product.browse(product_id)
+        self.ensure_one()
 
-        if package_id:
-            package = Package.browse(package_id)
-
-        # TODO: create get_info for lot_id ?
-        lot_names = self.mapped('lot_id.name')
-        pickings = self.mapped('picking_id')
-        picking_type = pickings.mapped('picking_type_id')[0]
         task = {
-            'location_id':     location.get_info()[0],
-            'product_id':      product.get_info()[0],
-            'package_id':      package.get_info()[0] if package_id else None,
-            'lot_names':       lot_names if lot_names else None,
-            'transaction_data': {
-                'move_line_ids': self.ids,
-                'batch_id':      pickings.mapped('batch_id').id},
-            'picking_type_id': picking_type.id,
-            'qty_done':        sum(self.mapped('qty_done')),
-            'product_qty':     sum(self.mapped('product_qty')),
-            'picking_ids':     pickings.ids}
+            'picking_id': self.picking_id.id,
+        }
+        user_scans = self.picking_id.picking_type_id.u_user_scans
+        if user_scans == 'product':
+            task['pick_quantity'] = self.product_qty
+            quant = Quant._gather(self.product_id, self.location_id,
+                                  lot_id=self.lot_id, package_id=self.package_id,
+                                  owner_id=self.owner_id, strict=True)
+            task['quant_id'] = quant.get_info()[0]
+        else:
+            task['package_id'] = self.package_id.get_info(extended=True)[0]
 
         return task
 
-    def generate_tasks(self, state=None):
-        """ Generate tasks merging move lines by key and
-            sort them by location.
-                where key = location, product, package
-                    maybe also lot number
-
-            Generated tasks can be filtered by done, not_done.
-
-            Returns list of dictionaries:
-                location_id, product_id, package_id, lot_ids, picking_ids,
-                operation_ids, picking_type_id, qty_todo and qty_done
-
-            TODO: add result_package to key and result
+    def sort_by_location_product(self, state=None):
+        """ Sort the move lines
         """
         MoveLine = self.env['stock.move.line']
 
@@ -483,21 +462,6 @@ class StockMoveLine(models.Model):
         elif state == 'not_done':
             mls = mls.filtered(lambda ml: ml.qty_done < ml.product_qty)
         else:
-            assert False, 'State not valid to generate tasks'
+            assert False, 'State not valid to sort tasks'
 
-        by_key = lambda ml: (ml.location_id.id,
-                             ml.product_id.id,
-                             ml.package_id.id)
-        grouped_mls = groupby(mls.sorted(by_key), key=by_key)
-        res = []
-
-        for (loc_id, prod_id, pack_id), _mls in grouped_mls:
-            mls = MoveLine.union(*_mls)
-            task = mls._prepare_task_info(location_id=loc_id,
-                                          product_id=prod_id,
-                                          package_id=pack_id)
-            res.append(task)
-
-        res.sort(key=lambda x: x['location_id']['name'])
-
-        return res
+        return mls.sorted(key=lambda x: (x.location_id.name, x.product_id.id))

@@ -315,7 +315,7 @@ class StockPickingBatch(models.Model):
 
         return True
 
-    def get_tasks(self, state=None):
+    def get_sorted_move_lines(self, state=None, skipped_product_ids=None):
         """ Generate all the tasks not completed of the batch in self.
             Optionally filter them by the state: done or not_done.
         """
@@ -324,19 +324,21 @@ class StockPickingBatch(models.Model):
         available_pickings = self.picking_ids.filtered(lambda p: p.state == 'assigned')
         mls = available_pickings.mapped('move_line_ids')
 
-        return mls.generate_tasks(state=state)
+        if skipped_product_ids:
+            mls = mls.filtered(lambda ml: ml.product_id.id not in skipped_product_ids)
 
-    def get_next_task(self):
+        return mls.sort_by_location_product(state=state)
+
+    def get_next_task(self, skipped_product_ids=None):
         """ Gets the next not completed task of the batch to be done
         """
         self.ensure_one()
 
-        res = {'num_tasks_done': len(self.get_tasks(state='done'))}
+        mls = self.get_sorted_move_lines(state='not_done', skipped_product_ids=skipped_product_ids)
 
-        tasks = self.get_tasks(state='not_done')
+        task = {}
+        if mls:
+            task = mls[0]._prepare_task_info()
 
-        if tasks:
-            res.update(tasks[0])
-
-        return res
+        return task
 
