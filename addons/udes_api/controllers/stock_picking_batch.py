@@ -175,7 +175,7 @@ class PickingBatchApi(UdesApi):
 
     @http.route('/api/stock-picking-batch/<ident>/unpickable',
                 type='json', methods=['POST'], auth='user')
-    def unpickable_item(self, ident, move_line_id, reason):
+    def unpickable_item(self, ident, reason, product_id=None, location_id=None, package_name=None):
         """
         Creates a Stock Investigation for the specified move_line_id for the
         given batch.  If necessary a backorder will be created.
@@ -184,7 +184,9 @@ class PickingBatchApi(UdesApi):
 
         batch = _get_batch(request.env, ident)
         picking_type_id = ResUsers.get_user_warehouse().u_stock_investigation_picking_type.id  # noqa
-        unpickable_item = batch.unpickable_item(move_line_id=move_line_id,
-                                                reason=reason,
+        unpickable_item = batch.unpickable_item(reason=reason,
+                                                product_id=product_id,
+                                                location_id=location_id,
+                                                package_name=package_name,
                                                 picking_type_id=picking_type_id)  # noqa
         return unpickable_item

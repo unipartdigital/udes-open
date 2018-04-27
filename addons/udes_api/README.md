@@ -437,10 +437,13 @@ HTTP Method: POST
 Old method(s): unpickable_item
 ```
 * @param id - id of the batch to mark as having an unpickable move line
-* @param move_line_id - id of the move_line that is unpickable
 * @param reason - string describing the reason that this move line is unpickable
+* @param product_id - (optional) id of the product that is unpickable
+* @param location_id - (optional) id of the loction of the unpickable product
+* @param package_name - string (optional) name of the unpickable package or package name where the product should have been picked
+* @param lot_name - string (optional) serial number of the unpickable product
 
-For the given batch_id and move_line_id will generate a stock investigation picking for the relevant stock move lines.
+For the given batch_id and info of unpickable task will generate a stock investigation picking for the related stock move lines.
 This will create a backorder if necessary.
 
 ### Get next task to pick
@@ -450,6 +453,7 @@ HTTP Method: POST
 Old method(s): none
 ```
 * @param id - id of the batch to get next task to pick
+* @param skipped_product_ids - (optional) list of product ids that should be skipped by next
 
 Returns the information of the next task to pick: picking_id and quant_id or package_id.
 
