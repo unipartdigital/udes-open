@@ -425,28 +425,6 @@ class StockMoveLine(models.Model):
 
         return res
 
-    def _prepare_task_info(self):
-        """ Prepares info of a task
-        """
-        Quant = self.env['stock.quant']
-
-        self.ensure_one()
-
-        task = {
-            'picking_id': self.picking_id.id,
-        }
-        user_scans = self.picking_id.picking_type_id.u_user_scans
-        if user_scans == 'product':
-            task['pick_quantity'] = self.product_qty
-            quant = Quant._gather(self.product_id, self.location_id,
-                                  lot_id=self.lot_id, package_id=self.package_id,
-                                  owner_id=self.owner_id, strict=True)
-            task['quant_id'] = quant.get_info()[0]
-        else:
-            task['package_id'] = self.package_id.get_info(extended=True)[0]
-
-        return task
-
     def sort_by_location_product(self, state=None):
         """ Sort the move lines
         """
