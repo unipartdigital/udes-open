@@ -30,7 +30,7 @@ class PickingApi(UdesApi):
         return picking.get_info()[0]
 
     @http.route('/api/stock-picking/<ident>', type='json', methods=['POST'], auth='user')
-    def update_picking(self, ident, location_id=None, **kwargs):
+    def update_picking(self, ident, **kwargs):
         """ Old force_validate/validate_operation
         """
         Picking = request.env['stock.picking']
