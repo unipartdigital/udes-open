@@ -238,7 +238,7 @@ class StockPickingBatch(models.Model):
         return all([pick.is_valid_location_dest_id(location=location)
                     for pick in all_done_pickings])
 
-    def unpickable_item(self, move_line_id, reason, picking_type_id=None):
+    def unpickable_item(self, reason, product_id=None, location_id=None, package_name=None, picking_type_id=None, lot_name=None):
         """
         Given a valid move_line_id create a new picking of type picking_type_id
         picking for it. If it is the last move_line_id of the wave,
@@ -254,16 +254,63 @@ class StockPickingBatch(models.Model):
         StockMoveLine = self.env['stock.move.line']
         Picking = self.env['stock.picking']
         Group = self.env['procurement.group']
+        Package = self.env['stock.quant.package']
+        Location = self.env['stock.location']
+        Product = self.env['product.product']
 
-        move_line = StockMoveLine.browse(move_line_id)
-        if not move_line.exists():
-            # We need to check these here lest we throw exceptions
-            # when getting picking_id, package_id etc
-            raise ValidationError(_('Cannot find the operation'))
+        product = None
+        if product_id:
+            product = Product.get_product(product_id)
+        location = None
+        if location_id:
+            location = Location.get_location(location_id)
+        package = None
+        if package_name:
+            package = Package.get_package(package_name)
 
-        picking = move_line.picking_id
-        package = move_line.package_id
-        location = move_line.location_id
+        allow_partial = False
+        move_lines = self.get_available_move_lines()
+        if product:
+            if not location:
+                raise ValidationError(
+                    _('Missing location parameter for unpickable product %s.') %
+                    product.name
+                )
+            move_lines = move_lines.filtered(lambda ml: ml.product_id == product and
+                                             ml.location_id == location)
+            msg = _('Unpickable product %s at location %s') % (product.name, location.name)
+
+            if lot_name:
+                move_lines = move_lines.filtered(lambda ml: ml.lot_id.name == lot_name)
+                msg += _(' with serial number %s') % lot_name
+            if package:
+                move_lines = move_lines.get_package_move_lines(package)
+                msg += _(' in package %s') % package.name
+            else:
+                if move_lines.mapped('package_id'):
+                    raise ValidationError(
+                        _('Unpickable product from a package but no package name provided.')
+                    )
+            # at this point we should only have one move_line
+            quants = move_lines.get_quants()
+            allow_partial = True
+        elif package:
+            if not location:
+                location=package.location_id
+            move_lines = move_lines.get_package_move_lines(package)
+            quants = package._get_contained_quants()
+            msg = _('Unpickable package %s at location %s') % (package.name, location.name)
+        else:
+            raise ValidationError(
+                _('Missing required information for unpickable item: product or package.')
+            )
+
+        if not move_lines:
+            raise ValidationError(_('Cannot find operations for unpickable item'))
+
+        # at this point we should have only one picking_id
+        picking = move_lines.mapped('picking_id')
+        picking.message_post(body=msg)
 
         if picking_type_id is None:
             picking_type_id = ResUsers.get_user_warehouse().int_type_id.id
@@ -273,18 +320,6 @@ class StockPickingBatch(models.Model):
             raise ValidationError(_('Cannot mark a move line as unpickable '
                                     'when it is part of a completed Picking.'))
 
-        if package:
-            # This move line is part of a package.  Get all quants that are
-            # also on this package as well as all other move lines in the
-            # package as they will have been affected as well.
-            quants = package._get_contained_quants()
-            move_lines = picking.move_line_ids.get_package_move_lines(package)
-            msg = 'Unpickable package %s at location %s'
-
-            picking.message_post(body=_(msg) % (package.name, location.name))
-
-        else:
-            raise ValidationError("Not Implemented")
 
         if len(picking.move_line_ids - move_lines):
             # Create a backorder for the affected move lines if there are
@@ -297,10 +332,10 @@ class StockPickingBatch(models.Model):
         picking._refine_picking(reason)
 
         group = Group.get_group(group_identifier=reason,
-                                 create=True)
+                                create=True)
 
         # create new "investigation pick"
-        Picking.create_picking(quant_ids=quants.mapped('id'),
+        Picking.with_context(allow_partial=allow_partial).create_picking(quant_ids=quants.mapped('id'),
                                location_id=location.id,
                                picking_type_id=picking_type_id,
                                group_id=group.id)

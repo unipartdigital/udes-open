@@ -103,6 +103,8 @@ class StockPicking(models.Model):
         """
         Quant = self.env['stock.quant']
 
+        allow_partial = self.env.context.get('allow_partial')
+
         self.assert_valid_state()
 
         if isinstance(quant_ids, list):
@@ -111,13 +113,15 @@ class StockPicking(models.Model):
             quants = quant_ids
         else:
             raise ValidationError(_('Wrong quant identifiers %s') % type(quant_ids))
-        quants.assert_not_reserved()
-        quants.assert_entire_packages()
+        if not allow_partial:
+            quants.assert_not_reserved()
+            quants.assert_entire_packages()
         quants.assert_valid_location(self.location_id.id)
 
         # Call _create_moves() with context variable quants_ids in order
         # to filter the quants that stock.quant._gather returns
-        self.with_context(quant_ids=quant_ids)._create_moves(quants.group_quantity_by_product(), **kwargs)
+        self.with_context(quant_ids=quant_ids)._create_moves(
+            quants.group_quantity_by_product(only_available=allow_partial), **kwargs)
 
     def _create_moves(self, products_info, values=None,
                       confirm=False, assign=False,
@@ -428,18 +432,19 @@ class StockPicking(models.Model):
                         lambda x: x.state not in ('done', 'cancel')):
                 bk_move = current_move
             else:
+                # TODO: check if still needed since quantity_done is a computed field
                 total_qty_done = sum(current_mls.mapped('qty_done'))
                 total_ordered_qty = sum(current_mls.mapped('ordered_qty'))
                 bk_move = current_move.copy({'picking_id': False,
                                              'move_line_ids': [],
                                              'move_orig_ids': [],
                                              'ordered_qty': total_ordered_qty,
-                                             'product_uom_qty': total_qty_done,
+                                             'product_uom_qty': total_ordered_qty,
                                              })
                 current_mls.write({'move_id': bk_move.id})
                 current_move.with_context(bypass_reservation_update=True).write({
                     'ordered_qty': current_move.ordered_qty - total_ordered_qty,
-                    'product_uom_qty': current_move.product_uom_qty - total_qty_done,
+                    'product_uom_qty': current_move.product_uom_qty - total_ordered_qty,
                 })
 
                 if current_move.move_orig_ids:

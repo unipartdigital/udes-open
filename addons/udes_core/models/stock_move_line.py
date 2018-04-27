@@ -16,6 +16,12 @@ class StockMoveLine(models.Model):
         """
         return self.filtered(lambda ml: ml.qty_done < ml.product_uom_qty)
 
+    def get_lines_done(self):
+        """ Return the move lines in self that are completed,
+            i.e., quantity done == quantity todo
+        """
+        return self.filtered(lambda ml: ml.qty_done == ml.product_uom_qty)
+
     def mark_as_done(self, location_dest=None, result_package=None, package=None, product_ids=None):
         """ Marks as done the move lines in self and updates location_dest_id
             and result_package_id if they are set.
@@ -435,10 +441,23 @@ class StockMoveLine(models.Model):
         if state is None:
             pass
         elif state == 'done':
-            mls = mls.filtered(lambda ml: ml.qty_done == ml.product_qty)
+            mls = mls.get_lines_done()
         elif state == 'not_done':
-            mls = mls.filtered(lambda ml: ml.qty_done < ml.product_qty)
+            mls = mls.get_lines_todo()
         else:
             raise AssertionError('State not valid to sort tasks')
 
         return mls.sorted(key=lambda x: (x.location_id.name, x.product_id.id))
+
+    def get_quants(self):
+        """ Returns the quants related to move lines in self
+        """
+        Quant = self.env['stock.quant']
+
+        quants = Quant.browse()
+        for ml in self:
+            quants |= Quant._gather(ml.product_id, ml.location_id,
+                                    lot_id=ml.lot_id, package_id=ml.package_id,
+                                    owner_id=ml.owner_id, strict=True)
+
+        return quants
