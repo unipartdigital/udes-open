@@ -58,10 +58,6 @@ class PickingBatchApi(UdesApi):
         array of stock.picking objects), otherwise return an empty
         object.
 
-        When getting a user batch also look for and return completed tasks,
-        to save another end-point call or computation. A completed task is
-        stock we have picked but it has not been dropped of yet.
-
         Raises a ValidationError in case multiple batches are found
         for the current user.
         """
