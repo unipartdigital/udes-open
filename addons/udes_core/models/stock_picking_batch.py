@@ -35,9 +35,7 @@ class StockPickingBatch(models.Model):
                                        ('state', '=', 'in_progress')])
         batch = None
 
-        if not batches:
-            batch = self._create_batch(user_id)
-        else:
+        if batches:
             if len(batches) > 1:
                 raise ValidationError(
                     _("Found %d batches for the user, please contact "
