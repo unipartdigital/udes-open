@@ -44,7 +44,7 @@ class StockMoveLine(models.Model):
             if result_package:
                 # At pallet_packages, result_package parameter is expected
                 # to be the result_parent_package of the move_line
-                # It migt be a new pallet id
+                # It might be a new pallet id
                 parent_package = Package.get_package(result_package, create=True)
                 result_package = None
                 if not package:
@@ -62,7 +62,7 @@ class StockMoveLine(models.Model):
                           ' expecting result package.'))
 
         elif target_storage_format == 'pallet_products':
-            if result_package and not package:
+            if result_package:
                 # Moving stock into a pallet of products, result_package
                 # might be new pallet id
                 result_package = Package.get_package(result_package, create=True).name
@@ -137,8 +137,6 @@ class StockMoveLine(models.Model):
     def _prepare_task_info(self):
         """ Prepares info of a task
         """
-        Quant = self.env['stock.quant']
-
         self.ensure_one()
 
         task = {
@@ -147,9 +145,7 @@ class StockMoveLine(models.Model):
         user_scans = self.picking_id.picking_type_id.u_user_scans
         if user_scans == 'product':
             task['pick_quantity'] = self.product_qty
-            quant = Quant._gather(self.product_id, self.location_id,
-                                  lot_id=self.lot_id, package_id=self.package_id,
-                                  owner_id=self.owner_id, strict=True)
+            quant = self.get_quants()
             task['quant_id'] = quant.get_info()[0]
         else:
             task['package_id'] = self.package_id.get_info(extended=True)[0]
