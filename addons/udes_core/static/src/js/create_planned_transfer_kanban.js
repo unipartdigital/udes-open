@@ -15,7 +15,7 @@ odoo.define('udes_core.CreatePlannedTransferKanban', function (require) {
       KanbanController.include({
 
         renderButtons: function ($node) {
-          this._super.apply(this, arguments)
+          this._super.apply(this, arguments);
           if (this.$buttons) {
             this.$buttons.find('.o_list_button_add_planned').click(this.proxy('treeViewAction'));
           }
@@ -47,7 +47,7 @@ odoo.define('udes_core.CreatePlannedTransferKanban', function (require) {
             context: contextString,
             flags: {'form': {'action_buttons': true, 'options': {'mode': 'edit'}}}
           });
-          return {'type': 'ir.actions.client', 'tag': 'reload',}
+          return {'type': 'ir.actions.client', 'tag': 'reload'}
         }
 
       })
