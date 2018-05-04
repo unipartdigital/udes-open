@@ -17,6 +17,7 @@
     'data': [
         'data/stock_config.xml',
         'views/product_template.xml',
+        'views/res_users.xml',
         'views/stock_inventory.xml',
         'views/stock_location.xml',
         'views/stock_picking.xml',

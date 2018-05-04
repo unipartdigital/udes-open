@@ -91,8 +91,11 @@ class StockPickingBatch(models.Model):
         PickingBatch = self.env['stock.picking.batch']
         Users = self.env['res.users']
 
-        warehouse = Users.get_user_warehouse()
-        picking_type_id = warehouse.pick_type_id
+        picking_type_id = Users.get_user_preferred_pick()
+        if not picking_type_id:
+            warehouse = Users.get_user_warehouse()
+            picking_type_id = warehouse.pick_type_id
+
         search_domain = []
 
         if picking_priorities is not None:
