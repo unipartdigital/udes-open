@@ -148,6 +148,12 @@ class StockMoveLine(models.Model):
             quant = self.get_quants()
             task['quant_id'] = quant.get_info()[0]
         else:
-            task['package_id'] = self.package_id.get_info(extended=True)[0]
+            info = self.package_id.get_info(extended=True)
+            if not info:
+                raise ValidationError(
+                    _('Expecting package information for next task, but move line does not contain it.'
+                      ' Contact team leader and check picking %s') % self.picking_id.name
+                )
+            task['package_id'] = info[0]
 
         return task
