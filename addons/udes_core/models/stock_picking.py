@@ -435,16 +435,17 @@ class StockPicking(models.Model):
                 # TODO: check if still needed since quantity_done is a computed field
                 total_qty_done = sum(current_mls.mapped('qty_done'))
                 total_ordered_qty = sum(current_mls.mapped('ordered_qty'))
+                total_initial_qty = sum(current_mls.mapped('product_uom_qty'))
                 bk_move = current_move.copy({'picking_id': False,
                                              'move_line_ids': [],
                                              'move_orig_ids': [],
                                              'ordered_qty': total_ordered_qty,
-                                             'product_uom_qty': total_ordered_qty,
+                                             'product_uom_qty': total_initial_qty,
                                              })
                 current_mls.write({'move_id': bk_move.id})
                 current_move.with_context(bypass_reservation_update=True).write({
                     'ordered_qty': current_move.ordered_qty - total_ordered_qty,
-                    'product_uom_qty': current_move.product_uom_qty - total_ordered_qty,
+                    'product_uom_qty': current_move.product_uom_qty - total_initial_qty,
                 })
 
                 if current_move.move_orig_ids:
