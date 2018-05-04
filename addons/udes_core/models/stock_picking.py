@@ -41,6 +41,9 @@ class StockPicking(models.Model):
                                           related='move_line_ids.result_package_id',
                                           help='Destination package (used to search on pickings)',
                                           )
+    # override batch_id to be copied
+    batch_id = fields.Many2one(
+        'stock.picking.batch', copy=True)
 
     # Calculate previous/next pickings
     @api.depends('move_lines',
