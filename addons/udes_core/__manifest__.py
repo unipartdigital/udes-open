@@ -8,7 +8,8 @@
     'description': "Holds core functionality for UDES Modules",
     'depends': [
         'stock',
-        'stock_picking_batch'
+        'stock_picking_batch',
+        'warehouse_config'
     ],
     'category': 'Warehouse',
     'sequence': 11,
