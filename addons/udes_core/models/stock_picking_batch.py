@@ -152,12 +152,12 @@ class StockPickingBatch(models.Model):
             # all the picks in the waves are finished
             batches.done()
 
-    def drop_off_picked(self, continue_wave, location_barcode):
+    def drop_off_picked(self, continue_batch, location_barcode):
         """
         Validate the move lines of the batch (expects a singleton)
         by moving them to the specified location.
 
-        In case continue_wave is flagged, mark the batch as
+        In case continue_batch is flagged, mark the batch as
         'done' if appropriate.
         """
         self.ensure_one()
@@ -195,7 +195,7 @@ class StockPickingBatch(models.Model):
             lambda x: x.state not in ['done', 'cancel'])
         all_done = not incomplete_picks
 
-        if not continue_wave:
+        if not continue_batch:
             incomplete_picks.write({'batch_id': False})
             all_done = True
 
