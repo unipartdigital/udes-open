@@ -237,3 +237,11 @@ class BaseUDES(common.SavepointCase):
         vals = {"user_id": cls.env.user.id}
         vals.update(kwargs)
         return Batch.create(vals)
+
+    def create_package(self, **kwargs):
+        """Create and return a new package
+        """
+        Package = self.env['stock.quant.package']
+        vals = {}
+        vals.update(kwargs)
+        return Package.create(vals)
