@@ -30,9 +30,9 @@ class StockPickingType(models.Model):
              'be forced to be a child_of the picking location_dest_id.',)
     u_confirm_location_dest_id = fields.Boolean(
         string='Confirm Destination Location',
-        default=False,
-        help='Flag to indicate that we do not need to scan the Destination Location of operations, as it should '
-             'be automatically set as the preset Destination Location.',)
+        default=True,
+        help='Flag to indicate whether we need to scan the Destination Location of operations, '
+             'or if it is automatically confirmed as the preset Destination Location.',)
     u_validate_real_time = fields.Boolean(
         string='Validate In Real Time',
         default=False,
