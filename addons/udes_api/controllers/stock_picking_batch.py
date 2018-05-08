@@ -118,18 +118,18 @@ class PickingBatchApi(UdesApi):
                 type='json', methods=['POST'], auth='user')
     def update_batch(self, ident,
                      location_barcode=None,
-                     continue_wave=False):
+                     continue_batch=False):
         """
         Update the specified batch by inspecting its move lines
         and setting the destination to the location with the
         provided `location_barcode`.
 
         In case all pickings are completed, the batch will be
-        marked as 'done' if `continue_wave` is flagged (defaults
+        marked as 'done' if `continue_batch` is flagged (defaults
         to false).
         """
         batch = _get_batch(request.env, ident)
-        updated_batch = batch.drop_off_picked(continue_wave, location_barcode)
+        updated_batch = batch.drop_off_picked(continue_batch, location_barcode)
 
         return _get_single_batch_info(updated_batch)
 
