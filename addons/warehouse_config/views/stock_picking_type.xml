@@ -27,6 +27,7 @@
                     <field name="u_enforce_location_dest_id" />
                     <field name="u_validate_real_time" />
                     <field name="u_reserve_as_packages" />
+                    <field name="u_handle_partials" />
                 </group>
             </xpath>
 
