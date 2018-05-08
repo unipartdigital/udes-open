@@ -54,7 +54,7 @@ class StockExport(models.TransientModel):
         help='Stock Locations that will be excluded from the stock summary',
         options={'no_create': True})
 
-    def run_stock_file_export(self):
+    def run_stock_file_export(self, send_file_via='user'):
         '''
         Creates a stock file summarising the current stock in the
         warehouse. Such file will be in the excel format and contain
@@ -128,9 +128,10 @@ class StockExport(models.TransientModel):
             summary_sheet.write(row, 1, len(prod_pkgs))
             summary_sheet.write(row, 2, get_prod_qty(prod, prod_pkgs))
 
-        self._write_workbook(wb, file_name, "Stock File")
+        self._write_workbook(wb, file_name, "Stock File",
+                             send_file_via=send_file_via)
 
-    def run_movement_file_export(self):
+    def run_movement_file_export(self, send_file_via='user'):
         '''
         Creates movement file, in excel format, summarising the stock
         received and sent for a given date, i.e. goods-in and goods-out
@@ -180,12 +181,12 @@ class StockExport(models.TransientModel):
                     sheet.write(row, 2, move_line.result_package_id.name)
                     sheet.write(row, 3, move_line.qty_done)
 
-        self._write_workbook(wb, file_name, "Movement File")
+        self._write_workbook(wb, file_name, "Movement File",
+                             send_file_via=send_file_via)
 
     @api.model
-    def _write_workbook(self, workbook, file_name, doc_title):
-        Users = self.env['res.users']
-
+    def _write_workbook(self, workbook, file_name, doc_title,
+                        send_file_via='user'):
         with closing(BytesIO()) as output:
             workbook.save(output)
             data = output.getvalue()
@@ -200,15 +201,66 @@ class StockExport(models.TransientModel):
              'datas': file_data,
              'datas_fname': file_name})
 
-        Users.send_message_to_user(
-            subject="%s Ready" % doc_title,
-            body=_("%s %s is attached.") % (doc_title, file_name),
-            attachment=attachment)
+        # Send stock file via requested method
+        if send_file_via == 'email':
+            self._send_email(attachment)
+        elif send_file_via == 'user':
+            self._send_message_to_user(file_name, doc_title, attachment)
+        else:
+            _logger.warning(
+                _('Stock file was created but '
+                  'not sent (send_file_via: %s') % send_file_via)
 
+    def _send_message_to_user(self, doc_title, file_name, attachment):
+        '''Send attachement to the user via an intenal message'''
+        Users = self.env['res.users']
+        Users.send_message_to_user(
+                subject="%s Ready" % doc_title,
+                body=_("%s %s is attached.") % (doc_title, file_name),
+                attachment=attachment,
+        )
+
+    def _send_email(self, attachment, email_template=None):
+        '''
+        Send attachement via email, if email_template is None,
+        the automated_stock_email_template is used.
+        '''
+        Mail = self.env['mail.mail']
+
+        # To allow reuse!
+        if email_template is None:
+            email_template = self.env.ref(
+                'udes_report.automated_stock_email_template'
+            )
+        # Attachment file
+        email_template.write({'attachment_ids': [(6, 0, [attachment.id])]})
+
+        # Makes email to send
+        mail_id = email_template.send_mail(self.env.uid)
+        mail = Mail.browse([mail_id])
+        # Actually sends it
+        mail.send()
+
+        # As it auto deletes then exists should be empty
+        # but incase this changes I'll check state as well
+        if not mail.exists() or mail.state == 'sent':
+            _logger.info(_('Stock email sent'))
+        # if sending fails odoo will raise its own error
+
+        # Reset email_template attachment
+        email_template.write({'attachment_ids': [(6, 0, [])]})
+
+    @api.model
+    def send_automated_stock_file(self):
+        ''' Sends an email with the stock file attached'''
+        Export = self.env['udes_report.stock_export']
+        export = Export.create([])
+        export.run_stock_file_export(send_file_via='email')
 
 #
 # Helpers
 #
+
 
 def _create_sheet(workbook, sheet_name, columns_titles):
     sheet = workbook.add_sheet(sheet_name)
