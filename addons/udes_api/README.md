@@ -66,9 +66,10 @@ This is essentially a collection of products that are to be moved from one locat
 | priority_name    | string | Computed field, used by the API. |
 | origin           | string | Typically used as a text reference of where the stock.picking came from. During goods in, this is the ASN (advanced ship notice - the supplier's delivery reference) |
 | location_dest_id | int | ID of the stock.location where the stock needs to move to |
-| picking_type_id |  int | See below |
-| move_lines | [{stock.move}] | The stock moves associated with this move. |
-| state | string | State of the picking: 'draft', 'waiting', 'confirmed', 'assigned', 'done', 'cancel'. |
+| picking_type_id  |  int | See below |
+| move_lines       | [{stock.move}] | The stock moves associated with this move. |
+| state            | string | State of the picking: 'draft', 'waiting', 'confirmed', 'assigned', 'done', 'cancel'. |
+| u_pending        | boolean | If the picking has preceeding work still pending. Only included if picking.type.u_handle_partials==False |
 
 ## Picking Type (model: stock.picking.type)
 
@@ -95,6 +96,7 @@ A lot of custom UDES functionality is specfied at the picking type level. This i
 | u_user_scans              | string  | This defines what the user will scan. |
 | u_validate_real_time      | boolean | Do we validate move lines in real time |
 | u_enforce_location_dest_id| boolean | If the destination location on validation has to excatly match with the location_dest_id of the move lines |
+| u_handle_partials         | boolean | If the picking type is allowed to handle partially available pickings. If True, then pickings of this type will report their u_pending value. |
 
 ## Stock Move (model: stock.move)
 
