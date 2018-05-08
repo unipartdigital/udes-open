@@ -79,13 +79,11 @@ class StockPicking(models.Model):
             if picking.picking_type_id.u_handle_partials is False and picking.u_pending is True:
                 raise UserError(_("Cannot validate %s until all of its preceeding pickings are done.") % picking.name)
 
-    @api.multi
     def action_done(self):
         """ Ensure we don't incorrectly validate pending pickings."""
         self.assert_not_pending()
         return super(StockPicking, self).action_done()
 
-    @api.multi
     def button_validate(self):
         """ Ensure we don't incorrectly validate pending pickings."""
         self.assert_not_pending()
