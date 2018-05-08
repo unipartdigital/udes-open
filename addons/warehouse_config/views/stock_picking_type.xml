@@ -25,6 +25,7 @@
                     <field name="u_suggest_qty" />
                     <field name="u_over_receive" />
                     <field name="u_enforce_location_dest_id" />
+                    <field name="u_confirm_location_dest_id" />
                     <field name="u_validate_real_time" />
                     <field name="u_reserve_as_packages" />
                 </group>
