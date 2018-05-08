@@ -54,6 +54,12 @@ class StockPickingType(models.Model):
         help="Flag to indicate reservations should be rounded up to entire packages."
         )
 
+    u_handle_partials = fields.Boolean(
+        string='Process Partial Transfers',
+        default=True,
+        help='Allow processing a transfer when the preceding transfers are not all completed.'
+    )
+
     def _prepare_info(self):
         """
             Prepares the following extra info of the picking_type in self:
@@ -80,5 +86,6 @@ class StockPickingType(models.Model):
             'u_user_scans': self.u_user_scans,
             'u_enforce_location_dest_id': self.u_enforce_location_dest_id,
             'u_reserve_as_packages': self.u_reserve_as_packages,
+            'u_handle_partials': self.u_handle_partials
             })
         return info
