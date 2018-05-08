@@ -412,8 +412,8 @@ Old method(s): drop_off_picked
 Update current user's picking batch.
 
 * @param id - id of the batch to process
-* @param location_barcode - Barcode of the location where the picked stock is dropped off
 * @param continue_wave - (optional) Determines if the batch should continue or finish the batch (not used)
+* @param location_barcode - (optional) Barcode of the location where the picked stock is dropped off
 
 ### Validate drop off location of picking batch
 ```
