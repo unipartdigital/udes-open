@@ -215,9 +215,9 @@ class StockExport(models.TransientModel):
         '''Send attachement to the user via an intenal message'''
         Users = self.env['res.users']
         Users.send_message_to_user(
-                subject="%s Ready" % doc_title,
-                body=_("%s %s is attached.") % (doc_title, file_name),
-                attachment=attachment,
+            subject="%s Ready" % doc_title,
+            body=_("%s %s is attached.") % (doc_title, file_name),
+            attachment=attachment,
         )
 
     def _send_email(self, attachment, email_template=None):
