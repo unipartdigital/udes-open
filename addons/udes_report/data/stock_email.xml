@@ -29,7 +29,7 @@
     <!-- Cronjob for sending stock file-->
     <record id="send_stock_file_cron_action" model="ir.cron">
       <field name="name">Send Sock File</field>
-      <field name="active" model="udes.config" eval="obj().config('production', False)"/>
+      <field name="active" eval="True"/>
       <field name="user_id" ref="base.user_root" />
       <field name="interval_number">1</field>
       <field name="interval_type">days</field>
