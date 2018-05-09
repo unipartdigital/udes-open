@@ -151,8 +151,9 @@ class StockMoveLine(models.Model):
             info = self.package_id.get_info(extended=True)
             if not info:
                 raise ValidationError(
-                    _('Expecting package information for next task, but move line does not contain it.'
-                      ' Contact team leader and check picking %s') % self.picking_id.name
+                    _('Expecting package information for next task to pick,'
+                      ' but move line does not contain it. Contact team'
+                      'leader and check picking %s') % self.picking_id.name
                 )
             task['package_id'] = info[0]
 
