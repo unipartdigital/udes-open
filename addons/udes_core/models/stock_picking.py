@@ -435,8 +435,6 @@ class StockPicking(models.Model):
                         lambda x: x.state not in ('done', 'cancel')):
                 bk_move = current_move
             else:
-                # TODO: check if still needed since quantity_done is a computed field
-                total_qty_done = sum(current_mls.mapped('qty_done'))
                 total_ordered_qty = sum(current_mls.mapped('ordered_qty'))
                 total_initial_qty = sum(current_mls.mapped('product_uom_qty'))
                 bk_move = current_move.copy({'picking_id': False,

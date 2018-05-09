@@ -234,18 +234,19 @@ class StockPickingBatch(models.Model):
 
     def unpickable_item(self, reason, product_id=None, location_id=None, package_name=None, picking_type_id=None, lot_name=None):
         """
-        Given a valid move_line_id create a new picking of type picking_type_id
-        picking for it. If it is the last move_line_id of the wave,
-        the wave is set as done.
+        Given an unpickable product or package, find the related
+        move lines in the current wave, backorder them and refine
+        the backorder (by default it is canceled).
+        Then create a new picking of type picking_type_id for the unpickable stock.
+        If the picking was the last one of the wave, the wave is set as done.
 
-        The move_line_id is valid if it is in the current wave (self)
-        and its picking is not done or cancel.
+        An unpickable product requires at least the location_id and
+        optionally the package_id and lot_name.
         """
 
         self.ensure_one()
 
         ResUsers = self.env['res.users']
-        StockMoveLine = self.env['stock.move.line']
         Picking = self.env['stock.picking']
         Group = self.env['procurement.group']
         Package = self.env['stock.quant.package']
