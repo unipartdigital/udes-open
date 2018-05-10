@@ -232,7 +232,8 @@ class StockPickingBatch(models.Model):
         return all([pick.is_valid_location_dest_id(location=location)
                     for pick in all_done_pickings])
 
-    def unpickable_item(self, reason, product_id=None, location_id=None, package_name=None, picking_type_id=None, lot_name=None):
+    def unpickable_item(self, reason, product_id=None, location_id=None,
+                        package_name=None, picking_type_id=None, lot_name=None):
         """
         Given an unpickable product or package, find the related
         move lines in the current wave, backorder them and refine
@@ -243,7 +244,6 @@ class StockPickingBatch(models.Model):
         An unpickable product requires at least the location_id and
         optionally the package_id and lot_name.
         """
-
         self.ensure_one()
 
         ResUsers = self.env['res.users']
@@ -253,24 +253,18 @@ class StockPickingBatch(models.Model):
         Location = self.env['stock.location']
         Product = self.env['product.product']
 
-        product = None
-        if product_id:
-            product = Product.get_product(product_id)
-        location = None
-        if location_id:
-            location = Location.get_location(location_id)
-        package = None
-        if package_name:
-            package = Package.get_package(package_name)
-
+        product = Product.get_product(product_id) if product_id else None
+        location = Location.get_location(location_id) if location_id else None
+        package = Package.get_package(package_name) if package_name else None
         allow_partial = False
         move_lines = self.get_available_move_lines()
+
         if product:
             if not location:
                 raise ValidationError(
                     _('Missing location parameter for unpickable product %s.') %
-                    product.name
-                )
+                    product.name)
+
             move_lines = move_lines.filtered(lambda ml: ml.product_id == product and
                                              ml.location_id == location)
             msg = _('Unpickable product %s at location %s') % (product.name, location.name)
@@ -278,27 +272,27 @@ class StockPickingBatch(models.Model):
             if lot_name:
                 move_lines = move_lines.filtered(lambda ml: ml.lot_id.name == lot_name)
                 msg += _(' with serial number %s') % lot_name
+
             if package:
                 move_lines = move_lines.get_package_move_lines(package)
                 msg += _(' in package %s') % package.name
-            else:
-                if move_lines.mapped('package_id'):
-                    raise ValidationError(
-                        _('Unpickable product from a package but no package name provided.')
-                    )
+            elif move_lines.mapped('package_id'):
+                raise ValidationError(
+                    _('Unpickable product from a package but no package name provided.'))
+
             # at this point we should only have one move_line
             quants = move_lines.get_quants()
             allow_partial = True
         elif package:
             if not location:
                 location=package.location_id
+
             move_lines = move_lines.get_package_move_lines(package)
             quants = package._get_contained_quants()
             msg = _('Unpickable package %s at location %s') % (package.name, location.name)
         else:
             raise ValidationError(
-                _('Missing required information for unpickable item: product or package.')
-            )
+                _('Missing required information for unpickable item: product or package.'))
 
         if not move_lines:
             raise ValidationError(_('Cannot find operations for unpickable item'))
@@ -309,8 +303,10 @@ class StockPickingBatch(models.Model):
 
         if picking_type_id is None:
             picking_type_id = ResUsers.get_user_warehouse().int_type_id.id
+
         if picking.batch_id != self:
             raise ValidationError(_('Move line is not part of the batch.'))
+
         if picking.state in ['cancel', 'done']:
             raise ValidationError(_('Cannot mark a move line as unpickable '
                                     'when it is part of a completed Picking.'))
@@ -330,7 +326,8 @@ class StockPickingBatch(models.Model):
                                 create=True)
 
         # create new "investigation pick"
-        Picking.with_context(allow_partial=allow_partial).create_picking(quant_ids=quants.mapped('id'),
+        Picking.with_context(allow_partial=allow_partial)\
+               .create_picking(quant_ids=quants.mapped('id'),
                                location_id=location.id,
                                picking_type_id=picking_type_id,
                                group_id=group.id)
@@ -338,8 +335,8 @@ class StockPickingBatch(models.Model):
         # If the batch does not contain any remaining picking to do, it can
         # be set as done
         remaining_pickings = self.picking_ids.filtered(
-            lambda x: x.state in ['assigned']
-        )
+            lambda x: x.state in ['assigned'])
+
         if not remaining_pickings.exists():
             self.state = 'done'
 

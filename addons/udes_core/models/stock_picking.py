@@ -405,14 +405,14 @@ class StockPicking(models.Model):
         return False
 
     def _create_backorder(self, mls=None):
-        """ Creates a backorder pick from self and a subset of
-            stock.move.lines are then moved into it.
-            the move from which the move lines have been transfers
-            has the ordered_qty decrimented by the amount in the
+        """ Creates a backorder pick from self (expects a singleton)
+            and a subset of stock.move.lines are then moved into it.
+            The move from which the move lines have been transferred
+            has the ordered_qty decrimented by the amount of the
             transftered lines.
         """
         Move = self.env['stock.move']
-        # Based on back order creation in sock_move._action_done
+        # Based on back order creation in stock_move._action_done
         self.ensure_one()
 
         if mls is None:
