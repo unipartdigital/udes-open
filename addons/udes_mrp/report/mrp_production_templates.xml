@@ -24,9 +24,6 @@
                         </thead>
                         <tbody>
                             <t t-if="o.move_raw_ids">
-                                <tr>
-                                    <td colspan="4"><strong>Products to Consume</strong></td>
-                                </tr>
                                 <t t-foreach="o.move_raw_ids" t-as="move">
                                     <tr t-foreach="move.move_line_ids" t-as="line">
                                         <td>
