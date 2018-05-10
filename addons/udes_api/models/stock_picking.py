@@ -234,7 +234,9 @@ class StockPicking(models.Model):
         """
             Override action_confirm to create procurement groups if needed
         """
-        for pick in self.filtered(lambda p: p.picking_type_id.u_create_procurement_group and not p.group_id):
+        for pick in self.filtered(
+                lambda p: p.picking_type_id.u_create_procurement_group
+                          and not p.group_id):
             pick._create_own_procurement_group()
         super(StockPicking, self).action_confirm()
 
