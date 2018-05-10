@@ -84,7 +84,8 @@ class StockQuant(models.Model):
             - package_id: {stock.quant.package}
             - product_id: {product.product}
             - quantity: float
-            - reserved_quantit: float
+            - reserved_quantity: float
+            - lot_id (optional): {stock.production.lot}
         """
         self.ensure_one()
 
@@ -93,13 +94,18 @@ class StockQuant(models.Model):
         if self.package_id:
             package_info = self.package_id.get_info()[0]
 
-        return {"id": self.id,
-                "package_id": package_info,
-                "product_id": self.product_id.get_info()[0],
-                "location_id": location_info[0],
-                "quantity": self.quantity,
-                "reserved_quantity": self.reserved_quantity,
-        }
+        res = {"id": self.id,
+               "package_id": package_info,
+               "product_id": self.product_id.get_info()[0],
+               "location_id": location_info[0],
+               "quantity": self.quantity,
+               "reserved_quantity": self.reserved_quantity,
+               }
+
+        if self.lot_id:
+            res['lot_id'] = self.lot_id.get_info()[0]
+
+        return res
 
     def get_info(self):
         """ Return a list with the information of each quant in self.
