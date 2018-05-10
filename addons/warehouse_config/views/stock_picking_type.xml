@@ -28,6 +28,7 @@
                     <field name="u_validate_real_time" />
                     <field name="u_reserve_as_packages" />
                     <field name="u_handle_partials" />
+                    <field name="u_create_procurement_group"/>
                 </group>
             </xpath>
 

@@ -60,6 +60,13 @@ class StockPickingType(models.Model):
         help='Allow processing a transfer when the preceding transfers are not all completed.'
     )
 
+    u_create_procurement_group = fields.Boolean(
+        string='Create Procurement Group',
+        default=False,
+        help='Flag to indicate that a procurement group should be created on '
+             'confirmation of the picking if one does not already exist.',
+    )
+
     def _prepare_info(self):
         """
             Prepares the following extra info of the picking_type in self:
@@ -86,6 +93,7 @@ class StockPickingType(models.Model):
             'u_user_scans': self.u_user_scans,
             'u_enforce_location_dest_id': self.u_enforce_location_dest_id,
             'u_reserve_as_packages': self.u_reserve_as_packages,
-            'u_handle_partials': self.u_handle_partials
+            'u_handle_partials': self.u_handle_partials,
+            'u_create_procurement_group': self.u_create_procurement_group,
             })
         return info
