@@ -97,6 +97,7 @@ A lot of custom UDES functionality is specfied at the picking type level. This i
 | u_validate_real_time      | boolean | Do we validate move lines in real time |
 | u_enforce_location_dest_id| boolean | If the destination location on validation has to excatly match with the location_dest_id of the move lines |
 | u_handle_partials         | boolean | If the picking type is allowed to handle partially available pickings. If True, then pickings of this type will report their u_pending value. |
+| u_create_procurement_group| boolean | Indicate if a procurement group should be created on confirmation of the picking if one does not already exist |
 
 ## Stock Move (model: stock.move)
 
