@@ -98,6 +98,7 @@ class StockPickingType(models.Model):
             'u_user_scans': self.u_user_scans,
             'u_enforce_location_dest_id': self.u_enforce_location_dest_id,
             'u_confirm_location_dest_id': self.u_confirm_location_dest_id,
+            'u_display_summary': self.u_display_summary,
             'u_reserve_as_packages': self.u_reserve_as_packages,
             'u_confirm_serial_numbers': self.u_confirm_serial_numbers,
             })
