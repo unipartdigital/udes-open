@@ -62,21 +62,25 @@ class StockPicking(models.Model):
                 'move_lines.move_dest_ids.picking_id'
             )
 
+    def can_handle_partials(self):
+        self.ensure_one()
+        return True
+
     def _compute_pending(self):
         ''' Compute if a picking is pending.
         Pending means it has previous pickings that are not yet completed.
         Skip the calculation if the picking type is allowed to handle partials.
         '''
         for picking in self:
-            if picking.picking_type_id.u_handle_partials is False:
+            if picking.can_handle_partials() is False:
                 move_states = picking.mapped('move_lines.state')
-                picking.u_pending = 'waiting' in move_states
+                picking.u_pending = 'waiting' in move_states or 'partially_available' in move_states
             else:
                 picking.u_pending = False
 
     def assert_not_pending(self):
         for picking in self:
-            if picking.picking_type_id.u_handle_partials is False and picking.u_pending is True:
+            if picking.can_handle_partials() is False and picking.u_pending is True:
                 raise UserError(_("Cannot validate %s until all of its preceeding pickings are done.") % picking.name)
 
     def action_done(self):
@@ -680,7 +684,7 @@ class StockPicking(models.Model):
                 "moves_lines": lambda p: p.move_lines.get_info()}
 
         # u_partial only included if we don't handle partials, otherwise field is irrelevant.
-        if self.picking_type_id.u_handle_partials is False:
+        if self.can_handle_partials() is False:
             info['u_pending'] = lambda p: p.u_pending
 
         if not fields_to_fetch:
