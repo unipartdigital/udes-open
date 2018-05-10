@@ -24,7 +24,8 @@
     # NB(ale): order is important for deps
     'data': [
         'views/menu.xml',
-        'views/export.xml'
+        'views/export.xml',
+        'data/stock_email.xml',
     ],
 
     # only loaded in demonstration mode

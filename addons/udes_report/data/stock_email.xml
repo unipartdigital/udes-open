@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<odoo>
+  <data>
+    <!-- Configure outbound mail server -->
+    <record id="outbound_main_server" model="ir.mail_server">
+      <field name="name">Unipart Digital mail server</field>
+      <field name="sequence" eval="1"/>
+      <field name="smtp_host">localhost</field> 
+      <field name="smtp_port" eval="25"/>
+    </record>
+
+    <!--Email template -->
+    <record id="automated_stock_email_template" model="mail.template">
+      <field name="name">Automated stock email template</field>
+      <field name="subject">Stock File</field>
+      <field name="email_from">no-reply@udes.io</field>
+      <field name="reply_to">udes@unipart.io</field>
+      <field name="auto_delete" eval="True"/>
+      <field name="model_id" ref="base.main_company"/>
+      <field name="body_html">
+        <![CDATA[<p>Please find attached the stock file for CLIENT<p>
+        <p>Please note, this is an automated email and replies will not be monitored.</p>
+        <p>Kind Regards</p>
+        ]]>
+      </field>
+      <field name="mail_server_id" ref="udes_report.outbound_main_server"></field>
+    </record>
+
+    <!-- Cronjob for sending stock file-->
+    <record id="send_stock_file_cron_action" model="ir.cron">
+      <field name="name">Send Sock File</field>
+      <field name="active" eval="True"/>
+      <field name="user_id" ref="base.user_root" />
+      <field name="interval_number">1</field>
+      <field name="interval_type">days</field>
+      <field name="numbercall">-1</field>
+      <field name="doall">0</field>
+      <field name="model_id" ref="model_udes_report_stock_export" /> 
+      <field name="state">code</field>
+      <field name="code">model.send_automated_stock_file()</field>
+    </record>
+  </data>
+</odoo>
