@@ -32,8 +32,10 @@ class TestHandlePartials(common.BaseUDES):
         super(TestHandlePartials, self).setUp()
         Group = self.env['procurement.group']
         # create stock: 10 apple, 20 bananas, different packs.
-        self.create_quant(self.apple.id, self.test_location_01.id, 10, package_id=self.create_package().id)
-        self.create_quant(self.banana.id, self.test_location_01.id, 20, package_id=self.create_package().id)
+        self.create_quant(self.apple.id, self.test_location_01.id, 10,
+                          package_id=self.create_package().id)
+        self.create_quant(self.banana.id, self.test_location_01.id, 20,
+                          package_id=self.create_package().id)
 
         # Create a picking and validate one of the packages through to Goods Out
         group = Group.get_group("TESTGROUP99", create=True)
@@ -71,11 +73,15 @@ class TestHandlePartials(common.BaseUDES):
 
         with self.assertRaises(UserError) as e:
             self.out_picking.button_validate()
-        self.assertEqual(e.exception.name, 'Cannot validate %s until all of its preceeding pickings are done.' % self.out_picking.name)
+        self.assertEqual(e.exception.name,
+                         'Cannot validate %s until all of its preceeding'
+                         ' pickings are done.' % self.out_picking.name)
 
         with self.assertRaises(UserError) as f:
             self.out_picking.action_done()
-        self.assertEqual(f.exception.name, 'Cannot validate %s until all of its preceeding pickings are done.' % self.out_picking.name)
+        self.assertEqual(f.exception.name,
+                         'Cannot validate %s until all of its preceeding'
+                         ' pickings are done.' % self.out_picking.name)
 
     def test02_do_handle_partials_button(self):
         self.picking_type_out.u_handle_partials = True

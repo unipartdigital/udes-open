@@ -22,7 +22,8 @@ class TestCreateProcurementGroup(common.BaseUDES):
         super(TestCreateProcurementGroup, self).setUp()
 
         # create stock: 10 apple
-        self.create_quant(self.apple.id, self.test_location_01.id, 10, package_id=self.create_package().id)
+        self.create_quant(self.apple.id, self.test_location_01.id, 10,
+                          package_id=self.create_package().id)
 
 
     def test01_create_group_when_no_group_at_picking(self):
