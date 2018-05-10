@@ -24,19 +24,18 @@
                         </thead>
                         <tbody>
                             <t t-if="o.move_raw_ids">
-                                <t t-foreach="o.move_raw_ids" t-as="move">
-                                    <tr t-foreach="move.move_line_ids" t-as="line">
-                                        <td>
-                                            <span t-field="line.product_id"/>
-                                        </td>
-                                        <td class="text-right">
-                                            <span t-field="line.product_qty"/>
-                                        </td>
-                                        <td>
-                                            <span t-field="line.location_id"/>
-                                        </td>
-                                    </tr>
-                                </t>
+                                <tr t-foreach="o.move_raw_ids.mapped('move_line_ids').sorted(key=lambda x: x.location_id.name)"
+                                   t-as="line">
+                                    <td>
+                                        <span t-field="line.product_id"/>
+                                    </td>
+                                    <td class="text-right">
+                                        <span t-field="line.product_qty"/>
+                                    </td>
+                                    <td>
+                                        <span t-field="line.location_id"/>
+                                    </td>
+                                </tr>
                             </t>
                         </tbody>
                     </table>
