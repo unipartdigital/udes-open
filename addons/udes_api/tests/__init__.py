@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from . import test_backorder_validate_real_time
+from . import test_create_procurement_group
 from . import test_handle_partials
 from . import test_package_reservation
 from . import test_package_swap
