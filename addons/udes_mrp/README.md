@@ -1,3 +1,4 @@
 # udes_mrp
 
-UDES Odoo module for MRP.
+This module adds the following features to MRP Odoo Community Edition:
+* Raw Materials Pick List for manufacturing orders
