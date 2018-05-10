@@ -43,6 +43,10 @@ class StockPicking(models.Model):
                                           )
     u_pending = fields.Boolean(compute='_compute_pending')
 
+    # override batch_id to be copied
+    batch_id = fields.Many2one(
+        'stock.picking.batch', copy=True)
+
     # Calculate previous/next pickings
     @api.depends('move_lines',
                  'move_lines.move_orig_ids',
@@ -135,6 +139,8 @@ class StockPicking(models.Model):
         """
         Quant = self.env['stock.quant']
 
+        allow_partial = self.env.context.get('allow_partial')
+
         self.assert_valid_state()
 
         if isinstance(quant_ids, list):
@@ -143,13 +149,15 @@ class StockPicking(models.Model):
             quants = quant_ids
         else:
             raise ValidationError(_('Wrong quant identifiers %s') % type(quant_ids))
-        quants.assert_not_reserved()
-        quants.assert_entire_packages()
+        if not allow_partial:
+            quants.assert_not_reserved()
+            quants.assert_entire_packages()
         quants.assert_valid_location(self.location_id.id)
 
         # Call _create_moves() with context variable quants_ids in order
         # to filter the quants that stock.quant._gather returns
-        self.with_context(quant_ids=quant_ids)._create_moves(quants.group_quantity_by_product(), **kwargs)
+        self.with_context(quant_ids=quant_ids)._create_moves(
+            quants.group_quantity_by_product(only_available=allow_partial), **kwargs)
 
     def _create_moves(self, products_info, values=None,
                       confirm=False, assign=False,
@@ -306,6 +314,7 @@ class StockPicking(models.Model):
             product_ids=None,
             picking_info=None,
             validate_real_time=False,
+            location_id=None,
     ):
         """ Update/mutate the stock picking in self
 
@@ -343,6 +352,8 @@ class StockPicking(models.Model):
             @param (optional) validate_real_time: Boolean
                 Used to specify if the update should be should be processed
                 imidately or on confirmation of the picking.
+            @param (optional) location_id: int
+                Used when validating products from a location.
         """
         Location = self.env['stock.location']
         Package = self.env['stock.quant.package']
@@ -386,6 +397,11 @@ class StockPicking(models.Model):
 
         if product_ids:
             values['product_ids'] = product_ids
+            # when updating products we migth want
+            # to filter by location
+            if location_id:
+                location = Location.get_location(location_id)
+                move_lines = move_lines.filtered(lambda ml: ml.location_id == location)
 
         picking = self
         if package_name or product_ids or force_validate:
@@ -452,18 +468,18 @@ class StockPicking(models.Model):
                         lambda x: x.state not in ('done', 'cancel')):
                 bk_move = current_move
             else:
-                total_qty_done = sum(current_mls.mapped('qty_done'))
                 total_ordered_qty = sum(current_mls.mapped('ordered_qty'))
+                total_initial_qty = sum(current_mls.mapped('product_uom_qty'))
                 bk_move = current_move.copy({'picking_id': False,
                                              'move_line_ids': [],
                                              'move_orig_ids': [],
                                              'ordered_qty': total_ordered_qty,
-                                             'product_uom_qty': total_qty_done,
+                                             'product_uom_qty': total_initial_qty,
                                              })
                 current_mls.write({'move_id': bk_move.id})
                 current_move.with_context(bypass_reservation_update=True).write({
                     'ordered_qty': current_move.ordered_qty - total_ordered_qty,
-                    'product_uom_qty': current_move.product_uom_qty - total_qty_done,
+                    'product_uom_qty': current_move.product_uom_qty - total_initial_qty,
                 })
 
                 if current_move.move_orig_ids:

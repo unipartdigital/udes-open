@@ -4,7 +4,6 @@ from odoo import models,  _
 from odoo.exceptions import ValidationError
 from odoo.tools.float_utils import float_compare, float_round
 from copy import deepcopy
-
 from collections import Counter, defaultdict
 
 
@@ -16,6 +15,12 @@ class StockMoveLine(models.Model):
             i.e., quantity done < quantity todo
         """
         return self.filtered(lambda ml: ml.qty_done < ml.product_uom_qty)
+
+    def get_lines_done(self):
+        """ Return the move lines in self that are completed,
+            i.e., quantity done == quantity todo
+        """
+        return self.filtered(lambda ml: ml.qty_done == ml.product_uom_qty)
 
     def mark_as_done(self, location_dest=None, result_package=None, package=None, product_ids=None):
         """ Marks as done the move lines in self and updates location_dest_id
@@ -194,10 +199,10 @@ class StockMoveLine(models.Model):
 
     def _update_products_info(self, product, products_info, info):
         """ For each (key, value) in info it merges to the corresponding
-            produc info if it alreay exists.
+            product info if it already exists.
 
             where key:
-                qty, serial_numbers
+                qty, lot_names
 
             Only for products not tracked or tracked by serial numbers
 
@@ -376,7 +381,6 @@ class StockMoveLine(models.Model):
 
         return res
 
-
     def _get_all_products_quantities(self):
         '''This function computes the different product quantities for the given move_lines
         '''
@@ -426,3 +430,34 @@ class StockMoveLine(models.Model):
             res.append(line._prepare_info())
 
         return res
+
+    def sort_by_location_product(self, state=None):
+        """ Sort the move lines
+        """
+        MoveLine = self.env['stock.move.line']
+
+        mls = self
+
+        if state is None:
+            pass
+        elif state == 'done':
+            mls = mls.get_lines_done()
+        elif state == 'not_done':
+            mls = mls.get_lines_todo()
+        else:
+            raise AssertionError('State not valid to sort tasks')
+
+        return mls.sorted(key=lambda x: (x.location_id.name, x.product_id.id))
+
+    def get_quants(self):
+        """ Returns the quants related to move lines in self
+        """
+        Quant = self.env['stock.quant']
+
+        quants = Quant.browse()
+        for ml in self:
+            quants |= Quant._gather(ml.product_id, ml.location_id,
+                                    lot_id=ml.lot_id, package_id=ml.package_id,
+                                    owner_id=ml.owner_id, strict=True)
+
+        return quants
