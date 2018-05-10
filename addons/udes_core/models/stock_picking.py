@@ -77,8 +77,10 @@ class StockPicking(models.Model):
         '''
         for picking in self:
             if picking.can_handle_partials() is False:
-                move_states = picking.mapped('move_lines.state')
-                picking.u_pending = 'waiting' in move_states or 'partially_available' in move_states
+                move_states = picking.mapped('move_lines.move_orig_ids.state')
+                picking.u_pending = 'waiting' in move_states or \
+                                    'partially_available' in move_states or \
+                                    'assigned' in move_states
             else:
                 picking.u_pending = False
 
@@ -675,7 +677,7 @@ class StockPicking(models.Model):
             - location_dest_id: int
             - picking_type_id: int
             - move_lines: [{stock.move}]
-            - u_partial: boolean (only if picking type does not handle partials)
+            - u_pending: boolean (only if picking type does not handle partials)
 
             @param (optional) priorities
                 Dictionary of priority_id:priority_name
@@ -699,7 +701,7 @@ class StockPicking(models.Model):
                 "picking_type_id": lambda p: p.picking_type_id.id,
                 "moves_lines": lambda p: p.move_lines.get_info()}
 
-        # u_partial only included if we don't handle partials, otherwise field is irrelevant.
+        # u_pending only included if we don't handle partials, otherwise field is irrelevant.
         if self.can_handle_partials() is False:
             info['u_pending'] = lambda p: p.u_pending
 
