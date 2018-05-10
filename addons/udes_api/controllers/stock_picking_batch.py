@@ -16,7 +16,8 @@ def _get_single_batch_info(batch, allowed_picking_states=None):
         return {}
 
     info = batch.get_info(allowed_picking_states)
-    assert len(info) == 1, "expected exactly one batch"
+    if len(info) != 1:
+        raise AssertionError("Expected exactly one batch")
 
     return info[0]
 
@@ -66,6 +67,27 @@ class PickingBatchApi(UdesApi):
         return _get_single_batch_info(batch,
                                       allowed_picking_states=['assigned'])
 
+    @http.route('/api/stock-picking-batch/<ident>/next',
+                type='json', methods=['GET'], auth='user')
+    def get_next_task(self, ident, skipped_product_ids=None):
+        """
+        Returns the next pick task from the picking batch in
+        progress for the current user.
+        A task will include one or more move lines from
+        different pickings.
+
+        Raises a ValidationError if the specified batch does
+        not exist.
+
+        In case the batch is not completed, returns an object
+        containing information regarding the next task:
+        picking_id and package/product information.
+        Returns an empty object otherwise.
+        """
+        batch = _get_batch(request.env, ident)
+
+        return batch.get_next_task(skipped_product_ids=skipped_product_ids)
+
     @http.route('/api/stock-picking-batch/',
                 type='json', methods=['POST'], auth='user')
     def create_batch_for_user(self,
@@ -96,18 +118,18 @@ class PickingBatchApi(UdesApi):
                 type='json', methods=['POST'], auth='user')
     def update_batch(self, ident,
                      location_barcode=None,
-                     continue_wave=False):
+                     continue_batch=False):
         """
         Update the specified batch by inspecting its move lines
         and setting the destination to the location with the
         provided `location_barcode`.
 
         In case all pickings are completed, the batch will be
-        marked as 'done' if `continue_wave` is flagged (defaults
+        marked as 'done' if `continue_batch` is flagged (defaults
         to false).
         """
         batch = _get_batch(request.env, ident)
-        updated_batch = batch.drop_off_picked(continue_wave, location_barcode)
+        updated_batch = batch.drop_off_picked(continue_batch, location_barcode)
 
         return _get_single_batch_info(updated_batch)
 
@@ -153,7 +175,7 @@ class PickingBatchApi(UdesApi):
 
     @http.route('/api/stock-picking-batch/<ident>/unpickable',
                 type='json', methods=['POST'], auth='user')
-    def unpickable_item(self, ident, move_line_id, reason):
+    def unpickable_item(self, ident, reason, product_id=None, location_id=None, package_name=None):
         """
         Creates a Stock Investigation for the specified move_line_id for the
         given batch.  If necessary a backorder will be created.
@@ -162,7 +184,9 @@ class PickingBatchApi(UdesApi):
 
         batch = _get_batch(request.env, ident)
         picking_type_id = ResUsers.get_user_warehouse().u_stock_investigation_picking_type.id  # noqa
-        unpickable_item = batch.unpickable_item(move_line_id=move_line_id,
-                                                reason=reason,
+        unpickable_item = batch.unpickable_item(reason=reason,
+                                                product_id=product_id,
+                                                location_id=location_id,
+                                                package_name=package_name,
                                                 picking_type_id=picking_type_id)  # noqa
         return unpickable_item

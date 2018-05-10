@@ -231,6 +231,14 @@ class StockPicking(models.Model):
         super(StockPicking, self).action_assign()
         self._reserve_full_packages()
 
+    def _check_entire_pack(self):
+        """
+            Override to avoid values at result_package_id when
+            user scans products
+        """
+        pickings = self.filtered(lambda p: p.picking_type_id.u_user_scans != 'product')
+        super(StockPicking, pickings)._check_entire_pack()
+
     def _reserve_full_packages(self):
         """
             If the picking type of the picking in self has full package
