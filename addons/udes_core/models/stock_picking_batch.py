@@ -311,15 +311,15 @@ class StockPickingBatch(models.Model):
             raise ValidationError(_('Cannot mark a move line as unpickable '
                                     'when it is part of a completed Picking.'))
 
+        original_picking_id = None
 
         if len(picking.move_line_ids - move_lines):
-            # Create a backorder for the affected move lines if there are
-            # move lines that are not affected
+            # Create a backorder for the affected move lines if
+            # there are move lines that are not affected
+            original_picking_id = picking.id
             picking = picking._create_backorder(move_lines)
 
-        # Remove the pick from the batch, and refine it
-        picking.batch_id = False
-        # By default the pick is cancelled
+        # By default the pick is unreserved
         picking._refine_picking(reason)
 
         group = Group.get_group(group_identifier=reason,
@@ -332,8 +332,23 @@ class StockPickingBatch(models.Model):
                                picking_type_id=picking_type_id,
                                group_id=group.id)
 
-        # If the batch does not contain any remaining picking to do, it can
-        # be set as done
+        # Try to re-assing the picking after, by creating the
+        # investigation, we've reserved the problematic stock
+        picking.action_assign()
+
+        # NB: if the product is not available, the picking will
+        # remain in the batch in 'waiting' state
+
+        if original_picking_id is not None and picking.state == 'assigned':
+            # A backorder has been created, but the stock is
+            # available; the move lines should be linked to the
+            # original picking to directly process the stock
+            picking.move_line_ids.write({'picking_id': original_picking_id})
+            picking.move_lines.write({'picking_id': original_picking_id})
+            picking.unlink()
+
+        # If the batch does not contain any remaining picking to do,
+        # it can be set as done
         remaining_pickings = self.picking_ids.filtered(
             lambda x: x.state in ['assigned'])
 

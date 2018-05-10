@@ -755,9 +755,13 @@ class StockPicking(models.Model):
     @api.multi
     def _refine_picking(self, text=None):
         """
-        By default refining the picking is cancel
+        Unreserve the move lines of all pickings of the instance
+        recordset.
+        If the text argument is specified, it will be shown in the
+        Odoo UI within each picking context.
         """
         for pick in self:
             if text:
-                pick.message_post(body=_(text))
-            pick.action_cancel()
+                pick.message_post(body=text)
+
+            pick.do_unreserve()
