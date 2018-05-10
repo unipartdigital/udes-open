@@ -74,13 +74,13 @@ class TestHandlePartials(common.BaseUDES):
         with self.assertRaises(UserError) as e:
             self.out_picking.button_validate()
         self.assertEqual(e.exception.name,
-                         'Cannot validate %s until all of its preceeding'
+                         'Cannot validate %s until all of its preceding'
                          ' pickings are done.' % self.out_picking.name)
 
         with self.assertRaises(UserError) as f:
             self.out_picking.action_done()
         self.assertEqual(f.exception.name,
-                         'Cannot validate %s until all of its preceeding'
+                         'Cannot validate %s until all of its preceding'
                          ' pickings are done.' % self.out_picking.name)
 
     def test02_do_handle_partials_button(self):
@@ -101,4 +101,29 @@ class TestHandlePartials(common.BaseUDES):
 
         self.out_picking.action_done()
         # Test is that an exception has not been raised so assert True.
+        self.assertTrue(True)
+
+    def test04_dont_handle_partials_canceled(self):
+        self.picking_type_out.u_handle_partials = False
+
+        # Pending is set correctly
+        self.assertTrue(self.out_picking.u_pending)
+
+        with self.assertRaises(UserError) as e:
+            self.out_picking.button_validate()
+        self.assertEqual(e.exception.name,
+                         'Cannot validate %s until all of its preceding'
+                         ' pickings are done.' % self.out_picking.name)
+
+        with self.assertRaises(UserError) as f:
+            self.out_picking.action_done()
+        self.assertEqual(f.exception.name,
+                         'Cannot validate %s until all of its preceding'
+                         ' pickings are done.' % self.out_picking.name)
+
+        prev_undone_pickings = self.out_picking.u_prev_picking_ids.filtered(
+            lambda p: p.state != 'done')
+
+        prev_undone_pickings.action_cancel()
+        self.out_picking.action_done()
         self.assertTrue(True)
