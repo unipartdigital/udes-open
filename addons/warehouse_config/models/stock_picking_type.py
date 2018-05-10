@@ -28,7 +28,11 @@ class StockPickingType(models.Model):
         default=False,
         help='Flag to indicate if the destination location of operations should '
              'be forced to be a child_of the picking location_dest_id.',)
-
+    u_confirm_location_dest_id = fields.Boolean(
+        string='Confirm Destination Location',
+        default=True,
+        help='Flag to indicate whether we need to scan the Destination Location of operations, '
+             'or if it is automatically confirmed as the preset Destination Location.',)
     u_validate_real_time = fields.Boolean(
         string='Validate In Real Time',
         default=False,
@@ -53,6 +57,13 @@ class StockPickingType(models.Model):
         default=False,
         help="Flag to indicate reservations should be rounded up to entire packages."
         )
+    u_confirm_serial_numbers = fields.Selection([
+        ('no', 'No'),
+        ('yes', 'Yes'),
+        ('first_last', 'First/Last'),
+    ],
+        string='Confirm Serial Numbers',
+    )
 
     u_handle_partials = fields.Boolean(
         string='Process Partial Transfers',
@@ -80,6 +91,7 @@ class StockPickingType(models.Model):
             - u_user_scans: string
             - u_enforce_location_dest_id: boolean
             - u_reserve_as_packages: boolean
+            - u_confirm_serial_numbers: string
         """
         info = super(StockPickingType, self)._prepare_info()
         info.update({
@@ -92,8 +104,10 @@ class StockPickingType(models.Model):
             'u_target_storage_format': self.u_target_storage_format,
             'u_user_scans': self.u_user_scans,
             'u_enforce_location_dest_id': self.u_enforce_location_dest_id,
+            'u_confirm_location_dest_id': self.u_confirm_location_dest_id,
             'u_reserve_as_packages': self.u_reserve_as_packages,
             'u_handle_partials': self.u_handle_partials,
             'u_create_procurement_group': self.u_create_procurement_group,
+            'u_confirm_serial_numbers': self.u_confirm_serial_numbers,
             })
         return info
