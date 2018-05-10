@@ -77,17 +77,16 @@ class StockPicking(models.Model):
         '''
         for picking in self:
             if picking.can_handle_partials() is False:
-                move_states = picking.mapped('move_lines.move_orig_ids.state')
-                picking.u_pending = 'waiting' in move_states or \
-                                    'partially_available' in move_states or \
-                                    'assigned' in move_states
+                prev_pickings_states = picking.u_prev_picking_ids.mapped('state')
+                picking.u_pending = 'waiting' in prev_pickings_states or \
+                                    'assigned' in prev_pickings_states
             else:
                 picking.u_pending = False
 
     def assert_not_pending(self):
         for picking in self:
             if picking.can_handle_partials() is False and picking.u_pending is True:
-                raise UserError(_("Cannot validate %s until all of its preceeding pickings are done.") % picking.name)
+                raise UserError(_("Cannot validate %s until all of its preceding pickings are done.") % picking.name)
 
     def action_done(self):
         """ Ensure we don't incorrectly validate pending pickings."""
