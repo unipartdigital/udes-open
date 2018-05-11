@@ -19,6 +19,9 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         wh_picking_type_pick = user_warehouse.pick_type_id.copy({'name': 'TEST PICK'})
         cls.picking_type_pick = wh_picking_type_pick.copy({'name': 'TEST PICK'})
         user_warehouse.pick_type_id = cls.picking_type_pick
+        # create new internal picking type to avoid problems
+        cls.picking_type_internal = cls.picking_type_internal.copy({'name': 'TEST INTERNAL'})
+        user_warehouse.int_type_id = cls.picking_type_internal
         cls.pack_4apples_info = [{'product': cls.apple,
                                   'qty': 4}]
 
@@ -442,25 +445,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
                                   reason=reason,
                                   picking_type_id=None)
 
-    # TODO: create quant without package etc
-    def _test21_unpickable_item_no_package_validation_error(self):
-        """
-        Tests that ValidationError is raised if the move_line does not have
-        a package.  This functionality is not yet handled by the system.
-        :return:
-        """
-        picking, batch = self._create_valid_batch()
-        reason = 'missing item'
-        move_line = picking.move_line_ids[0]
-        # Make the move_line not have a package.
-        move_line.package_id = None
-        with self.assertRaisesRegex(ValidationError, 'Not Implemented',
-                                    msg='Incorrect error thrown'):
-            batch.unpickable_item(move_line_id=move_line.id,
-                                  reason=reason,
-                                  picking_type_id=None)
-
-    def test22_unpickable_item_multiple_move_lines_different_packages(self):
+    def test21_unpickable_item_multiple_move_lines_different_packages(self):
         """
         Tests that a backorder is created and confirmed if there are multiple
         move lines on the picking. The original picking should continue to
@@ -519,7 +504,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         self.assertEqual(new_picking.group_id.name, reason,
                          'reason was not assigned correctly')
 
-    def test23_unpickable_item_multiple_move_lines_same_package(self):
+    def test22_unpickable_item_multiple_move_lines_same_package(self):
         """
         Tests that if there are multiple move lines on the same package
         that the picking remains in state confirmed and a new picking
@@ -561,3 +546,177 @@ class TestGoodsInPickingBatch(common.BaseUDES):
                          'picking creation has not completed properly')
         self.assertEqual(new_picking.group_id.name, reason,
                          'reason was not assigned correctly')
+
+    def test23_unpickable_item_product_validation_error_missing_location(self):
+        """
+        Tests that calling unpickable item for a product without location
+        raises an error.
+        """
+        quant = self.create_quant(self.apple.id, self.test_location_01.id, 4)
+
+        products_info = [{'product': self.apple, 'qty': 1}]
+        picking = self.create_picking(self.picking_type_pick,
+                                      products_info=products_info,
+                                      confirm=True,
+                                      assign=True)
+        # check that only 1 unit of the quant is reserved
+        self.assertEqual(quant.reserved_quantity, 1)
+
+        Batch = self.env['stock.picking.batch']
+        batch = Batch.create_batch(None)
+
+        self.assertIn(picking, batch.picking_ids)
+
+        reason = 'missing item'
+        move_line = picking.move_line_ids[0]
+
+        expected_error = 'Missing location parameter for unpickable' \
+                         ' product %s' % move_line.product_id.name
+        with self.assertRaisesRegex(ValidationError, expected_error,
+                                    msg='Incorrect error thrown'):
+            batch.unpickable_item(product_id=move_line.product_id.id,
+                                  reason=reason,
+                                  picking_type_id=None)
+
+    def test24_unpickable_item_product_ok(self):
+        """
+        Tests that calling unpickable item for a product with location
+        ends up with all the quant reserved for the stock investigation
+        and the picking remains in state confirmed since there is no
+        more stock.
+        """
+        quant = self.create_quant(self.apple.id, self.test_location_01.id, 4)
+
+        products_info = [{'product': self.apple, 'qty': 1}]
+        picking = self.create_picking(self.picking_type_pick,
+                                      products_info=products_info,
+                                      confirm=True,
+                                      assign=True)
+        # check that only 1 unit of the quant is reserved
+        self.assertEqual(quant.reserved_quantity, 1)
+
+        Batch = self.env['stock.picking.batch']
+        batch = Batch.create_batch(None)
+
+        self.assertIn(picking, batch.picking_ids)
+
+        reason = 'missing item'
+        move_line = picking.move_line_ids[0]
+
+        batch.unpickable_item(product_id=move_line.product_id.id,
+                              location_id=move_line.location_id.id,
+                              reason=reason,
+                              picking_type_id=None)
+        # after unickable all the quant should be reserved
+        self.assertEqual(quant.reserved_quantity, 4)
+        # picking state should be confirmed
+        self.assertEqual(picking.state, 'confirmed',
+                         'picking was not confirmed')
+        # Check no backorder has been created
+        self.assertEqual(len(picking.u_created_back_orders), 0)
+
+    def test25_unpickable_item_product_ok_multiple_lines(self):
+        """
+        Tests that calling unpickable item for a product with location
+        ends up with all the quant reserved for the stock investigation.
+        In this case we have multiple move lines at the picking, so a
+        backorder is created and its state is confirmed since there
+        is no more stock.
+        """
+        quant_apple = self.create_quant(self.apple.id, self.test_location_01.id, 4)
+        quant_banana = self.create_quant(self.banana.id, self.test_location_01.id, 3)
+
+        products_info = [{'product': self.apple, 'qty': 1},
+                         {'product': self.banana, 'qty': 2}]
+        picking = self.create_picking(self.picking_type_pick,
+                                      products_info=products_info,
+                                      confirm=True,
+                                      assign=True)
+        # check that only 1 unit of the quant is reserved
+        self.assertEqual(quant_apple.reserved_quantity, 1)
+        self.assertEqual(quant_banana.reserved_quantity, 2)
+
+        Batch = self.env['stock.picking.batch']
+        batch = Batch.create_batch(None)
+
+        self.assertIn(picking, batch.picking_ids)
+
+        reason = 'missing item'
+        move_line = picking.move_line_ids[0]
+
+        batch.unpickable_item(product_id=move_line.product_id.id,
+                              location_id=move_line.location_id.id,
+                              reason=reason,
+                              picking_type_id=None)
+        # after unickable all the quant should be reserved
+        self.assertEqual(quant_apple.reserved_quantity, 4)
+        # picking state should be assigned
+        self.assertEqual(picking.state, 'assigned',
+                         'picking was not assigned')
+
+        # TODO: add a new test like this one but where we have stock,
+        #       which means the moves/move_lines of the backorder will
+        #       be moved back to original picking and the backorder deleted
+
+        # Check no backorder has been created
+        self.assertEqual(len(picking.u_created_back_orders), 1)
+        # Check backorder state
+        self.assertEqual(picking.u_created_back_orders.state, 'confirmed')
+
+    def test26_unpickable_item_product_ok_two_picks(self):
+        """
+        Tests that calling unpickable item for a product with location
+        ends up with all the quant reserved for the stock investigation
+        and the picking remains in state confirmed since there is no
+        more stock. In case the quant is reserved for more than one picking
+        the stock investigation will contain only the quantity of the
+        unpickable + available quantity of the quant.
+        Example: quant of 4, 1 unit reserved in two pickings, leaves
+                 an available quantity of 2, so when unpickable of one
+                 of the pickings will create an investigation of 3.
+        """
+        Batch = self.env['stock.picking.batch']
+        Picking = self.env['stock.picking']
+
+        quant = self.create_quant(self.apple.id, self.test_location_01.id, 4)
+
+        products_info = [{'product': self.apple, 'qty': 1}]
+        picking = self.create_picking(self.picking_type_pick,
+                                      products_info=products_info,
+                                      confirm=True,
+                                      assign=True)
+        # check that only 1 unit of the quant is reserved
+        self.assertEqual(quant.reserved_quantity, 1)
+
+        picking_2 = self.create_picking(self.picking_type_pick,
+                                      products_info=products_info,
+                                      confirm=True,
+                                      assign=True)
+        # check that now 2 units of the quant are reserved
+        self.assertEqual(quant.reserved_quantity, 2)
+
+        batch = Batch.create_batch(None)
+
+        self.assertIn(picking, batch.picking_ids)
+
+        reason = 'missing item'
+        move_line = picking.move_line_ids[0]
+
+        batch.unpickable_item(product_id=move_line.product_id.id,
+                              location_id=move_line.location_id.id,
+                              reason=reason,
+                              picking_type_id=self.picking_type_internal.id)
+        # after unickable all the quant should be reserved
+        self.assertEqual(quant.reserved_quantity, 4)
+        # picking state should be confirmed
+        self.assertEqual(picking.state, 'confirmed',
+                         'picking was not confirmed')
+        # Check no backorder has been created
+        self.assertEqual(len(picking.u_created_back_orders), 0)
+
+        # check that the investigation has reserved 3 only
+        inv_picking = Picking.search([('picking_type_id', '=', self.picking_type_internal.id)])
+        self.assertEqual(len(inv_picking), 1)
+        self.assertEqual(len(inv_picking.move_line_ids), 1)
+        self.assertEqual(inv_picking.move_line_ids[0].product_qty, 3)
+
