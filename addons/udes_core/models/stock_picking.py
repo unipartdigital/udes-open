@@ -3,7 +3,7 @@
 from collections import OrderedDict
 
 from odoo import api, fields, models, _
-from odoo.exceptions import ValidationError
+from odoo.exceptions import ValidationError, UserError
 
 from ..common import check_many2one_validity
 from . import common
@@ -41,6 +41,8 @@ class StockPicking(models.Model):
                                           related='move_line_ids.result_package_id',
                                           help='Destination package (used to search on pickings)',
                                           )
+    u_pending = fields.Boolean(compute='_compute_pending')
+
     # override batch_id to be copied
     batch_id = fields.Many2one(
         'stock.picking.batch', copy=True)
@@ -63,6 +65,41 @@ class StockPicking(models.Model):
             picking.u_next_picking_ids = picking.mapped(
                 'move_lines.move_dest_ids.picking_id'
             )
+
+    def can_handle_partials(self):
+        self.ensure_one()
+        return True
+
+    def _compute_pending(self):
+        ''' Compute if a picking is pending.
+        Pending means it has previous pickings that are not yet completed.
+        Skip the calculation if the picking type is allowed to handle partials.
+        '''
+        for picking in self:
+            if picking.can_handle_partials() is False:
+                prev_pickings_states = picking.u_prev_picking_ids.mapped('state')
+                picking.u_pending = 'waiting' in prev_pickings_states or \
+                                    'assigned' in prev_pickings_states
+            else:
+                picking.u_pending = False
+
+    def assert_not_pending(self):
+        for picking in self:
+            if picking.can_handle_partials() is False \
+                    and picking.u_pending is True:
+                raise UserError(
+                    _("Cannot validate %s until all of its"
+                      " preceding pickings are done.") % picking.name)
+
+    def action_done(self):
+        """ Ensure we don't incorrectly validate pending pickings."""
+        self.assert_not_pending()
+        return super(StockPicking, self).action_done()
+
+    def button_validate(self):
+        """ Ensure we don't incorrectly validate pending pickings."""
+        self.assert_not_pending()
+        return super(StockPicking, self).button_validate()
 
     def assert_valid_state(self):
         """ Checks if the transfer is in a valid state, i.e., not done or cancel
@@ -642,6 +679,7 @@ class StockPicking(models.Model):
             - location_dest_id: int
             - picking_type_id: int
             - move_lines: [{stock.move}]
+            - u_pending: boolean (only if picking type does not handle partials)
 
             @param (optional) priorities
                 Dictionary of priority_id:priority_name
@@ -664,6 +702,10 @@ class StockPicking(models.Model):
                 "location_dest_id": lambda p: p.location_dest_id.id,
                 "picking_type_id": lambda p: p.picking_type_id.id,
                 "moves_lines": lambda p: p.move_lines.get_info()}
+
+        # u_pending only included if we don't handle partials, otherwise field is irrelevant.
+        if self.can_handle_partials() is False:
+            info['u_pending'] = lambda p: p.u_pending
 
         if not fields_to_fetch:
             fields_to_fetch = info.keys()

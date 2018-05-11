@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from . import common
+from odoo.exceptions import UserError
 
 class TestGoodsInPicking(common.BaseUDES):
 
