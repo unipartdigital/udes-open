@@ -274,7 +274,7 @@ class StockPickingBatch(models.Model):
                 msg += _(' with serial number %s') % lot_name
 
             if package:
-                move_lines = move_lines.get_package_move_lines(package)
+                move_lines = move_lines.filtered(lambda ml: ml.package_id == package)
                 msg += _(' in package %s') % package.name
             elif move_lines.mapped('package_id'):
                 raise ValidationError(
@@ -287,7 +287,7 @@ class StockPickingBatch(models.Model):
             if not location:
                 location=package.location_id
 
-            move_lines = move_lines.get_package_move_lines(package)
+            move_lines = move_lines.filtered(lambda ml: ml.package_id == package)
             quants = package._get_contained_quants()
             msg = _('Unpickable package %s at location %s') % (package.name, location.name)
         else:
@@ -295,7 +295,9 @@ class StockPickingBatch(models.Model):
                 _('Missing required information for unpickable item: product or package.'))
 
         if not move_lines:
-            raise ValidationError(_('Cannot find operations for unpickable item'))
+            raise ValidationError(
+                _('Cannot find move lines todo for unpickable item '
+                  'in this batch.'))
 
         # at this point we should have only one picking_id
         picking = move_lines.mapped('picking_id')

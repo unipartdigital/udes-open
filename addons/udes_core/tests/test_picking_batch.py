@@ -15,7 +15,10 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
         user_warehouse = User.get_user_warehouse()
         cls.user_warehouse = user_warehouse
-        cls.picking_type_pick = user_warehouse.pick_type_id
+        # create new pick picking type to avoid problems with existing picks
+        wh_picking_type_pick = user_warehouse.pick_type_id.copy({'name': 'TEST PICK'})
+        cls.picking_type_pick = wh_picking_type_pick.copy({'name': 'TEST PICK'})
+        user_warehouse.pick_type_id = cls.picking_type_pick
         cls.pack_4apples_info = [{'product': cls.apple,
                                   'qty': 4}]
 
@@ -63,8 +66,8 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
     def test05_get_single_batch_no_batch_one_picking(self):
         """
-        Should create a batch for the current user when a single
-        picking exists.
+        Get single batch returns none when no batch has been
+        created for the current user.
 
         """
         Batch = self.env['stock.picking.batch']
@@ -77,11 +80,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
                             assign=True)
         batch = Batch.get_single_batch()
 
-        self.assertIsNotNone(batch, "No batch created")
-        self.assertEqual(batch.user_id.id, self.env.user.id,
-                         "Batch responsible is not the current user")
-        self.assertEqual(len(batch.picking_ids), 1,
-                         "Batch does not include single picking")
+        self.assertIsNone(batch, "Unexpected batch found")
 
     def test06_get_single_batch_error_multiple_batches(self):
         """
@@ -94,7 +93,8 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
         self.create_batch(state='in_progress')
         self.create_batch(state='in_progress')
-        batches = Batch.search([('user_id', '=', self.env.user.id)])
+        batches = Batch.search([('user_id', '=', self.env.user.id),
+                                ('state', '=', 'in_progress')])
 
         # check pre-conditions
         self.assertEqual(len(batches), 2)
@@ -108,9 +108,8 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
     def test07_get_single_batch_no_batch_multiple_pickings(self):
         """
-        Should create a batch for the current user when a multiple
-        pickings exists; the new batch should have only a single
-        picking.
+        Get single batch returns none when no batch has been
+        created for the current user, even having multiple pickings.
 
         """
         Batch = self.env['stock.picking.batch']
@@ -127,11 +126,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
         batch = Batch.get_single_batch()
 
-        self.assertIsNotNone(batch, "No batch created")
-        self.assertEqual(batch.user_id.id, self.env.user.id,
-                         "Batch responsible is not the current user")
-        self.assertEqual(len(batch.picking_ids), 1,
-                         "Batch does not include single picking")
+        self.assertIsNone(batch, "Unexpected batch found")
 
     def test08_create_batch_with_priorities(self):
         """
@@ -177,7 +172,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
                                       products_info=self.pack_4apples_info,
                                       confirm=True,
                                       assign=True)
-        batch = Batch.get_single_batch()
+        batch = Batch.create_batch(None)
         picking.update_picking(force_validate=True,
                                location_dest_id=self.test_output_location_01.id)
 
@@ -223,7 +218,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
                             products_info=self.pack_4apples_info,
                             confirm=True,
                             assign=True)
-        batch = Batch.get_single_batch()
+        batch = Batch.create_batch(None)
 
         # create a new picking to be included in the new batch
         other_pack = Package.get_package("test_other_package", create=True)
@@ -310,19 +305,20 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
     def test15_unpickable_item_single_move_line_success_default_type(self):
         """
-        Tests that the picking is cancelled and an internal transfer is created
-        if a picking type is not specified.
+        Tests that the picking is confirmed and an internal transfer is created
+        if a picking type is not specified. The picking remains confirmed
+        because there isn't more stock available.
         """
         picking, batch = self._create_valid_batch()
-        move_line_id = picking.move_line_ids[0].id
+        move_line = picking.move_line_ids[0]
         reason = 'missing item'
-        batch.unpickable_item(move_line_id=move_line_id,
+        batch.unpickable_item(package_name=move_line.package_id.name,
                               reason=reason,
                               picking_type_id=None)
         internal_picking = self.package_one.find_move_lines().picking_id
 
-        self.assertEqual(picking.state, 'cancel',
-                         'picking was not cancelled')
+        self.assertEqual(picking.state, 'confirmed',
+                         'picking was not confirmed')
         self.assertEqual(batch.state, 'done',
                          'batch state was not completed')
         self.assertEqual(internal_picking.picking_type_id,
@@ -333,23 +329,24 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
     def test16_unpickable_item_single_move_line_success_specified_type(self):
         """
-        Tests that the picking is cancelled and the specified picking type
-        is created for the unpickable stock
+        Tests that the picking is confirmed and the specified picking type
+        is created for the unpickable stock. The picking remains confirmed
+        because there isn't more stock available.
         """
         picking, batch = self._create_valid_batch()
-        move_line_id = picking.move_line_ids[0].id
+        move_line = picking.move_line_ids[0]
         reason = 'missing item'
 
         # It doesn't actually matter what the picking type is for this test.
         # The important thing is that the new picking is of type picking_type
         picking_type = self.picking_type_pick
-        batch.unpickable_item(move_line_id=move_line_id,
+        batch.unpickable_item(package_name=move_line.package_id.name,
                               reason=reason,
                               picking_type_id=picking_type.id)
         internal_picking = self.package_one.find_move_lines().picking_id
 
-        self.assertEqual(picking.state, 'cancel',
-                         'picking was not cancelled')
+        self.assertEqual(picking.state, 'confirmed',
+                         'picking was not confirmed')
         self.assertEqual(batch.state, 'done',
                          'batch state was not completed')
         self.assertEqual(internal_picking.picking_type_id, picking_type,
@@ -357,29 +354,29 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         self.assertEqual(internal_picking.state, 'assigned',
                          'internal picking creation has not completed')
 
-    def test17_unpickable_item_move_line_not_found_done(self):
+    def test17_unpickable_item_package_not_found(self):
         """
-        Tests that a ValidationError is raised if the move_line_id cannot be
-        found
+        Tests that a ValidationError is raised if the package cannot be
+        found in the system
         """
-        StockMoveLine = self.env['stock.move.line']
+        Package = self.env['stock.quant.package']
         picking, batch = self._create_valid_batch()
-        picking.update_picking(force_validate=True,
-                               location_dest_id=self.test_output_location_01.id)
-        reason = 'missing item'
 
-        self.assertFalse(StockMoveLine.browse(999).exists(),
-                         'Move line id=999 already exists')
-        with self.assertRaisesRegex(ValidationError,
-                                    'Cannot find the operation',
+        reason = 'missing item'
+        package_name = "NOTAPACKAGENAME666"
+
+        self.assertFalse(Package.search([('name', '=', package_name)]),
+                         'Package %s already exists' % package_name)
+        expected_error = 'Package not found for identifier %s' % package_name
+        with self.assertRaisesRegex(ValidationError, expected_error,
                                     msg='Incorrect error thrown'):
-            batch.unpickable_item(move_line_id=999,
+            batch.unpickable_item(package_name=package_name,
                                   reason=reason,
                                   picking_type_id=None)
 
     def test18_unpickable_item_wrong_batch(self):
         """
-        Tests that a ValidationError is raised if the move_line_id is not on
+        Tests that a ValidationError is raised if the package is not on
         the Batch that we requested.
         """
         picking, batch = self._create_valid_batch()
@@ -391,58 +388,62 @@ class TestGoodsInPickingBatch(common.BaseUDES):
             products_info=self.pack_4apples_info,
             confirm=True,
             assign=True)
-        move_line_id = different_picking.move_line_ids[0].id
+        move_line = different_picking.move_line_ids[0]
         reason = 'missing item'
 
-        with self.assertRaisesRegex(ValidationError,
-                                    'Move line is not part of the batch',
+        expected_error = 'Cannot find move lines todo for unpickable item ' \
+                         'in this batch'
+        with self.assertRaisesRegex(ValidationError, expected_error,
                                     msg='Incorrect error thrown'):
-            batch.unpickable_item(move_line_id=move_line_id,
+            batch.unpickable_item(package_name=move_line.package_id.name,
                                   reason=reason,
                                   picking_type_id=None)
 
     def test19_unpickable_item_invalid_state_cancel(self):
         """
-        Tests that a ValidationError is raised if the picking is on a state
-        of cancel
+        Tests that a ValidationError is raised if the package move lines
+        cannot be found in the wave because the picking is on a state of
+        cancel
         """
         picking, batch = self._create_valid_batch()
         # Not ideal but it allows the test to pass.  If we did:
         # picking.action_cancel() it would delete the move_lines which would
         # cause this test to fail incorrectly.
         picking.state = 'cancel'
-        move_line_id = picking.move_line_ids[0].id
+        move_line = picking.move_line_ids[0]
         reason = 'missing item'
 
-        expected_error = 'Cannot mark a move line as unpickable ' \
-                         'when it is part of a completed Picking'
+        expected_error = 'Cannot find move lines todo for unpickable item ' \
+                         'in this batch'
         with self.assertRaisesRegex(ValidationError, expected_error,
                                     msg='Incorrect error thrown'):
-            batch.unpickable_item(move_line_id=move_line_id,
+            batch.unpickable_item(package_name=move_line.package_id.name,
                                   reason=reason,
                                   picking_type_id=None)
 
     def test20_unpickable_item_invalid_state_done(self):
         """
-        Tests that a ValidationError is raised if the picking is on a state of
+        Tests that a ValidationError is raised if the package move lines
+        cannot be found in the wave because the picking is on a state of
         done
         """
         picking, batch = self._create_valid_batch()
         picking.update_picking(force_validate=True,
                                location_dest_id=self.test_output_location_01.id)
 
-        move_line_id = picking.move_line_ids[0].id
+        move_line = picking.move_line_ids[0]
         reason = 'missing item'
 
-        expected_error = 'Cannot mark a move line as unpickable ' \
-                         'when it is part of a completed Picking'
+        expected_error = 'Cannot find move lines todo for unpickable item ' \
+                         'in this batch'
         with self.assertRaisesRegex(ValidationError, expected_error,
                                     msg='Incorrect error thrown'):
-            batch.unpickable_item(move_line_id=move_line_id,
+            batch.unpickable_item(package_name=move_line.package_id.name,
                                   reason=reason,
                                   picking_type_id=None)
 
-    def test21_unpickable_item_no_package_vaildation_error(self):
+    # TODO: create quant without package etc
+    def _test21_unpickable_item_no_package_validation_error(self):
         """
         Tests that ValidationError is raised if the move_line does not have
         a package.  This functionality is not yet handled by the system.
@@ -461,8 +462,8 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
     def test22_unpickable_item_multiple_move_lines_different_packages(self):
         """
-        Tests that a backorder is created and cancelled if there are multiple
-        move lines on the picking.  The original picking should continue to
+        Tests that a backorder is created and confirmed if there are multiple
+        move lines on the picking. The original picking should continue to
         have the still pickable product on it.
         """
         Batch = self.env['stock.picking.batch']
@@ -487,30 +488,42 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
         reason = 'missing item'
 
-        batch.unpickable_item(move_line_id=unpickable_move_line.id,
+        batch.unpickable_item(package_name=unpickable_package.name,
                               reason=reason,
                               picking_type_id=None)
 
         new_picking = unpickable_package.find_move_lines().picking_id
 
         # Because there are other move_line_ids that are still pickable we
-        # need to ensure that the original picking is not cancelled
-        self.assertNotEqual(picking.state, 'cancel',
-                            'picking was not cancelled')
+        # need to ensure that the original picking is still assigned
+        self.assertEqual(picking.state, 'assigned',
+                         'picking was not assigned')
+
+        # TODO: add a new test like this one but where we have stock,
+        #       which means the moves/move_lines of the backorder will
+        #       be moved back to original picking and the backorder deleted
+
+        # Check backorder has been created
+        self.assertEqual(len(picking.u_created_back_orders), 1)
+        # Check backorder state
+        self.assertEqual(picking.u_created_back_orders.state, 'confirmed')
+
         # Ensure that our unpickable move_line is not in the picking
         self.assertNotIn(unpickable_move_line, picking.move_line_ids,
                          'unpickable_move_line has not been removed '
                          'from picking')
+
+        # Ensure investigation picking is assigned and with the reason
         self.assertEqual(new_picking.state, 'assigned',
                          'picking creation has not completed properly')
         self.assertEqual(new_picking.group_id.name, reason,
                          'reason was not assigned correctly')
 
-    def test23_unpickable_item_multiple_move_lines_same_packages(self):
+    def test23_unpickable_item_multiple_move_lines_same_package(self):
         """
-        Tests that if there are multiple move lines on the same package that
-        the picking is cancelled and a new picking is created of type
-        picking_types
+        Tests that if there are multiple move lines on the same package
+        that the picking remains in state confirmed and a new picking
+        is created of type picking_types
         """
         self.create_quant(self.apple.id, self.test_location_01.id, 4,
                           package_id=self.package_one.id)
@@ -534,13 +547,16 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
         reason = 'missing item'
 
-        batch.unpickable_item(move_line_id=unpickable_move_line.id,
+        batch.unpickable_item(package_name=unpickable_package.name,
                               reason=reason,
                               picking_type_id=None)
 
         new_picking = unpickable_package.find_move_lines().mapped('picking_id')
-        self.assertEqual(picking.state, 'cancel',
-                         'picking was not cancelled')
+        self.assertEqual(picking.state, 'confirmed',
+                         'picking was not confirmed')
+        # Check no backorder has been created
+        self.assertEqual(len(picking.u_created_back_orders), 0)
+
         self.assertEqual(new_picking.state, 'assigned',
                          'picking creation has not completed properly')
         self.assertEqual(new_picking.group_id.name, reason,
