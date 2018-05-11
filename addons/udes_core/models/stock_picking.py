@@ -85,8 +85,11 @@ class StockPicking(models.Model):
 
     def assert_not_pending(self):
         for picking in self:
-            if picking.can_handle_partials() is False and picking.u_pending is True:
-                raise UserError(_("Cannot validate %s until all of its preceding pickings are done.") % picking.name)
+            if picking.can_handle_partials() is False \
+                    and picking.u_pending is True:
+                raise UserError(
+                    _("Cannot validate %s until all of its"
+                      " preceding pickings are done.") % picking.name)
 
     def action_done(self):
         """ Ensure we don't incorrectly validate pending pickings."""
