@@ -95,6 +95,9 @@ A lot of custom UDES functionality is specfied at the picking type level. This i
 | u_user_scans              | string  | This defines what the user will scan. |
 | u_validate_real_time      | boolean | Do we validate move lines in real time |
 | u_enforce_location_dest_id| boolean | If the destination location on validation has to excatly match with the location_dest_id of the move lines |
+| u_confirm_location_dest_id| boolean | Flag to indicate whether we need to scan the Destination Location of operations, or if it is automatically confirmed as the preset Destination Location |
+| u_display_summary| boolean | When True, we display the Source Document and a summary of all Package Names associated with that Source Document number at Goods-Out |
+
 
 ## Stock Move (model: stock.move)
 
