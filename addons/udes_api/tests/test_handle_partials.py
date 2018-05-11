@@ -90,9 +90,6 @@ class TestHandlePartials(common.BaseUDES):
         self.assertFalse(self.out_picking.u_pending)
 
         self.out_picking.button_validate()
-        # Test is that an exception has not been raised so assert True.
-        self.assertTrue(True)
-
     def test03_do_handle_partials_action(self):
         self.picking_type_out.u_handle_partials = True
 
@@ -100,8 +97,6 @@ class TestHandlePartials(common.BaseUDES):
         self.assertFalse(self.out_picking.u_pending)
 
         self.out_picking.action_done()
-        # Test is that an exception has not been raised so assert True.
-        self.assertTrue(True)
 
     def test04_dont_handle_partials_canceled(self):
         self.picking_type_out.u_handle_partials = False
@@ -126,4 +121,3 @@ class TestHandlePartials(common.BaseUDES):
 
         prev_undone_pickings.action_cancel()
         self.out_picking.action_done()
-        self.assertTrue(True)
