@@ -66,9 +66,10 @@ This is essentially a collection of products that are to be moved from one locat
 | priority_name    | string | Computed field, used by the API. |
 | origin           | string | Typically used as a text reference of where the stock.picking came from. During goods in, this is the ASN (advanced ship notice - the supplier's delivery reference) |
 | location_dest_id | int | ID of the stock.location where the stock needs to move to |
-| picking_type_id |  int | See below |
-| move_lines | [{stock.move}] | The stock moves associated with this move. |
-| state | string | State of the picking: 'draft', 'waiting', 'confirmed', 'assigned', 'done', 'cancel'. |
+| picking_type_id  |  int | See below |
+| move_lines       | [{stock.move}] | The stock moves associated with this move. |
+| state            | string | State of the picking: 'draft', 'waiting', 'confirmed', 'assigned', 'done', 'cancel'. |
+| u_pending        | boolean | If the picking has preceeding work still pending. Only included if picking.type.u_handle_partials==False |
 
 ## Picking Type (model: stock.picking.type)
 
@@ -97,7 +98,8 @@ A lot of custom UDES functionality is specfied at the picking type level. This i
 | u_enforce_location_dest_id| boolean | If the destination location on validation has to excatly match with the location_dest_id of the move lines |
 | u_confirm_location_dest_id| boolean | Flag to indicate whether we need to scan the Destination Location of operations, or if it is automatically confirmed as the preset Destination Location |
 | u_display_summary| boolean | When True, we display the Source Document and a summary of all Package Names associated with that Source Document number at Goods-Out |
-
+| u_handle_partials         | boolean | If the picking type is allowed to handle partially available pickings. If True, then pickings of this type will report their u_pending value. |
+| u_create_procurement_group| boolean | Indicate if a procurement group should be created on confirmation of the picking if one does not already exist |
 
 ## Stock Move (model: stock.move)
 

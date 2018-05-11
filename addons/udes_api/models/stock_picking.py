@@ -224,6 +224,22 @@ class StockPicking(models.Model):
 
         return exp_pack_mls
 
+    def _create_own_procurement_group(self):
+        """Create a procurement group for self with the same name as self."""
+        self.ensure_one()
+        group = self.env['procurement.group'].create({'name': self.name})
+        self.move_lines.write({'group_id': group.id})
+
+    def action_confirm(self):
+        """
+            Override action_confirm to create procurement groups if needed
+        """
+        for pick in self.filtered(
+                lambda p: p.picking_type_id.u_create_procurement_group
+                          and not p.group_id):
+            pick._create_own_procurement_group()
+        super(StockPicking, self).action_confirm()
+
     def action_assign(self):
         """
             Override action_assign to reserve full packages if applicable
