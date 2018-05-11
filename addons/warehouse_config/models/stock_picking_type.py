@@ -33,6 +33,12 @@ class StockPickingType(models.Model):
         default=True,
         help='Flag to indicate whether we need to scan the Destination Location of operations, '
              'or if it is automatically confirmed as the preset Destination Location.',)
+    u_display_summary = fields.Boolean(
+        string='Display Summary',
+        default=False,
+        help='When True, we display the Source Document '
+             'and a summary of all Package Names associated with that Source Document number at Goods-Out.'
+    )
     u_validate_real_time = fields.Boolean(
         string='Validate In Real Time',
         default=False,
@@ -92,6 +98,7 @@ class StockPickingType(models.Model):
             'u_user_scans': self.u_user_scans,
             'u_enforce_location_dest_id': self.u_enforce_location_dest_id,
             'u_confirm_location_dest_id': self.u_confirm_location_dest_id,
+            'u_display_summary': self.u_display_summary,
             'u_reserve_as_packages': self.u_reserve_as_packages,
             'u_confirm_serial_numbers': self.u_confirm_serial_numbers,
             })
