@@ -338,13 +338,17 @@ class StockPickingBatch(models.Model):
         # investigation, we've reserved the problematic stock
         picking.action_assign()
 
-        # NB: if the product is not available, the picking will
-        # remain in the batch in 'waiting' state
-
-        if original_picking_id is not None and picking.state == 'assigned':
+        if picking.state != 'assigned':
+            # Remove the picking from the batch as it cannot be
+            # processed for lack of stock; we do so to be able
+            # to terminate the batch and let the user create a
+            # new batch for himself
+            picking.batch_id = False
+        elif original_picking_id is not None:
             # A backorder has been created, but the stock is
-            # available; the move lines should be linked to the
-            # original picking to directly process the stock
+            # available; get rid of the backorder after linking the
+            # move lines to the original picking, so it can be
+            # directly processed
             picking.move_line_ids.write({'picking_id': original_picking_id})
             picking.move_lines.write({'picking_id': original_picking_id})
             picking.unlink()
