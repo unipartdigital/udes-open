@@ -726,14 +726,18 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
         # determine what was the quant the system did reserve
         reserved_quant_apple = None
+        unreserved_quant_apple = None
         reserved_quant_banana = None
+        unreserved_quant_banana = None
 
         if quant_apple_1.reserved_quantity == 1:
             reserved_quant_apple = quant_apple_1
+            unreserved_quant_apple = quant_apple_2
             self.assertTrue(quant_apple_2.reserved_quantity == 0,
                             'Both apple quants reserved')
         elif quant_apple_2.reserved_quantity == 1:
-            reserved_quant_apple = quant_apple_1
+            reserved_quant_apple = quant_apple_2
+            unreserved_quant_apple = quant_apple_1
             self.assertTrue(quant_apple_1.reserved_quantity == 0,
                             'Both apple quants reserved')
         else:
@@ -741,10 +745,12 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
         if quant_banana_1.reserved_quantity == 2:
             reserved_quant_banana = quant_banana_1
+            unreserved_quant_banana = quant_banana_2
             self.assertTrue(quant_banana_2.reserved_quantity == 0,
                             'Both banana quants reserved')
         elif quant_banana_2.reserved_quantity == 2:
             reserved_quant_banana = quant_banana_2
+            unreserved_quant_banana = quant_banana_1
             self.assertTrue(quant_banana_1.reserved_quantity == 0,
                             'Both banana quants reserved')
         else:
@@ -764,11 +770,16 @@ class TestGoodsInPickingBatch(common.BaseUDES):
                               reason=reason,
                               picking_type_id=None)
 
-        # after unpickable all the quant should be reserved
+        # after unpickable all the unpickable apple quant should be reserved
         self.assertTrue(reserved_quant_apple.reserved_quantity == 4,
                         'Not all the apple has been reserved for investingation')
-        # the other quant shouldn't change
+        # and the other apple quant will be used for the picking
+        self.assertTrue(unreserved_quant_apple.reserved_quantity == 1,
+                        'Not all the apple has been reserved for investingation')
+        # whilt the banana quants shouldn't change
         self.assertTrue(reserved_quant_banana.reserved_quantity == 2,
+                        'The banana quant unexpectedly changed')
+        self.assertTrue(unreserved_quant_banana.reserved_quantity == 0,
                         'The banana quant unexpectedly changed')
         # picking state should be assigned
         self.assertEqual(picking.state, 'assigned',
