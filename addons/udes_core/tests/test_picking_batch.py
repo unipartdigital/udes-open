@@ -700,10 +700,6 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         self.assertEqual(picking.state, 'assigned',
                          'picking was not assigned')
 
-        # TODO: add a new test like this one but where we have stock,
-        #       which means the moves/move_lines of the backorder will
-        #       be moved back to original picking and the backorder deleted
-
         # Check one backorder has been created
         self.assertEqual(len(picking.u_created_back_orders), 1)
         # Check backorder state
@@ -718,8 +714,8 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         """
         quant_apple_1  = self.create_quant(self.apple.id, self.test_location_01.id, 4)
         quant_banana_1 = self.create_quant(self.banana.id, self.test_location_01.id, 3)
-        quant_apple_2  = self.create_quant(self.apple.id, self.test_location_02.id, 5)
-        quant_banana_2 = self.create_quant(self.banana.id, self.test_location_02.id, 4)
+        quant_apple_2  = self.create_quant(self.apple.id, self.test_location_02.id, 4)
+        quant_banana_2 = self.create_quant(self.banana.id, self.test_location_02.id, 3)
 
         products_info = [{'product': self.apple, 'qty': 1},
                          {'product': self.banana, 'qty': 2}]
@@ -728,11 +724,32 @@ class TestGoodsInPickingBatch(common.BaseUDES):
                                       confirm=True,
                                       assign=True)
 
-        # check that only 1 unit of the quant is reserved
-        self.assertTrue(quant_apple_1.reserved_quantity == 1
-                        or quant_apple_2.reserved_quantity == 1)
-        self.assertTrue(quant_banana_1.reserved_quantity == 2
-                        or quant_banana_2.reserved_quantity == 2)
+        # determine what was the quant the system did reserve
+        reserved_quant_apple = None
+        reserved_quant_banana = None
+
+        if quant_apple_1.reserved_quantity == 1:
+            reserved_quant_apple = quant_apple_1
+            self.assertTrue(quant_apple_2.reserved_quantity == 0,
+                            'Both apple quants reserved')
+        elif quant_apple_2.reserved_quantity == 1:
+            reserved_quant_apple = quant_apple_1
+            self.assertTrue(quant_apple_1.reserved_quantity == 0,
+                            'Both apple quants reserved')
+        else:
+            self.assertTrue(False, 'No apple quant reserved')
+
+        if quant_banana_1.reserved_quantity == 2:
+            reserved_quant_banana = quant_banana_1
+            self.assertTrue(quant_banana_2.reserved_quantity == 0,
+                            'Both banana quants reserved')
+        elif quant_banana_2.reserved_quantity == 2:
+            reserved_quant_banana = quant_banana_2
+            self.assertTrue(quant_banana_1.reserved_quantity == 0,
+                            'Both banana quants reserved')
+        else:
+            self.assertTrue(False, 'No banana quant reserved')
+
 
         Batch = self.env['stock.picking.batch']
         batch = Batch.create_batch(None)
@@ -747,9 +764,12 @@ class TestGoodsInPickingBatch(common.BaseUDES):
                               reason=reason,
                               picking_type_id=None)
 
-        # after unickable all the quant should be reserved
-        self.assertTrue(quant_apple_1.reserved_quantity == 4
-                        or quant_apple_2.reserved_quantity == 5)
+        # after unpickable all the quant should be reserved
+        self.assertTrue(reserved_quant_apple.reserved_quantity == 4,
+                        'Not all the apple has been reserved for investingation')
+        # the other quant shouldn't change
+        self.assertTrue(reserved_quant_banana.reserved_quantity == 2,
+                        'The banana quant unexpectedly changed')
         # picking state should be assigned
         self.assertEqual(picking.state, 'assigned',
                          'picking was not assigned')
