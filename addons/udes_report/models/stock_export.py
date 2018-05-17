@@ -90,13 +90,7 @@ class StockExport(models.TransientModel):
             quants_by_prod_by_loc[quant_prods] = get_quants_by_loc(quants_u)
 
         def get_prod_qty(quants):
-            u_quants = Quant.union(*quants)
-
-            print(u_quants,
-                  u_quants.mapped('quantity'),
-                  sum(u_quants.mapped('quantity')))
-
-            return sum(u_quants.mapped('quantity'))
+            return sum(Quant.union(*quants).mapped('quantity'))
 
         _logger.info(_('Creating Excel file'))
         file_name = 'warehouse_stock_{TIMESTAMP}.xls'.format(
