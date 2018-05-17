@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import base64
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from contextlib import closing
 from datetime import datetime
 from io import BytesIO
@@ -73,27 +73,30 @@ class StockExport(models.TransientModel):
         all_quants = Quant.search([('location_id', 'child_of', locations.ids)])
         by_prod = lambda x: x.product_id.id
         by_location = lambda x: x.location_id.id
+        by_package_name = lambda x: x.package_id.name or ''
 
-        get_packages_by_loc = lambda quant_union: {
-            Location.browse(loc): Quant.union(*_quants).mapped('package_id')
+        get_quants_by_loc = lambda quant_union: {
+            Location.browse(loc): Quant.union(*_quants)
             for loc, _quants in groupby(quant_union.sorted(key=by_location),
                                         key=by_location)}
 
-        packages_by_prod_by_loc = OrderedDict()
-        packages_by_prod = OrderedDict()
+        quants_by_prod_by_loc = OrderedDict()
+        prod_summary = defaultdict(lambda: {'n_pkgs': 0, 'qty': 0})
 
         for prod, _quants in groupby(all_quants.sorted(key=by_prod),
                                      key=by_prod):
             quant_prods = Product.browse(prod)
             quants_u = Quant.union(*_quants)
-            packages_by_prod_by_loc[quant_prods] = get_packages_by_loc(quants_u)
-            packages_by_prod[quant_prods] = quants_u.mapped('package_id')
+            quants_by_prod_by_loc[quant_prods] = get_quants_by_loc(quants_u)
 
-        def get_prod_qty(prod, package):
-            contained_quants = Quant.search(
-                [('package_id', 'child_of', package.ids),
-                 ('product_id', '=', prod.id)])
-            return sum(contained_quants.mapped('quantity'))
+        def get_prod_qty(quants):
+            u_quants = Quant.union(*quants)
+
+            print(u_quants,
+                  u_quants.mapped('quantity'),
+                  sum(u_quants.mapped('quantity')))
+
+            return sum(u_quants.mapped('quantity'))
 
         _logger.info(_('Creating Excel file'))
         file_name = 'warehouse_stock_{TIMESTAMP}.xls'.format(
@@ -108,14 +111,21 @@ class StockExport(models.TransientModel):
                                                        'Quantity'])
 
         row = 0
-        for prod, pkgs_by_location in packages_by_prod_by_loc.items():
-            for location, pkgs in pkgs_by_location.items():
-                for pkg_by_prod in pkgs:
+        for prod, quants_by_location in quants_by_prod_by_loc.items():
+            for location, quants in quants_by_location.items():
+                for pkg_name, grouped_quants in groupby(quants,
+                                                        key=by_package_name):
                     row += 1
+                    qty = get_prod_qty(grouped_quants)
+
                     stock_sheet.write(row, 0, prod.default_code)
                     stock_sheet.write(row, 1, location.display_name)
-                    stock_sheet.write(row, 2, pkg_by_prod.name)
-                    stock_sheet.write(row, 3, get_prod_qty(prod, pkg_by_prod))
+                    stock_sheet.write(row, 2, pkg_name)
+                    stock_sheet.write(row, 3, qty)
+
+                    prod_summary[prod]['qty'] += qty
+                    if pkg_name:
+                        prod_summary[prod]['n_pkgs'] += 1
 
         # 2/2) 'Stock Summary': one entry for each prod
 
@@ -123,10 +133,10 @@ class StockExport(models.TransientModel):
                                                             'Package Count',
                                                             'Quantity'])
 
-        for row, (prod, prod_pkgs) in enumerate(packages_by_prod.items(), 1):
-            summary_sheet.write(row, 0, prod.default_code)
-            summary_sheet.write(row, 1, len(prod_pkgs))
-            summary_sheet.write(row, 2, get_prod_qty(prod, prod_pkgs))
+        for row, (prod, summary) in enumerate(sorted(prod_summary.items()), 1):
+            summary_sheet.write(row, 0, prod.name)
+            summary_sheet.write(row, 1, summary['n_pkgs'])
+            summary_sheet.write(row, 2, summary['qty'])
 
         self._write_workbook(wb, file_name, "Stock File",
                              send_file_via=send_file_via)
