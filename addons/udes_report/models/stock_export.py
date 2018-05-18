@@ -127,8 +127,9 @@ class StockExport(models.TransientModel):
                                                             'Package Count',
                                                             'Quantity'])
 
-        for row, (prod, summary) in enumerate(sorted(prod_summary.items()), 1):
-            summary_sheet.write(row, 0, prod.name)
+        for row, (prod, summary) in enumerate(
+                sorted(prod_summary.items(), key=lambda x: x.default_code), 1):
+            summary_sheet.write(row, 0, prod.default_code)
             summary_sheet.write(row, 1, summary['n_pkgs'])
             summary_sheet.write(row, 2, summary['qty'])
 
