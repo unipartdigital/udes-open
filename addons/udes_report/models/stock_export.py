@@ -54,7 +54,7 @@ class StockExport(models.TransientModel):
         help='Stock Locations that will be excluded from the stock summary',
         options={'no_create': True})
 
-    def run_stock_file_export(self, send_file_via='user'):
+    def run_stock_file_export(self, context=None, send_file_via='user'):
         '''
         Creates a stock file summarising the current stock in the
         warehouse. Such file will be in the excel format and contain
@@ -136,7 +136,7 @@ class StockExport(models.TransientModel):
         self._write_workbook(wb, file_name, "Stock File",
                              send_file_via=send_file_via)
 
-    def run_movement_file_export(self, send_file_via='user'):
+    def run_movement_file_export(self, context=None, send_file_via='user'):
         '''
         Creates movement file, in excel format, summarising the stock
         received and sent for a given date, i.e. goods-in and goods-out
