@@ -8,3 +8,4 @@ from . import stock_picking_batch
 from . import stock_picking_priorities
 from . import stock_quant_package
 from . import stock_warehouse
+from . import print_printer

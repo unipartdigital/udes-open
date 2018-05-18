@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from odoo import http
+from odoo.http import request
 from odoo.exceptions import ValidationError
 from odoo.tools.translate import _
 
@@ -23,7 +24,7 @@ class Printer(UdesApi):
             @param (optional) kwargs
                 Other data passed to report
         """
-        Printer = self.env['print.printer']
+        Printer = request.env['print.printer']
         return Printer.spool_report(object_ids, report_name, kwargs,
                                     copies=copies)
 
@@ -35,7 +36,7 @@ class Printer(UdesApi):
             @param barcode (string)
                 Barcode of the printer you wish to set as user default
         """
-        Printer = self.env['print.printer']
+        Printer = request.env['print.printer']
 
         # Check printer exists
         printer = Printer.search([('barcode', '=', barcode)])
