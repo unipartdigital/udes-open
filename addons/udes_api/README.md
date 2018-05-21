@@ -156,7 +156,7 @@ Configuration information for the an entire warehouse.
 | u_pallet_barcode_regex             | string           | |
 | u_pi_count_move_picking_type       | string           | |
 | u_stock_investigation_picking_type | string           | |
-
+| u_suggested_locations              | boolean          | |
 
 ## Picking Batches (model: stock.picking.batch)
 
