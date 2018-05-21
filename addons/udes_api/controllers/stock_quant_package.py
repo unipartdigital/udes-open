@@ -39,8 +39,7 @@ class Package(UdesApi):
     @http.route('/api/stock-quant-package/<identifier>/suggested-locations',
                 type='json', methods=['GET'], auth='user')
     def suggested_locations(self, identifier):
-        """ Get a list of locations which the products within a package are
-            currently stored.
+        """ Search for locations which products within a package are currently stored.
 
             @param identifier
                 A package identifier
@@ -68,7 +67,6 @@ class Package(UdesApi):
             raise ValidationError(_('Invalid package identifier'))
 
         quants = Quant.search([('product_id', 'in', product.ids)])
-        res = quants.mapped('location_id') \
-                    .filtered(lambda loc: not loc.u_blocked and loc.barcode) \
-                    .get_info()
-        return res
+        return quants.mapped('location_id') \
+                     .filtered(lambda loc: not loc.u_blocked and loc.barcode) \
+                     .get_info()
