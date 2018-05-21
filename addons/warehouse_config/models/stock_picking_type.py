@@ -59,10 +59,11 @@ class StockPickingType(models.Model):
         string='What the User Scans',
         help='What the user scans when asked to '
         'scan something from pickings of this type')
-    u_reserve_as_packages = fields.Boolean(string='Reserve entire packages',
+    u_reserve_as_packages = fields.Boolean(
+        string='Reserve entire packages',
         default=False,
         help="Flag to indicate reservations should be rounded up to entire packages."
-        )
+    )
     u_confirm_serial_numbers = fields.Selection([
         ('no', 'No'),
         ('yes', 'Yes'),
@@ -82,6 +83,13 @@ class StockPickingType(models.Model):
         default=False,
         help='Flag to indicate that a procurement group should be created on '
              'confirmation of the picking if one does not already exist.',
+    )
+
+    u_suggest_location = fields.Boolean(
+        string='Suggest locations',
+        default=False,
+        help='Flag to indicate with if picking type should suggest locations '
+             'to user'
     )
 
     def _prepare_info(self):
@@ -116,5 +124,6 @@ class StockPickingType(models.Model):
             'u_handle_partials': self.u_handle_partials,
             'u_create_procurement_group': self.u_create_procurement_group,
             'u_confirm_serial_numbers': self.u_confirm_serial_numbers,
+            'u_suggest_location': self.u_suggest_location,
             })
         return info

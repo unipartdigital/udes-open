@@ -31,6 +31,7 @@
                     <field name="u_reserve_as_packages" />
                     <field name="u_handle_partials" />
                     <field name="u_create_procurement_group"/>
+                    <field name="u_suggest_location" />
                     <field name="u_confirm_serial_numbers" />
                 </group>
             </xpath>
