@@ -6,6 +6,7 @@ from odoo.exceptions import ValidationError
 
 from .main import UdesApi
 
+
 class Package(UdesApi):
 
     @http.route('/api/stock-quant-package/', type='json', methods=['GET'], auth='user')
@@ -33,4 +34,41 @@ class Package(UdesApi):
                 package.assert_not_reserved()
 
             res = package.get_info(extended=True)[0]
+        return res
+
+    @http.route('/api/stock-quant-package/<identifier>/suggested-locations',
+                type='json', methods=['GET'], auth='user')
+    def suggested_locations(self, identifier):
+        """ Get a list of locations which the products within a package are
+            currently stored.
+
+            @param identifier
+                A package identifier
+
+            Example output:
+                { "jsonrpc": "2.0",
+                  "result" : [
+                    {"id": 1, "name": "Location 1", "barcode": "L00000100"},
+                    {"id": 2, "name": "Location 2", "barcode": "L00000200"}
+                ]}
+        """
+        Package = request.env['stock.quant.package']
+        Quant = request.env['stock.quant']
+
+        # Get package by identifier
+        package = Package.get_package(identifier, no_results=True)
+
+        if package:
+            # Get products in that package
+            product = package.mapped('quant_ids.product_id')
+
+            if not product:
+                raise ValidationError(_('Empty package'))
+        else:
+            raise ValidationError(_('Invalid package identifier'))
+
+        quants = Quant.search([('product_id', 'in', product.ids)])
+        res = quants.mapped('location_id') \
+                    .filtered(lambda loc: not loc.u_blocked and loc.barcode) \
+                    .get_info()
         return res
