@@ -486,12 +486,11 @@ Returns the list of possible groups of priorities with the following format:
 ```
 URI: /api/print-printer/set-user-printer
 HTTP Method: POST
-Old method(s): spool_report
+Old method(s): set_user_printer
 ```
 Sets users default printer to that with the barcode provided
 
 * @param barcode (string) - barcode of the printer you wish to set as user default
-
 
 ### Print report
 ```
