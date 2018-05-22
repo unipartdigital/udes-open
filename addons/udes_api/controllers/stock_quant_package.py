@@ -59,14 +59,14 @@ class Package(UdesApi):
 
         if package:
             # Get products in that package
-            product = package.mapped('quant_ids.product_id')
+            products = package.mapped('quant_ids.product_id')
 
-            if not product:
-                raise ValidationError(_('Empty package'))
+            if not products:
+                raise ValidationError(_('Package %s is empty' % identifier))
         else:
-            raise ValidationError(_('Invalid package identifier'))
+            raise ValidationError(_('Cannot find package %s' % identifier))
 
-        quants = Quant.search([('product_id', 'in', product.ids)])
+        quants = Quant.search([('product_id', 'in', products.ids)])
         return quants.mapped('location_id') \
                      .filtered(lambda loc: not loc.u_blocked and loc.barcode) \
                      .get_info()
