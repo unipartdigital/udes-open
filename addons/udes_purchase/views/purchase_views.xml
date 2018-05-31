@@ -9,7 +9,7 @@
         <field name="model">purchase.order</field>
         <field name="arch" type="xml">
             <xpath expr="//button[@name='button_draft']" position="attributes">
-                <attribute name="invisible">0</attribute>
+                <attribute name="invisible">1</attribute>
             </xpath>
             <xpath expr="//button[@name='button_confirm' and @states='draft']" position="attributes">
                 <attribute name="invisible">1</attribute>
