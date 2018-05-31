@@ -8,6 +8,7 @@
     'category': 'Warehouse',
     'depends': ['purchase'],
     'data': [
+        'views/purchase_views.xml',
     ],
     'installable': True,
     'application': True,
