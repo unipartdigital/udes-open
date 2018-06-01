@@ -9,6 +9,7 @@
     'depends': ['purchase'],
     'data': [
         'data/routes.xml',
+        'data/scheduler.xml',
         'views/purchase_views.xml',
     ],
     'installable': True,
