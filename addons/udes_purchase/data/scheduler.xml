@@ -12,7 +12,7 @@
             <field name="state">code</field>
             <field name="code">
 model.check_order_points(True)
-env['udes_purchase.rfq_sender'].send_rfq_emails()
+env['purchase.order'].send_rfq_emails()
             </field>
             <field eval="True" name="active"/>
             <field name="user_id" ref="base.user_root"/>

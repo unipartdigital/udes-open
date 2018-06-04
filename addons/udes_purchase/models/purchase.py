@@ -5,9 +5,8 @@ from odoo import models, _
 _logger = logging.getLogger(__name__)
 
 
-class RDQSender(models.TransientModel):
-    _name = 'udes_purchase.rfq_sender'
-    _description = 'Is called after scheduler to send RFQs'
+class PurchaseOrder(models.Model):
+    _inherit = 'purchase.order'
 
     def send_rfq_emails(self):
         '''Send draft RFQs via email'''
