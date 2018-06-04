@@ -33,11 +33,13 @@ class StockPickingType(models.Model):
         default=True,
         help='Flag to indicate whether we need to scan the Destination Location of operations, '
              'or if it is automatically confirmed as the preset Destination Location.',)
-    u_display_summary = fields.Boolean(
+    u_display_summary = fields.Selection([
+        ('none', 'None'),
+        ('list', 'List'),
+        ('list_contents', 'List with Contents'),
+    ],
         string='Display Summary',
-        default=False,
-        help='When True, we display the Source Document '
-             'and a summary of all Package Names associated with that Source Document number at Goods-Out.'
+        default='none'
     )
     u_validate_real_time = fields.Boolean(
         string='Validate In Real Time',
