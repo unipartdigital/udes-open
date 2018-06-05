@@ -14,14 +14,16 @@ class PurchaseOrder(models.Model):
         Mail = self.env['mail.mail']
         RequestOrder = self.env['purchase.order']
 
-        email_template = self.env.ref('purchase.email_template_edi_purchase')
+        email_template = self.get_email_template()
         rfqs_to_send = RequestOrder.search([('state', '=', 'draft')])
 
         if rfqs_to_send:
+            ctx = self.get_context_for_rfq_email()
+
             rfq_by_mail_id = {}
             for rfq in rfqs_to_send:
                 # Generate message to send later
-                mail_id = email_template.send_mail(rfq.id)
+                mail_id = email_template.with_context(ctx).send_mail(rfq.id)
                 rfq_by_mail_id[mail_id] = rfq
 
             mail = Mail.browse(rfq_by_mail_id.keys())
@@ -55,3 +57,15 @@ class PurchaseOrder(models.Model):
                         body=failed_messages_by_rfq[rfq].failure_reason,
                         content_subtype='plaintext'
                     )
+
+    def get_rfq_email_template(self):
+        return self.env.ref(
+            'udes_purchase.email_template_reorder_point')
+
+    def get_context_for_rfq_email(self):
+        ctx = dict(self.env.context or {})
+        ctx.update({
+            'custom_layout': 'purchase.mail_template_data_'
+                             'notification_email_purchase_order',
+        })
+        return ctx
