@@ -14,7 +14,7 @@ class PurchaseOrder(models.Model):
         Mail = self.env['mail.mail']
         RequestOrder = self.env['purchase.order']
 
-        email_template = self.get_email_template()
+        email_template = self.get_rfq_email_template()
         rfqs_to_send = RequestOrder.search([('state', '=', 'draft')])
 
         if rfqs_to_send:
