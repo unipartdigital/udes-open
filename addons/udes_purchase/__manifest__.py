@@ -8,8 +8,11 @@
     'category': 'Warehouse',
     'depends': ['purchase'],
     'data': [
+        'data/routes.xml',
+        'data/scheduler.xml',
+        'views/purchase_views.xml',
     ],
     'installable': True,
-    'application': True,
+    'application': False,
     'auto_install': False,
 }
