@@ -23,7 +23,7 @@ class PurchaseOrder(models.Model):
             rfq_by_mail_id = {}
             for rfq in rfqs_to_send:
                 # Generate message to send later
-                mail_id = email_template.with_context(ctx).send_mail(rfq.id)
+                mail_id = email_template.with_context(ctx.copy()).send_mail(rfq.id)
                 rfq_by_mail_id[mail_id] = rfq
 
             mail = Mail.browse(rfq_by_mail_id.keys())
