@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+<template id="report_reorderalert_document">
+    <t t-call="web.external_layout">
+        <t t-set="o" t-value="o.with_context({'lang':o.partner_id.lang})"/>
+        <div class="page">
+            <div class="oe_structure"/>
+            
+            <h2>The part numbers listed below have gone past the minimum re order point:</h2>
+
+            <table class="table table-condensed">
+                <thead>
+                    <tr>
+                        <th><strong>Description</strong></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr t-foreach="o.order_line" t-as="order_line">
+                        <td>
+                            <span t-field="order_line.name"/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p t-field="o.notes"/>
+
+            <div class="oe_structure"/>
+        </div>
+    </t>
+</template>
+
+<template id="report_reorderalert">
+    <t t-call="web.html_container">
+        <t t-foreach="docs" t-as="o">
+            <t t-call="udes_purchase.report_reorderalert_document" t-lang="o.partner_id.lang"/>
+        </t>
+    </t>
+</template>
+
+<report
+    string="Reorder point alert"
+    id="report_reorder_alert"
+    model="purchase.order"
+    report_type="qweb-pdf"
+    name="udes_purchase.report_reorderalert"
+    file="'Reorder_point_alert_%s.pdf' % (object.name)"
+    print_report_name="'Reorder point alert - %s' % (object.name)"
+/>
+
+</odoo>

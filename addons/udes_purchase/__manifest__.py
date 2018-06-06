@@ -8,6 +8,8 @@
     'category': 'Warehouse',
     'depends': ['purchase'],
     'data': [
+        'reports/reorder_alert_template.xml',
+        'data/reorder_alert_email.xml',
         'data/routes.xml',
         'data/scheduler.xml',
         'views/purchase_views.xml',

@@ -12,6 +12,8 @@
             <field name="state">code</field>
             <field name="code">
 model.check_order_points(True)
+model._cr.commit()
+env['purchase.order'].send_rfq_emails()
             </field>
             <field eval="True" name="active"/>
             <field name="user_id" ref="base.user_root"/>
@@ -23,3 +25,4 @@ model.check_order_points(True)
 
     </data>
 </odoo>
+
