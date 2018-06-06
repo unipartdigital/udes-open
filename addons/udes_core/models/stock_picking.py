@@ -47,6 +47,53 @@ class StockPicking(models.Model):
     batch_id = fields.Many2one(
         'stock.picking.batch', copy=True)
 
+    u_quantity_done = fields.Float(
+        'Quantity done', compute='_compute_picking_quantities',
+        digits=(0, 0), store=False,
+        help='Quantity done of the moves related to the picking')
+
+    u_total_quantity = fields.Float(
+        'Total quantity', compute='_compute_picking_quantities',
+        digits=(0, 0), store=False,
+        help='Total quantity todo of the moves related to the picking')
+
+    u_has_discrepancies = fields.Boolean(
+        string='Has discrepancies', compute='_compute_picking_quantities',
+        readonly=True, help='Flag to indicate if the picking still has discrepancies.',
+        )
+
+    u_num_pallets = fields.Integer(
+        'Total Pallets count', compute='_compute_picking_packages', store=False,
+        help='Total number of different pallets in the picking')
+
+    @api.depends('move_lines',
+                 'move_lines.quantity_done',
+                 'move_lines.ordered_qty')
+    @api.one
+    def _compute_picking_quantities(self):
+        """ Compute the quantity done and to do of the picking from the moves """
+        total_qty_done = 0.0
+        total_qty_todo = 0.0
+        has_discrepancies = False
+        for move in self.move_lines:
+            qty_done = move.quantity_done
+            qty_todo = move.ordered_qty
+            if qty_done != qty_todo:
+                has_discrepancies = True
+            total_qty_done += qty_done
+            total_qty_todo += qty_todo
+
+        self.u_quantity_done = total_qty_done
+        self.u_total_quantity = total_qty_todo
+        self.u_has_discrepancies = has_discrepancies
+
+    @api.depends('move_line_ids',
+                 'move_line_ids.result_package_id')
+    @api.one
+    def _compute_picking_packages(self):
+        """ Compute the number of pallets from the operations """
+        self.u_num_pallets = len(self.move_line_ids.mapped('result_package_id'))
+
     # Calculate previous/next pickings
     @api.depends('move_lines',
                  'move_lines.move_orig_ids',

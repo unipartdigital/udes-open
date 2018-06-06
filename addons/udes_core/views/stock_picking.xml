@@ -23,6 +23,26 @@
                 </group>
             </xpath>
 
+
+            <!-- Add summary information -->
+            <xpath expr="//field[@name='move_lines']" position="before" >
+                <group string="Summary">
+                    <group colspan="2">
+                        <field name="u_has_discrepancies" invisible="1" />
+                        <group attrs="{'invisible':[('u_has_discrepancies', '==', False)]}">
+                            <div class="text-danger" style="font-weight: bold;">The picking has discrepancies</div>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="u_num_pallets" />
+                    </group>
+                    <group>
+                        <field name="u_quantity_done" />
+                        <field name="u_total_quantity" />
+                    </group>
+                </group>
+            </xpath>
+
             <!--Hide unlock/lock button-->
             <xpath expr="//button[@name='action_toggle_is_locked']" position="attributes">
                 <attribute name="invisible">1</attribute>
@@ -30,6 +50,19 @@
 
             <xpath expr="//field[@name='group_id']" position="attributes">
                 <attribute name="groups"/>
+            </xpath>
+
+            <!-- Add ordered quantity field -->
+            <xpath expr="//field[@name='quantity_done']" position="before">
+                <field name="ordered_qty" readonly="1" />
+            </xpath>
+
+            <!-- Change colour of the rows depending on new values -->
+            <xpath expr="//field[@name='move_lines']/tree" position="attributes">
+                <attribute name="decoration-danger">ordered_qty &lt; quantity_done</attribute>
+                <attribute name="decoration-success">ordered_qty == quantity_done</attribute>
+                <attribute name="decoration-muted">scrapped == True or state == 'cancel'</attribute>
+                <attribute name="decoration-bf">(ordered_qty == quantity_done) or (ordered_qty &lt; quantity_done)</attribute>
             </xpath>
         </field>
     </record>
