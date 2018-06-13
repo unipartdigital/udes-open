@@ -6,7 +6,7 @@
         UDES API""",
 
     'description': """
-        A set of API end points for getting data in and out of Odoo 
+        A set of API end points for getting data in and out of Odoo
     """,
 
     'author': "Unipart Digital Team",
@@ -23,6 +23,7 @@
         'blocked_locations',
         'udes_core',
         'package_hierarchy',
+        'print',
     ],
 
     # always loaded

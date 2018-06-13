@@ -496,3 +496,28 @@ Returns the list of possible groups of priorities with the following format:
         ]
 }]
 ```
+
+## Print
+
+### Set users default printer
+```
+URI: /api/print-printer/set-user-printer
+HTTP Method: POST
+Old method(s): set_user_printer
+```
+Sets users default printer to that with the barcode provided
+
+* @param barcode (string) - barcode of the printer you wish to set as user default
+
+### Print report
+```
+URI: /api/print-printer/spool-report
+HTTP Method: POST
+Old method(s): spool_report
+```
+Prints a report using users default printer.
+
+* @param object_ids Array (int) - the object ids to add to report
+* @param report_name (string) - name of the report template
+* @param (optional) copies (int, default=1) - the number of copies to print
+* @param (optional) kwargs - other data passed to report
