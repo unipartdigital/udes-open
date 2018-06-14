@@ -129,6 +129,7 @@ A move of a specific, handleable item of stock - such as 5 phones, or 1 car door
 | lot_id | ??? | TBC |
 | package_id                | {stock.quant.package} | Source package |
 | qty_done                  | float | |
+| product_uom_qty           | float | Reserved quantity |
 | result_package_id         | {stock.quant.package} | Destination package
 | u_result_parent_package_id | {stock.quant.package} | Destination parent package of the result_package_id
 | write_date                | datetime | |
