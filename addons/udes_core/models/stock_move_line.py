@@ -419,6 +419,7 @@ class StockMoveLine(models.Model):
                 "package_id": package_info,
                 "result_package_id": result_package_info,
                 "qty_done": self.qty_done,
+                "product_uom_qty": self.product_uom_qty,
                 "write_date": self.write_date,
                }
 
