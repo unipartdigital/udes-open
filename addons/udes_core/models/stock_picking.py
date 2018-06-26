@@ -115,7 +115,7 @@ class StockPicking(models.Model):
 
     def can_handle_partials(self):
         self.ensure_one()
-        return True
+        return self.picking_type_id.u_handle_partials
 
     def _compute_pending(self):
         ''' Compute if a picking is pending.
