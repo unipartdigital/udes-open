@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Change default stock.view_picking_form -->
+    <record id="view_form_stock_picking" model="ir.ui.view">
+        <field name="name">udes_picking_form</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Add "Previous/Next Pickings" fields -->
+            <xpath expr="//page[@name='extra']" position="inside">
+                <group>
+                    <group>
+                        <field name="u_prev_picking_ids" widget="one2many_list" mode="kanban"/>
+                    </group>
+                    <group>
+                        <field name="u_next_picking_ids" widget="one2many_list" mode="kanban"/>
+                    </group>
+                    <group>
+                        <field name="u_created_back_orders" widget="one2many_list" mode="kanban"/>
+                    </group>
+                </group>
+            </xpath>
+
+
+            <!-- Add summary information -->
+            <xpath expr="//field[@name='move_lines']" position="before" >
+                <group string="Summary">
+                    <group colspan="2">
+                        <field name="u_has_discrepancies" invisible="1" />
+                        <group attrs="{'invisible':[('u_has_discrepancies', '==', False)]}">
+                            <div class="text-danger" style="font-weight: bold;">The picking has discrepancies</div>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="u_num_pallets" />
+                    </group>
+                    <group>
+                        <field name="u_quantity_done" />
+                        <field name="u_total_quantity" />
+                    </group>
+                </group>
+            </xpath>
+
+            <!--Hide unlock/lock button-->
+            <xpath expr="//button[@name='action_toggle_is_locked']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <xpath expr="//field[@name='group_id']" position="attributes">
+                <attribute name="groups"/>
+            </xpath>
+
+            <!-- Add ordered quantity field -->
+            <xpath expr="//field[@name='quantity_done']" position="before">
+                <field name="ordered_qty" readonly="1" />
+            </xpath>
+
+            <!-- Change colour of the rows depending on new values -->
+            <xpath expr="//field[@name='move_lines']/tree" position="attributes">
+                <attribute name="decoration-danger">ordered_qty &lt; quantity_done</attribute>
+                <attribute name="decoration-success">ordered_qty == quantity_done</attribute>
+                <attribute name="decoration-muted">scrapped == True or state == 'cancel'</attribute>
+                <attribute name="decoration-bf">(ordered_qty == quantity_done) or (ordered_qty &lt; quantity_done)</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Customisations for stock.view_picking_internal_search -->
+    <record id="stock_view_picking_internal_search" model="ir.ui.view">
+        <field name="name">stock.view_picking_internal_search</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_internal_search"/>
+        <field name="arch" type="xml">
+            <!-- Add option to search by source or destination Package -->
+            <xpath expr="//field[@name='product_id']" position="after">
+                <field name="u_package_id"/>
+            </xpath>
+            <xpath expr="//field[@name='product_id']" position="after">
+                <field name="u_result_package_id"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Change the Dashboard -->
+    <record id="stock_picking_type_kanban_items" model="ir.ui.view">
+        <field name="name">stock_picking_type_kanban drafts</field>
+        <field name="model">stock.picking.type</field>
+        <field name="inherit_id" ref="stock.stock_picking_type_kanban"/>
+        <field name="arch" type="xml">
+
+            <!-- Change the Late count to Red -->
+            <xpath expr="//div[@t-if='record.count_picking_late.raw_value > 0']" position="attributes">
+                <attribute name="style">color:red;font-weight:bold</attribute>
+            </xpath>
+
+        </field>
+    </record>
+
+    <!--Customisations for stock.stock_picking_type_kanban-->
+    <record id="stock_view_picking_type_kanban" model="ir.ui.view">
+        <field name="name">stock_view_picking_type_kanban</field>
+        <field name="model">stock.picking.type</field>
+        <field name="inherit_id" ref="stock.stock_picking_type_kanban"/>
+        <field name="arch" type="xml">
+            <!-- Add option to remove immediate transfer button -->
+            <xpath expr="//a[contains(., 'Immediate Transfer')]" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+        </field>
+    </record>
+
+
+</odoo>

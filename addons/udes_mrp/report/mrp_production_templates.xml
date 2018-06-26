@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+<template id="report_mrporder_raw_materials">
+    <t t-call="web.html_container">
+        <t t-foreach="docs" t-as="o">
+            <t t-call="web.internal_layout">
+                <div class="page">
+                    <div class="oe_structure"/>
+                    <div class="row">
+                        <div class="col-xs-12">
+                            <h2>Production Order # : <span t-field="o.name"/></h2>
+                        </div>
+                    </div>
+
+                    <h3 t-if="o.move_raw_ids">Raw Materials Pick List</h3>
+
+                    <table class="table table-condensed" t-if="o.move_raw_ids">
+                        <thead>
+                            <tr>
+                                <th><strong>Product</strong></th>
+                                <th class="text-right"><strong>Quantity</strong></th>
+                                <th><strong>Location</strong></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-if="o.move_raw_ids">
+                                <tr t-foreach="o.move_raw_ids.mapped('move_line_ids').sorted(key=lambda x: x.location_id.name)"
+                                   t-as="line">
+                                    <td>
+                                        <span t-field="line.product_id"/>
+                                    </td>
+                                    <td class="text-right">
+                                        <span t-field="line.product_qty"/>
+                                    </td>
+                                    <td>
+                                        <span t-field="line.location_id"/>
+                                    </td>
+                                </tr>
+                            </t>
+                        </tbody>
+                    </table>
+                    <div class="oe_structure"/>
+                </div>
+            </t>
+        </t>
+    </t>
+</template>
+
+
+    <report
+        string="Raw Materials Pick List"
+        id="action_report_raw_materials"
+        model="mrp.production"
+        name="udes_mrp.report_mrporder_raw_materials"
+        file="udes_mrp.report.report_mrporder_templates"
+        report_type="qweb-pdf"
+        print_report_name="'Raw Materials Pick List - %s' % object.name"
+    />
+
+</odoo>
