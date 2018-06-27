@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import datetime
-import mock
+from unittest import mock
 
 from odoo.addons.stock.tests.common import TestStockCommon
 from odoo.exceptions import UserError
