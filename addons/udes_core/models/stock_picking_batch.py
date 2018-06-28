@@ -186,7 +186,7 @@ class StockPickingBatch(models.Model):
                 pick_todo = pick
                 pick_mls = completed_move_lines.filtered(lambda x: x.picking_id == pick)
                 if pick._requires_backorder(pick_mls):
-                    pick_todo = pick._create_backorder(pick_mls)
+                    pick_todo = pick._backorder_movelines(pick_mls)
                 # at this point pick_todo should contain only mls done
                 pick_todo.update_picking(validate=True)
 
@@ -319,7 +319,7 @@ class StockPickingBatch(models.Model):
             # Create a backorder for the affected move lines if
             # there are move lines that are not affected
             original_picking_id = picking.id
-            picking = picking._create_backorder(move_lines)
+            picking = picking._backorder_movelines(move_lines)
 
         # By default the pick is unreserved
         picking._refine_picking(reason)

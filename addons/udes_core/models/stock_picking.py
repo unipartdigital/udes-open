@@ -488,7 +488,7 @@ class StockPicking(models.Model):
                 return True
         return False
 
-    def _create_backorder(self, mls=None):
+    def _backorder_movelines(self, mls=None):
         """ Creates a backorder pick from self (expects a singleton)
             and a subset of stock.move.lines are then moved into it.
             The move from which the move lines have been transferred
@@ -557,7 +557,7 @@ class StockPicking(models.Model):
         if not self._requires_backorder(mls):
             return self
 
-        rt_picking = self._create_backorder(mls)
+        rt_picking = self._backorder_movelines(mls)
         return rt_picking
 
     def get_pickings(self,
