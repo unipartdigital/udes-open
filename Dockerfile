@@ -1,8 +1,4 @@
-FROM unipartdigital/odoo-tester
-
-# Packages
-#
-RUN dnf install -y python3-xlwt ; dnf clean all
+FROM unipartdigital/udes-tester
 
 # Prerequisite module download
 #
@@ -24,7 +20,7 @@ RUN unzip -q -d /opt /opt/odoo-blocked-locations.zip ; \
 # Prerequisite module installation (without tests)
 #
 RUN odoo-wrapper --without-demo=all -i \
-    mrp,purchase,stock_picking_batch,blocked_locations,package_hierarchy,print
+    blocked_locations,package_hierarchy,print
 
 # Add modules
 #
