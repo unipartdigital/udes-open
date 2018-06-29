@@ -24,6 +24,18 @@ class TestStockExport(BaseUDES):
         self.stock_export = self.StockExportObj.create({})
         self.LocationObj = self.env['stock.location']
 
+        self.cherry_quant = self.create_quant(
+            product_id=self.cherry.id,
+            location_id=self.test_location_01.id,
+            qty=10,
+        )
+        self.apple_package = Package.get_package('apple_package', create=True)
+        self.apple_quant = self.create_quant(
+            product_id=self.apple.id,
+            location_id=self.test_location_02.id,
+            package_id=self.apple_package.id,
+            qty=5,
+        )
     #
     ## Stock
     #
