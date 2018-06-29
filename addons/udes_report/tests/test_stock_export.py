@@ -116,3 +116,26 @@ class TestStockExport(BaseUDES):
             _timestr = datetime.datetime.today().strftime("%Y-%m-%d %H:%M")
             self.assertIn("warehouse_movement_{}".format(_timestr),
                           self.stock_export._write_workbook.call_args[0][1])
+
+    def test_check_message(self):
+        """Check that message is sent"""
+
+        Message = self.env['mail.message']
+
+        self.stock_export.included_locations = \
+            self.LocationObj.browse(self.stock_location.ids)
+        #Empty record set
+        self.stock_export.excluded_locations = \
+            self.StockExportObj.env['stock.location']
+
+        old_msg = Message.search([('partner_ids', 'in',
+                                   self.test_user.partner_id.id)])
+
+        self.stock_export.run_stock_file_export(send_file_via='user')
+
+        new_msg  = Message.search([('partner_ids', 'in',
+                                    self.test_user.partner_id.id)])
+        new_msg -= old_msg
+
+        self.assertEqual(len(new_msg), 1)
+        self.assertIn('.xls Stock File is attached', new_msg.body)
