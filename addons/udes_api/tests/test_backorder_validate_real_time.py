@@ -705,7 +705,7 @@ class TestRealTimeUpdate(common.BaseUDES):
 
         empty_mls = MoveLine.browse()
         with self.assertRaises(ValidationError) as e:
-            picking._create_backorder(empty_mls)
+            picking._backorder_movelines(empty_mls)
         self.assertEqual(e.exception.name, expected_error_msg,
                         'No/Incorrect error message was thrown')
 
@@ -732,6 +732,6 @@ class TestRealTimeUpdate(common.BaseUDES):
                          'picking %s to backorder' % picking_1.name
 
         with self.assertRaises(ValidationError) as e:
-            picking_1._create_backorder(picking_2.move_line_ids)
+            picking_1._backorder_movelines(picking_2.move_line_ids)
         self.assertEqual(e.exception.name, expected_error_msg,
                      'No/Incorrect error message was thrown')
