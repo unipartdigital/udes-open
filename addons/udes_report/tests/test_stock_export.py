@@ -3,13 +3,13 @@
 import datetime
 from unittest import mock
 
-from odoo.addons.stock.tests.common import TestStockCommon
+from odoo.addons.udes_core.tests.common import BaseUDES
 from odoo.exceptions import UserError
 
-
-class TestStockExport(TestStockCommon):
+class TestStockExport(BaseUDES):
     def setUp(self, *args, **kwargs):
         super(TestStockExport, self).setUp()
+        Package = self.env['stock.quant.package']
         Users = self.env['res.users']\
             .with_context({'no_reset_password': True,
                            'mail_create_nosubscribe': True})
@@ -43,9 +43,9 @@ class TestStockExport(TestStockCommon):
     def test_stock_all_excluded_locations(self):
         ''' Stock - should error in case all locations are excluded '''
         self.stock_export.included_locations = \
-            self.LocationObj.browse(self.stock_location)
+            self.LocationObj.browse(self.stock_location.ids)
         self.stock_export.excluded_locations = \
-            self.LocationObj.browse(self.stock_location)
+            self.LocationObj.browse(self.stock_location.ids)
 
         with self.assertRaises(UserError) as err:
             self.stock_export.run_stock_file_export()
@@ -56,19 +56,23 @@ class TestStockExport(TestStockCommon):
     def test_stock_success(self):
         ''' Stock - should call the write method when locations are given '''
         self.stock_export.included_locations = \
-            self.LocationObj.browse(self.stock_location)
+            self.LocationObj.browse(self.stock_location.ids)
+
+        #Empty record set
         self.stock_export.excluded_locations = \
             self.StockExportObj.env['stock.location']
-        invoked = [False]
 
-        def write_callback(workbook, file_name, doc_title, done=invoked):
-            done[0] = True
-
-        with mock.patch.object(self.stock_export, '_write_workbook',
-                               new=write_callback):
+        with mock.patch.object(self.stock_export,
+                               '_write_workbook',
+                               autospec=True):
             self.stock_export.run_stock_file_export()
-            self.assertTrue(invoked[0], "The function that writes the "
-                                        "workbook was not invoked")
+            self.assertEqual(self.stock_export._write_workbook.call_count, 1,
+                             "The function that writes the "
+                             "workbook was not invoked")
+
+            _timestr = datetime.datetime.today().strftime('%Y-%m-%d %H:%M')
+            self.assertIn('warehouse_stock_{}'.format(_timestr),
+                          self.stock_export._write_workbook.call_args[0][1])
 
     #
     ## Movement
@@ -89,11 +93,14 @@ class TestStockExport(TestStockCommon):
         self.stock_export.date = datetime.date.today()
         invoked = [False]
 
-        def write_callback(workbook, file_name, doc_title, done=invoked):
-            done[0] = True
-
-        with mock.patch.object(self.stock_export, '_write_workbook',
-                               new=write_callback):
+        with mock.patch.object(self.stock_export,
+                               "_write_workbook",
+                               autospec=True):
             self.stock_export.run_movement_file_export()
-            self.assertTrue(invoked[0], "The function that writes the "
-                                        "workbook was not invoked")
+            self.assertEqual(self.stock_export._write_workbook.call_count, 1,
+                             "The function that writes the "
+                             "workbook was not invoked")
+
+            _timestr = datetime.datetime.today().strftime("%Y-%m-%d %H:%M")
+            self.assertIn("warehouse_movement_{}".format(_timestr),
+                          self.stock_export._write_workbook.call_args[0][1])
