@@ -78,6 +78,10 @@ class StockLocation(models.Model):
         if load_quants:
             info['quant_ids'] = self.quant_ids.get_info()
 
+        if extended:
+            info['u_blocked'] = self.u_blocked
+            info['u_blocked_reason'] = self.u_blocked_reason
+
         return info
 
     def get_info(self, **kwargs):
@@ -244,6 +248,11 @@ class StockLocation(models.Model):
             Raises a ValidationError in case of invalid request.
         """
         Picking = self.env['stock.picking']
+        Users = self.env['res.users']
+
+        if picking_type_id is None:
+            warehouse = Users.get_user_warehouse()
+            picking_type_id=warehouse.u_pi_count_move_picking_type.id
 
         created_pickings = Picking.browse()
 
@@ -252,6 +261,7 @@ class StockLocation(models.Model):
                 self._create_pi_count_move_picking(count_move, picking_type_id)
 
         return created_pickings if created_pickings else None
+
 
     def _create_pi_count_move_picking(self, count_move, picking_type_id):
         """
