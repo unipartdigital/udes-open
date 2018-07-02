@@ -24,6 +24,7 @@ class TestStockExport(BaseUDES):
         self.stock_export = self.StockExportObj.create({})
         self.LocationObj = self.env['stock.location']
 
+        # Create some stock
         self.cherry_quant = self.create_quant(
             product_id=self.cherry.id,
             location_id=self.test_location_01.id,
@@ -36,13 +37,14 @@ class TestStockExport(BaseUDES):
             package_id=self.apple_package.id,
             qty=5,
         )
+
     #
     ## Stock
     #
 
     def test_stock_no_locations(self):
         ''' Stock - should error in case no locations are specified '''
-        empty_locations = self.StockExportObj.env['stock.location']
+        empty_locations = self.LocationObj
         self.stock_export.included_locations = empty_locations
         self.stock_export.excluded_locations = empty_locations
 
@@ -54,10 +56,8 @@ class TestStockExport(BaseUDES):
 
     def test_stock_all_excluded_locations(self):
         ''' Stock - should error in case all locations are excluded '''
-        self.stock_export.included_locations = \
-            self.LocationObj.browse(self.stock_location.ids)
-        self.stock_export.excluded_locations = \
-            self.LocationObj.browse(self.stock_location.ids)
+        self.stock_export.included_locations = self.stock_location
+        self.stock_export.excluded_locations = self.stock_location
 
         with self.assertRaises(UserError) as err:
             self.stock_export.run_stock_file_export()
@@ -67,12 +67,10 @@ class TestStockExport(BaseUDES):
 
     def test_stock_success(self):
         ''' Stock - should call the write method when locations are given '''
-        self.stock_export.included_locations = \
-            self.LocationObj.browse(self.stock_location.ids)
+        self.stock_export.included_locations = self.stock_location
 
         #Empty record set
-        self.stock_export.excluded_locations = \
-            self.StockExportObj.env['stock.location']
+        self.stock_export.excluded_locations = self.LocationObj
 
         with mock.patch.object(self.stock_export,
                                '_write_workbook',
@@ -102,9 +100,18 @@ class TestStockExport(BaseUDES):
 
     def test_move_success(self):
         ''' Movement - should call the write method '''
-        self.stock_export.date = datetime.date.today()
-        invoked = [False]
 
+        #create a picking to have some move lines
+        out_pick_type = self.test_user.get_user_warehouse().out_type_id
+        out_pick_type.default_location_dest_id = self.env.ref('stock.stock_location_customers')
+        out_picking = self.create_picking(
+            out_pick_type,
+            [{'product': self.cherry, 'qty': 10}],
+            assign=True)
+
+        out_picking.move_lines.write({'state': 'done'})
+
+        self.stock_export.date = datetime.date.today()
         with mock.patch.object(self.stock_export,
                                "_write_workbook",
                                autospec=True):
@@ -119,14 +126,11 @@ class TestStockExport(BaseUDES):
 
     def test_check_message(self):
         """Check that message is sent"""
-
         Message = self.env['mail.message']
 
-        self.stock_export.included_locations = \
-            self.LocationObj.browse(self.stock_location.ids)
+        self.stock_export.included_locations = self.stock_location
         #Empty record set
-        self.stock_export.excluded_locations = \
-            self.StockExportObj.env['stock.location']
+        self.stock_export.excluded_locations = self.LocationObj
 
         old_msg = Message.search([('partner_ids', 'in',
                                    self.test_user.partner_id.id)])
@@ -139,3 +143,19 @@ class TestStockExport(BaseUDES):
 
         self.assertEqual(len(new_msg), 1)
         self.assertIn('.xls Stock File is attached', new_msg.body)
+
+
+    def test_check_email(self):
+        """Check that email is sent"""
+        msg_template =  self.env.ref('udes_report.automated_stock_email_template')
+        msg_template.email_to = self.test_user.email
+
+        # Make a stock export which has an admin user
+        # as normal users are not allowed to send emails
+        stock_export = self.env['udes_report.stock_export'].create({})
+
+        stock_export.included_locations = self.stock_location
+        #Empty record set
+        stock_export.excluded_locations = self.LocationObj
+        #Send email (Note: Odoo will not actually send the email in test mode)
+        stock_export.send_automated_stock_file()
