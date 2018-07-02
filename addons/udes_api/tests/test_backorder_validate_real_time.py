@@ -122,7 +122,6 @@ class TestRealTimeUpdate(common.BaseUDES):
         """
         Package = self.env['stock.quant.package']
         Picking = self.env['stock.picking']
-
         self.create_simple_inbound_route(self.picking_type_goods_in,
                                          self.picking_type_internal)
 
@@ -147,7 +146,10 @@ class TestRealTimeUpdate(common.BaseUDES):
                                  result_package_name=package_1.name)
         picking_1.update_picking(validate=True)
 
-        pick_domain = [('picking_type_id', '=', self.picking_type_internal.id)]
+        pick_domain = [
+            ('picking_type_id', '=', self.picking_type_internal.id),
+            ('state', '=', 'assigned'),
+        ]
         picking_put = Picking.search(pick_domain)
 
         picking_put.update_picking(package_name=package_1.name,
@@ -205,7 +207,11 @@ class TestRealTimeUpdate(common.BaseUDES):
                                  result_package_name=package_2.name)
         picking_2.update_picking(validate=True)
 
-        pick_domain = [('picking_type_id', '=', self.picking_type_internal.id)]
+
+        pick_domain = [
+            ('picking_type_id', '=', self.picking_type_internal.id),
+            ('state', '=', 'assigned'),
+        ]
         picking_put = Picking.search(pick_domain)
 
         self.assertEqual(picking_put.move_lines.move_orig_ids,
@@ -268,7 +274,11 @@ class TestRealTimeUpdate(common.BaseUDES):
                                  result_package_name=package_2.name)
         picking_2.update_picking(validate=True)
 
-        pick_domain = [('picking_type_id', '=', self.picking_type_internal.id)]
+
+        pick_domain = [
+            ('picking_type_id', '=', self.picking_type_internal.id),
+            ('state', '=', 'assigned'),
+        ]
         picking_put = Picking.search(pick_domain)
 
         self.assertEqual(picking_put.move_lines.move_orig_ids,
@@ -334,7 +344,11 @@ class TestRealTimeUpdate(common.BaseUDES):
         picking_2.update_picking(product_ids=product_ids_2)
         picking_2.update_picking(validate=True)
 
-        pick_domain = [('picking_type_id', '=', self.picking_type_internal.id)]
+
+        pick_domain = [
+            ('picking_type_id', '=', self.picking_type_internal.id),
+            ('state', '=', 'assigned'),
+        ]
         picking_put = Picking.search(pick_domain)
 
         self.assertEqual(picking_put.move_lines.move_orig_ids,
@@ -397,7 +411,8 @@ class TestRealTimeUpdate(common.BaseUDES):
                                         products_info=create_info_3,
                                         confirm=True)
 
-        picking_put = Picking.search([('picking_type_id', '=', self.picking_type_internal.id)])
+        picking_put = Picking.search(
+            [('picking_type_id', '=', self.picking_type_internal.id)])
 
         product_ids_1a = [{'barcode': self.apple.barcode, 'qty': 10}]
         product_ids_1b = [{'barcode': self.apple.barcode, 'qty': 5}]
@@ -565,7 +580,8 @@ class TestRealTimeUpdate(common.BaseUDES):
                                         products_info=create_info_2,
                                         confirm=True)
 
-        picking_put = Picking.search([('picking_type_id', '=', self.picking_type_internal.id)])
+        picking_put = Picking.search(
+            [('picking_type_id', '=', self.picking_type_internal.id)])
 
         product_ids_1 = [{'barcode': self.apple.barcode, 'qty': 10},
                         {'barcode': self.banana.barcode, 'qty': 5}]
@@ -663,7 +679,10 @@ class TestRealTimeUpdate(common.BaseUDES):
         picking_2.update_picking(product_ids=product_ids_2)
         picking_2.update_picking(validate=True)
 
-        pick_domain = [('picking_type_id', '=', self.picking_type_internal.id)]
+        pick_domain = [
+            ('picking_type_id', '=', self.picking_type_internal.id),
+            ('state', '=', 'assigned'),
+        ]
         picking_put = Picking.search(pick_domain)
 
         self.assertEqual(picking_put.move_lines.move_orig_ids,
