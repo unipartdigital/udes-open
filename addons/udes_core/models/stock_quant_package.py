@@ -7,11 +7,15 @@ from odoo.exceptions import ValidationError
 class StockQuantPackage(models.Model):
     _inherit = "stock.quant.package"
 
-    def _prepare_info(self, extended=False):
+    def _prepare_info(self, extended=False, **kwargs):
         """
             Prepares the following info of the package in self:
             - id: int
             - name: string
+
+            It also prepares the following extra info if they exist:
+            - package_id: parent package of self
+            - children_ids: children packages of self
 
             When extended is True also return:
             - location_id: [{stock.quants}]
@@ -22,6 +26,11 @@ class StockQuantPackage(models.Model):
         info = {"id": self.id,
                 "name": self.name}
 
+        if self.package_id:
+            info['package_id'] = self.package_id.id
+        if self.children_ids:
+            info['children_ids'] = self.children_ids.get_info(extended=extended, **kwargs)
+
         if extended:
             location_info = self.location_id.get_info()
             info['location_id'] = location_info[0] if location_info else {}
@@ -29,12 +38,12 @@ class StockQuantPackage(models.Model):
 
         return info
 
-    def get_info(self, extended=False):
+    def get_info(self, extended=False, **kwargs):
         """ Return a list with the information of each package in self.
         """
         res = []
         for pack in self:
-            res.append(pack._prepare_info(extended=extended))
+            res.append(pack._prepare_info(extended=extended, **kwargs))
 
         return res
 
@@ -73,7 +82,8 @@ class StockQuantPackage(models.Model):
             case raise an error.
         """
         self.ensure_one()
-        self.mapped('quant_ids').assert_not_reserved()
+        quants = self.mapped('quant_ids') | self.mapped('children_quant_ids')
+        quants.assert_not_reserved()
 
     def has_same_content(self, other):
         """ Compare the content of current package with the content of another package.
