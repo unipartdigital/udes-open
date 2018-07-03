@@ -762,8 +762,9 @@ class StockPicking(models.Model):
     def _get_package_search_domain(self, package):
         """ Generate the domain for searching pickings of a package
         """
-        return ['|', ('move_line_ids.package_id', '=', package.id),
-                ('move_line_ids.result_package_id', '=', package.id)]
+        return ['|', ('move_line_ids.package_id', 'child_of', package.id),
+                '|', ('move_line_ids.result_package_id', 'child_of', package.id),
+                ('move_line_ids.u_result_parent_package_id', '=', package.id)]
 
     def _prepare_info(self, priorities=None, fields_to_fetch=None):
         """
@@ -1091,13 +1092,6 @@ class StockPicking(models.Model):
 
         return self._swap_package(scanned_package, expected_package,
                                   scanned_pack_mls, exp_pack_mls)
-
-    def _get_package_search_domain(self, package):
-        """ Override to handle multiple levels of packages
-        """
-        return ['|', ('move_line_ids.package_id', 'child_of', package.id),
-                '|', ('move_line_ids.result_package_id', 'child_of', package.id),
-                ('move_line_ids.u_result_parent_package_id', '=', package.id)]
 
     def is_compatible_package(self, package_name):
         """ The package with name package_name is compatible
