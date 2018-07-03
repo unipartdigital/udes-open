@@ -22,6 +22,68 @@ class StockMoveLine(models.Model):
         """
         return self.filtered(lambda ml: ml.qty_done == ml.product_uom_qty)
 
+    def _prepare_result_packages(self, package, result_package, products_info):
+        """ Compute result_package and result_parent based on the
+            u_target_Storage_format of the picking type + the input
+            parameters.
+        """
+        Package = self.env['stock.quant.package']
+
+        parent_package = None
+
+        # atm mark_as_done is only called per picking
+        picking = self.mapped('picking_id')
+        picking.ensure_one()
+        target_storage_format = picking.picking_type_id.u_target_storage_format
+
+        if target_storage_format == 'pallet_packages':
+            if result_package:
+                # At pallet_packages, result_package parameter is expected
+                # to be the result_parent_package of the move_line
+                # It might be a new pallet id
+                parent_package = Package.get_package(result_package, create=True)
+                result_package = None
+                if not package:
+                    if products_info:
+                        # Products are being packed
+                        result_package = Package.create({}).name
+                    elif not all([ml.result_package_id for ml in self]):
+                        # Setting result_parent_package expects to have
+                        # result_package for all the move lines
+                        raise ValidationError(
+                                _("Some of the move lines don't have result package."))
+            elif products_info:
+                raise ValidationError(
+                        _('Invalid parameters for target storage format,'
+                          ' expecting result package.'))
+
+        elif target_storage_format == 'pallet_products':
+            if result_package:
+                # Moving stock into a pallet of products, result_package
+                # might be new pallet id
+                result_package = Package.get_package(result_package, create=True).name
+            elif products_info and not result_package:
+                raise ValidationError(
+                        _('Invalid parameters for target storage format,'
+                          ' expecting result package.'))
+
+        elif target_storage_format == 'package':
+            if products_info and not package and not result_package:
+                # Mark_as_done products without package or result_package
+                # Create result_package when packing products without
+                # result_package being set
+                result_package = Package.create({}).name
+
+        elif target_storage_format == 'product':
+            # Error when trying to mark_as_done a full package or setting result package
+            # when result storage format is products
+            if result_package or (package and not products_info):
+                raise ValidationError(
+                        _('Invalid parameters for products target'
+                          ' storage format.'))
+
+        return (result_package, parent_package)
+
     def mark_as_done(self, location_dest=None, result_package=None, package=None, product_ids=None):
         """ Marks as done the move lines in self and updates location_dest_id
             and result_package_id if they are set.
@@ -38,6 +100,10 @@ class StockMoveLine(models.Model):
         MoveLine = self.env['stock.move.line']
         Location = self.env['stock.location']
         Package = self.env['stock.quant.package']
+
+        result_package, parent_package = \
+            self._prepare_result_packages(package, result_package, product_ids)
+
 
         move_lines = self
         values = {}
@@ -99,6 +165,9 @@ class StockMoveLine(models.Model):
         #       No necessarily, can we have add unexpected parts and not enough stock?
 
         # it might be useful when extending the method
+        if parent_package:
+            mls_done.write({'u_result_parent_package_id': parent_package.id})
+
         return mls_done
 
     def _filter_by_products_info(self, products_info):
@@ -175,9 +244,38 @@ class StockMoveLine(models.Model):
         return move_lines
 
     def get_package_move_lines(self, package):
-        """ Get move lines in self of package
+        """ Get move lines of package when package is a package or
+            a parent package, and to handle swapping packages in
+            case the expected_package_name entry is included in
+            the context.
+
         """
-        return self.filtered(lambda ml: ml.package_id == package)
+        Package = self.env['stock.quant.package']
+
+        package.ensure_one()
+        move_lines = None
+        expected_package_name = self.env.context.get('expected_package_name')
+        picking = self.mapped('picking_id')
+
+        if expected_package_name is not None \
+           and expected_package_name != package.name:
+            expected_package = Package.get_package(expected_package_name)
+            move_lines = picking.maybe_swap(package, expected_package)
+
+        if move_lines is None:
+            if package.children_ids:
+                move_lines = self.filtered(
+                    lambda ml: ml.package_id in package.children_ids)
+            else:
+                move_lines = self.filtered(lambda ml: ml.package_id == package)
+
+        if not move_lines:
+            raise ValidationError(
+                    _("Package %s not found in the operations of picking '%s'")
+                    % (package.name, picking.name))
+
+        return move_lines
+
 
     def _assert_result_package(self, result_package):
         """ Checks that result_package is the expected result package
@@ -382,8 +480,8 @@ class StockMoveLine(models.Model):
         return res
 
     def _get_all_products_quantities(self):
-        '''This function computes the different product quantities for the given move_lines
-        '''
+        """This function computes the different product quantities for the given move_lines
+        """
         res = defaultdict(int)
         for move_line in self:
             res[move_line.product_id] += move_line.product_uom_qty
@@ -398,18 +496,23 @@ class StockMoveLine(models.Model):
             - location_id: {stock.lcation}
             - lot_id: TBC
             - package_id: {stock.quant.package}
-            - qty_done: float
             - result_package_id: {stock.quant.package}
+            - u_result_parent_package_id: {stock.quant.package}
+            - product_uom_qty: float
+            - qty_done: float
             - write_date: datetime
         """
         self.ensure_one()
 
         package_info = False
         result_package_info = False
+        result_parent_package_info = False
         if self.package_id:
             package_info = self.package_id.get_info()[0]
         if self.result_package_id:
             result_package_info = self.result_package_id.get_info()[0]
+        if self.u_result_parent_package_id:
+            result_parent_package_info = self.u_result_parent_package_id.get_info()[0]
 
         return {"id": self.id,
                 "create_date": self.create_date,
@@ -418,8 +521,9 @@ class StockMoveLine(models.Model):
                 #"lot_id": self.lot_id.id,
                 "package_id": package_info,
                 "result_package_id": result_package_info,
-                "qty_done": self.qty_done,
+                "u_result_parent_package_id": result_parent_package_info,
                 "product_uom_qty": self.product_uom_qty,
+                "qty_done": self.qty_done,
                 "write_date": self.write_date,
                }
 
@@ -462,3 +566,28 @@ class StockMoveLine(models.Model):
                                     owner_id=ml.owner_id, strict=True)
 
         return quants
+
+    def _prepare_task_info(self):
+        """ Prepares info of a task
+        """
+        self.ensure_one()
+
+        task = {
+            'picking_id': self.picking_id.id,
+        }
+        user_scans = self.picking_id.picking_type_id.u_user_scans
+        if user_scans == 'product':
+            task['pick_quantity'] = self.product_qty
+            quant = self.get_quants()
+            task['quant_id'] = quant.get_info()[0]
+        else:
+            info = self.package_id.get_info(extended=True)
+            if not info:
+                raise ValidationError(
+                    _('Expecting package information for next task to pick,'
+                      ' but move line does not contain it. Contact team'
+                      'leader and check picking %s') % self.picking_id.name
+                )
+            task['package_id'] = info[0]
+
+        return task
