@@ -67,6 +67,10 @@ class StockLocation(models.Model):
 
             When load_quants is True also return:
             - quant_ids: [{stock.quants}]
+
+            When extended is True also return:
+            - u_blocked: bool
+            - u_blocked_reason: string
         """
         self.ensure_one()
 
@@ -252,7 +256,7 @@ class StockLocation(models.Model):
 
         if picking_type_id is None:
             warehouse = Users.get_user_warehouse()
-            picking_type_id=warehouse.u_pi_count_move_picking_type.id
+            picking_type_id = warehouse.u_pi_count_move_picking_type.id
 
         created_pickings = Picking.browse()
 
