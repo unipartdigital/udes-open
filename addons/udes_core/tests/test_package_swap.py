@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from odoo.addons.udes_core.tests import common
+from . import common
 from odoo.exceptions import ValidationError
 
 
