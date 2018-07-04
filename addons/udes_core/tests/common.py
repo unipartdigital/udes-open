@@ -248,9 +248,19 @@ class BaseUDES(common.SavepointCase):
         route = Route.create(route_vals)
 
         # Goods out
-        sequence_goodsout = Sequence.create({"name": "TestGoodsOut", "prefix": "TESTGOODSOUT", "padding": 5}).id
-        picking_type_out.write({'sequence_id': sequence_goodsout,
-                                'sequence': 13})
+        sequence_vals = {
+            "name": "TestGoodsOut",
+            "prefix": "TESTGOODSOUT",
+            "padding": 5,
+        }
+        sequence_goodsout = Sequence.create(sequence_vals)
+
+        out_vals = {
+            'sequence_id': sequence_goodsout.id,
+            'sequence': 13,
+        }
+        picking_type_out.write(out_vals)
+
         # set goods-out source location = pick dest location
         picking_type_out.default_location_src_id = picking_type_pick.default_location_dest_id
         if not picking_type_out.default_location_dest_id:
