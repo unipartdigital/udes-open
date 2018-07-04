@@ -11,8 +11,8 @@
     'application': True,
     'version': '0.1',
     'depends': [
-        'udes_core',
         'stock',
+        'udes_stock',
     ],
     'data': [
         'security/ir.model.access.csv',

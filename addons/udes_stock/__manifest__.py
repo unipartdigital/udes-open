@@ -2,7 +2,7 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 {
-    'name': 'UDES Core Functionality',
+    'name': 'UDES Stock Functionality',
     'version': '11.0',
     'summary': 'Inventory, Logistics, Warehousing',
     'description': "Holds core functionality for UDES Modules",
