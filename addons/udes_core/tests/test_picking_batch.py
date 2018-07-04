@@ -16,8 +16,9 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         user_warehouse = User.get_user_warehouse()
         cls.user_warehouse = user_warehouse
         # create new pick picking type to avoid problems with existing picks
-        wh_picking_type_pick = user_warehouse.pick_type_id.copy({'name': 'TEST PICK'})
-        cls.picking_type_pick = wh_picking_type_pick.copy({'name': 'TEST PICK'})
+        # note pick in not active by default.
+        cls.picking_type_pick = user_warehouse.pick_type_id.copy({'name': 'TEST PICK',
+                                                                  'active': True})
         user_warehouse.pick_type_id = cls.picking_type_pick
         # create new internal picking type to avoid problems
         cls.picking_type_internal = cls.picking_type_internal.copy({'name': 'TEST INTERNAL'})
@@ -29,6 +30,8 @@ class TestGoodsInPickingBatch(common.BaseUDES):
             'name': "Test output location 01",
             'barcode': "LTESTOUT01",
             'location_id': user_warehouse.pick_type_id.default_location_dest_id.id})
+
+        cls.picking_type_pick.default_location_dest_id = cls.test_output_location_01
 
     def setUp(self):
         super(TestGoodsInPickingBatch, self).setUp()
