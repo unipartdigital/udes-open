@@ -15,7 +15,9 @@ class TestHandlePartials(common.BaseUDES):
         user_warehouse = User.get_user_warehouse()
         # Get goods in type
         cls.picking_type_pick = user_warehouse.pick_type_id
+        cls.picking_type_pick.active = True
         cls.picking_type_out = user_warehouse.out_type_id
+        cls.create_simple_outbound_route(cls.picking_type_pick, cls.picking_type_out)
 
         out_zone = cls.picking_type_pick.default_location_dest_id
         cls.out_location = Location.create({

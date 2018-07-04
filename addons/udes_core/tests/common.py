@@ -232,6 +232,41 @@ class BaseUDES(common.SavepointCase):
         # procurement_in_putaway = Rule.create(procurement_in_putaway_vals)
 
     @classmethod
+    def create_simple_outbound_route(cls, picking_type_pick, picking_type_out):
+        Route = cls.env['stock.location.route']
+        Path = cls.env['stock.location.path']
+        Sequence = cls.env['ir.sequence']
+        Location = cls.env['stock.location']
+
+        route_vals = {
+            "name": "TestGoodsOut",
+            "sequence": 10,
+            "product_selectable": False,
+            "warehouse_selectable": True,
+            "warehouse_ids": [(6, 0, [picking_type_out.warehouse_id.id])]
+        }
+        route = Route.create(route_vals)
+
+        # Goods out
+        sequence_goodsout = Sequence.create({"name": "TestGoodsOut", "prefix": "TESTGOODSOUT", "padding": 5}).id
+        picking_type_out.write({'sequence_id': sequence_goodsout,
+                                'sequence': 13})
+        # set goods-out source location = pick dest location
+        picking_type_out.default_location_src_id = picking_type_pick.default_location_dest_id
+        if not picking_type_out.default_location_dest_id:
+            picking_type_out.default_location_dest_id = Location.search([('name', '=', 'Customers')])[0]
+
+        location_path_vals = {
+            "name": "TestGoodsOut",
+            "route_id": route.id,
+            "sequence": 20,
+            "location_from_id": picking_type_pick.default_location_dest_id.id,
+            "location_dest_id": picking_type_out.default_location_dest_id.id,
+            "picking_type_id": picking_type_out.id,
+        }
+        path_out_goodsout = Path.create(location_path_vals)
+
+    @classmethod
     def create_batch(cls, **kwargs):
         Batch = cls.env['stock.picking.batch']
         vals = {"user_id": cls.env.user.id}
