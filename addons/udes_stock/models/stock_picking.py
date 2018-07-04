@@ -479,7 +479,7 @@ class StockPicking(models.Model):
         if result_package_name:
             values['result_package'] = result_package_name
         if not move_parent_package:
-            # not needed yet, move it outside udes_core
+            # not needed yet, move it outside udes_stock
             # when false remove parent_id of the result_package_id ??
             # picking.move_line_ids.mapped('result_package_id').write({'package_id': False})
             pass

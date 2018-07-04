@@ -3,7 +3,7 @@
 import datetime
 from unittest import mock
 
-from odoo.addons.udes_core.tests.common import BaseUDES
+from odoo.addons.udes_stock.tests.common import BaseUDES
 from odoo.exceptions import UserError
 
 class TestStockExport(BaseUDES):
