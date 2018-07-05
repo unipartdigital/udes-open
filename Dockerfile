@@ -28,4 +28,4 @@ ADD addons /opt/odoo-addons
 
 # Module tests
 #
-CMD ["--test-enable", "-i", "udes_api,udes_core,udes_mrp,udes_purchase,udes_report,udes_transport_management,warehouse_config"]
+CMD ["--test-enable", "-i", "udes_stock,udes_mrp,udes_purchase,udes_report,udes_transport_management"]

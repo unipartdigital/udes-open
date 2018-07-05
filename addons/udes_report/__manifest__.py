@@ -18,7 +18,7 @@
     # any module necessary for this one to work correctly
     'depends': ['base',
                 'stock',
-                'udes_api'],
+                'udes_stock'],
 
     # always loaded
     # NB(ale): order is important for deps

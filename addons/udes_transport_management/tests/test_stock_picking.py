@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# TODO  Import from udes_core
+# TODO  Import from udes_stock
 # from odoo.addons.udes_stock.tests.common import StockCase
 
 class TestStockPickingTrailerInfo(StockCase):
