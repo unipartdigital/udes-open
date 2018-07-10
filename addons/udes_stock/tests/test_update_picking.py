@@ -426,6 +426,7 @@ class TestGoodsInUpdatePickingProducts(common.BaseUDES):
 
 
 class TestGoodsInUpdatePickingPallet(common.BaseUDES):
+
     @classmethod
     def setUpClass(cls):
         super(TestGoodsInUpdatePickingPallet, cls).setUpClass()

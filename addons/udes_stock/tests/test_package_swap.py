@@ -12,6 +12,7 @@ class TestPackageSwap(common.BaseUDES):
 
     @classmethod
     def setUpClass(cls):
+        super(TestPackageSwap, cls).setUpClass()
         cls.pack_4apples_info = [{'product': cls.apple,
                                   'qty': 4}]
 
