@@ -9,16 +9,7 @@ class TestCreatePicking(common.BaseUDES):
     def setUpClass(cls):
         super(TestCreatePicking, cls).setUpClass()
         Picking = cls.env['stock.picking']
-
-        # create user with security group
-        user_params = {
-            'name': 'test_user',
-            'login': 'test_user_login',
-            'group_name': 'inbound',
-            'extra_picking_types': cls.picking_type_internal,
-        }
-        cls.test_user = cls.create_user_with_group(**user_params)
-        cls.SudoPicking = Picking.sudo(cls.test_user)
+        cls.SudoPicking = Picking.sudo(cls.inbound_user)
 
     def test01_create_picking_multiple_quants(self):
         """ Test created because of the bug where canceling and

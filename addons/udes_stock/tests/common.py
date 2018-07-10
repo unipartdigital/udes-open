@@ -17,8 +17,7 @@ class BaseUDES(common.SavepointCase):
         super(BaseUDES, cls).setUpClass()
 
         # Products
-
-        # Untracked
+        ## Untracked
         cls.apple = cls.create_product('Apple')
         cls.banana = cls.create_product('Banana')
         cls.cherry = cls.create_product('Cherry')
@@ -27,7 +26,7 @@ class BaseUDES(common.SavepointCase):
         cls.fig = cls.create_product('Fig')
         cls.grape = cls.create_product('Grape')
 
-        # Serial tracking
+        ## Serial tracking
         cls.strawberry = cls.create_product('Strawberry', tracking='serial')
         cls.tangerine = cls.create_product('Tangerine', tracking='serial')
 
@@ -48,6 +47,7 @@ class BaseUDES(common.SavepointCase):
         # Security groups
         cls.security_groups = {name: cls.env.ref(reference)
                                for (name, reference) in SECURITY_GROUPS}
+        cls._setup_users()
 
     @classmethod
     def _setup_pick_types(cls):
@@ -128,8 +128,41 @@ class BaseUDES(common.SavepointCase):
         cls.create_simple_outbound_route(cls.picking_type_pick, cls.picking_type_out)
 
     @classmethod
-    def _setup_user_groups(cls, ):
-        pass
+    def _setup_users(cls):
+
+        # create user with inbound security group
+        inbound_types = cls.picking_type_in | cls.picking_type_internal
+        inbound_params = {
+            'name': 'inbound_user',
+            'login': 'inbound_user_login',
+            'group_name': 'inbound',
+            'extra_picking_types': inbound_types,
+        }
+        cls.inbound_user = cls.create_user_with_group(**inbound_params)
+
+        # create user with security group
+        outbound_types = cls.picking_type_pick | cls.picking_type_out
+        outbound_types |= cls.picking_type_internal
+        outbound_params = {
+            'name': 'outbound_user',
+            'login': 'outbound_user_login',
+            'group_name': 'outbound',
+            'extra_picking_types': outbound_types,
+        }
+        cls.outbound_user = cls.create_user_with_group(**outbound_params)
+
+        # create user with security group
+        stock_types = cls.picking_type_pick | cls.picking_type_internal
+        stock_params = {
+            'name': 'stock_user',
+            'login': 'stock_user_login',
+            'group_name': 'stock',
+            'extra_picking_types': stock_types,
+        }
+        cls.stock_user = cls.create_user_with_group(**stock_params)
+
+
+
     @classmethod
     def create_inventory_line(cls, inventory, product, **kwargs):
         """ Create and return an inventory line for the given inventory and product."""

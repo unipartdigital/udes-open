@@ -8,31 +8,14 @@ class TestGoodsInPicking(common.BaseUDES):
     @classmethod
     def setUpClass(cls):
         super(TestGoodsInPicking, cls).setUpClass()
-        User = cls.env['res.users']
-        PickingType = cls.env['stock.picking.type']
         Picking = cls.env['stock.picking']
-
-        user_warehouse = User.get_user_warehouse()
-        # Get goods in type
-        in_type_id = user_warehouse.in_type_id
-        cls.picking_type_in = PickingType.search([('id', '=', in_type_id.id)])
-        # Setting default source location as goods_in doesn't have one
-        cls.picking_type_in.default_location_src_id = cls.env.ref('stock.stock_location_suppliers')
         products_info = [{'product': cls.apple, 'qty': 10}]
         cls.test_picking = cls.create_picking(cls.picking_type_in,
                                               origin="test_picking_origin",
                                               products_info=products_info,
                                               confirm=True)
-        # create user with security group
-        user_params = {
-            'name': 'test_user',
-            'login': 'test_user_login',
-            'group_name': 'inbound',
-            'extra_picking_types': cls.picking_type_in,
-        }
-        cls.test_user = cls.create_user_with_group(**user_params)
-        cls.SudoPicking = Picking.sudo(cls.test_user)
-        cls.test_picking = cls.test_picking.sudo(cls.test_user)
+        cls.SudoPicking = Picking.sudo(cls.inbound_user)
+        cls.test_picking = cls.test_picking.sudo(cls.inbound_user)
 
     def test01_get_pickings_by_package_name_fail(self):
         """ Tests get_pickings by package_name
