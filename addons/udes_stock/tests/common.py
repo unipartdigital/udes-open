@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from odoo.tests import common
+from collections import namedtuple
 
 SECURITY_GROUPS = [
     ('inbound', 'udes_stock.group_inbound_user'),
@@ -14,21 +15,6 @@ class BaseUDES(common.SavepointCase):
     @classmethod
     def setUpClass(cls):
         super(BaseUDES, cls).setUpClass()
-        Location = cls.env['stock.location']
-
-        # Locations
-        cls.stock_location = cls.env.ref('stock.stock_location_stock')
-        cls.test_location_01 = Location.create({
-                'name': "Test location 01",
-                'barcode': "LTEST01",
-                'location_id': cls.stock_location.id,
-            })
-        cls.test_location_02 = Location.create({
-                'name': "Test location 02",
-                'barcode': "LTEST02",
-                'location_id': cls.stock_location.id,
-            })
-        cls.test_locations = cls.test_location_01 + cls.test_location_02
 
         # Products
 
@@ -45,12 +31,105 @@ class BaseUDES(common.SavepointCase):
         cls.strawberry = cls.create_product('Strawberry', tracking='serial')
         cls.tangerine = cls.create_product('Tangerine', tracking='serial')
 
-        # Picking types
-        cls.picking_type_internal = cls.env.ref('stock.picking_type_internal')
+        cls.setup_default_warehouse()
+
+    @classmethod
+    def setup_default_warehouse(cls):
+        ''' Sets a warehouse with:
+            * test locations
+                test_input_01, test_stock_01, test_stock_02, test_output_01
+            * all picking types as a copy of the default with TEST_ prepended
+            * a simple inbound route goods_in->putaway
+            * a simple outbound route pick->goods_out
+        '''
+        cls._setup_pick_types()
+        cls._setup_locations()
+        cls._setup_routes()
         # Security groups
         cls.security_groups = {name: cls.env.ref(reference)
                                for (name, reference) in SECURITY_GROUPS}
 
+    @classmethod
+    def _setup_pick_types(cls):
+        cls._set_test_picking_type('in')
+        cls._set_test_picking_type('pick')
+        cls._set_test_picking_type('int', 'internal')
+        cls._set_test_picking_type('out')
+
+    @classmethod
+    def _set_test_picking_type(cls, ptype, name=None):
+        User = cls.env['res.users']
+        user_warehouse = User.get_user_warehouse()
+
+        if name is None:
+            name = ptype
+
+        copy_vals = {'name': 'TEST_{}'.format(name.upper()), 'active': True}
+        wh_attr =  getattr(user_warehouse, '{}_type_id'.format(ptype))
+        new_pt = wh_attr.copy(copy_vals)
+        setattr(cls, 'picking_type_{}'.format(name), new_pt)
+        setattr(user_warehouse, '{}_type_id'.format(ptype), new_pt)
+
+    @classmethod
+    def _setup_locations(cls):
+
+        Location = cls.env['stock.location']
+        cls.stock_location = cls.env.ref('stock.stock_location_stock')
+
+        input_zone = cls.stock_location.copy({'name': 'TEST_INPUT'})
+        cls.recived_location = Location.create({
+            'name': "TEST_RECIVED",
+            'barcode': "LTESTRECIVED",
+            'location_id': input_zone.id,
+        })
+
+        cls.test_location_01 = Location.create({
+                'name': "Test location 01",
+                'barcode': "LTEST01",
+                'location_id': cls.stock_location.id,
+            })
+        cls.test_location_02 = Location.create({
+                'name': "Test location 02",
+                'barcode': "LTEST02",
+                'location_id': cls.stock_location.id,
+            })
+        cls.test_locations = cls.test_location_01 + cls.test_location_02
+
+        out_zone = cls.picking_type_pick.default_location_dest_id
+        cls.test_output_location_01 = Location.create({
+            'name': "Test output location 01",
+            'barcode': "LTESTOUT01",
+            'location_id': out_zone.id})
+
+    @classmethod
+    def _setup_routes(cls):
+
+        cls.picking_type_in.write({
+            'default_location_src_id': cls.env.ref('stock.stock_location_suppliers').id,
+            'default_location_dest_id': cls.recived_location.id,
+        })
+
+        cls.picking_type_internal.write({
+            'default_location_src_id': cls.recived_location.id,
+            'default_location_dest_id': cls.test_location_01.id,
+        })
+
+        cls.picking_type_pick.write({
+            'default_location_src_id': cls.stock_location.id,
+            'default_location_dest_id': cls.test_output_location_01.id,
+        })
+
+        cls.picking_type_out.write({
+            'default_location_src_id': cls.test_output_location_01.id,
+            'default_location_dest_id': cls.env.ref('stock.stock_location_customers').id,
+        })
+
+        cls.create_simple_inbound_route(cls.picking_type_in, cls.picking_type_internal)
+        cls.create_simple_outbound_route(cls.picking_type_pick, cls.picking_type_out)
+
+    @classmethod
+    def _setup_user_groups(cls, ):
+        pass
     @classmethod
     def create_inventory_line(cls, inventory, product, **kwargs):
         """ Create and return an inventory line for the given inventory and product."""
@@ -126,11 +205,11 @@ class BaseUDES(common.SavepointCase):
                 product_info.update(picking=picking)
                 move = cls.create_move(**product_info)
 
-        if confirm:
-            picking.action_confirm()
-
         if assign:
             picking.action_assign()
+
+        if confirm:
+            picking.action_confirm()
 
         return picking
 
@@ -235,7 +314,7 @@ class BaseUDES(common.SavepointCase):
         Route = cls.env['stock.location.route']
         Path = cls.env['stock.location.path']
         Sequence = cls.env['ir.sequence']
-        Rule  = cls.env['procurement.rule']
+        # Rule  = cls.env['procurement.rule']
 
         route_vals = {
             "name": "TestPutaway",
@@ -246,10 +325,12 @@ class BaseUDES(common.SavepointCase):
         }
         route = Route.create(route_vals)
 
+        #TODO make pretty
+
         # PUTAWAY
-        sequence_putaway = Sequence.create({"name": "TestPutaway", "prefix": "TESTPUT", "padding": 5}).id
+        sequence_putaway = Sequence.create({"name": "TestPutaway", "prefix": "TESTPUT", "padding": 5})
         picking_type_internal.write({
-                                        'sequence_id': sequence_putaway,
+                                        'sequence_id': sequence_putaway.id,
                                         'sequence':13
                                      })
 
