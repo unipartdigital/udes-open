@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Extend report_picking to always use code128 for product barcodes-->
+        <template id="my_report_picking" inherit_id="stock.report_picking">
+            <!-- There are two references t[@t-if='has_barcode'], only replace the second one -->
+            <xpath expr="(//t[@t-if='has_barcode'])[2]" position="replace">
+                <t t-if="has_barcode">
+                    <span t-if="move.product_id and move.product_id.barcode">
+                        <img t-att-src="'/report/barcode/?type=%s&amp;value=%s&amp;width=%s&amp;height=%s' % ('Code128', move.product_id.barcode, 600, 100)" style="width:100%;height:50px" />
+                    </span>
+                </t>
+            </xpath>
+        </template>
+    </data>
+</odoo>
