@@ -225,13 +225,20 @@ class StockPicking(models.Model):
         allow_partial = self.env.context.get('allow_partial')
 
         self.assert_valid_state()
-
         if isinstance(quant_ids, list):
             quants = Quant.browse(quant_ids)
         elif isinstance(quant_ids, type(Quant)):
             quants = quant_ids
         else:
-            raise ValidationError(_('Wrong quant identifiers %s') % type(quant_ids))
+            raise ValidationError(
+                _('Wrong quant identifiers %s') % type(quant_ids))
+        n_quants = len(quants.exists())
+        n_quants_rec = len(quant_ids)
+        if n_quants != n_quants_rec:
+            raise AssertionError(
+                _('Number of quants provided %s does not match with '
+                  'the number of quants found %s. Data received: %s') %
+                (n_quants_rec, n_quants, quant_ids))
         if not allow_partial:
             quants.assert_not_reserved()
             quants.assert_entire_packages()
@@ -240,7 +247,8 @@ class StockPicking(models.Model):
         # Call _create_moves() with context variable quants_ids in order
         # to filter the quants that stock.quant._gather returns
         self.with_context(quant_ids=quant_ids)._create_moves(
-            quants.group_quantity_by_product(only_available=allow_partial), **kwargs)
+            quants.group_quantity_by_product(only_available=allow_partial),
+            **kwargs)
 
     def _create_moves(self, products_info, values=None,
                       confirm=False, assign=False,
