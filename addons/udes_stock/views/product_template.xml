@@ -11,6 +11,11 @@
                 <attribute name="confirm">Are you sure you want to archive this product? It will become unavailable and hidden from searches.</attribute>
             </xpath>
 
+            <xpath expr="//page[@name='inventory']" position="inside">
+                <group string="UDES">
+                    <field name="u_hazardous" />
+                </group>
+            </xpath>
         </field>
     </record>
 </odoo>
