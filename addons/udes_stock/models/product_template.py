@@ -13,3 +13,5 @@ class ProductTemplate(models.Model):
 
     # Default to being a stockable product
     type = fields.Selection(default='product')
+
+    u_hazardous = fields.Boolean(string="Hazardous", default=False)
