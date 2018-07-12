@@ -244,6 +244,8 @@ class StockPicking(models.Model):
             quants.assert_entire_packages()
         quants.assert_valid_location(self.location_id.id)
 
+        # recompute quant_ids from quants recordset
+        quant_ids = quants.ids
         # Call _create_moves() with context variable quants_ids in order
         # to filter the quants that stock.quant._gather returns
         self.with_context(quant_ids=quant_ids)._create_moves(
