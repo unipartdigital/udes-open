@@ -18,6 +18,7 @@
     'demo': [
     ],
     'data': [
+        'security/udes_stock_security.xml',
         'data/stock_config.xml',
         'data/stock_config.xml',
         'report/product_product_templates.xml',
