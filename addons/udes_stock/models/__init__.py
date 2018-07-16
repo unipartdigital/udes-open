@@ -4,6 +4,7 @@ from . import ir_attachment
 from . import procurement
 from . import product_product
 from . import product_template
+from . import res_groups
 from . import res_users
 from . import stock_inventory
 from . import stock_location
