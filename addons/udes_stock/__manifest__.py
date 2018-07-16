@@ -24,6 +24,7 @@
         'report/report_stockpicking_operations.xml',
         'views/product_template.xml',
         'views/res_groups_views.xml',
+        'views/res_users_views.xml',
         'views/stock_inventory.xml',
         'views/stock_location.xml',
         'views/stock_picking.xml',
