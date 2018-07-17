@@ -18,8 +18,6 @@
     'demo': [
     ],
     'data': [
-        'security/udes_stock_security.xml',
-        'data/stock_config.xml',
         'data/stock_config.xml',
         'report/product_product_templates.xml',
         'report/report_stockpicking_operations.xml',
@@ -34,6 +32,8 @@
         'views/stock_warehouse.xml',
         'views/create_planned_transfer_asset.xml',
         'wizard/change_quant_location_view.xml',
+        'security/ir_module_category.xml',
+        'security/udes_stock_security.xml',
     ],
     'qweb': [
         'static/src/xml/create_planned_transfer_button.xml'

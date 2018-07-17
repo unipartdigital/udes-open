@@ -3,32 +3,69 @@
 
     <data noupdate="0">
 
+        <!-- Define allowed picking types per user global rules
+            for each relevant model
+        -->
         <record model="ir.rule" id="users_picking_picking_type_rule">
             <field name="name">users_picking_picking_type_rule</field>
-            <field name="model_id" search="[('model','=','stock.picking')]" model="ir.model"/>
+            <field name="model_id"
+                   search="[('model','=','stock.picking')]"
+                   model="ir.model"/>
             <field name="global" eval="True"/>
             <field name="domain_force">[('picking_type_id','in',user.u_picking_type_ids.ids)]</field>
         </record>
-
         <record model="ir.rule" id="users_picking_type_rule">
             <field name="name">users_picking_type_rule</field>
-            <field name="model_id" search="[('model','=','stock.picking.type')]" model="ir.model"/>
+            <field name="model_id"
+                   search="[('model','=','stock.picking.type')]"
+                   model="ir.model"/>
             <field name="global" eval="True"/>
             <field name="domain_force">[('id','in',user.u_picking_type_ids.ids)]</field>
         </record>
-
         <record model="ir.rule" id="users_stock_move_rule">
             <field name="name">users_stock_move_rule</field>
-            <field name="model_id" search="[('model','=','stock.move')]" model="ir.model"/>
+            <field name="model_id"
+                   search="[('model','=','stock.move')]"
+                   model="ir.model"/>
             <field name="global" eval="True"/>
             <field name="domain_force">[('picking_type_id','in',user.u_picking_type_ids.ids)]</field>
         </record>
-
         <record model="ir.rule" id="users_stock_move_line_rule">
             <field name="name">users_stock_move_line_rule</field>
-            <field name="model_id" search="[('model','=','stock.move.line')]" model="ir.model"/>
+            <field name="model_id"
+                   search="[('model','=','stock.move.line')]"
+                   model="ir.model"/>
             <field name="global" eval="True"/>
             <field name="domain_force">[('move_id.picking_type_id','in',user.u_picking_type_ids.ids)]</field>
+        </record>
+
+        <!-- Define default security groups -->
+        <record id="group_inbound_user" model="res.groups">
+            <field name="name">Inbound User</field>
+            <field name="implied_ids"
+                   eval="[(4, ref('stock.group_stock_user'))]"/>
+            <field name="category_id"
+                   ref="module_group_inbound_category"/>
+            <field name="u_picking_type_ids"
+                   eval="[(4, ref('stock.picking_type_in'))]"/>
+        </record>
+        <record id="group_outbound_user" model="res.groups">
+            <field name="name">Outbound User</field>
+            <field name="implied_ids"
+                   eval="[(4, ref('stock.group_stock_user'))]"/>
+            <field name="category_id"
+                   ref="module_group_outbound_category"/>
+            <field name="u_picking_type_ids"
+                   eval="[(4, ref('stock.picking_type_out'))]"/>
+        </record>
+        <record id="group_stock_user" model="res.groups">
+            <field name="name">Stock User</field>
+            <field name="implied_ids"
+                   eval="[(4, ref('stock.group_stock_user'))]"/>
+            <field name="category_id"
+                   ref="module_group_stock_category"/>
+            <field name="u_picking_type_ids"
+                   eval="[(4, ref('stock.picking_type_internal'))]"/>
         </record>
 
     </data>
