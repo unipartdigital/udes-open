@@ -92,8 +92,6 @@ class TestRealTimeUpdate(common.BaseUDES):
         """
         Package = self.env['stock.quant.package']
         Picking = self.env['stock.picking']
-        self.create_simple_inbound_route(self.picking_type_in,
-                                         self.picking_type_internal)
 
         package_1 = Package.get_package('test_apple1_pkg', create=True)
         package_2 = Package.get_package('test_apple2_pkg', create=True)
@@ -151,9 +149,6 @@ class TestRealTimeUpdate(common.BaseUDES):
         """
         Package = self.env['stock.quant.package']
         Picking = self.env['stock.picking']
-
-        self.create_simple_inbound_route(self.picking_type_in,
-                                         self.picking_type_internal)
 
         package_1 = Package.get_package('test_apple1_pkg', create=True)
         package_2 = Package.get_package('test_apple2_pkg', create=True)
@@ -213,9 +208,6 @@ class TestRealTimeUpdate(common.BaseUDES):
         """
         Package = self.env['stock.quant.package']
         Picking = self.env['stock.picking']
-
-        self.create_simple_inbound_route(self.picking_type_in,
-                                         self.picking_type_internal)
 
         package_1 = Package.get_package('test_strawberry1_pkg', create=True)
         package_2 = Package.get_package('test_strawberry2_pkg', create=True)
@@ -289,9 +281,6 @@ class TestRealTimeUpdate(common.BaseUDES):
         self.picking_type_in.u_target_storage_format = 'product'
         self.picking_type_internal.u_target_storage_format = 'product'
 
-        self.create_simple_inbound_route(self.picking_type_in,
-                                         self.picking_type_internal)
-
         package_1 = Package.get_package('test_strawberry1_pkg', create=True)
         package_2 = Package.get_package('test_strawberry2_pkg', create=True)
 
@@ -354,9 +343,6 @@ class TestRealTimeUpdate(common.BaseUDES):
         """
         Package = self.env['stock.quant.package']
         Picking = self.env['stock.picking']
-
-        self.create_simple_inbound_route(self.picking_type_in,
-                                         self.picking_type_internal)
 
         package_1a = Package.get_package('test_apple1_pkg', create=True)
         package_1b = Package.get_package('test_apple2_pkg', create=True)
@@ -546,9 +532,6 @@ class TestRealTimeUpdate(common.BaseUDES):
         Package = self.env['stock.quant.package']
         Picking = self.env['stock.picking']
 
-        self.create_simple_inbound_route(self.picking_type_in,
-                                         self.picking_type_internal)
-
         package_1 = Package.get_package('test_package1', create=True)
         package_2 = Package.get_package('test_package2', create=True)
 
@@ -635,9 +618,6 @@ class TestRealTimeUpdate(common.BaseUDES):
 
         self.picking_type_in.u_target_storage_format = 'product'
         self.picking_type_internal.u_target_storage_format = 'product'
-
-        self.create_simple_inbound_route(self.picking_type_in,
-                                         self.picking_type_internal)
 
         package_1 = Package.get_package('test_apple1_pkg', create=True)
         package_2 = Package.get_package('test_apple2_pkg', create=True)
