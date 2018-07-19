@@ -6,6 +6,11 @@ from odoo.exceptions import ValidationError
 
 class TestRealTimeUpdate(common.BaseUDES):
 
+    @classmethod
+    def setUpClass(cls):
+        super(TestRealTimeUpdate, cls).setUpClass()
+        cls.picking_type_internal.u_validate_real_time=True
+
     def _check_for_incomplete_backorder(self, pickings):
         """ Checks to make sure that there are no incomplete
             backorders which may arise from improperly
@@ -72,6 +77,7 @@ class TestRealTimeUpdate(common.BaseUDES):
                                location_dest_id=self.test_location_02.id)
         backorders = Picking.search([('backorder_id', '=', picking.id)])
         backorders_done = backorders
+
         self.assertEqual(len(backorders), 1)
         self.assertEqual(backorders.move_line_ids,
                       mls_before - picking.move_line_ids)
