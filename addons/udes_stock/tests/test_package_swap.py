@@ -15,6 +15,8 @@ class TestPackageSwap(common.BaseUDES):
         super(TestPackageSwap, cls).setUpClass()
         cls.pack_4apples_info = [{'product': cls.apple,
                                   'qty': 4}]
+        cls.picking_type_internal.default_location_src_id = \
+            cls.test_location_01.id
 
     def setUp(self):
         super(TestPackageSwap, self).setUp()
@@ -296,6 +298,8 @@ class TestPackageSwap(common.BaseUDES):
 
         self.picking_type_internal.u_reserve_as_packages = True
         self.picking_type_internal.u_allow_swapping_packages = True
+        self.picking_type_internal.default_location_src_id = \
+            self.test_location_01.id
         self.create_picking(self.picking_type_internal,
                             products_info=self.pack_4apples_info,
                             confirm=True,
