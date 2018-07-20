@@ -2,6 +2,11 @@
 
 from odoo.tests import common
 
+SECURITY_GROUPS = [
+    ('inbound', 'udes_stock.group_inbound_user'),
+    ('outbound', 'udes_stock.group_outbound_user'),
+    ('stock', 'udes_stock.group_stock_user'),
+]
 
 class BaseUDES(common.SavepointCase):
 
@@ -41,6 +46,9 @@ class BaseUDES(common.SavepointCase):
 
         # Picking types
         cls.picking_type_internal = cls.env.ref('stock.picking_type_internal')
+        # Security groups
+        cls.security_groups = {name: cls.env.ref(reference)
+                               for (name, reference) in SECURITY_GROUPS}
 
     @classmethod
     def create_inventory_line(cls, inventory, product, **kwargs):
@@ -165,6 +173,35 @@ class BaseUDES(common.SavepointCase):
         return Lot.create(vals)
 
     @classmethod
+    def _prepare_group(cls, group, extra_picking_type_ids=None):
+        if extra_picking_type_ids:
+            group.u_picking_type_ids |= extra_picking_type_ids
+
+        return [(4, group.id, 0)]
+
+    @classmethod
+    def add_group_to_user(cls, user, group_name,
+                          extra_picking_type_ids=None):
+        groups = cls._prepare_group(
+            cls.security_groups[group_name],
+            extra_picking_type_ids=extra_picking_type_ids)
+
+        user.write({'group_ids': groups})
+
+    @classmethod
+    def create_user_with_group(cls, name, login, group_name,
+                               extra_picking_type_ids=None):
+        """ Create user for a security group and add picking types to
+            the security group.
+        """
+        groups = cls._prepare_group(
+            cls.security_groups[group_name],
+            extra_picking_type_ids=extra_picking_type_ids)
+        test_user = cls.create_user(name, login, groups_id=groups)
+
+        return test_user
+
+    @classmethod
     def create_user(cls, name, login, **kwargs):
         """ Create and return a user"""
         User = cls.env['res.users']
@@ -175,7 +212,11 @@ class BaseUDES(common.SavepointCase):
             'login': login,
         }
         vals.update(kwargs)
-        return User.create(vals)
+        user = User.create(vals)
+        # some action require email setup even if the email is not really sent
+        user.partner_id.email = login
+
+        return user
 
     @classmethod
     def create_company(cls, name, **kwargs):
