@@ -61,7 +61,7 @@
         <record id="group_stock_user" model="res.groups">
             <field name="name">Stock User</field>
             <field name="implied_ids"
-                   eval="[(4, ref('stock.group_stock_user'))]"/>
+                   eval="[(4, ref('stock.group_stock_manager'))]"/>
             <field name="category_id"
                    ref="module_group_stock_category"/>
             <field name="u_picking_type_ids"
