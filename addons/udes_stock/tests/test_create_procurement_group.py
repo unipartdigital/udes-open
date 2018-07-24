@@ -14,6 +14,14 @@ class TestCreateProcurementGroup(common.BaseUDES):
         user_warehouse = User.get_user_warehouse()
         # Get goods in type
         cls.picking_type_pick = user_warehouse.pick_type_id
+        # create user with security group
+        user_params = {
+            'name': 'test_user',
+            'login': 'test_user_login',
+            'group_name': 'outbound',
+            'extra_picking_types': cls.picking_type_pick,
+        }
+        cls.test_user = cls.create_user_with_group(**user_params)
 
     def setUp(self):
         """
@@ -37,6 +45,7 @@ class TestCreateProcurementGroup(common.BaseUDES):
         products = [{'product': self.apple, 'qty': 10}]
         pick_picking = self.create_picking(self.picking_type_pick,
                                            products_info=products)
+        pick_picking = pick_picking.sudo(self.test_user)
 
         self.assertEqual(pick_picking.state, 'draft')
         self.assertEqual(len(pick_picking.group_id), 0)
@@ -57,6 +66,8 @@ class TestCreateProcurementGroup(common.BaseUDES):
                                            products_info=products,
                                            group_id=group.id,
                                            confirm=True, assign=True)
+        pick_picking = pick_picking.sudo(self.test_user)
+
         self.assertEqual(len(pick_picking.group_id), 1)
         pick_picking.action_confirm()
         self.assertEqual(len(pick_picking.group_id), 1)
@@ -73,6 +84,7 @@ class TestCreateProcurementGroup(common.BaseUDES):
         products = [{'product': self.apple, 'qty': 10}]
         pick_picking = self.create_picking(self.picking_type_pick,
                                            products_info=products)
+        pick_picking = pick_picking.sudo(self.test_user)
 
         self.assertEqual(pick_picking.state, 'draft')
         self.assertEqual(len(pick_picking.group_id), 0)

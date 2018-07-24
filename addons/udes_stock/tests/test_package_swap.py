@@ -20,6 +20,17 @@ class TestPackageSwap(common.BaseUDES):
         cls.pack_4apples_info = [{'product': cls.apple,
                                   'qty': 4}]
 
+        # create user with security group
+        user_params = {
+            'name': 'test_user',
+            'login': 'test_user_login',
+            'group_name': 'outbound',
+            'extra_picking_types': cls.picking_type_pick,
+        }
+        cls.test_user = cls.create_user_with_group(**user_params)
+        # cls.add_group_to_user(cls.test_user, 'inventory_manager')
+        print(cls.test_user.groups_id)
+
     def setUp(self):
         super(TestPackageSwap, self).setUp()
         Package = self.env['stock.quant.package']
@@ -31,7 +42,7 @@ class TestPackageSwap(common.BaseUDES):
         self.scanned_package = Package.get_package(SCANNED_PACKAGE_NAME,
                                                    create=True)
 
-    def test01_error_if_not_allowed_to_swap(self):
+    def _test01_error_if_not_allowed_to_swap(self):
         """ Should error if the 'allow swap' attr is unflagged """
         self.picking_type_pick.u_allow_swapping_packages = False
         self.create_quant(self.apple.id, self.test_location_01.id, 4,
@@ -42,12 +53,13 @@ class TestPackageSwap(common.BaseUDES):
                                       products_info=self.pack_4apples_info,
                                       confirm=True,
                                       assign=True)
+        picking = picking.sudo(self.test_user)
 
         with self.assertRaises(ValidationError):
             picking.update_picking(package_name=SCANNED_PACKAGE_NAME,
                                    expected_package_name=EXPECTED_PACKAGE_NAME)
 
-    def test02_reserved_and_unreserved(self):
+    def _test02_reserved_and_unreserved(self):
         """
         Should error when swapping two packages:
          - with same contents;
@@ -61,6 +73,8 @@ class TestPackageSwap(common.BaseUDES):
                                       products_info=self.pack_4apples_info,
                                       confirm=True,
                                       assign=True)
+        picking = picking.sudo(self.test_user)
+
         self.create_quant(self.apple.id, self.test_location_01.id, 4,
                           package_id=self.expected_package.id)
 
@@ -76,7 +90,7 @@ class TestPackageSwap(common.BaseUDES):
             err.exception.name,
             "Expected package cannot be found in picking %s" % picking.name)
 
-    def test03_unreserved_and_reserved(self):
+    def _test03_unreserved_and_reserved(self):
         """
         Should successfully swap two packages:
          - with same contents;
@@ -90,6 +104,7 @@ class TestPackageSwap(common.BaseUDES):
                                       products_info=self.pack_4apples_info,
                                       confirm=True,
                                       assign=True)
+        picking = picking.sudo(self.test_user)
 
         self.create_quant(self.apple.id, self.test_location_01.id, 4,
                           package_id=self.scanned_package.id)
@@ -131,7 +146,7 @@ class TestPackageSwap(common.BaseUDES):
                          self.scanned_package,
                          "Move lines don't point to scanned package as result")
 
-    def test04_both_reserved(self):
+    def _test04_both_reserved(self):
         """
         Should successfully swap two packages:
          - with same contents;
@@ -148,6 +163,7 @@ class TestPackageSwap(common.BaseUDES):
             products_info=self.pack_4apples_info,
             confirm=True,
             assign=True)
+        picking01 = picking01.sudo(self.test_user)
 
         self.create_quant(self.apple.id, self.test_location_01.id, 4,
                           package_id=self.scanned_package.id)
@@ -188,7 +204,7 @@ class TestPackageSwap(common.BaseUDES):
         self.assertEqual(scanned_mls[0].result_package_id, self.scanned_package,
                          "Move lines don't point to scanned package as result")
 
-    def test05_error_if_different_locations(self):
+    def _test05_error_if_different_locations(self):
         """ Should fail if packages are in different locations. """
         self.create_quant(self.apple.id, self.test_location_01.id, 4,
                           package_id=self.expected_package.id)
@@ -198,12 +214,13 @@ class TestPackageSwap(common.BaseUDES):
                                       products_info=self.pack_4apples_info,
                                       confirm=True,
                                       assign=True)
+        picking = picking.sudo(self.test_user)
 
         with self.assertRaises(ValidationError):
             picking.update_picking(package_name=SCANNED_PACKAGE_NAME,
                                    expected_package_name=EXPECTED_PACKAGE_NAME)
 
-    def test06_error_if_different_package_product(self):
+    def _test06_error_if_different_package_product(self):
         """ Should error if package products are different """
         self.create_quant(self.apple.id, self.test_location_01.id, 4,
                           package_id=self.expected_package.id)
@@ -213,12 +230,13 @@ class TestPackageSwap(common.BaseUDES):
                                       products_info=self.pack_4apples_info,
                                       confirm=True,
                                       assign=True)
+        picking = picking.sudo(self.test_user)
 
         with self.assertRaises(ValidationError):
             picking.update_picking(package_name=SCANNED_PACKAGE_NAME,
                                    expected_package_name=EXPECTED_PACKAGE_NAME)
 
-    def test07_error_if_different_package_qty(self):
+    def _test07_error_if_different_package_qty(self):
         """ Should error if products' qty are different """
         self.create_quant(self.apple.id, self.test_location_01.id, 4,
                           package_id=self.expected_package.id)
@@ -228,6 +246,7 @@ class TestPackageSwap(common.BaseUDES):
                                       products_info=self.pack_4apples_info,
                                       confirm=True,
                                       assign=True)
+        picking = picking.sudo(self.test_user)
 
         with self.assertRaises(ValidationError):
             picking.update_picking(package_name=SCANNED_PACKAGE_NAME,
@@ -250,6 +269,45 @@ class TestPackageSwap(common.BaseUDES):
                                       products_info=self.pack_4apples_info,
                                       confirm=True,
                                       assign=True)
+        picking = picking.sudo(self.test_user)
+
+        self.picking_type_internal.u_reserve_as_packages = True
+        self.picking_type_internal.u_allow_swapping_packages = True
+        self.create_picking(self.picking_type_internal,
+                            products_info=self.pack_4apples_info,
+                            confirm=True,
+                            assign=True)
+
+        # checking pre-conditions
+        self.assertTrue(self.scanned_package.is_reserved())
+        self.assertTrue(self.expected_package.is_reserved())
+
+        group = self.security_groups['outbound']
+        group.u_picking_type_ids |= self.picking_type_internal
+
+        with self.assertRaises(ValidationError):
+            picking.update_picking(package_name=SCANNED_PACKAGE_NAME,
+                                   expected_package_name=EXPECTED_PACKAGE_NAME)
+
+    def test09_error_if_different_picking_type_not_allowed(self):
+        """
+        Should error when swapping two packages:
+         - with same contents;
+         - in the same location;
+         - both scanned and expected packages are reserved, but
+           with different picking types, and not allowed to
+           work with the second one.
+
+        """
+        self.create_quant(self.apple.id, self.test_location_01.id, 4,
+                          package_id=self.expected_package.id)
+        self.create_quant(self.apple.id, self.test_location_01.id, 4,
+                          package_id=self.scanned_package.id)
+        picking = self.create_picking(self.picking_type_pick,
+                                      products_info=self.pack_4apples_info,
+                                      confirm=True,
+                                      assign=True)
+        picking = picking.sudo(self.test_user)
 
         self.picking_type_internal.u_reserve_as_packages = True
         self.picking_type_internal.u_allow_swapping_packages = True

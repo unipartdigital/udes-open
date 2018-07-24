@@ -9,13 +9,20 @@ class TestGoodsInUpdatePickingBase(common.BaseUDES):
         super(TestGoodsInUpdatePickingBase, cls).setUpClass()
         # Pretty much TestGoodsInPicking Setup
         User = cls.env['res.users']
-        PickingType = cls.env['stock.picking.type']
-        Picking = cls.env['stock.picking']
         user_warehouse = User.get_user_warehouse()
         # Get goods in type
         cls.picking_type_in = user_warehouse.in_type_id
         # Setting default source location as goods_in doesn't have one
         cls.picking_type_in.default_location_src_id = cls.env.ref('stock.stock_location_suppliers')
+
+        # create user with security group
+        user_params = {
+            'name': 'test_user',
+            'login': 'test_user_login',
+            'group_name': 'inbound',
+            'extra_picking_types': cls.picking_type_in,
+        }
+        cls.test_user = cls.create_user_with_group(**user_params)
 
 
 class TestGoodsInUpdatePickingProducts(TestGoodsInUpdatePickingBase):
@@ -33,6 +40,7 @@ class TestGoodsInUpdatePickingProducts(TestGoodsInUpdatePickingBase):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
+        picking = picking.sudo(self.test_user)
 
         product_ids = [{'barcode': self.apple.barcode, 'qty': 4}]
 
@@ -51,6 +59,8 @@ class TestGoodsInUpdatePickingProducts(TestGoodsInUpdatePickingBase):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
+        picking = picking.sudo(self.test_user)
+
         product_ids = [{'barcode': self.strawberry.barcode,
                         'qty': 4,
                         'lot_names': ['Strawberry0', 'Strawberry1',
@@ -73,6 +83,8 @@ class TestGoodsInUpdatePickingProducts(TestGoodsInUpdatePickingBase):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
+
+        picking = picking.sudo(self.test_user)
 
         product_ids = [{'barcode': self.apple.barcode, 'qty': 2}]
 
@@ -104,6 +116,8 @@ class TestGoodsInUpdatePickingProducts(TestGoodsInUpdatePickingBase):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
+        picking = picking.sudo(self.test_user)
+
         product_ids_1 = [{
                             'barcode': self.strawberry.barcode,
                             'qty': 2,
@@ -142,6 +156,8 @@ class TestGoodsInUpdatePickingProducts(TestGoodsInUpdatePickingBase):
                                       products_info=create_info,
                                       confirm=True)
 
+        picking = picking.sudo(self.test_user)
+
         product_ids = [{'barcode': self.apple.barcode, 'qty': 3}]
         picking.update_picking(product_ids=product_ids)
 
@@ -168,6 +184,8 @@ class TestGoodsInUpdatePickingProducts(TestGoodsInUpdatePickingBase):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
+        picking = picking.sudo(self.test_user)
+
         product_ids = [{
                             'barcode': self.strawberry.barcode,
                             'qty': 4,
@@ -188,6 +206,8 @@ class TestGoodsInUpdatePickingProducts(TestGoodsInUpdatePickingBase):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
+        picking = picking.sudo(self.test_user)
+
         sn0 = ['Strawberry0']
         product_ids = [{
                             'barcode': self.strawberry.barcode,
@@ -216,6 +236,8 @@ class TestGoodsInUpdatePickingProducts(TestGoodsInUpdatePickingBase):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
+        picking = picking.sudo(self.test_user)
+
         product_ids = [{
                             'barcode': self.strawberry.barcode,
                             'qty': 1,
@@ -237,6 +259,8 @@ class TestGoodsInUpdatePickingProducts(TestGoodsInUpdatePickingBase):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
+
+        picking = picking.sudo(self.test_user)
 
         product_ids = [{'barcode': self.apple.barcode, 'qty': 5}]
 
@@ -260,6 +284,8 @@ class TestGoodsInUpdatePickingProducts(TestGoodsInUpdatePickingBase):
                                       origin='self_picking_origin',
                                       products_info=create_info,
                                       confirm=True)
+        picking = picking.sudo(self.test_user)
+
         product_ids1 = [{'barcode': self.apple.barcode, 'qty': 4}]
         product_ids2 = [{'barcode': self.apple.barcode, 'qty': 2}]
 
@@ -285,6 +311,8 @@ class TestGoodsInUpdatePickingProducts(TestGoodsInUpdatePickingBase):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
+        picking = picking.sudo(self.test_user)
+
         product_ids = [{'barcode': self.cherry.barcode, 'qty': 2}]
         self.assertEqual(sum(picking.mapped('move_line_ids.qty_done')), 0.0)
         picking.update_picking(product_ids=product_ids)
@@ -303,6 +331,8 @@ class TestGoodsInUpdatePickingProducts(TestGoodsInUpdatePickingBase):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
+        picking = picking.sudo(self.test_user)
+
         product_ids = [
                             {'barcode': self.cherry.barcode, 'qty': 4},
                             {'barcode': self.apple.barcode, 'qty': 4},
@@ -334,6 +364,7 @@ class TestGoodsInUpdatePickingProducts(TestGoodsInUpdatePickingBase):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=creation_info,
                                       confirm=True)
+        picking = picking.sudo(self.test_user)
 
         product_ids = [
                             {'barcode': self.cherry.barcode, 'qty': 4},
@@ -358,6 +389,7 @@ class TestGoodsInUpdatePickingProducts(TestGoodsInUpdatePickingBase):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=creation_info,
                                       confirm=True)
+        picking = picking.sudo(self.test_user)
 
         cherry_info = [{'barcode': self.cherry.barcode, 'qty': 4}]
         apple_info = [{'barcode': self.apple.barcode, 'qty': 4}]
@@ -388,6 +420,7 @@ class TestGoodsInUpdatePickingProducts(TestGoodsInUpdatePickingBase):
                                      origin='test_picking_origin',
                                      products_info=creation_info,
                                      confirm=True)
+        picking = picking.sudo(self.test_user)
 
         strawberry_move_lines = picking.move_line_ids.filtered(lambda x: x.product_id == self.strawberry)
         apple_move_lines = picking.move_line_ids.filtered(lambda x: x.product_id == self.apple)
@@ -434,6 +467,7 @@ class TestGoodsInUpdatePickingPallet(TestGoodsInUpdatePickingBase):
                                      origin='test_picking_origin',
                                      products_info=creation_info,
                                      confirm=True)
+        picking = picking.sudo(self.test_user)
 
         product_ids = [{'barcode': self.apple.barcode, 'qty':2}]
         picking.update_picking(product_ids=product_ids, result_package_name=package.name)
@@ -458,6 +492,8 @@ class TestGoodsInUpdatePickingPallet(TestGoodsInUpdatePickingBase):
                                      origin='test_picking_origin',
                                      products_info=creation_info,
                                      confirm=True)
+        picking = picking.sudo(self.test_user)
+
         product_ids = [
                             {'barcode': self.apple.barcode, 'qty': 2},
                             {'barcode': self.cherry.barcode, 'qty': 2},
@@ -483,6 +519,8 @@ class TestGoodsInUpdatePickingPallet(TestGoodsInUpdatePickingBase):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=creation_info,
                                       confirm=True)
+        picking = picking.sudo(self.test_user)
+
         product_ids_1 = [{
                             'barcode': self.strawberry.barcode,
                             'qty': 1,
@@ -518,6 +556,8 @@ class TestGoodsInUpdatePickingPallet(TestGoodsInUpdatePickingBase):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=creation_info,
                                       confirm=True)
+        picking = picking.sudo(self.test_user)
+
         product_ids = [
                             {
                                 'barcode': self.apple.barcode,

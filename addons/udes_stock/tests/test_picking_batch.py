@@ -23,6 +23,8 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         # create new internal picking type to avoid problems
         cls.picking_type_internal = cls.picking_type_internal.copy({'name': 'TEST INTERNAL'})
         user_warehouse.int_type_id = cls.picking_type_internal
+        picking_types = cls.picking_type_pick | cls.picking_type_internal
+
         cls.pack_4apples_info = [{'product': cls.apple,
                                   'qty': 4}]
 
@@ -32,6 +34,15 @@ class TestGoodsInPickingBatch(common.BaseUDES):
             'location_id': user_warehouse.pick_type_id.default_location_dest_id.id})
 
         cls.picking_type_pick.default_location_dest_id = cls.test_output_location_01
+
+        # create user with security group
+        user_params = {
+            'name': 'test_user',
+            'login': 'test_user_login',
+            'group_name': 'outbound',
+            'extra_picking_types': picking_types,
+        }
+        cls.test_user = cls.create_user_with_group(**user_params)
 
     def setUp(self):
         super(TestGoodsInPickingBatch, self).setUp()
@@ -44,7 +55,8 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
     def test01_check_user_id_raise_with_empty_id_string(self):
         """ Should error if passed an empty id """
-        batch = self.create_batch()
+        batch = self.create_batch(user=self.test_user)
+        batch = batch.sudo(self.test_user)
 
         with self.assertRaises(ValidationError) as err:
             batch._check_user_id("")
@@ -53,21 +65,27 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
     def test02_check_user_id_valid_id(self):
         """ Should return a non empty string """
-        batch = self.create_batch()
+        batch = self.create_batch(user=self.test_user)
+        batch = batch.sudo(self.test_user)
+
         checked_user_id = batch._check_user_id("42")
 
         self.assertEqual(checked_user_id, "42")
 
     def test03_check_user_id_default_id(self):
         """ Should return the current user id if passed None """
-        batch = self.create_batch()
+        batch = self.create_batch(user=self.test_user)
+        batch = batch.sudo(self.test_user)
+
         user_id = batch._check_user_id(None)
 
-        self.assertEqual(user_id, self.env.user.id)
+        self.assertEqual(user_id, self.test_user.id)
 
     def test04_get_single_batch_no_batch_no_picking(self):
         """ Should not create anything if no picking exists """
         Batch = self.env['stock.picking.batch']
+        Batch = Batch.sudo(self.test_user)
+
         batch = Batch.get_single_batch()
 
         self.assertIsNone(batch, "Unexpected batch created")
@@ -79,6 +97,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
         """
         Batch = self.env['stock.picking.batch']
+        Batch = Batch.sudo(self.test_user)
 
         self.create_quant(self.apple.id, self.test_location_01.id, 4,
                           package_id=self.package_one.id)
@@ -98,10 +117,11 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
         """
         Batch = self.env['stock.picking.batch']
+        Batch = Batch.sudo(self.test_user)
 
-        self.create_batch(state='in_progress')
-        self.create_batch(state='in_progress')
-        batches = Batch.search([('user_id', '=', self.env.user.id),
+        self.create_batch(state='in_progress', user=self.test_user)
+        self.create_batch(state='in_progress', user=self.test_user)
+        batches = Batch.search([('user_id', '=', self.test_user.id),
                                 ('state', '=', 'in_progress')])
 
         # check pre-conditions
@@ -122,6 +142,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         """
         Batch = self.env['stock.picking.batch']
         Package = self.env['stock.quant.package']
+        Batch = Batch.sudo(self.test_user)
 
         for idx in range(3):
             pack = Package.get_package("test_package_%d" % idx, create=True)
@@ -144,6 +165,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         """
         Batch = self.env['stock.picking.batch']
         Package = self.env['stock.quant.package']
+        Batch = Batch.sudo(self.test_user)
 
         for idx in range(4):
             pack = Package.get_package("test_package_%d" % idx, create=True)
@@ -172,6 +194,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         """
         Batch = self.env['stock.picking.batch']
         Package = self.env['stock.quant.package']
+        Batch = Batch.sudo(self.test_user)
 
         # set a batch with a complete picking
         self.create_quant(self.apple.id, self.test_location_01.id, 4,
@@ -218,6 +241,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         """
         Batch = self.env['stock.picking.batch']
         Package = self.env['stock.quant.package']
+        Batch = Batch.sudo(self.test_user)
 
         # set a batch with a complete picking
         self.create_quant(self.apple.id, self.test_location_01.id, 4,
@@ -252,6 +276,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
     def test11_drop_off_picked(self):
         """ Marks the batch as done if the picking is complete """
         Batch = self.env['stock.picking.batch']
+        Batch = Batch.sudo(self.test_user)
 
         self.create_quant(self.apple.id, self.test_location_01.id, 4,
                           package_id=self.package_one.id)
@@ -275,6 +300,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
     def _create_valid_batch(self):
         Batch = self.env['stock.picking.batch']
+        Batch = Batch.sudo(self.test_user)
 
         self.create_quant(self.apple.id, self.test_location_01.id, 4,
                           package_id=self.package_one.id)
@@ -457,6 +483,8 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         have the still pickable product on it.
         """
         Batch = self.env['stock.picking.batch']
+        Batch = Batch.sudo(self.test_user)
+
         self.create_quant(self.apple.id, self.test_location_01.id, 4,
                           package_id=self.package_one.id)
         self.create_quant(self.banana.id, self.test_location_01.id, 4,
@@ -514,6 +542,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         is added to the picking.
         """
         Batch = self.env['stock.picking.batch']
+        Batch = Batch.sudo(self.test_user)
 
         self.create_quant(self.apple.id, self.test_location_01.id, 4,
                           package_id=self.package_one.id)
@@ -572,6 +601,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
                                       confirm=True,
                                       assign=True)
         Batch = self.env['stock.picking.batch']
+        Batch = Batch.sudo(self.test_user)
         batch = Batch.create_batch(None)
 
         self.assertTrue(len(picking.move_line_ids) > 1,
@@ -612,6 +642,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         self.assertEqual(quant.reserved_quantity, 1)
 
         Batch = self.env['stock.picking.batch']
+        Batch = Batch.sudo(self.test_user)
         batch = Batch.create_batch(None)
 
         self.assertIn(picking, batch.picking_ids)
@@ -645,6 +676,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         self.assertEqual(quant.reserved_quantity, 1)
 
         Batch = self.env['stock.picking.batch']
+        Batch = Batch.sudo(self.test_user)
         batch = Batch.create_batch(None)
 
         self.assertIn(picking, batch.picking_ids)
@@ -686,6 +718,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         self.assertEqual(quant_banana.reserved_quantity, 2)
 
         Batch = self.env['stock.picking.batch']
+        Batch = Batch.sudo(self.test_user)
         batch = Batch.create_batch(None)
 
         self.assertIn(picking, batch.picking_ids)
@@ -761,6 +794,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
 
         Batch = self.env['stock.picking.batch']
+        Batch = Batch.sudo(self.test_user)
         batch = Batch.create_batch(None)
 
         self.assertIn(picking, batch.picking_ids)
@@ -802,8 +836,9 @@ class TestGoodsInPickingBatch(common.BaseUDES):
                  an available quantity of 2, so when unpickable of one
                  of the pickings will create an investigation of 3.
         """
-        Batch = self.env['stock.picking.batch']
         Picking = self.env['stock.picking']
+        Batch = self.env['stock.picking.batch']
+        Batch = Batch.sudo(self.test_user)
 
         quant = self.create_quant(self.apple.id, self.test_location_01.id, 4)
 

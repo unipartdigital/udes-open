@@ -15,6 +15,14 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         cls.picking_type_in = user_warehouse.in_type_id
         # Setting default source location as goods_in doesn't have one
         cls.picking_type_in.default_location_src_id = cls.env.ref('stock.stock_location_suppliers')
+        # create user with security group
+        user_params = {
+            'name': 'test_user',
+            'login': 'test_user_login',
+            'group_name': 'inbound',
+            'extra_picking_types': cls.picking_type_in,
+        }
+        cls.test_user = cls.create_user_with_group(**user_params)
 
     def validate_move_lines(self, move_lines, product, ordered_qty, qty_done, is_package=False,
                             is_pallet=False, package_name=False, lot_names=False):
@@ -105,6 +113,8 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
+        picking = picking.sudo(self.test_user)
+
         product_ids = [{'barcode': self.apple.barcode, 'qty': 4}]
         self.picking_type_in.u_target_storage_format = 'product'
         self.validate_move_lines(picking.move_line_ids, self.apple, 4, 0)
@@ -136,6 +146,8 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
+        picking = picking.sudo(self.test_user)
+
         product_ids = [{'barcode': self.apple.barcode, 'qty': 4}]
         self.picking_type_in.u_target_storage_format = 'package'
 
@@ -161,6 +173,8 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
+        picking = picking.sudo(self.test_user)
+
         product_ids = [{'barcode': self.apple.barcode, 'qty': 4}]
         self.picking_type_in.u_target_storage_format = 'pallet_products'
 
@@ -192,6 +206,8 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
+        picking = picking.sudo(self.test_user)
+
         product_ids = [{'barcode': self.apple.barcode, 'qty': 4}]
         self.picking_type_in.u_target_storage_format = 'pallet_packages'
 
@@ -220,6 +236,8 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
+        picking = picking.sudo(self.test_user)
+
         self.validate_move_lines(picking.move_line_ids, self.apple, 2, 0)
         self.picking_type_in.u_target_storage_format = 'product'
         product_ids = [{'barcode': self.apple.barcode, 'qty': 4}]
@@ -249,6 +267,8 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
                                       products_info=create_info,
                                       confirm=True)
 
+        picking = picking.sudo(self.test_user)
+
         self.validate_move_lines(picking.move_line_ids, self.apple, 2, 0)
         self.picking_type_in.u_target_storage_format = 'package'
         product_ids = [{'barcode': self.apple.barcode, 'qty': 4}]
@@ -275,6 +295,8 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
+
+        picking = picking.sudo(self.test_user)
 
         self.validate_move_lines(picking.move_line_ids, self.apple, 2, 0)
         self.picking_type_in.u_target_storage_format = 'pallet_products'
@@ -303,6 +325,8 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
                                       products_info=create_info,
                                       confirm=True)
 
+        picking = picking.sudo(self.test_user)
+
         self.validate_move_lines(picking.move_line_ids, self.apple, 2, 0)
         self.picking_type_in.u_target_storage_format = 'pallet_packages'
         product_ids = [{'barcode': self.apple.barcode, 'qty': 4}]
@@ -327,6 +351,8 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
+        picking = picking.sudo(self.test_user)
+
         strawberry_sn = ['Strawberry0', 'Strawberry1']
         product_ids = [{
                             'barcode': self.strawberry.barcode,
@@ -363,6 +389,8 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
+        picking = picking.sudo(self.test_user)
+
         strawberry_sn = ['Strawberry0', 'Strawberry1']
         product_ids = [{
                             'barcode': self.strawberry.barcode,
@@ -393,6 +421,8 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
+        picking = picking.sudo(self.test_user)
+
         strawberry_sn = ['Strawberry0', 'Strawberry1']
         product_ids = [{
                             'barcode': self.strawberry.barcode,
@@ -425,6 +455,8 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
+        picking = picking.sudo(self.test_user)
+
         strawberry_sn = ['Strawberry0', 'Strawberry1']
         product_ids = [{
                             'barcode': self.strawberry.barcode,
@@ -456,6 +488,8 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
                                       products_info=create_info,
                                       confirm=True)
 
+
+        picking = picking.sudo(self.test_user)
 
         apple_move_lines = picking.move_line_ids.filtered(lambda x: x.product_id == self.apple)
         banana_move_lines = picking.move_line_ids.filtered(lambda x: x.product_id == self.banana)
@@ -496,6 +530,8 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
+        picking = picking.sudo(self.test_user)
+
         apple_move_lines = picking.move_line_ids.filtered(lambda x: x.product_id == self.apple)
         banana_move_lines = picking.move_line_ids.filtered(lambda x: x.product_id == self.banana)
         self.validate_move_lines(apple_move_lines, self.apple, 4, 0)
@@ -530,6 +566,8 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
+        picking = picking.sudo(self.test_user)
+
         apple_move_lines = picking.move_line_ids.filtered(lambda x: x.product_id == self.apple)
         banana_move_lines = picking.move_line_ids.filtered(lambda x: x.product_id == self.banana)
         self.validate_move_lines(apple_move_lines, self.apple, 4, 0)
@@ -565,6 +603,8 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
+        picking = picking.sudo(self.test_user)
+
         apple_move_lines = picking.move_line_ids.filtered(lambda x: x.product_id == self.apple)
         banana_move_lines = picking.move_line_ids.filtered(lambda x: x.product_id == self.banana)
         self.validate_move_lines(apple_move_lines, self.apple, 4, 0)
@@ -604,6 +644,8 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
+        picking = picking.sudo(self.test_user)
+
         product_ids1 = [{'barcode': self.apple.barcode, 'qty': 2}]
         product_ids2 = [{'barcode': self.apple.barcode, 'qty': 3}]
         self.validate_move_lines(picking.move_line_ids, self.apple, 5, 0)
@@ -644,6 +686,8 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
+        picking = picking.sudo(self.test_user)
+
         product_ids1 = [{'barcode': self.apple.barcode, 'qty': 2}]
         product_ids2 = [{'barcode': self.apple.barcode, 'qty': 3}]
         self.validate_move_lines(picking.move_line_ids, self.apple, 5, 0)
@@ -686,6 +730,8 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
+        picking = picking.sudo(self.test_user)
+
         product_ids1 = [{'barcode': self.apple.barcode, 'qty': 2}]
         product_ids2 = [{'barcode': self.apple.barcode, 'qty': 3}]
         self.validate_move_lines(picking.move_line_ids, self.apple, 5, 0)
@@ -731,6 +777,8 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
+        picking = picking.sudo(self.test_user)
+
         product_ids1 = [{'barcode': self.apple.barcode, 'qty': 2}]
         product_ids2 = [{'barcode': self.apple.barcode, 'qty': 3}]
         self.validate_move_lines(picking.move_line_ids, self.apple, 5, 0)
@@ -782,6 +830,8 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
+        picking = picking.sudo(self.test_user)
+
         product_ids1 = [
                            {'barcode': self.apple.barcode, 'qty': 2},
                            {'barcode': self.banana.barcode, 'qty': 2},
@@ -838,6 +888,8 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
+        picking = picking.sudo(self.test_user)
+
         product_ids1 = [
                            {'barcode': self.apple.barcode, 'qty': 2},
                            {'barcode': self.banana.barcode, 'qty': 2},
@@ -895,6 +947,8 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
+        picking = picking.sudo(self.test_user)
+
         product_ids1 = [
                            {'barcode': self.apple.barcode, 'qty': 2},
                            {'barcode': self.banana.barcode, 'qty': 2},
@@ -946,6 +1000,7 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
+        picking = picking.sudo(self.test_user)
 
         product_ids = [{'barcode': self.apple.barcode, 'qty': receive_qty}]
         with self.assertRaises(ValidationError) as e:
@@ -974,6 +1029,7 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
                                       confirm=True)
+        picking = picking.sudo(self.test_user)
 
         product_ids = [{'barcode': self.banana.barcode, 'qty': receive_qty}]
         with self.assertRaises(ValidationError) as e:

@@ -43,6 +43,17 @@ class TestLocationPI(common.BaseUDES):
 
         cls.unknown_location_id = loc_id
 
+        # create user with security group
+        user_params = {
+            'name': 'test_user',
+            'login': 'test_user_login',
+            'group_name': 'stock',
+            'extra_picking_types': cls.picking_type_pick,
+        }
+        cls.test_user = cls.create_user_with_group(**user_params)
+        cls.test_location_01 = cls.test_location_01.sudo(cls.test_user)
+        cls.test_location_02 = cls.test_location_02.sudo(cls.test_user)
+
     def setUp(self):
         super(TestLocationPI, self).setUp()
         Package = self.env['stock.quant.package']

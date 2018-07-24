@@ -17,6 +17,7 @@ class TestHandlePartials(common.BaseUDES):
         cls.picking_type_pick = user_warehouse.pick_type_id
         cls.picking_type_pick.active = True
         cls.picking_type_out = user_warehouse.out_type_id
+        picking_types = cls.picking_type_pick | cls.picking_type_out
         cls.create_simple_outbound_route(cls.picking_type_pick, cls.picking_type_out)
 
         out_zone = cls.picking_type_pick.default_location_dest_id
@@ -25,6 +26,14 @@ class TestHandlePartials(common.BaseUDES):
                 'barcode': "LTESTOUT99",
                 'location_id': out_zone.id,
             })
+        # create user with security group
+        user_params = {
+            'name': 'test_user',
+            'login': 'test_user_login',
+            'group_name': 'outbound',
+            'extra_picking_types': picking_types,
+        }
+        cls.test_user = cls.create_user_with_group(**user_params)
 
     def setUp(self):
         """
@@ -63,6 +72,8 @@ class TestHandlePartials(common.BaseUDES):
 
         # Get the out picking, check it's available and has one available and one waiting move.
         self.out_picking = self.pick_picking.mapped('move_lines.move_dest_ids.picking_id')
+        self.out_picking = self.out_picking.sudo(self.test_user)
+
         self.assertEqual(self.out_picking.state, 'assigned')
         out_move_states = self.out_picking.mapped('move_lines.state')
         self.assertEqual(sorted(out_move_states), sorted(['waiting', 'assigned']))
