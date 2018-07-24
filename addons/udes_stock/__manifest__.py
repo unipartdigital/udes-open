@@ -12,6 +12,7 @@
         'blocked_locations',
         'package_hierarchy',
         'print',
+        'udes_security',
     ],
     'category': 'Warehouse',
     'sequence': 11,
