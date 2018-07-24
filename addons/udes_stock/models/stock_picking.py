@@ -1077,8 +1077,13 @@ class StockPicking(models.Model):
         scanned_pack_mls = None
 
         if scanned_package.is_reserved():
-            scanned_pack_mls = scanned_package.find_move_lines(
-                [('qty_done', '=', 0)])
+            scanned_pack_mls = scanned_package.find_move_lines()
+
+            if scanned_pack_mls.filtered(lambda ml: ml.qty_done > 0):
+                raise ValidationError(
+                    _("Package %s has move lines already done." %
+                      scanned_package.name)
+                )
 
             if scanned_pack_mls:
                 # We know that all the move lines have the same picking id
@@ -1099,6 +1104,12 @@ class StockPicking(models.Model):
                 else:
                     # We should swap the packages...
                     pass
+            else:
+                raise ValidationError(
+                    _("Package %s is reserved for a picking type you "
+                      "are not allowed to work with." %
+                      scanned_package.name)
+                )
 
         return self._swap_package(scanned_package, expected_package,
                                   scanned_pack_mls, exp_pack_mls)
