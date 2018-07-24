@@ -14,6 +14,7 @@ class TestCreateProcurementGroup(common.BaseUDES):
         user_warehouse = User.get_user_warehouse()
         # Get goods in type
         cls.picking_type_pick = user_warehouse.pick_type_id
+        cls.picking_type_pick.active = True
         # create user with security group
         user_params = {
             'name': 'test_user',

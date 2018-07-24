@@ -29,6 +29,7 @@ class TestLocationPI(common.BaseUDES):
 
         user_warehouse = User.get_user_warehouse()
         cls.picking_type_pick = user_warehouse.pick_type_id
+        cls.picking_type_pick.active = True
         cls.datetime_tolerance = timedelta(minutes=1)
 
         loc_id = 9834247

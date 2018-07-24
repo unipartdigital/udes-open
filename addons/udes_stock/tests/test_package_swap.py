@@ -17,6 +17,7 @@ class TestPackageSwap(common.BaseUDES):
 
         user_warehouse = User.get_user_warehouse()
         cls.picking_type_pick = user_warehouse.pick_type_id
+        cls.picking_type_pick.active = True
         cls.pack_4apples_info = [{'product': cls.apple,
                                   'qty': 4}]
 
@@ -28,8 +29,6 @@ class TestPackageSwap(common.BaseUDES):
             'extra_picking_types': cls.picking_type_pick,
         }
         cls.test_user = cls.create_user_with_group(**user_params)
-        # cls.add_group_to_user(cls.test_user, 'inventory_manager')
-        print(cls.test_user.groups_id)
 
     def setUp(self):
         super(TestPackageSwap, self).setUp()
@@ -42,7 +41,7 @@ class TestPackageSwap(common.BaseUDES):
         self.scanned_package = Package.get_package(SCANNED_PACKAGE_NAME,
                                                    create=True)
 
-    def _test01_error_if_not_allowed_to_swap(self):
+    def test01_error_if_not_allowed_to_swap(self):
         """ Should error if the 'allow swap' attr is unflagged """
         self.picking_type_pick.u_allow_swapping_packages = False
         self.create_quant(self.apple.id, self.test_location_01.id, 4,
@@ -59,7 +58,7 @@ class TestPackageSwap(common.BaseUDES):
             picking.update_picking(package_name=SCANNED_PACKAGE_NAME,
                                    expected_package_name=EXPECTED_PACKAGE_NAME)
 
-    def _test02_reserved_and_unreserved(self):
+    def test02_reserved_and_unreserved(self):
         """
         Should error when swapping two packages:
          - with same contents;
@@ -90,7 +89,7 @@ class TestPackageSwap(common.BaseUDES):
             err.exception.name,
             "Expected package cannot be found in picking %s" % picking.name)
 
-    def _test03_unreserved_and_reserved(self):
+    def test03_unreserved_and_reserved(self):
         """
         Should successfully swap two packages:
          - with same contents;
@@ -146,7 +145,7 @@ class TestPackageSwap(common.BaseUDES):
                          self.scanned_package,
                          "Move lines don't point to scanned package as result")
 
-    def _test04_both_reserved(self):
+    def test04_both_reserved(self):
         """
         Should successfully swap two packages:
          - with same contents;
@@ -204,7 +203,7 @@ class TestPackageSwap(common.BaseUDES):
         self.assertEqual(scanned_mls[0].result_package_id, self.scanned_package,
                          "Move lines don't point to scanned package as result")
 
-    def _test05_error_if_different_locations(self):
+    def test05_error_if_different_locations(self):
         """ Should fail if packages are in different locations. """
         self.create_quant(self.apple.id, self.test_location_01.id, 4,
                           package_id=self.expected_package.id)
@@ -220,7 +219,7 @@ class TestPackageSwap(common.BaseUDES):
             picking.update_picking(package_name=SCANNED_PACKAGE_NAME,
                                    expected_package_name=EXPECTED_PACKAGE_NAME)
 
-    def _test06_error_if_different_package_product(self):
+    def test06_error_if_different_package_product(self):
         """ Should error if package products are different """
         self.create_quant(self.apple.id, self.test_location_01.id, 4,
                           package_id=self.expected_package.id)
@@ -236,7 +235,7 @@ class TestPackageSwap(common.BaseUDES):
             picking.update_picking(package_name=SCANNED_PACKAGE_NAME,
                                    expected_package_name=EXPECTED_PACKAGE_NAME)
 
-    def _test07_error_if_different_package_qty(self):
+    def test07_error_if_different_package_qty(self):
         """ Should error if products' qty are different """
         self.create_quant(self.apple.id, self.test_location_01.id, 4,
                           package_id=self.expected_package.id)
