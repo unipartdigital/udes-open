@@ -6,6 +6,7 @@ SECURITY_GROUPS = [
     ('inbound', 'udes_stock.group_inbound_user'),
     ('outbound', 'udes_stock.group_outbound_user'),
     ('stock', 'udes_stock.group_stock_user'),
+    ('inventory_manager', 'stock.group_stock_manager'),
 ]
 
 class BaseUDES(common.SavepointCase):
@@ -125,11 +126,11 @@ class BaseUDES(common.SavepointCase):
                 product_info.update(picking=picking)
                 move = cls.create_move(**product_info)
 
-        if assign:
-            picking.action_assign()
-
         if confirm:
             picking.action_confirm()
+
+        if assign:
+            picking.action_assign()
 
         return picking
 
@@ -173,30 +174,30 @@ class BaseUDES(common.SavepointCase):
         return Lot.create(vals)
 
     @classmethod
-    def _prepare_group(cls, group, extra_picking_type_ids=None):
-        if extra_picking_type_ids:
-            group.u_picking_type_ids |= extra_picking_type_ids
+    def _prepare_group(cls, group, extra_picking_types=None):
+        if extra_picking_types:
+            group.u_picking_type_ids |= extra_picking_types
 
         return [(4, group.id, 0)]
 
     @classmethod
     def add_group_to_user(cls, user, group_name,
-                          extra_picking_type_ids=None):
+                          extra_picking_types=None):
         groups = cls._prepare_group(
             cls.security_groups[group_name],
-            extra_picking_type_ids=extra_picking_type_ids)
+            extra_picking_types=extra_picking_types)
 
-        user.write({'group_ids': groups})
+        user.write({'groups_id': groups})
 
     @classmethod
     def create_user_with_group(cls, name, login, group_name,
-                               extra_picking_type_ids=None):
+                               extra_picking_types=None):
         """ Create user for a security group and add picking types to
             the security group.
         """
         groups = cls._prepare_group(
             cls.security_groups[group_name],
-            extra_picking_type_ids=extra_picking_type_ids)
+            extra_picking_types=extra_picking_types)
         test_user = cls.create_user(name, login, groups_id=groups)
 
         return test_user
@@ -213,6 +214,7 @@ class BaseUDES(common.SavepointCase):
         }
         vals.update(kwargs)
         user = User.create(vals)
+
         # some action require email setup even if the email is not really sent
         user.partner_id.email = login
 
@@ -318,9 +320,11 @@ class BaseUDES(common.SavepointCase):
         path_out_goodsout = Path.create(location_path_vals)
 
     @classmethod
-    def create_batch(cls, **kwargs):
+    def create_batch(cls, user=None, **kwargs):
         Batch = cls.env['stock.picking.batch']
-        vals = {"user_id": cls.env.user.id}
+        if not user:
+            user = cls.env.user.id
+        vals = {"user_id": user.id}
         vals.update(kwargs)
         return Batch.create(vals)
 
