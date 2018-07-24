@@ -19,7 +19,6 @@
     ],
     'data': [
         'data/stock_config.xml',
-        'data/stock_config.xml',
         'report/product_product_templates.xml',
         'report/report_stockpicking_operations.xml',
         'views/product_template.xml',
