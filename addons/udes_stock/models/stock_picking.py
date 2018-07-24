@@ -991,8 +991,8 @@ class StockPicking(models.Model):
                         picking.with_context(
                             bypass_reserve_full_packages=True,
                             quant_ids=all_quants.ids)._create_moves(remaining_qtys,
-                                                                confirm=True,
-                                                                assign=True)
+                                                                    confirm=True,
+                                                                    assign=True)
 
 
     def _create_own_procurement_group(self):
@@ -1022,11 +1022,11 @@ class StockPicking(models.Model):
             # 1) unreserve quants of the expected one, 2) reserve quants
             # of the scanned package, and 3) change the package ids of
             # the expected move lines
-            expected_package._get_contained_quants()\
+            expected_package._get_contained_quants().sudo()\
                             .write({'reserved_quantity': 0})
 
             for q in scanned_package._get_contained_quants():
-                q.write({'reserved_quantity': q.quantity})
+                q.sudo().write({'reserved_quantity': q.quantity})
 
             _update_move_lines_and_log_swap(exp_pack_mls,
                                             expected_package,
