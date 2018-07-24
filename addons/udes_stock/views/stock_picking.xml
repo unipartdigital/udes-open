@@ -12,6 +12,9 @@
             <xpath expr="//page[@name='extra']" position="inside">
                 <group>
                     <group>
+                        <field name="u_first_picking_ids" widget="one2many_list" mode="kanban"/>
+                    </group>
+                    <group>
                         <field name="u_prev_picking_ids" widget="one2many_list" mode="kanban"/>
                     </group>
                     <group>
