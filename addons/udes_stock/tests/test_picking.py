@@ -90,3 +90,26 @@ class TestGoodsInPicking(common.BaseUDES):
         Picking = self.env['stock.picking']
         priorities = Picking.get_priorities()
         self.assertNotEqual(priorities, [])
+
+    def test08_related_pickings(self):
+        """Test first/previous/next picking calculations"""
+        pick_a = self.create_picking(self.picking_type_internal)
+        move_a1 = self.create_move(self.apple, 1, pick_a)
+        pick_b = self.create_picking(self.picking_type_internal)
+        move_b1 = self.create_move(self.apple, 1, pick_b)
+        move_b1.move_orig_ids = move_a1
+        move_b2 = self.create_move(self.apple, 9, pick_b)
+        pick_c = self.create_picking(self.picking_type_internal)
+        move_c3 = self.create_move(self.apple, 5, pick_c)
+        pick_d = self.create_picking(self.picking_type_internal)
+        move_d12 = self.create_move(self.apple, 15, pick_d)
+        move_d12.move_orig_ids = (move_b1 | move_b2 | move_c3)
+        self.assertFalse(pick_a.u_prev_picking_ids)
+        self.assertEqual(pick_a.u_next_picking_ids, pick_b)
+        self.assertEqual(pick_b.u_prev_picking_ids, pick_a)
+        self.assertEqual(pick_b.u_next_picking_ids, pick_d)
+        self.assertEqual(pick_d.u_prev_picking_ids, (pick_b | pick_c))
+        self.assertFalse(pick_d.u_next_picking_ids)
+        self.assertEqual(pick_a.u_first_picking_ids, pick_a)
+        self.assertEqual(pick_b.u_first_picking_ids, (pick_a | pick_b))
+        self.assertEqual(pick_d.u_first_picking_ids, (pick_a | pick_b | pick_c))
