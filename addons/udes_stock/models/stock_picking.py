@@ -296,7 +296,8 @@ class StockPicking(models.Model):
         if confirm:
             # Use picking.action_confirm, which will merge moves of the same
             # product. In case that is not wanted use moves._action_confirm(merge=False)
-            self.action_confirm()
+            # Use sudo() to allow unlink of the merged moves
+            self.sudo().action_confirm()
 
         if assign:
             old_move_line_ids = self.move_line_ids
