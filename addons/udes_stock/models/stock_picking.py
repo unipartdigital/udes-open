@@ -314,7 +314,8 @@ class StockPicking(models.Model):
         if confirm:
             # Use picking.action_confirm, which will merge moves of the same
             # product. In case that is not wanted use moves._action_confirm(merge=False)
-            self.action_confirm()
+            # Use sudo() to allow unlink of the merged moves
+            self.sudo().action_confirm()
 
         if assign:
             old_move_line_ids = self.move_line_ids
@@ -1009,8 +1010,8 @@ class StockPicking(models.Model):
                         picking.with_context(
                             bypass_reserve_full_packages=True,
                             quant_ids=all_quants.ids)._create_moves(remaining_qtys,
-                                                                confirm=True,
-                                                                assign=True)
+                                                                    confirm=True,
+                                                                    assign=True)
 
 
     def _create_own_procurement_group(self):
@@ -1040,11 +1041,11 @@ class StockPicking(models.Model):
             # 1) unreserve quants of the expected one, 2) reserve quants
             # of the scanned package, and 3) change the package ids of
             # the expected move lines
-            expected_package._get_contained_quants()\
+            expected_package._get_contained_quants().sudo()\
                             .write({'reserved_quantity': 0})
 
             for q in scanned_package._get_contained_quants():
-                q.write({'reserved_quantity': q.quantity})
+                q.sudo().write({'reserved_quantity': q.quantity})
 
             _update_move_lines_and_log_swap(exp_pack_mls,
                                             expected_package,
@@ -1095,8 +1096,13 @@ class StockPicking(models.Model):
         scanned_pack_mls = None
 
         if scanned_package.is_reserved():
-            scanned_pack_mls = scanned_package.find_move_lines(
-                [('qty_done', '=', 0)])
+            scanned_pack_mls = scanned_package.find_move_lines()
+
+            if scanned_pack_mls.filtered(lambda ml: ml.qty_done > 0):
+                raise ValidationError(
+                    _("Package %s has move lines already done." %
+                      scanned_package.name)
+                )
 
             if scanned_pack_mls:
                 # We know that all the move lines have the same picking id
@@ -1117,6 +1123,12 @@ class StockPicking(models.Model):
                 else:
                     # We should swap the packages...
                     pass
+            else:
+                raise ValidationError(
+                    _("Package %s is reserved for a picking type you "
+                      "are not allowed to work with." %
+                      scanned_package.name)
+                )
 
         return self._swap_package(scanned_package, expected_package,
                                   scanned_pack_mls, exp_pack_mls)

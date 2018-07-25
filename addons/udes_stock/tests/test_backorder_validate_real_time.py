@@ -25,6 +25,7 @@ class TestRealTimeUpdate(common.BaseUDES):
         # Get internal move types
         cls.picking_type_goods_in = user_warehouse.in_type_id
         cls.picking_type_internal = user_warehouse.int_type_id
+        picking_types = cls.picking_type_goods_in | cls.picking_type_internal
 
         cls.picking_type_goods_in.write({
             'default_location_src_id': cls.env.ref('stock.stock_location_suppliers').id,
@@ -38,6 +39,15 @@ class TestRealTimeUpdate(common.BaseUDES):
             'u_target_storage_format': 'pallet_products',
             'u_validate_real_time': True,
         })
+        # create user with security group
+        user_params = {
+            'name': 'test_user',
+            'login': 'test_user_login',
+            'group_name': 'inbound',
+            'extra_picking_types': picking_types,
+        }
+        cls.test_user = cls.create_user_with_group(**user_params)
+
 
     def _check_for_incomplete_backorder(self, pickings):
         """ Checks to make sure that there are no incomplete
@@ -66,6 +76,8 @@ class TestRealTimeUpdate(common.BaseUDES):
                                       products_info=create_info,
                                       assign=True,
                                       confirm=True)
+        picking = picking.sudo(self.test_user)
+
         picking.update_picking(package_name=package.name,
                                location_dest_id=self.test_location_02.id)
         backorders = Picking.search([('backorder_id', '=', picking.id)])
@@ -96,6 +108,7 @@ class TestRealTimeUpdate(common.BaseUDES):
                                       products_info=create_info,
                                       assign=True,
                                       confirm=True)
+        picking = picking.sudo(self.test_user)
 
         mls_before = picking.move_line_ids
         picking.update_picking(package_name=package_1.name,
@@ -115,7 +128,7 @@ class TestRealTimeUpdate(common.BaseUDES):
         # This should catch any backorders creating by action_done()
         self._check_for_incomplete_backorder(backorders | picking)
 
-    def test03_backorder_created_previous_pickings_imcomplete(self):
+    def test03_backorder_created_previous_pickings_incomplete(self):
         """ Checks that backorder and move is split
             is created when emptying a move with
             incomplete moves in move_orig_ids.
@@ -134,10 +147,11 @@ class TestRealTimeUpdate(common.BaseUDES):
         picking_1 = self.create_picking(self.picking_type_goods_in,
                                         products_info=create_info_1,
                                         confirm=True)
-
         picking_2 = self.create_picking(self.picking_type_goods_in,
                                         products_info=create_info_2,
                                         confirm=True)
+        picking_1 = picking_1.sudo(self.test_user)
+        picking_2 = picking_2.sudo(self.test_user)
 
         product_ids_1 = [{'barcode': self.apple.barcode, 'qty': 5}]
         product_ids_2 = [{'barcode': self.apple.barcode, 'qty': 10}]
@@ -151,6 +165,7 @@ class TestRealTimeUpdate(common.BaseUDES):
             ('state', '=', 'assigned'),
         ]
         picking_put = Picking.search(pick_domain)
+        picking_put = picking_put.sudo(self.test_user)
 
         picking_put.update_picking(package_name=package_1.name,
                                    location_dest_id=self.test_location_02.id)
@@ -196,6 +211,8 @@ class TestRealTimeUpdate(common.BaseUDES):
         picking_2 = self.create_picking(self.picking_type_goods_in,
                                         products_info=create_info_2,
                                         confirm=True)
+        picking_1 = picking_1.sudo(self.test_user)
+        picking_2 = picking_2.sudo(self.test_user)
 
         product_ids_1 = [{'barcode': self.apple.barcode, 'qty': 5}]
         picking_1.update_picking(product_ids=product_ids_1,
@@ -213,6 +230,7 @@ class TestRealTimeUpdate(common.BaseUDES):
             ('state', '=', 'assigned'),
         ]
         picking_put = Picking.search(pick_domain)
+        picking_put = picking_put.sudo(self.test_user)
 
         self.assertEqual(picking_put.move_lines.move_orig_ids,
                       picking_1.move_lines + picking_2.move_lines)
@@ -255,6 +273,8 @@ class TestRealTimeUpdate(common.BaseUDES):
         picking_2 = self.create_picking(self.picking_type_goods_in,
                                         products_info=create_info_2,
                                         confirm=True)
+        picking_1 = picking_1.sudo(self.test_user)
+        picking_2 = picking_2.sudo(self.test_user)
 
         product_ids_1 = [{
             'barcode': self.strawberry.barcode,
@@ -280,6 +300,7 @@ class TestRealTimeUpdate(common.BaseUDES):
             ('state', '=', 'assigned'),
         ]
         picking_put = Picking.search(pick_domain)
+        picking_put = picking_put.sudo(self.test_user)
 
         self.assertEqual(picking_put.move_lines.move_orig_ids,
                       picking_1.move_lines + picking_2.move_lines)
@@ -327,6 +348,8 @@ class TestRealTimeUpdate(common.BaseUDES):
         picking_2 = self.create_picking(self.picking_type_goods_in,
                                         products_info=create_info_2,
                                         confirm=True)
+        picking_1 = picking_1.sudo(self.test_user)
+        picking_2 = picking_2.sudo(self.test_user)
 
         product_ids_1 = [{
             'barcode': self.strawberry.barcode,
@@ -350,6 +373,7 @@ class TestRealTimeUpdate(common.BaseUDES):
             ('state', '=', 'assigned'),
         ]
         picking_put = Picking.search(pick_domain)
+        picking_put = picking_put.sudo(self.test_user)
 
         self.assertEqual(picking_put.move_lines.move_orig_ids,
                       picking_1.move_lines + picking_2.move_lines)
@@ -410,9 +434,13 @@ class TestRealTimeUpdate(common.BaseUDES):
         picking_3 = self.create_picking(self.picking_type_goods_in,
                                         products_info=create_info_3,
                                         confirm=True)
+        picking_1 = picking_1.sudo(self.test_user)
+        picking_2 = picking_2.sudo(self.test_user)
+        picking_3 = picking_3.sudo(self.test_user)
 
         picking_put = Picking.search(
             [('picking_type_id', '=', self.picking_type_internal.id)])
+        picking_put = picking_put.sudo(self.test_user)
 
         product_ids_1a = [{'barcode': self.apple.barcode, 'qty': 10}]
         product_ids_1b = [{'barcode': self.apple.barcode, 'qty': 5}]
@@ -579,9 +607,12 @@ class TestRealTimeUpdate(common.BaseUDES):
         picking_2 = self.create_picking(self.picking_type_goods_in,
                                         products_info=create_info_2,
                                         confirm=True)
+        picking_1 = picking_1.sudo(self.test_user)
+        picking_2 = picking_2.sudo(self.test_user)
 
         picking_put = Picking.search(
             [('picking_type_id', '=', self.picking_type_internal.id)])
+        picking_put = picking_put.sudo(self.test_user)
 
         product_ids_1 = [{'barcode': self.apple.barcode, 'qty': 10},
                         {'barcode': self.banana.barcode, 'qty': 5}]
@@ -664,6 +695,8 @@ class TestRealTimeUpdate(common.BaseUDES):
         picking_2 = self.create_picking(self.picking_type_goods_in,
                                         products_info=create_info_2,
                                         confirm=True)
+        picking_1 = picking_1.sudo(self.test_user)
+        picking_2 = picking_2.sudo(self.test_user)
 
         product_ids_1 = [{
             'barcode': self.apple.barcode,
@@ -684,6 +717,7 @@ class TestRealTimeUpdate(common.BaseUDES):
             ('state', '=', 'assigned'),
         ]
         picking_put = Picking.search(pick_domain)
+        picking_put = picking_put.sudo(self.test_user)
 
         self.assertEqual(picking_put.move_lines.move_orig_ids,
                       picking_1.move_lines + picking_2.move_lines)
@@ -718,6 +752,7 @@ class TestRealTimeUpdate(common.BaseUDES):
                                       products_info=create_info,
                                       confirm=True)
 
+        picking = picking.sudo(self.test_user)
 
         expected_error_msg = 'There is no move lines within ' \
                          'picking %s to backorder' % picking.name
@@ -746,6 +781,8 @@ class TestRealTimeUpdate(common.BaseUDES):
                                         products_info=create_info,
                                         confirm=True)
 
+        picking_1 = picking_1.sudo(self.test_user)
+        picking_2 = picking_2.sudo(self.test_user)
 
         expected_error_msg = 'There is no move lines within ' \
                          'picking %s to backorder' % picking_1.name

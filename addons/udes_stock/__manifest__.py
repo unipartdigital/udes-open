@@ -23,6 +23,8 @@
         'report/product_product_templates.xml',
         'report/report_stockpicking_operations.xml',
         'views/product_template.xml',
+        'views/res_groups_views.xml',
+        'views/res_users_views.xml',
         'views/stock_inventory.xml',
         'views/stock_location.xml',
         'views/stock_picking.xml',
@@ -31,6 +33,8 @@
         'views/stock_warehouse.xml',
         'views/create_planned_transfer_asset.xml',
         'wizard/change_quant_location_view.xml',
+        'security/ir_module_category.xml',
+        'security/udes_stock_security.xml',
     ],
     'qweb': [
         'static/src/xml/create_planned_transfer_button.xml'

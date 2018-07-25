@@ -23,40 +23,46 @@ class TestGoodsInPicking(common.BaseUDES):
                                               origin="test_picking_origin",
                                               products_info=products_info,
                                               confirm=True)
+        # create user with security group
+        user_params = {
+            'name': 'test_user',
+            'login': 'test_user_login',
+            'group_name': 'inbound',
+            'extra_picking_types': cls.picking_type_in,
+        }
+        cls.test_user = cls.create_user_with_group(**user_params)
+        cls.SudoPicking = Picking.sudo(cls.test_user)
+        cls.test_picking = cls.test_picking.sudo(cls.test_user)
 
     def test01_get_pickings_by_package_name_fail(self):
         """ Tests get_pickings by package_name
             when no package exists
         """
-        Picking = self.env['stock.picking']
-        returned_pickings = Picking.get_pickings(package_name='DUMMY')
+        returned_pickings = self.SudoPicking.get_pickings(package_name='DUMMY')
         self.assertEqual(len(returned_pickings), 0)
 
     def test02_get_pickings_by_package_name_sucess(self):
         """ Tests get_pickings by package_name
             when package exists
         """
-        Picking = self.env['stock.picking']
         Package = self.env['stock.quant.package']
         test_package = Package.get_package('test_package', create=True)
         self.test_picking.move_line_ids.result_package_id = test_package
-        returned_pickings = Picking.get_pickings(package_name='test_package')
+        returned_pickings = self.SudoPicking.get_pickings(package_name='test_package')
         self.assertEqual(returned_pickings.id, self.test_picking.id)
 
     def test03_get_pickings_by_origin_fail(self):
         """ Tests get_pickings by origin
             when no package exists
         """
-        Picking = self.env['stock.picking']
-        returned_pickings = Picking.get_pickings(origin='DUMMY')
+        returned_pickings = self.SudoPicking.get_pickings(origin='DUMMY')
         self.assertEqual(len(returned_pickings), 0)
 
     def test04_get_pickings_by_origin_sucess(self):
         """ Tests get_pickings by origin
             when package exists
         """
-        Picking = self.env['stock.picking']
-        returned_pickings = Picking.get_pickings(origin=self.test_picking.origin)
+        returned_pickings = self.SudoPicking.get_pickings(origin=self.test_picking.origin)
         self.assertEqual(returned_pickings.id, self.test_picking.id)
 
     def test05_get_info_all(self):
@@ -87,8 +93,7 @@ class TestGoodsInPicking(common.BaseUDES):
 
     def test07_get_priorities(self):
         """ Tests get_priorities by trivially exercising it """
-        Picking = self.env['stock.picking']
-        priorities = Picking.get_priorities()
+        priorities = self.SudoPicking.get_priorities()
         self.assertNotEqual(priorities, [])
 
     def test08_related_pickings(self):

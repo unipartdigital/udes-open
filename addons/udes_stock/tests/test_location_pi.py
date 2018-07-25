@@ -29,6 +29,7 @@ class TestLocationPI(common.BaseUDES):
 
         user_warehouse = User.get_user_warehouse()
         cls.picking_type_pick = user_warehouse.pick_type_id
+        cls.picking_type_pick.active = True
         cls.datetime_tolerance = timedelta(minutes=1)
 
         loc_id = 9834247
@@ -42,6 +43,17 @@ class TestLocationPI(common.BaseUDES):
                 loc_id += 9
 
         cls.unknown_location_id = loc_id
+
+        # create user with security group
+        user_params = {
+            'name': 'test_user',
+            'login': 'test_user_login',
+            'group_name': 'stock',
+            'extra_picking_types': cls.picking_type_pick,
+        }
+        cls.test_user = cls.create_user_with_group(**user_params)
+        cls.test_location_01 = cls.test_location_01.sudo(cls.test_user)
+        cls.test_location_02 = cls.test_location_02.sudo(cls.test_user)
 
     def setUp(self):
         super(TestLocationPI, self).setUp()

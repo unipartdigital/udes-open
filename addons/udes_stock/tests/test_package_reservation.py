@@ -14,6 +14,15 @@ class TestPackageReservation(common.BaseUDES):
         user_warehouse = User.get_user_warehouse()
         # Get pick type
         cls.picking_type_pick = user_warehouse.pick_type_id
+        cls.picking_type_pick.active = True
+        # create user with security group
+        user_params = {
+            'name': 'test_user',
+            'login': 'test_user_login',
+            'group_name': 'outbound',
+            'extra_picking_types': cls.picking_type_pick,
+        }
+        cls.test_user = cls.create_user_with_group(**user_params)
 
     def test01_reserve_full_package_one_product(self):
         """ Test to reserve a full package for one product
@@ -39,7 +48,9 @@ class TestPackageReservation(common.BaseUDES):
         picking = self.create_picking(self.picking_type_pick,
                                       products_info=create_info,
                                       confirm=True,
-                                      assign=True)
+                                      assign=False)
+        picking = picking.sudo(self.test_user)
+        picking.action_assign()
 
         # the quant should be fully reserved
         self.assertEqual(quant.reserved_quantity, 4)
@@ -78,7 +89,9 @@ class TestPackageReservation(common.BaseUDES):
         picking = self.create_picking(self.picking_type_pick,
                                       products_info=create_info,
                                       confirm=True,
-                                      assign=True)
+                                      assign=False)
+        picking = picking.sudo(self.test_user)
+        picking.action_assign()
 
         # apple quant should be fully reserved
         self.assertEqual(apple_quant.reserved_quantity, 3)
@@ -119,7 +132,9 @@ class TestPackageReservation(common.BaseUDES):
         picking = self.create_picking(self.picking_type_pick,
                                       products_info=create_info,
                                       confirm=True,
-                                      assign=True)
+                                      assign=False)
+        picking = picking.sudo(self.test_user)
+        picking.action_assign()
 
         # the quant should be partially reserved
         self.assertEqual(quant.reserved_quantity, 1)
