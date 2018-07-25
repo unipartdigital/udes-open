@@ -45,6 +45,12 @@ class StockPicking(models.Model):
         help='Next pickings',
     )
 
+    u_first_picking_ids = fields.One2many(
+        'stock.picking', string='First Pickings',
+        compute='_compute_first_picking_ids',
+        help='First pickings in the chain'
+    )
+
     u_created_back_orders = fields.One2many(
         'stock.picking', string='Created Back Orders',
         compute='_compute_related_picking_ids',
@@ -131,6 +137,18 @@ class StockPicking(models.Model):
             picking.u_next_picking_ids = picking.mapped(
                 'move_lines.move_dest_ids.picking_id'
             )
+
+    @api.depends('move_lines',
+                 'move_lines.move_orig_ids',
+                 'move_lines.move_orig_ids.picking_id')
+    def _compute_first_picking_ids(self):
+        for picking in self:
+            first_moves = self.env['stock.move'].browse()
+            moves = picking.move_lines
+            while moves:
+                first_moves |= moves.filtered(lambda x: not x.move_orig_ids)
+                moves = moves.mapped('move_orig_ids')
+            picking.u_first_picking_ids = first_moves.mapped('picking_id')
 
     def can_handle_partials(self):
         self.ensure_one()

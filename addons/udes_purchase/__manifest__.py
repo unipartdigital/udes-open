@@ -6,7 +6,10 @@
     'description': "UDES Purchase",
     'author': 'Unipart Digital',
     'category': 'Warehouse',
-    'depends': ['purchase'],
+    'depends': [
+        'purchase',
+        'udes_security',
+    ],
     'data': [
         'reports/reorder_alert_template.xml',
         'data/reorder_alert_email.xml',
