@@ -944,14 +944,20 @@ class StockPicking(models.Model):
                 lambda p: p.picking_type_id.u_create_procurement_group
                           and not p.group_id):
             pick._create_own_procurement_group()
-        super(StockPicking, self).action_confirm()
+        return super(StockPicking, self).action_confirm()
 
     def action_assign(self):
         """
             Override action_assign to reserve full packages if applicable
         """
-        super(StockPicking, self).action_assign()
+        res = super(StockPicking, self).action_assign()
+        if res is not True:
+            raise ValidationError(
+                _('Unexpected result from action assign.')
+            )
         self._reserve_full_packages()
+
+        return True
 
     def _check_entire_pack(self):
         """
