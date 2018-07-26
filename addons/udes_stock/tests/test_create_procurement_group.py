@@ -91,3 +91,24 @@ class TestCreateProcurementGroup(common.BaseUDES):
         self.assertEqual(len(pick_picking.group_id), 0)
         pick_picking.action_confirm()
         self.assertEqual(len(pick_picking.group_id), 0)
+
+    def test04_action_confirm_still_returns_result(self):
+        """
+            Create a pick picking without group, after
+            action_confirm() it should have group
+            when u_create_procurement_group is true.
+        """
+        self.picking_type_pick.u_create_procurement_group = True
+
+        products = [{'product': self.apple, 'qty': 10}]
+        pick_picking = self.create_picking(self.picking_type_pick,
+                                           products_info=products)
+        pick_picking = pick_picking.sudo(self.test_user)
+
+        self.assertEqual(pick_picking.state, 'draft')
+        result = pick_picking.action_confirm()
+        # result can be True or a dict
+        if result is not True:
+            # res_id if of the result is the picking id
+            self.assertEqual(result['res_id'], pick_picking.id,
+                             "Unexpected result of action_confirm")
