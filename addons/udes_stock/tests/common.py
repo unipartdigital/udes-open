@@ -41,7 +41,7 @@ class BaseUDES(common.SavepointCase):
             * a simple inbound route goods_in->putaway
             * a simple outbound route pick->goods_out
         '''
-        cls._setup_pick_types()
+        cls._setup_picking_types()
         cls._setup_locations()
         cls._setup_routes()
         # Security groups
@@ -50,9 +50,11 @@ class BaseUDES(common.SavepointCase):
         cls._setup_users()
 
     @classmethod
-    def _setup_pick_types(cls):
+    def _setup_picking_types(cls):
         cls._set_test_picking_type('in')
         cls._set_test_picking_type('pick')
+        # this order is important as int is overwritten
+        cls._set_test_picking_type('int', 'putaway')
         cls._set_test_picking_type('int', 'internal')
         cls._set_test_picking_type('out')
 
@@ -77,9 +79,9 @@ class BaseUDES(common.SavepointCase):
         cls.stock_location = cls.env.ref('stock.stock_location_stock')
 
         input_zone = cls.stock_location.copy({'name': 'TEST_INPUT'})
-        cls.recived_location = Location.create({
-            'name': "TEST_RECIVED",
-            'barcode': "LTESTRECIVED",
+        cls.received_location = Location.create({
+            'name': "TEST_RECEIVED",
+            'barcode': "LTESTRECEIVED",
             'location_id': input_zone.id,
         })
 
@@ -95,43 +97,53 @@ class BaseUDES(common.SavepointCase):
             })
         cls.test_locations = cls.test_location_01 + cls.test_location_02
 
-        out_zone = cls.picking_type_pick.default_location_dest_id
+        cls.out_location = cls.picking_type_pick.default_location_dest_id.copy({
+            'name': 'TEST_OUT',
+            'active': True,
+        })
         cls.test_output_location_01 = Location.create({
             'name': "Test output location 01",
             'barcode': "LTESTOUT01",
-            'location_id': out_zone.id})
+            'location_id': cls.out_location.id})
 
     @classmethod
     def _setup_routes(cls):
 
         cls.picking_type_in.write({
             'default_location_src_id': cls.env.ref('stock.stock_location_suppliers').id,
-            'default_location_dest_id': cls.recived_location.id,
+            'default_location_dest_id': cls.received_location.id,
+        })
+
+        cls.picking_type_putaway.write({
+            'default_location_src_id': cls.received_location.id,
+            'default_location_dest_id': cls.stock_location.id,
         })
 
         cls.picking_type_internal.write({
-            'default_location_src_id': cls.recived_location.id,
-            'default_location_dest_id': cls.test_location_01.id,
+            'default_location_src_id': cls.stock_location.id,
+            'default_location_dest_id': cls.stock_location.id,
         })
 
         cls.picking_type_pick.write({
             'default_location_src_id': cls.stock_location.id,
-            'default_location_dest_id': cls.test_output_location_01.id,
+            'default_location_dest_id': cls.out_location.id,
         })
 
         cls.picking_type_out.write({
-            'default_location_src_id': cls.test_output_location_01.id,
+            'default_location_src_id': cls.out_location.id,
             'default_location_dest_id': cls.env.ref('stock.stock_location_customers').id,
         })
 
-        cls.create_simple_inbound_route(cls.picking_type_in, cls.picking_type_internal)
-        cls.create_simple_outbound_route(cls.picking_type_pick, cls.picking_type_out)
+        cls.create_simple_inbound_route(
+            cls.picking_type_in, cls.picking_type_putaway)
+        cls.create_simple_outbound_route(
+            cls.picking_type_pick, cls.picking_type_out)
 
     @classmethod
     def _setup_users(cls):
 
         # create user with inbound security group
-        inbound_types = cls.picking_type_in | cls.picking_type_internal
+        inbound_types = cls.picking_type_in | cls.picking_type_putaway
         inbound_params = {
             'name': 'inbound_user',
             'login': 'inbound_user_login',
@@ -238,11 +250,11 @@ class BaseUDES(common.SavepointCase):
                 product_info.update(picking=picking)
                 move = cls.create_move(**product_info)
 
-        if assign:
-            picking.action_assign()
-
         if confirm:
             picking.action_confirm()
+
+        if assign:
+            picking.action_assign()
 
         return picking
 
@@ -360,12 +372,12 @@ class BaseUDES(common.SavepointCase):
 
         #TODO make pretty
 
-        # PUTAWAY
-        sequence_putaway = Sequence.create({"name": "TestPutaway", "prefix": "TESTPUT", "padding": 5})
-        picking_type_internal.write({
-                                        'sequence_id': sequence_putaway.id,
-                                        'sequence':13
-                                     })
+        # # PUTAWAY
+        # sequence_putaway = Sequence.create({"name": "TestPutaway", "prefix": "TESTPUT", "padding": 5})
+        # picking_type_internal.write({
+        #                                 'sequence_id': sequence_putaway.id,
+        #                                 'sequence':13
+        #                              })
 
         location_path_vals = {
             "name": "TestPutaway",

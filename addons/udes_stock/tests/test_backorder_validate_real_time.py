@@ -9,7 +9,7 @@ class TestRealTimeUpdate(common.BaseUDES):
     @classmethod
     def setUpClass(cls):
         super(TestRealTimeUpdate, cls).setUpClass()
-        cls.picking_type_internal.u_validate_real_time=True
+        cls.picking_type_putaway.u_validate_real_time=True
 
     def _check_for_incomplete_backorder(self, pickings):
         """ Checks to make sure that there are no incomplete
@@ -29,12 +29,12 @@ class TestRealTimeUpdate(common.BaseUDES):
         Package = self.env['stock.quant.package']
 
         package = Package.get_package('test_package', create=True)
-        self.create_quant(self.apple.id, self.recived_location.id,
+        self.create_quant(self.apple.id, self.received_location.id,
                           3, package_id=package.id)
 
-        self.picking_type_internal.u_validate_real_time = False
+        self.picking_type_putaway.u_validate_real_time = False
         create_info = [{'product': self.apple, 'qty': 3}]
-        picking = self.create_picking(self.picking_type_internal,
+        picking = self.create_picking(self.picking_type_putaway,
                                       products_info=create_info,
                                       assign=True,
                                       confirm=True)
@@ -58,15 +58,15 @@ class TestRealTimeUpdate(common.BaseUDES):
         package_2 = Package.get_package('test_package2', create=True)
 
         quant_1 = self.create_quant(self.apple.id,
-                                    self.recived_location.id,
+                                    self.received_location.id,
                                     2, package_id=package_1.id)
 
         quant_1 = self.create_quant(self.apple.id,
-                                    self.recived_location.id,
+                                    self.received_location.id,
                                     5, package_id=package_2.id)
 
         create_info = [{'product': self.apple, 'qty': 7}]
-        picking = self.create_picking(self.picking_type_internal,
+        picking = self.create_picking(self.picking_type_putaway,
                                       products_info=create_info,
                                       assign=True,
                                       confirm=True)
@@ -122,7 +122,7 @@ class TestRealTimeUpdate(common.BaseUDES):
         picking_1.update_picking(validate=True)
 
         pick_domain = [
-            ('picking_type_id', '=', self.picking_type_internal.id),
+            ('picking_type_id', '=', self.picking_type_putaway.id),
             ('state', '=', 'assigned'),
         ]
         picking_put = Picking.search(pick_domain)
@@ -184,7 +184,7 @@ class TestRealTimeUpdate(common.BaseUDES):
 
 
         pick_domain = [
-            ('picking_type_id', '=', self.picking_type_internal.id),
+            ('picking_type_id', '=', self.picking_type_putaway.id),
             ('state', '=', 'assigned'),
         ]
         picking_put = Picking.search(pick_domain)
@@ -251,7 +251,7 @@ class TestRealTimeUpdate(common.BaseUDES):
 
 
         pick_domain = [
-            ('picking_type_id', '=', self.picking_type_internal.id),
+            ('picking_type_id', '=', self.picking_type_putaway.id),
             ('state', '=', 'assigned'),
         ]
         picking_put = Picking.search(pick_domain)
@@ -285,7 +285,7 @@ class TestRealTimeUpdate(common.BaseUDES):
         Picking = self.env['stock.picking']
 
         self.picking_type_in.u_target_storage_format = 'product'
-        self.picking_type_internal.u_target_storage_format = 'product'
+        self.picking_type_putaway.u_target_storage_format = 'product'
 
         package_1 = Package.get_package('test_strawberry1_pkg', create=True)
         package_2 = Package.get_package('test_strawberry2_pkg', create=True)
@@ -321,7 +321,7 @@ class TestRealTimeUpdate(common.BaseUDES):
 
 
         pick_domain = [
-            ('picking_type_id', '=', self.picking_type_internal.id),
+            ('picking_type_id', '=', self.picking_type_putaway.id),
             ('state', '=', 'assigned'),
         ]
         picking_put = Picking.search(pick_domain)
@@ -388,7 +388,7 @@ class TestRealTimeUpdate(common.BaseUDES):
         picking_3 = picking_3.sudo(self.inbound_user)
 
         picking_put = Picking.search(
-            [('picking_type_id', '=', self.picking_type_internal.id)])
+            [('picking_type_id', '=', self.picking_type_putaway.id)])
         picking_put = picking_put.sudo(self.inbound_user)
 
         product_ids_1a = [{'barcode': self.apple.barcode, 'qty': 10}]
@@ -557,7 +557,7 @@ class TestRealTimeUpdate(common.BaseUDES):
         picking_2 = picking_2.sudo(self.inbound_user)
 
         picking_put = Picking.search(
-            [('picking_type_id', '=', self.picking_type_internal.id)])
+            [('picking_type_id', '=', self.picking_type_putaway.id)])
         picking_put = picking_put.sudo(self.inbound_user)
 
         product_ids_1 = [{'barcode': self.apple.barcode, 'qty': 10},
@@ -623,7 +623,7 @@ class TestRealTimeUpdate(common.BaseUDES):
         Picking = self.env['stock.picking']
 
         self.picking_type_in.u_target_storage_format = 'product'
-        self.picking_type_internal.u_target_storage_format = 'product'
+        self.picking_type_putaway.u_target_storage_format = 'product'
 
         package_1 = Package.get_package('test_apple1_pkg', create=True)
         package_2 = Package.get_package('test_apple2_pkg', create=True)
@@ -656,7 +656,7 @@ class TestRealTimeUpdate(common.BaseUDES):
         picking_2.update_picking(validate=True)
 
         pick_domain = [
-            ('picking_type_id', '=', self.picking_type_internal.id),
+            ('picking_type_id', '=', self.picking_type_putaway.id),
             ('state', '=', 'assigned'),
         ]
         picking_put = Picking.search(pick_domain)

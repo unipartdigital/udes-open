@@ -24,5 +24,5 @@ class TestCreatePicking(common.BaseUDES):
         with self.assertRaises(AssertionError) as e:
             self.SudoPicking.create_picking([quant.id, quant.id],
                                             self.test_location_01.id,
-                                            picking_type_id=self.picking_type_internal.id,
+                                            picking_type_id=self.picking_type_putaway.id,
                                             )
