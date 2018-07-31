@@ -148,7 +148,7 @@ class BaseUDES(common.SavepointCase):
             'name': 'inbound_user',
             'login': 'inbound_user_login',
             'group_name': 'inbound',
-            'extra_picking_types': inbound_types,
+            'picking_types': inbound_types,
         }
         cls.inbound_user = cls.create_user_with_group(**inbound_params)
 
@@ -159,7 +159,7 @@ class BaseUDES(common.SavepointCase):
             'name': 'outbound_user',
             'login': 'outbound_user_login',
             'group_name': 'outbound',
-            'extra_picking_types': outbound_types,
+            'picking_types': outbound_types,
         }
         cls.outbound_user = cls.create_user_with_group(**outbound_params)
 
@@ -169,7 +169,7 @@ class BaseUDES(common.SavepointCase):
             'name': 'stock_user',
             'login': 'stock_user_login',
             'group_name': 'stock',
-            'extra_picking_types': stock_types,
+            'picking_types': stock_types,
         }
         cls.stock_user = cls.create_user_with_group(**stock_params)
 
@@ -298,30 +298,30 @@ class BaseUDES(common.SavepointCase):
         return Lot.create(vals)
 
     @classmethod
-    def _prepare_group(cls, group, extra_picking_types=None):
-        if extra_picking_types:
-            group.u_picking_type_ids |= extra_picking_types
+    def _prepare_group(cls, group, picking_types=None):
+        if picking_types:
+            group.u_picking_type_ids = picking_types
 
         return [(4, group.id, 0)]
 
     @classmethod
     def add_group_to_user(cls, user, group_name,
-                          extra_picking_types=None):
+                          picking_types=None):
         groups = cls._prepare_group(
             cls.security_groups[group_name],
-            extra_picking_types=extra_picking_types)
+            picking_types=picking_types)
 
         user.write({'groups_id': groups})
 
     @classmethod
     def create_user_with_group(cls, name, login, group_name,
-                               extra_picking_types=None):
+                               picking_types=None):
         """ Create user for a security group and add picking types to
             the security group.
         """
         groups = cls._prepare_group(
             cls.security_groups[group_name],
-            extra_picking_types=extra_picking_types)
+            picking_types=picking_types)
         test_user = cls.create_user(name, login, groups_id=groups)
 
         return test_user
