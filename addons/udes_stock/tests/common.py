@@ -359,7 +359,6 @@ class BaseUDES(common.SavepointCase):
         Route = cls.env['stock.location.route']
         Path = cls.env['stock.location.path']
         Sequence = cls.env['ir.sequence']
-        # Rule  = cls.env['procurement.rule']
 
         route_vals = {
             "name": "TestPutaway",
@@ -370,14 +369,12 @@ class BaseUDES(common.SavepointCase):
         }
         route = Route.create(route_vals)
 
-        #TODO make pretty
-
-        # # PUTAWAY
-        # sequence_putaway = Sequence.create({"name": "TestPutaway", "prefix": "TESTPUT", "padding": 5})
-        # picking_type_internal.write({
-        #                                 'sequence_id': sequence_putaway.id,
-        #                                 'sequence':13
-        #                              })
+        # PUTAWAY
+        sequence_putaway = Sequence.create({"name": "TestPutaway",
+                                            "prefix": "TESTPUT",
+                                            "padding": 5})
+        picking_type_internal.write({'sequence_id': sequence_putaway.id,
+                                     'sequence': 13})
 
         location_path_vals = {
             "name": "TestPutaway",
@@ -388,17 +385,6 @@ class BaseUDES(common.SavepointCase):
             "picking_type_id": picking_type_internal.id,
         }
         path_in_putaway = Path.create(location_path_vals)
-
-        # procurement_in_putaway_vals = {
-        #     "name": "Putaway",
-        #     "route_id": route.id,
-        #     "sequence": 20,
-        #     "location_src_id": picking_type_in.default_location_dest_id.id,
-        #     "location_id": picking_type_internal.default_location_dest_id.id,
-        #     "action": "move",
-        #     "picking_type_id": picking_type_internal.id,
-        # }
-        # procurement_in_putaway = Rule.create(procurement_in_putaway_vals)
 
     @classmethod
     def create_simple_outbound_route(cls, picking_type_pick, picking_type_out):
