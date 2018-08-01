@@ -9,7 +9,7 @@ class TestCreatePicking(common.BaseUDES):
     def setUpClass(cls):
         super(TestCreatePicking, cls).setUpClass()
         Picking = cls.env['stock.picking']
-        cls.SudoPicking = Picking.sudo(cls.inbound_user)
+        cls.SudoPicking = Picking.sudo(cls.stock_user)
 
     def test01_create_picking_multiple_quants(self):
         """ Test created because of the bug where canceling and
@@ -24,5 +24,5 @@ class TestCreatePicking(common.BaseUDES):
         with self.assertRaises(AssertionError) as e:
             self.SudoPicking.create_picking([quant.id, quant.id],
                                             self.test_location_01.id,
-                                            picking_type_id=self.picking_type_putaway.id,
+                                            picking_type_id=self.picking_type_internal.id,
                                             )
