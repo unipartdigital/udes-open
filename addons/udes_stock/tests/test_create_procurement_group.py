@@ -6,30 +6,11 @@ from odoo.exceptions import UserError
 
 class TestCreateProcurementGroup(common.BaseUDES):
 
-    @classmethod
-    def setUpClass(cls):
-        super(TestCreateProcurementGroup, cls).setUpClass()
-        User = cls.env['res.users']
-
-        user_warehouse = User.get_user_warehouse()
-        # Get goods in type
-        cls.picking_type_pick = user_warehouse.pick_type_id
-        cls.picking_type_pick.active = True
-        # create user with security group
-        user_params = {
-            'name': 'test_user',
-            'login': 'test_user_login',
-            'group_name': 'outbound',
-            'extra_picking_types': cls.picking_type_pick,
-        }
-        cls.test_user = cls.create_user_with_group(**user_params)
-
     def setUp(self):
         """
         Create stock.
         """
         super(TestCreateProcurementGroup, self).setUp()
-
         # create stock: 10 apple
         self.create_quant(self.apple.id, self.test_location_01.id, 10,
                           package_id=self.create_package().id)
@@ -46,7 +27,7 @@ class TestCreateProcurementGroup(common.BaseUDES):
         products = [{'product': self.apple, 'qty': 10}]
         pick_picking = self.create_picking(self.picking_type_pick,
                                            products_info=products)
-        pick_picking = pick_picking.sudo(self.test_user)
+        pick_picking = pick_picking.sudo(self.outbound_user)
 
         self.assertEqual(pick_picking.state, 'draft')
         self.assertEqual(len(pick_picking.group_id), 0)
@@ -67,7 +48,7 @@ class TestCreateProcurementGroup(common.BaseUDES):
                                            products_info=products,
                                            group_id=group.id,
                                            confirm=True, assign=True)
-        pick_picking = pick_picking.sudo(self.test_user)
+        pick_picking = pick_picking.sudo(self.outbound_user)
 
         self.assertEqual(len(pick_picking.group_id), 1)
         pick_picking.action_confirm()
@@ -85,7 +66,7 @@ class TestCreateProcurementGroup(common.BaseUDES):
         products = [{'product': self.apple, 'qty': 10}]
         pick_picking = self.create_picking(self.picking_type_pick,
                                            products_info=products)
-        pick_picking = pick_picking.sudo(self.test_user)
+        pick_picking = pick_picking.sudo(self.outbound_user)
 
         self.assertEqual(pick_picking.state, 'draft')
         self.assertEqual(len(pick_picking.group_id), 0)
@@ -103,7 +84,7 @@ class TestCreateProcurementGroup(common.BaseUDES):
         products = [{'product': self.apple, 'qty': 10}]
         pick_picking = self.create_picking(self.picking_type_pick,
                                            products_info=products)
-        pick_picking = pick_picking.sudo(self.test_user)
+        pick_picking = pick_picking.sudo(self.outbound_user)
 
         self.assertEqual(pick_picking.state, 'draft')
         result = pick_picking.action_confirm()

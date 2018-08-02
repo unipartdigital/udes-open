@@ -13,22 +13,10 @@ class TestPackageSwap(common.BaseUDES):
     @classmethod
     def setUpClass(cls):
         super(TestPackageSwap, cls).setUpClass()
-        User = cls.env['res.users']
-
-        user_warehouse = User.get_user_warehouse()
-        cls.picking_type_pick = user_warehouse.pick_type_id
-        cls.picking_type_pick.active = True
         cls.pack_4apples_info = [{'product': cls.apple,
                                   'qty': 4}]
-
-        # create user with security group
-        user_params = {
-            'name': 'test_user',
-            'login': 'test_user_login',
-            'group_name': 'outbound',
-            'extra_picking_types': cls.picking_type_pick,
-        }
-        cls.test_user = cls.create_user_with_group(**user_params)
+        cls.picking_type_internal.default_location_src_id = \
+            cls.test_location_01.id
 
     def setUp(self):
         super(TestPackageSwap, self).setUp()
@@ -52,7 +40,7 @@ class TestPackageSwap(common.BaseUDES):
                                       products_info=self.pack_4apples_info,
                                       confirm=True,
                                       assign=True)
-        picking = picking.sudo(self.test_user)
+        picking = picking.sudo(self.outbound_user)
 
         with self.assertRaises(ValidationError):
             picking.update_picking(package_name=SCANNED_PACKAGE_NAME,
@@ -72,7 +60,7 @@ class TestPackageSwap(common.BaseUDES):
                                       products_info=self.pack_4apples_info,
                                       confirm=True,
                                       assign=True)
-        picking = picking.sudo(self.test_user)
+        picking = picking.sudo(self.outbound_user)
 
         self.create_quant(self.apple.id, self.test_location_01.id, 4,
                           package_id=self.expected_package.id)
@@ -103,7 +91,7 @@ class TestPackageSwap(common.BaseUDES):
                                       products_info=self.pack_4apples_info,
                                       confirm=True,
                                       assign=True)
-        picking = picking.sudo(self.test_user)
+        picking = picking.sudo(self.outbound_user)
 
         self.create_quant(self.apple.id, self.test_location_01.id, 4,
                           package_id=self.scanned_package.id)
@@ -162,7 +150,7 @@ class TestPackageSwap(common.BaseUDES):
             products_info=self.pack_4apples_info,
             confirm=True,
             assign=True)
-        picking01 = picking01.sudo(self.test_user)
+        picking01 = picking01.sudo(self.outbound_user)
 
         self.create_quant(self.apple.id, self.test_location_01.id, 4,
                           package_id=self.scanned_package.id)
@@ -213,7 +201,7 @@ class TestPackageSwap(common.BaseUDES):
                                       products_info=self.pack_4apples_info,
                                       confirm=True,
                                       assign=True)
-        picking = picking.sudo(self.test_user)
+        picking = picking.sudo(self.outbound_user)
 
         with self.assertRaises(ValidationError):
             picking.update_picking(package_name=SCANNED_PACKAGE_NAME,
@@ -229,7 +217,7 @@ class TestPackageSwap(common.BaseUDES):
                                       products_info=self.pack_4apples_info,
                                       confirm=True,
                                       assign=True)
-        picking = picking.sudo(self.test_user)
+        picking = picking.sudo(self.outbound_user)
 
         with self.assertRaises(ValidationError):
             picking.update_picking(package_name=SCANNED_PACKAGE_NAME,
@@ -245,7 +233,7 @@ class TestPackageSwap(common.BaseUDES):
                                       products_info=self.pack_4apples_info,
                                       confirm=True,
                                       assign=True)
-        picking = picking.sudo(self.test_user)
+        picking = picking.sudo(self.outbound_user)
 
         with self.assertRaises(ValidationError):
             picking.update_picking(package_name=SCANNED_PACKAGE_NAME,
@@ -268,7 +256,7 @@ class TestPackageSwap(common.BaseUDES):
                                       products_info=self.pack_4apples_info,
                                       confirm=True,
                                       assign=True)
-        picking = picking.sudo(self.test_user)
+        picking = picking.sudo(self.outbound_user)
 
         self.picking_type_internal.u_reserve_as_packages = True
         self.picking_type_internal.u_allow_swapping_packages = True
@@ -306,10 +294,12 @@ class TestPackageSwap(common.BaseUDES):
                                       products_info=self.pack_4apples_info,
                                       confirm=True,
                                       assign=True)
-        picking = picking.sudo(self.test_user)
+        picking = picking.sudo(self.outbound_user)
 
         self.picking_type_internal.u_reserve_as_packages = True
         self.picking_type_internal.u_allow_swapping_packages = True
+        self.picking_type_internal.default_location_src_id = \
+            self.test_location_01.id
         self.create_picking(self.picking_type_internal,
                             products_info=self.pack_4apples_info,
                             confirm=True,

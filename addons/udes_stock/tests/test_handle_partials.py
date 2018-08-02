@@ -6,35 +6,6 @@ from odoo.exceptions import UserError
 
 class TestHandlePartials(common.BaseUDES):
 
-    @classmethod
-    def setUpClass(cls):
-        super(TestHandlePartials, cls).setUpClass()
-        Location = cls.env['stock.location']
-        User = cls.env['res.users']
-
-        user_warehouse = User.get_user_warehouse()
-        # Get goods in type
-        cls.picking_type_pick = user_warehouse.pick_type_id
-        cls.picking_type_pick.active = True
-        cls.picking_type_out = user_warehouse.out_type_id
-        picking_types = cls.picking_type_pick | cls.picking_type_out
-        cls.create_simple_outbound_route(cls.picking_type_pick, cls.picking_type_out)
-
-        out_zone = cls.picking_type_pick.default_location_dest_id
-        cls.out_location = Location.create({
-                'name': "OUT99",
-                'barcode': "LTESTOUT99",
-                'location_id': out_zone.id,
-            })
-        # create user with security group
-        user_params = {
-            'name': 'test_user',
-            'login': 'test_user_login',
-            'group_name': 'outbound',
-            'extra_picking_types': picking_types,
-        }
-        cls.test_user = cls.create_user_with_group(**user_params)
-
     def setUp(self):
         """
         Create stock, packages and a picking. Complete one of the moves in the
@@ -62,7 +33,7 @@ class TestHandlePartials(common.BaseUDES):
         apple_move = self.pick_picking.move_lines.filtered(lambda l: l.product_id == self.apple)
         self.assertEqual(len(apple_move.move_line_ids), 1)
         apple_move.move_line_ids[0].qty_done = apple_move.move_line_ids[0].product_qty
-        apple_move.move_line_ids[0].location_dest_id = self.out_location
+        apple_move.move_line_ids[0].location_dest_id = self.test_output_location_01
 
         # Validate picking, create backorder and check one move remains on the completed picking.
         self.pick_picking.action_done()
@@ -72,7 +43,7 @@ class TestHandlePartials(common.BaseUDES):
 
         # Get the out picking, check it's available and has one available and one waiting move.
         self.out_picking = self.pick_picking.mapped('move_lines.move_dest_ids.picking_id')
-        self.out_picking = self.out_picking.sudo(self.test_user)
+        self.out_picking = self.out_picking.sudo(self.outbound_user)
 
         self.assertEqual(self.out_picking.state, 'assigned')
         out_move_states = self.out_picking.mapped('move_lines.state')

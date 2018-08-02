@@ -889,7 +889,8 @@ class StockPicking(models.Model):
         """
         Location = self.env['stock.location']
         self.ensure_one()
-        assert location or location_ref, "Must specify a location or ref"
+        if not location and not location_ref:
+            raise ValidationError("Must specify a location or ref")
         dest_locations = None
 
         if location is not None:

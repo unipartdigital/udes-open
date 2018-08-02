@@ -25,15 +25,8 @@ class TestLocationPI(common.BaseUDES):
     def setUpClass(cls):
         super(TestLocationPI, cls).setUpClass()
         Location = cls.env['stock.location']
-        User = cls.env['res.users']
-
-        user_warehouse = User.get_user_warehouse()
-        cls.picking_type_pick = user_warehouse.pick_type_id
-        cls.picking_type_pick.active = True
-        cls.datetime_tolerance = timedelta(minutes=1)
 
         loc_id = 9834247
-
         while Location.browse(loc_id).exists():
             if loc_id > 9835147:
                 # done 100 attempts, that's enough
@@ -44,16 +37,9 @@ class TestLocationPI(common.BaseUDES):
 
         cls.unknown_location_id = loc_id
 
-        # create user with security group
-        user_params = {
-            'name': 'test_user',
-            'login': 'test_user_login',
-            'group_name': 'stock',
-            'extra_picking_types': cls.picking_type_pick,
-        }
-        cls.test_user = cls.create_user_with_group(**user_params)
-        cls.test_location_01 = cls.test_location_01.sudo(cls.test_user)
-        cls.test_location_02 = cls.test_location_02.sudo(cls.test_user)
+        cls.datetime_tolerance = timedelta(minutes=1)
+        cls.test_location_01 = cls.test_location_01.sudo(cls.stock_user)
+        cls.test_location_02 = cls.test_location_02.sudo(cls.stock_user)
 
     def setUp(self):
         super(TestLocationPI, self).setUp()
@@ -78,7 +64,6 @@ class TestLocationPI(common.BaseUDES):
         }
 
         self.test_location_01._validate_perpetual_inventory_request(req)
-        self.assertTrue(True)
 
     def test02_validate_pi_request_success_inventory_adjustment(self):
         """

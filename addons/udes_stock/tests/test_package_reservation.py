@@ -6,24 +6,6 @@ from collections import Counter
 
 class TestPackageReservation(common.BaseUDES):
 
-    @classmethod
-    def setUpClass(cls):
-        super(TestPackageReservation, cls).setUpClass()
-
-        User = cls.env['res.users']
-        user_warehouse = User.get_user_warehouse()
-        # Get pick type
-        cls.picking_type_pick = user_warehouse.pick_type_id
-        cls.picking_type_pick.active = True
-        # create user with security group
-        user_params = {
-            'name': 'test_user',
-            'login': 'test_user_login',
-            'group_name': 'outbound',
-            'extra_picking_types': cls.picking_type_pick,
-        }
-        cls.test_user = cls.create_user_with_group(**user_params)
-
     def test01_reserve_full_package_one_product(self):
         """ Test to reserve a full package for one product
             when initial demand < package quantity
@@ -49,7 +31,7 @@ class TestPackageReservation(common.BaseUDES):
                                       products_info=create_info,
                                       confirm=True,
                                       assign=False)
-        picking = picking.sudo(self.test_user)
+        picking = picking.sudo(self.outbound_user)
         picking.action_assign()
 
         # the quant should be fully reserved
@@ -90,7 +72,7 @@ class TestPackageReservation(common.BaseUDES):
                                       products_info=create_info,
                                       confirm=True,
                                       assign=False)
-        picking = picking.sudo(self.test_user)
+        picking = picking.sudo(self.outbound_user)
         picking.action_assign()
 
         # apple quant should be fully reserved
@@ -133,7 +115,7 @@ class TestPackageReservation(common.BaseUDES):
                                       products_info=create_info,
                                       confirm=True,
                                       assign=False)
-        picking = picking.sudo(self.test_user)
+        picking = picking.sudo(self.outbound_user)
         picking.action_assign()
 
         # the quant should be partially reserved
