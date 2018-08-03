@@ -9,6 +9,7 @@ Security enhancements used by UDES
     'version': '0.1',
     'depends': [
         'web',
+        'password_security',
     ],
     'category': "Authentication",
 }
