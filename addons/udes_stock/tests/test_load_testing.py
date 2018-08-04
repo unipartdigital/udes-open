@@ -15,6 +15,17 @@ try:
 except ImportError:
     _HAS_PARAMETERIZED = False
 
+    # Gets around dependacies not being there during eval
+    class _dummy_parameterized(object):
+
+        @staticmethod
+        def expand(*args, **kwargs):
+            def dummy_wrapper(func):
+                return func
+            return dummy_wrapper
+
+    parameterized = _dummy_parameterized()
+
 _HAS_GRAPH = True
 try:
     from ascii_graph import Pyasciigraph, colors
@@ -47,7 +58,6 @@ def time_func(func):
                  'Please install modules %s to run load tests' % REQUIRED_MODULES)
 @at_install(False)
 @post_install(False)
-
 class LoadRunner(common.BaseUDES):
 
     results = defaultdict(lambda: defaultdict(list))
@@ -95,9 +105,7 @@ class LoadRunner(common.BaseUDES):
         self._fw.write('\t'.join(map(str, args))+'\n')
 
     def _process_results(self, n, *funcs):
-        """ Process the durations of the functions
-            into results
-        """
+        """ Process the durations of the functions into results"""
         total = 0
         for i, f in enumerate(funcs):
             func_name = f.__name__.lstrip('time_')
@@ -215,11 +223,13 @@ class TestPickLines(LoadRunner):
     def time_validate_pick(self, pick):
         pick.update_picking(validate=True)
 
-    # Printed things dont come out when using parameterized
-    # hense test_report
+    # Printed things dont come out when using parameterized hence test_report
     @parameterized.expand(sorted([(100,), (500,), (1000,), (1200,),
                                   (1400,), (1500,)] * 5))
     def test_load_test_picking(self, n):
+        """ Runs each of the timed steps then passes them to a result
+        processing function along with the identifying parameters
+        """
 
         pick, packages = self.time_setup(n)
         self.time_confirm(pick)
@@ -269,15 +279,12 @@ class TestPickMoves(TestPickLines):
         return pick, packages
 
 
-
 class TestPickLinesBackGroundData(TestPickLines):
 
     @classmethod
     def setUpClass(cls):
         super(TestPickLinesBackGroundData, cls).setUpClass()
-        # n = n.strip('(').strip(')').split(',')[0]
         cls._dummy_background_data()
-
 
 
 class TestPickMovesBackGroundData(TestPickMoves):
