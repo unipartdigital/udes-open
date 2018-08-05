@@ -3,12 +3,13 @@ from scipy.stats import spearmanr
 from collections import defaultdict
 from matplotlib import pyplot as plt
 import sys
+import csv
 
 COEFFICIENT_THRESHOLD = 0.7
 PVAL_THRESHOLD = 0.001
 
 def scaling_coefficient(x, y):
-    """Nuno's neat method"""
+    """Finds if the element wise derivative is increasing or decreasing"""
     dydx = np.diff(y)/np.diff(x)
     coefficient, pval = spearmanr(x[1:], dydx)
     area = np.sum(dydx - dydx[0])
@@ -44,7 +45,7 @@ for func_name in data:
 
     area, coefficient, pval = scaling_coefficient(nums, means)
 
-    definitely_worse_template = '{name} is definatly worse than linear:\n'
+    definitely_worse_template = '{name} is definitely worse than linear:\n'
         '\tarea: {area}'
     possibly_worse_template = '{name} is possibly worse than linear:\n'
         '\tcoefficient: {coefficient}\n'
@@ -72,7 +73,7 @@ for func_name in data:
             area=area,
             name=func_name))
     else:
-        print('no corrilation found for {}'.format(func_name))
+        print('no correlation found for {}'.format(func_name))
 
 plt.xlabel('Number of move lines')
 plt.ylabel('Average time taken/s')
