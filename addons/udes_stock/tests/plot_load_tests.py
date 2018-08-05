@@ -17,12 +17,9 @@ def scaling_coefficient(x, y):
 
 
 def parse_time_file(filename):
-    lines = open(filename, 'r').read()
     data = defaultdict(lambda: defaultdict(list))
-
-    for line in filter(lambda l: len(l) > 0 and '=' not in l,
-                       lines.split('\n')):
-        func, n, t = line.split('\t')
+    for func, n, t in csv.reader(open(filename, 'r').readlines(),
+                                 delimiter='\t'):
         data[func.strip(':')][int(n)].append(float(t))
 
     return data
