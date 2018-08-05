@@ -115,7 +115,6 @@ class LoadRunner(common.BaseUDES):
 
         self.write_line('total', n, total)
         self.results[(len(funcs), 'total')][n].append(total)
-        self.write_line('=' * 80)
 
     def test_report(self):
         """Make some nice ascii graphs"""
