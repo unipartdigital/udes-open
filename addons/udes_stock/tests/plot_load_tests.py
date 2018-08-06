@@ -42,35 +42,40 @@ for func_name in data:
 
     area, coefficient, pval = scaling_coefficient(nums, means)
 
-    definitely_worse_template = '{name} is definitely worse than linear:\n'
+    definitely_template = '{name} is definitely {adjective} than linear:\n' \
         '\tarea: {area}'
-    possibly_worse_template = '{name} is possibly worse than linear:\n'
-        '\tcoefficient: {coefficient}\n'
-        '\tpval: {pval}\n'
+    possibly_template = '{name} is possibly {adjective} than linear:\n' \
+        '\tcoefficient: {coefficient}\n' \
+        '\tpval: {pval}\n' \
         '\tarea: {area}'
 
     if coefficient > COEFFICIENT_THRESHOLD and pval < PVAL_THRESHOLD:
-        print(definitely_worse_template.format(
+        print(definitely_template.format(
+            adjective='worse',
             name=func_name,
             area=area))
     elif coefficient < -COEFFICIENT_THRESHOLD and pval < PVAL_THRESHOLD:
-        print(definitely_worse_template.format(
+        print(definitely_template.format(
+            adjective='better',
             name=func_name,
             area=area))
     elif coefficient > COEFFICIENT_THRESHOLD:
-        print(possibly_worse_template.format(
+        print(possibly_template.format(
+            adjective='worse',
             coefficient=coefficient,
             pval=pval,
             area=area,
             name=func_name))
     elif coefficient < -COEFFICIENT_THRESHOLD:
-        print(possibly_worse_template.format(
+        print(possibly_template.format(
+            adjective='better',
             coefficient=coefficient,
             pval=pval,
             area=area,
             name=func_name))
     else:
-        print('no correlation found for {}'.format(func_name))
+        print('no correlation found for {} '
+              'so probably linear'.format(func_name))
 
 plt.xlabel('Number of move lines')
 plt.ylabel('Average time taken/s')
@@ -79,5 +84,6 @@ ylim = plt.ylim()
 plt.xlim(nums.min(), xlim[1])
 plt.ylim(0, ylim[1])
 
+print('Close plot to finish')
 plt.legend()
 plt.show()
