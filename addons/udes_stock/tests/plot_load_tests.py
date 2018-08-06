@@ -20,7 +20,7 @@ def parse_time_file(filename):
     data = defaultdict(lambda: defaultdict(list))
     for func, n, t in csv.reader(open(filename, 'r').readlines(),
                                  delimiter='\t'):
-        data[func.strip(':')][int(n)].append(float(t))
+        data[func.strip(':')][float(n)].append(float(t))
 
     return data
 
