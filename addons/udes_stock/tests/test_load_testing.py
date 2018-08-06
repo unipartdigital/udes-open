@@ -123,13 +123,14 @@ class LoadRunner(common.BaseUDES):
             human_readable='si',
         )
         for func_name, res in sorted(self.results.items()):
-            means = []
-            for vals in sorted(res.values()):
-                means.append(sum(vals)/len(vals))
+            plot_data = []
+            for key, vals in sorted(res.items()):
+                plot_data.append((key ,sum(vals)/len(vals)))
 
             # Multiply by 1000 to stop truncation for quick calls
             lines = graph.graph(' %s/ms' % func_name[1],
-                                [('Mean', m * 1000) for m in means])
+                                [('Mean (N=%i)' % k, m * 1000)
+                                for k, m in plot_data])
             for line in lines:
                 print(line)
 
