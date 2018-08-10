@@ -99,19 +99,3 @@ class TestPickMoves(TestPickLines):
             products_info=product_info,
         )
         return pick, packages
-
-
-class TestPickLinesBackGroundData(TestPickLines):
-
-    @classmethod
-    def setUpClass(cls):
-        super(TestPickLinesBackGroundData, cls).setUpClass()
-        cls._dummy_background_data()
-
-
-class TestPickMovesBackGroundData(TestPickMoves):
-
-    @classmethod
-    def setUpClass(cls):
-        super(TestPickMovesBackGroundData, cls).setUpClass()
-        cls._dummy_background_data()
