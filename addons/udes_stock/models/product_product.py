@@ -56,7 +56,7 @@ class ProductProduct(models.Model):
                     'small': base_url + '/image_small',
                 }
                 return image_urls
-            return False
+            return {}
 
         info = {"id": lambda p: p.id,
                 "barcode": lambda p: p.barcode,
