@@ -3,7 +3,7 @@
 from .common import LoadRunner, parameterized
 
 
-class TestPickLines(LoadRunner):
+class PickLines(LoadRunner):
 
     def time_setup(self, n):
         Package = self.env['stock.quant.package']
@@ -45,10 +45,7 @@ class TestPickLines(LoadRunner):
     def time_validate_pick(self, pick):
         pick.update_picking(validate=True)
 
-    # Printed things dont come out when using parameterized hence test_report
-    @parameterized.expand(sorted([(100,), (500,), (1000,), (1200,),
-                                  (1400,), (1500,)] * 5))
-    def test_load_test_picking(self, n):
+    def _load_test_picking(self, n):
         """ Runs each of the timed steps then passes them to a result
         processing function along with the identifying parameters
         """
@@ -68,8 +65,7 @@ class TestPickLines(LoadRunner):
             self.time_validate_pick,
         )
 
-
-class TestPickMoves(TestPickLines):
+class PickMoves(PickLines):
 
     def time_setup(self, n):
         Package = self.env['stock.quant.package']
@@ -99,3 +95,22 @@ class TestPickMoves(TestPickLines):
             products_info=product_info,
         )
         return pick, packages
+
+
+class TestPickLines(PickLines):
+
+    @parameterized.expand([(10,), (20,), (30,), (40,), (50,)] * 3)
+    def test_picking(self, n):
+        self._load_test_picking(n)
+
+    def test_report(self):
+        self._report()
+
+class TestPickMoves(PickMoves):
+
+    @parameterized.expand([(10,), (20,), (30,), (40,), (50,)] * 3)
+    def test_picking(self, n):
+        self._load_test_picking(n)
+
+    def test_report(self):
+        self._report()

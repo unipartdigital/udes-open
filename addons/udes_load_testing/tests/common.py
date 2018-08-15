@@ -49,9 +49,6 @@ class LoadRunner(common.BaseUDES):
         if 'Test' not in cls.__name__:
             return None
 
-        # This is used to create the dummy background data
-        cls._dummy_picking_type = cls.picking_type_pick
-
         # Setup file
         filename = '%s_times.txt' % cls.__name__.lstrip('Test')
         try:
@@ -85,7 +82,7 @@ class LoadRunner(common.BaseUDES):
         self.write_line('total', n, total)
         self.results[(len(funcs), 'total')][n].append(total)
 
-    def test_report(self):
+    def _report(self):
         """Make some nice ascii graphs"""
         graph = Pyasciigraph(
             min_graph_length=80,
@@ -102,6 +99,18 @@ class LoadRunner(common.BaseUDES):
                                 for k, m in plot_data])
             for line in lines:
                 print(line)
+
+
+
+class BackgroundDataRunner(LoadRunner):
+    _N = int(1e5)
+    _dummy_picking_type = None
+
+    @classmethod
+    def setUpClass(cls):
+        super(BackgroundDataRunner, cls).setUpClass()
+        cls._dummy_picking_type = cls.picking_type_pick
+        cls._dummy_background_data()
 
     @classmethod
     def _dummy_background_data(cls):
@@ -144,7 +153,11 @@ class LoadRunner(common.BaseUDES):
                 products_info=[{'product': prod, 'qty': 100}],
             )
             pickings |= pick
+            print('Setting up background data (%0.2f' \
+                  % (100*(i+1)/cls._N) + '%)', end='\r')
 
         child_locations.write({'location_id': full_location.id})
         full_location.write({'location_id': cls.stock_location.id})
+        print('Assigning picks')
         pickings.action_assign()
+        print('Complete')

@@ -2,8 +2,7 @@
 
 from .common import LoadRunner, parameterized
 
-
-class TestOutboundLines(LoadRunner):
+class OutboundLines(LoadRunner):
 
 
     @classmethod
@@ -47,7 +46,7 @@ class TestOutboundLines(LoadRunner):
 
     @classmethod
     def setUpClass(cls):
-        super(TestOutboundLines, cls).setUpClass()
+        super(OutboundLines, cls).setUpClass()
 
         cls._setup_check_location()
         cls.picking_type_pick.default_location_dest_id = \
@@ -143,9 +142,7 @@ class TestOutboundLines(LoadRunner):
     def time_out_validate_pick(self, pick):
         self._validate_pick(pick)
 
-    @parameterized.expand(sorted([(10,), (50,), (100,), (150,),
-                                    (250,), (500,)] * 5))
-    def test_outbound_pick(self, n):
+    def _outbound_pick(self, n):
         packages, products_info = self.time_setup(n)
         pick = self.time_create_pick(products_info)
 
@@ -187,7 +184,7 @@ class TestOutboundLines(LoadRunner):
         )
 
 
-class TestOutboundMoves(TestOutboundLines):
+class OutboundMoves(OutboundLines):
 
     def time_setup(self, n):
         Package = self.env['stock.quant.package']
@@ -214,3 +211,20 @@ class TestOutboundMoves(TestOutboundLines):
         return packages, products_info
 
 
+class TestOutboundLines(OutboundLines):
+
+    @parameterized.expand([(10,), (20,), (30,), (40,), (50,)] * 3)
+    def test_outbound_pick(self, n):
+        self._outbound_pick(n)
+
+    def test_report(self):
+        self._report()
+
+class TestOutboundMoves(OutboundMoves):
+
+    @parameterized.expand([(10,), (20,), (30,), (40,), (50,)] * 3)
+    def test_outbound_pick(self, n):
+        self._outbound_pick(n)
+
+    def test_report(self):
+        self._report()

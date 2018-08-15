@@ -1,18 +1,23 @@
-from .common import LoadRunner, parameterized
-from .test_outbound import TestOutboundLines, TestOutboundMoves
+from .common import BackgroundDataRunner, parameterized
+from .test_outbound import OutboundLines, OutboundMoves
 
 
-class TestOutboundLinesBackGroundData(TestOutboundLines):
+class TestOutboundLinesBackGroundData(BackgroundDataRunner, OutboundLines):
 
-    @classmethod
-    def setUpClass(cls):
-        super(TestOutboundLinesBackGroundData, cls).setUpClass()
-        cls._dummy_background_data()
+    @parameterized.expand([(10,), (20,), (30,), (40,), (50,)] * 3)
+
+    def test_outbound_pick(self, n):
+        self._outbound_pick(n)
+
+    def test_report(self):
+        self._report()
 
 
-class TestOutboundMovesBackGroundData(TestOutboundMoves):
+class TestOutboundMovesBackGroundData(BackgroundDataRunner, OutboundMoves):
 
-    @classmethod
-    def setUpClass(cls):
-        super(TestOutboundMovesBackGroundData, cls).setUpClass()
-        cls._dummy_background_data()
+    @parameterized.expand([(10,), (20,), (30,), (40,), (50,)] * 3)
+    def test_outbound_pick(self, n):
+        self._outbound_pick(n)
+
+    def test_report(self):
+        self._report()

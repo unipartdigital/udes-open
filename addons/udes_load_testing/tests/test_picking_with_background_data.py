@@ -1,18 +1,21 @@
-from .common import LoadRunner, parameterized
-from .test_picking import TestPickLines, TestPickMoves
+from .common import BackgroundDataRunner, parameterized
+from .test_picking import PickLines, PickMoves
 
 
-class TestPickLinesBackGroundData(TestPickLines):
+class TestPickLinesBackGroundData(BackgroundDataRunner, PickLines):
 
-    @classmethod
-    def setUpClass(cls):
-        super(TestPickLinesBackGroundData, cls).setUpClass()
-        cls._dummy_background_data()
+    @parameterized.expand([(10,), (20,), (30,), (40,), (50,)] * 3)
+    def test_picking(self, n):
+        self._load_test_picking(n)
 
+    def test_report(self):
+        self._report()
 
-class TestPickMovesBackGroundData(TestPickMoves):
+class TestPickMovesBackGroundData(BackgroundDataRunner, PickMoves):
 
-    @classmethod
-    def setUpClass(cls):
-        super(TestPickMovesBackGroundData, cls).setUpClass()
-        cls._dummy_background_data()
+    @parameterized.expand([(10,), (20,), (30,), (40,), (50,)] * 3)
+    def test_picking(self, n):
+        self._load_test_picking(n)
+
+    def test_report(self):
+        self._report()
