@@ -3,6 +3,8 @@ import ast
 
 DEFAULT_PARAMS = [(10,), (20,), (30,), (40,), (50,)]
 DEFAULT_REPEATS = 3
+DEFAULT_BACKGROUND = 500
+
 
 class Config(object):
 
@@ -13,12 +15,13 @@ class Config(object):
 
         self.repeats = int(self._options.get('repeats', DEFAULT_REPEATS))
 
-        self.default = self._options.get('default', DEFAULT_PARAMS)
+        self.params = self._options.get('default', DEFAULT_PARAMS)
+        if isinstance(self.params, str):
+            self.params = ast.literal_eval(self.default)
+        self.params *= self.repeats
 
-        if isinstance(self.default, str):
-            self.default = ast.literal_eval(self.default)
-
-        self.default *= self.repeats
+        self.background = int(self._options.get('background',
+                                                DEFAULT_BACKGROUND))
 
     def __getattribute__(self, attr_name, *args):
         try:
@@ -26,7 +29,7 @@ class Config(object):
 
         except AttributeError as e:
             if attr_name.lower() in self._options:
-                print('#'*10, 'Should only be seen once')
+
                 repeats = int(self._options.get(
                     attr_name.lower() + '_repeats', self.repeats))
 
@@ -39,5 +42,9 @@ class Config(object):
         else:
             # If we can find it in options raise origonal error
             raise e
+
+    def get_background_N(self, classname):
+        return self._options.get(classname + "_background", self.background)
+
 
 config = Config()

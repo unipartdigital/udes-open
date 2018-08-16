@@ -21,6 +21,7 @@ odoo-bin -i udes_stock,udes_load_testing -f udes_load_testing/test/test_picking.
 To change the steps or repeats you can change add a udes_load_test section to your rc file.
 You can specify default and repeats which will be used a defaults for all tests.
 It is also possible to define the values to be used by invidual classes by specifing the class's name (case insenitive).
+The number pieces of background data can also be set in the same way, this will only be used by Children of BackgroundDataRunner.
 
 ``` plain text
 [udes_load_test]
@@ -28,6 +29,7 @@ default = [(10,), (100,),]
 repeats = 10
 TestPickLines = [(200,), (300,)]
 TestPickLines_repeats = 2
+TestOutboundLinesBackGroundData_background = 100
 ```
 these can be accesed through `from .config import config` then `config.TestPickLines`
 ## Making new tests

@@ -10,7 +10,7 @@ from parameterized import parameterized
 from odoo.addons.udes_stock.tests import common
 from odoo.exceptions import UserError
 from odoo.tests.common import at_install, post_install
-
+from .config import config
 
 def time_func(func):
     # attach an attribute to method
@@ -107,7 +107,7 @@ class BackgroundDataRunner(LoadRunner):
     @classmethod
     def setUpClass(cls):
         super(BackgroundDataRunner, cls).setUpClass()
-        cls._N = int(1e5)
+        cls._N = config.get_background_N(cls.__name__)
         cls._dummy_picking_type = cls.picking_type_pick
         cls._dummy_background_data()
 
