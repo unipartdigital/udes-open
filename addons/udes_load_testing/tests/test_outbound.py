@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 from .common import LoadRunner, parameterized
+from .config import config
+
 
 class OutboundLines(LoadRunner):
 
@@ -213,7 +215,7 @@ class OutboundMoves(OutboundLines):
 
 class TestOutboundLines(OutboundLines):
 
-    @parameterized.expand([(10,), (20,), (30,), (40,), (50,)] * 3)
+    @parameterized.expand(config.TestOutboundLines or config.default)
     def test_outbound_pick(self, n):
         self._outbound_pick(n)
 
@@ -222,7 +224,7 @@ class TestOutboundLines(OutboundLines):
 
 class TestOutboundMoves(OutboundMoves):
 
-    @parameterized.expand([(10,), (20,), (30,), (40,), (50,)] * 3)
+    @parameterized.expand(config.TestOutboundMoves or config.default)
     def test_outbound_pick(self, n):
         self._outbound_pick(n)
 

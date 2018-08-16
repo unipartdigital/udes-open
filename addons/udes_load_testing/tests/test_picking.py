@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from .common import LoadRunner, parameterized
+from .config import config
 
 
 class PickLines(LoadRunner):
@@ -99,7 +100,7 @@ class PickMoves(PickLines):
 
 class TestPickLines(PickLines):
 
-    @parameterized.expand([(10,), (20,), (30,), (40,), (50,)] * 3)
+    @parameterized.expand(config.TestPickLines or config.default)
     def test_picking(self, n):
         self._load_test_picking(n)
 
@@ -108,7 +109,7 @@ class TestPickLines(PickLines):
 
 class TestPickMoves(PickMoves):
 
-    @parameterized.expand([(10,), (20,), (30,), (40,), (50,)] * 3)
+    @parameterized.expand(config.TestPickLines or config.default)
     def test_picking(self, n):
         self._load_test_picking(n)
 

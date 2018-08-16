@@ -1,10 +1,13 @@
+# -*- coding: utf-8 -*-
+
 from .common import BackgroundDataRunner, parameterized
 from .test_picking import PickLines, PickMoves
+from .config import config
 
 
 class TestPickLinesBackGroundData(BackgroundDataRunner, PickLines):
 
-    @parameterized.expand([(10,), (20,), (30,), (40,), (50,)] * 3)
+    @parameterized.expand(config.TestPickLinesBackGroundData or config.default)
     def test_picking(self, n):
         self._load_test_picking(n)
 
@@ -13,7 +16,7 @@ class TestPickLinesBackGroundData(BackgroundDataRunner, PickLines):
 
 class TestPickMovesBackGroundData(BackgroundDataRunner, PickMoves):
 
-    @parameterized.expand([(10,), (20,), (30,), (40,), (50,)] * 3)
+    @parameterized.expand(config.TestPickMovesBackGroundData or config.default)
     def test_picking(self, n):
         self._load_test_picking(n)
 
