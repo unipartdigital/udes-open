@@ -29,9 +29,6 @@ def time_func(func):
 @at_install(False)
 @post_install(True)
 class LoadRunner(common.BaseUDES):
-    results = defaultdict(lambda: defaultdict(list))
-    _N = 1000
-    _fw = None
 
     def __getattribute__(self, attr_name):
         attr = super(LoadRunner, self).__getattribute__(attr_name)
@@ -49,12 +46,15 @@ class LoadRunner(common.BaseUDES):
         if 'Test' not in cls.__name__:
             return None
 
-        # Setup file
-        filename = '%s_times.txt' % cls.__name__.lstrip('Test')
+        if not hasattr(cls, '_filename'):
+            cls._filename = '%s_times.csv' % cls.__name__.lstrip('Test')
+
         try:
-            cls._fw = open(filename, 'a')
+            cls._fw = open(cls._filename, 'a')
         except IOError:
-            cls._fw = open(filename, 'w')
+            cls._fw = open(cls._filename, 'w')
+
+        cls.results = defaultdict(lambda: defaultdict(list))
 
     def tearDown(self):
         super(LoadRunner, self).tearDown()
@@ -103,12 +103,11 @@ class LoadRunner(common.BaseUDES):
 
 
 class BackgroundDataRunner(LoadRunner):
-    _N = int(1e5)
-    _dummy_picking_type = None
 
     @classmethod
     def setUpClass(cls):
         super(BackgroundDataRunner, cls).setUpClass()
+        cls._N = int(1e5)
         cls._dummy_picking_type = cls.picking_type_pick
         cls._dummy_background_data()
 
