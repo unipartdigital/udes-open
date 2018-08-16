@@ -27,7 +27,7 @@ def time_func(func):
 
 
 @at_install(False)
-@post_install(False)
+@post_install(True)
 class LoadRunner(common.BaseUDES):
     results = defaultdict(lambda: defaultdict(list))
     _N = 1000
