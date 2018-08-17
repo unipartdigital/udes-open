@@ -107,6 +107,19 @@ class BaseUDES(common.SavepointCase):
             'location_id': cls.out_location.id})
 
     @classmethod
+    def _setup_check_location(cls):
+        Location = cls.env['stock.location']
+        cls.check_location = cls.picking_type_pick.default_location_dest_id.copy({
+            'name': 'TEST_CHECK',
+            'active': True,
+        })
+        cls.test_check_location_01 = Location.create({
+            'name': "Test check location 01",
+            'barcode': "LTESCHECK01",
+            'location_id': cls.check_location.id})
+
+
+    @classmethod
     def _setup_routes(cls):
 
         cls.picking_type_in.write({
