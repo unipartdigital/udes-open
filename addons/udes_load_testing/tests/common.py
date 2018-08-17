@@ -33,7 +33,7 @@ class LoadRunner(common.BaseUDES):
     def __getattribute__(self, attr_name):
         attr = super(LoadRunner, self).__getattribute__(attr_name)
         if "time_" in attr_name and not hasattr(attr, '__wrapped__'):
-            # if it isnt wrapped wrap it
+            # if it isn't wrapped wrap it
             # then set attr as the wrapped version
             attr = time_func(attr)
             setattr(self, attr_name, attr)
