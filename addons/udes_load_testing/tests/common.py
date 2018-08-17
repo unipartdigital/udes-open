@@ -107,7 +107,7 @@ class BackgroundDataRunner(LoadRunner):
     @classmethod
     def setUpClass(cls):
         super(BackgroundDataRunner, cls).setUpClass()
-        cls._N = config.get_background_N(cls.__name__)
+        cls._n = config.get_background_n(cls.__name__)
         cls._dummy_picking_type = cls.picking_type_pick
         cls._dummy_background_data()
 
@@ -126,7 +126,7 @@ class BackgroundDataRunner(LoadRunner):
         child_locations = Location.browse()
         pickings = Picking.browse()
 
-        for i in range(cls._N):
+        for i in range(cls._n):
             loc = Location.create({
                 'name': 'TEST DUMMY LOCATION %0.4i' % i,
                 'barcode': 'LTESTDUMMY%0.4i' % i,
@@ -154,11 +154,11 @@ class BackgroundDataRunner(LoadRunner):
             pickings |= pick
 
             line_end = '\r'
-            if i + 1 == cls._N:
+            if i + 1 == cls._n:
                 line_end = '\n'
 
             print('Setting up background data (%0.2f' \
-                  % (100*(i+1)/cls._N) + '%)', end=line_end)
+                  % (100*(i+1)/cls._n) + '%)', end=line_end)
 
         child_locations.write({'location_id': full_location.id})
         full_location.write({'location_id': cls.stock_location.id})

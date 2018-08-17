@@ -43,7 +43,7 @@ class Config(object):
             # If we can find it in options raise origonal error
             raise e
 
-    def get_background_N(self, classname):
+    def get_background_n(self, classname):
         return self._options.get(classname + "_background", self.background)
 
 
