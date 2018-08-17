@@ -27,10 +27,12 @@ The number pieces of background data can also be set in the same way, this will 
 [udes_load_test]
 default = [(10,), (100,),]
 repeats = 10
+background = 200
 TestPickLines = [(200,), (300,)]
 TestPickLines_repeats = 2
 TestOutboundLinesBackGroundData_background = 100
 ```
+
 these can be accesed through `from .config import config` then `config.TestPickLines`
 ## Making new tests
 
