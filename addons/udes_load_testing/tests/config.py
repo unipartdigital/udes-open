@@ -1,9 +1,9 @@
 from odoo import tools
 import ast
 
-DEFAULT_PARAMS = [(10,), (20,), (30,), (40,), (50,)]
+DEFAULT_PARAMS = [(10,), (50,), (100,), (150,), (200,)]
 DEFAULT_REPEATS = 3
-DEFAULT_BACKGROUND = 500
+DEFAULT_BACKGROUND = 100
 
 
 class Config(object):
@@ -17,7 +17,7 @@ class Config(object):
 
         self.params = self._options.get('default', DEFAULT_PARAMS)
         if isinstance(self.params, str):
-            self.params = ast.literal_eval(self.default)
+            self.params = ast.literal_eval(self.params)
         self.params *= self.repeats
 
         self.background = int(self._options.get('background',
