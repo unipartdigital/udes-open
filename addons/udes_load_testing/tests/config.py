@@ -39,6 +39,8 @@ class Config(object):
                 # Make it show if we need it again it isn't recalulated
                 self.__setattr__(attr_name, value)
                 return value
+            else:
+                return self.params
         else:
             # If we can find it in options raise origonal error
             raise e
