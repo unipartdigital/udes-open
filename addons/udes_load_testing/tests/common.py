@@ -152,8 +152,13 @@ class BackgroundDataRunner(LoadRunner):
                 products_info=[{'product': prod, 'qty': 100}],
             )
             pickings |= pick
+
+            line_end = '\r'
+            if i + 1 == cls._N:
+                line_end = '\n'
+
             print('Setting up background data (%0.2f' \
-                  % (100*(i+1)/cls._N) + '%)', end='\r')
+                  % (100*(i+1)/cls._N) + '%)', end=line_end)
 
         child_locations.write({'location_id': full_location.id})
         full_location.write({'location_id': cls.stock_location.id})
