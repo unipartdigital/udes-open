@@ -18,7 +18,7 @@ odoo-bin -i udes_stock,udes_load_testing --test-enable
 or to run a subset use
 
 ``` bash
-odoo-bin -i udes_stock,udes_load_testing -f udes_load_testing/test/test_picking.py
+odoo-bin -i udes_stock,udes_load_testing --test-file udes_load_testing/test/test_picking.py
 ```
 
 ### Config
