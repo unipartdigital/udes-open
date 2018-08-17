@@ -3,6 +3,8 @@
 from odoo import fields, models, _
 from odoo.exceptions import ValidationError
 
+BASE_PRODUCT_IMAGE_URL = '/web/image/product.product/%i'
+
 
 class ProductProduct(models.Model):
     _inherit = "product.product"
@@ -45,11 +47,23 @@ class ProductProduct(models.Model):
         """
         self.ensure_one()
 
+        def _prepare_image_urls(p):
+            if p.image:
+                base_url = BASE_PRODUCT_IMAGE_URL % p.id
+                image_urls = {
+                    'large': base_url + '/image',
+                    'medium': base_url + '/image_medium',
+                    'small': base_url + '/image_small',
+                }
+                return image_urls
+            return {}
+
         info = {"id": lambda p: p.id,
                 "barcode": lambda p: p.barcode,
                 "display_name": lambda p: p.display_name,
                 "name": lambda p: p.display_name,
                 "tracking": lambda p: p.tracking,
+                "image_urls": _prepare_image_urls,
                }
 
         if not fields_to_fetch:
