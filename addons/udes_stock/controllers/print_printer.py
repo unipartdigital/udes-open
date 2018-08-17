@@ -25,8 +25,8 @@ class Printer(UdesApi):
                 Other data passed to report
         """
         Printer = request.env['print.printer']
-        return Printer.spool_report(object_ids, report_name, kwargs,
-                                    copies=copies)
+        return Printer.spool_report(object_ids, report_name, copies=copies,
+                                    **kwargs)
 
     @http.route('/api/print-printer/set-user-printer', type='json',
                 methods=['POST'], auth='user')
