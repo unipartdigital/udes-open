@@ -13,7 +13,7 @@ class OutboundLines(LoadRunner):
         Path = cls.env['stock.location.path']
         Sequence = cls.env['ir.sequence']
 
-        # Chekc
+        # Check
         sequence_vals = {
             "name": "TestCheck",
             "prefix": "TESTCHECK",
