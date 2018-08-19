@@ -96,11 +96,11 @@ class StockPicking(models.Model):
                  'move_lines.ordered_qty')
     @api.one
     def _compute_picking_quantities(self):
-        """ Compute the quantity done and to do of the picking from the moves """
+        """ Compute the quantity done and to do of the picking from the moves"""
         total_qty_done = 0.0
         total_qty_todo = 0.0
         has_discrepancies = False
-        for move in self.move_lines:
+        for move in self.move_lines.filtered(lambda ml: ml.state != 'cancel'):
             qty_done = move.quantity_done
             qty_todo = move.ordered_qty
             if qty_done != qty_todo:
