@@ -301,15 +301,19 @@ class StockPicking(models.Model):
             values['product_uom'] = default_uom_id
 
         for product_id, qty in products_info.items():
-            move_vals = {
-                'name': '{} {}'.format(qty, Product.browse(product_id).display_name),
-                'product_id': product_id,
-                'product_uom_qty': qty,
-            }
-            move_vals.update(values)
-            move = Move.create(move_vals)
-            if unexpected:
-                move.ordered_qty = 0
+            product_move = self.move_lines.filtered(lambda m: m.product_id.id == product_id)
+            if product_move:
+                product_move.product_uom_qty += qty
+            else:
+                move_vals = {
+                    'name': '{} {}'.format(qty, Product.browse(product_id).display_name),
+                    'product_id': product_id,
+                    'product_uom_qty': qty,
+                }
+                move_vals.update(values)
+                move = Move.create(move_vals)
+                if unexpected:
+                    move.ordered_qty = 0
 
         if confirm:
             # Use picking.action_confirm, which will merge moves of the same
