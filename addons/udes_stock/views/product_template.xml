@@ -12,10 +12,34 @@
             </xpath>
 
             <xpath expr="//page[@name='inventory']" position="inside">
-                <group string="UDES">
+                <group string="UDES" name="inventory_udes">
                     <field name="u_hazardous" />
                 </group>
             </xpath>
         </field>
     </record>
+
+    <record id="product_template_form_mfrpn" model="ir.ui.view">
+        <field name="name">Changes to product form</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='inventory_udes']" position="inside">
+                    <field name="u_manufacturer_part_no" />
+            </xpath>
+        </field>
+    </record>
+
+    <record id="product_template_search_view" model="ir.ui.view">
+        <field name="name">product.template.search</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_search_view"/>
+        <field name="arch" type="xml">
+            <field name="name" position="replace">
+                <field name="name" string="Product" filter_domain="['|','|','|',('default_code','ilike',self),('name','ilike',self),('barcode','ilike',self),('u_manufacturer_part_no','ilike',self)]"/>
+                <field name="u_manufacturer_part_no" />
+            </field>
+        </field>
+    </record>
+
 </odoo>

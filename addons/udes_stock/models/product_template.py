@@ -15,3 +15,5 @@ class ProductTemplate(models.Model):
     type = fields.Selection(default='product')
 
     u_hazardous = fields.Boolean(string="Hazardous", default=False)
+
+    u_manufacturer_part_no = fields.Char(string="Mfr Part No", help="Manufacturer part number")
