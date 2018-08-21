@@ -6,6 +6,8 @@ from .config import config
 
 class PickLines(LoadRunner):
 
+    xlabel = 'Number of MoveLines'
+
     def time_setup(self, n):
         Package = self.env['stock.quant.package']
         packages = []
@@ -67,6 +69,8 @@ class PickLines(LoadRunner):
         )
 
 class PickMoves(PickLines):
+
+    xlabel = 'Number of Moves'
 
     def time_setup(self, n):
         Package = self.env['stock.quant.package']

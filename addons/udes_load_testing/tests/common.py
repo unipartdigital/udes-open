@@ -30,6 +30,9 @@ def time_func(func):
 @post_install(True)
 class LoadRunner(common.BaseUDES):
 
+    xlabel = 'I should be replaced'
+    ylabel = 'Time taken/s'
+
     def __getattribute__(self, attr_name):
         attr = super(LoadRunner, self).__getattribute__(attr_name)
         if "time_" in attr_name and not hasattr(attr, '__wrapped__'):
@@ -53,6 +56,8 @@ class LoadRunner(common.BaseUDES):
             cls._fw = open(cls._filename, 'a')
         except IOError:
             cls._fw = open(cls._filename, 'w')
+
+        cls._fw.write('%s\t%s\n' % (cls.xlabel, cls.ylabel))
 
         cls.results = defaultdict(lambda: defaultdict(list))
 

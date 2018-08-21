@@ -6,6 +6,7 @@ from .config import config
 
 class OutboundLines(LoadRunner):
 
+    xlabel = 'Number of MoveLines'
 
     @classmethod
     def _setup_3step_outbound_route(cls, pt_pick, pt_check):
@@ -187,6 +188,8 @@ class OutboundLines(LoadRunner):
 
 
 class OutboundMoves(OutboundLines):
+
+    xlabel = 'Number of Moves'
 
     def time_setup(self, n):
         Package = self.env['stock.quant.package']
