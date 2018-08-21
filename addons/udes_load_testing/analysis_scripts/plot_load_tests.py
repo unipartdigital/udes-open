@@ -34,9 +34,9 @@ data = parse_time_file(filename)
 
 for func_name in data:
     nums, times = zip(*sorted(data[func_name].items()))
-    times = np.array(times)
-    means = times.mean(axis=1)
-    minmax = (means - times.min(axis=1), times.max(axis=1) - means)
+    stats = [(np.min(t), np.mean(t), np.max(t)) for t in times]
+    mins, means, maxs = map(np.array, zip(*stats))
+    minmax = (means - mins, maxs - means)
     nums = np.array(nums)
     plt.errorbar(nums, means, label=func_name, yerr=minmax)
 
