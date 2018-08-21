@@ -18,11 +18,12 @@ def scaling_coefficient(x, y):
 
 def parse_time_file(filename):
     data = defaultdict(lambda: defaultdict(list))
-    for func, n, t in csv.reader(open(filename, 'r').readlines(),
-                                 delimiter='\t'):
+    reader = csv.reader(open(filename, 'r').readlines(), delimiter='\t')
+    xlabel, ylabel = next(reader)
+    for func, n, t in reader:
         data[func.strip(':')][float(n)].append(float(t))
 
-    return data
+    return data, xlabel, ylabel
 
 
 if len(sys.argv) >= 2:
@@ -30,15 +31,19 @@ if len(sys.argv) >= 2:
 else:
     filename = input('Load test data file: ')
 
-data = parse_time_file(filename)
+data, xlabel, ylabel = parse_time_file(filename)
 
 for func_name in data:
     nums, times = zip(*sorted(data[func_name].items()))
-    times = np.array(times)
-    means = times.mean(axis=1)
-    minmax = (means - times.min(axis=1), times.max(axis=1) - means)
+    stats = [(np.min(t), np.mean(t), np.max(t)) for t in times]
+    mins, means, maxs = map(np.array, zip(*stats))
+    minmax = (means - mins, maxs - means)
     nums = np.array(nums)
     plt.errorbar(nums, means, label=func_name, yerr=minmax)
+
+    if means.size < 3:
+        print("Can't find meaningful correlation for {}".format(func_name))
+        continue
 
     area, coefficient, pval = scaling_coefficient(nums, means)
 
@@ -77,8 +82,8 @@ for func_name in data:
         print('no correlation found for {} '
               'so probably linear'.format(func_name))
 
-plt.xlabel('Number of move lines')
-plt.ylabel('Average time taken/s')
+plt.xlabel(xlabel)
+plt.ylabel(ylabel)
 xlim = plt.xlim()
 ylim = plt.ylim()
 plt.xlim(nums.min(), xlim[1])
