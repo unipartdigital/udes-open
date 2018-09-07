@@ -19,19 +19,15 @@ class ProductProduct(models.Model):
         """
         Lot = self.env['stock.production.lot']
         self.ensure_one()
-        if self.tracking != 'serial':
-            raise ValidationError(
-                _('Product %s is not tracked by serial numbers.') %
-                self.name
-            )
-        lots = Lot.search([('product_id', '=', self.id),
-                           ('name', 'in', serial_numbers)
-                           ])
-        if lots:
-            raise ValidationError(
-                _('Serial numbers %s already in use for product %s') %
-                (' '.join(serial_numbers), self.name)
-            )
+        if self.tracking == 'serial':
+            lots = Lot.search([('product_id', '=', self.id),
+                               ('name', 'in', serial_numbers)
+                               ])
+            if lots:
+                raise ValidationError(
+                    _('Serial numbers %s already in use for product %s') %
+                    (' '.join(serial_numbers), self.name)
+                )
 
     def _prepare_info(self, fields_to_fetch=None):
         """

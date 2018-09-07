@@ -10,6 +10,9 @@ SECURITY_GROUPS = [
     ('inventory_manager', 'stock.group_stock_manager'),
 ]
 
+
+@common.at_install(False)
+@common.post_install(True)
 class BaseUDES(common.SavepointCase):
 
     @classmethod

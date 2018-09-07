@@ -169,8 +169,9 @@ class TestGoodsInUpdatePickingProducts(common.BaseUDES):
                         }]
         with self.assertRaises(ValidationError) as e:
             picking.update_picking(product_ids=product_ids)
-        self.assertEqual(e.exception.name, 'The number of serial numbers and quantity done does not ' \
-                                           'match for product Test product Strawberry',
+        self.assertEqual(e.exception.name,
+                         'The number of serial numbers and quantity done does '
+                         'not match for product Test product Strawberry',
                          'No/Incorrect error message was thrown')
 
     def test07_update_picking_repeated_serial_number(self):
@@ -199,7 +200,7 @@ class TestGoodsInUpdatePickingProducts(common.BaseUDES):
         einfo = (' '.join(sn0), picking.name, self.strawberry.name)
         with self.assertRaises(ValidationError) as e:
             picking.update_picking(product_ids=product_ids)
-        self.assertEqual(e.exception.name, 'Serial numbers %s are repeated '
+        self.assertEqual(e.exception.name, 'Lot numbers %s are repeated '
                                            'in picking %s for product %s' % einfo,
                          'No/Incorrect error message was thrown')
 
@@ -223,7 +224,7 @@ class TestGoodsInUpdatePickingProducts(common.BaseUDES):
 
         with self.assertRaises(ValidationError) as e:
             picking.update_picking(product_ids=product_ids)
-        self.assertEqual(e.exception.name, 'Serial numbers Strawberry0 already exist '
+        self.assertEqual(e.exception.name, 'Lot numbers Strawberry0 already exist '
                                              'in picking %s' % picking.name,
                          'No/Incorrect error message was thrown')
 

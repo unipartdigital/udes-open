@@ -174,24 +174,23 @@ class StockMoveLine(models.Model):
         """ Filter the move_lines in self by the products in product_ids.
             When a product is tracked by lot number:
             - when they have lot_id set, they are also filtered by
-              serial number and check that they are not done
+              lot number and check that they are not done
             - when they have lot_name, it is checked to avoid repeated
-              serial numbers
+              lot numbers
         """
         # get all move lines of the products in products_info
         move_lines = self.filtered(lambda ml: ml.product_id in products_info)
 
-        # if any of the products is tracked by serial number, filter if needed
-        for product in move_lines.mapped('product_id').filtered(lambda ml: ml.tracking == 'serial'):
-            serial_numbers = products_info[product]['lot_names']
-            repeated_serial_numbers = [sn for sn, num in Counter(serial_numbers).items() if num > 1]
-            if len(repeated_serial_numbers) > 0:
+        # if any of the products is tracked by lot number, filter if needed
+        for product in move_lines.mapped('product_id').filtered(lambda ml: ml.tracking != 'none'):
+            lot_numbers = products_info[product]['lot_names']
+            repeated_lot_numbers = [sn for sn, num in Counter(lot_numbers).items() if num > 1]
+            if len(repeated_lot_numbers) > 0:
                 raise ValidationError(
-                            _('Serial numbers %s are repeated '
-                              'in picking %s for product %s') %
-                              (' '.join(repeated_serial_numbers),
-                               move_lines.mapped('picking_id').name,
-                               product.name))
+                    _('Lot numbers %s are repeated in picking %s for '
+                      'product %s') % (' '.join(repeated_lot_numbers),
+                                       move_lines.mapped('picking_id').name,
+                                       product.name))
 
             product_mls = move_lines.filtered(lambda ml: ml.product_id == product)
             mls_with_lot_id = product_mls.filtered(lambda ml: ml.lot_id)
@@ -200,43 +199,44 @@ class StockMoveLine(models.Model):
                 # all mls should have lot id
                 if not mls_with_lot_id == product_mls:
                     raise ValidationError(
-                            _("Some move lines don't have lot_id in "
-                              "picking %s for product %s") %
-                            (product_mls.mapped('picking_id').name, product.name))
+                        _("Some move lines don't have lot_id in picking %s for "
+                          "product %s") %
+                        (product_mls.mapped('picking_id').name, product.name))
 
-                product_mls_in_serial_numbers = mls_with_lot_id.filtered(lambda ml: ml.lot_id.name in serial_numbers)
-                if len(product_mls_in_serial_numbers) != len(serial_numbers):
-                    mls_serial_numbers = product_mls_in_serial_numbers.mapped('lot_id.name')
-                    diff = set(serial_numbers) - set(mls_serial_numbers)
+                product_mls_in_lot_numbers = mls_with_lot_id.filtered(lambda ml: ml.lot_id.name in lot_numbers)
+                if len(product_mls_in_lot_numbers) != len(lot_numbers):
+                    mls_lot_numbers = product_mls_in_lot_numbers.mapped('lot_id.name')
+                    diff = set(lot_numbers) - set(mls_lot_numbers)
                     raise ValidationError(
-                            _('Serial numbers %s for product %s not found in picking %s') %
-                            (' '.join(diff), product.name, product_mls.mapped('picking_id').name))
+                        _('Lot numbers %s for product %s not found in '
+                          'picking %s') %
+                        (' '.join(diff), product.name,
+                         product_mls.mapped('picking_id').name))
 
-                done_mls = product_mls_in_serial_numbers.filtered(lambda ml: ml.qty_done > 0)
+                done_mls = product_mls_in_lot_numbers.filtered(lambda ml: ml.qty_done > 0)
                 if done_mls:
                     raise ValidationError(
-                            _("Operations for product %s with serial "
-                              "numbers %s are already done.") %
-                            (product.name, ','.join(done_mls.mapped('lot_id.name'))))
+                        _("Operations for product %s with lot numbers %s are "
+                          "already done.") %
+                        (product.name,
+                         ','.join(done_mls.mapped('lot_id.name'))))
 
-                product_mls_not_in_serial_numbers = product_mls - product_mls_in_serial_numbers
-                # remove move lines not in serial_numbers
-                move_lines -= product_mls_not_in_serial_numbers
+                product_mls_not_in_lot_numbers = product_mls - product_mls_in_lot_numbers
+                # remove move lines not in lot_numbers
+                move_lines -= product_mls_not_in_lot_numbers
 
             elif mls_with_lot_name:
-                # none of them has lot id, so they are new serial numbers and
-                # none of them
-                product_mls_in_serial_numbers = mls_with_lot_name.filtered(lambda ml: ml.lot_name in serial_numbers)
-                if product_mls_in_serial_numbers:
+                # none of them has lot id, so they are new lot numbers
+                product_mls_in_lot_numbers = mls_with_lot_name.filtered(lambda ml: ml.lot_name in lot_numbers)
+                if product_mls_in_lot_numbers:
                     raise ValidationError(
-                            _('Serial numbers %s already exist in picking %s') %
-                            (' '.join(product_mls_in_serial_numbers.mapped('lot_name')),
-
-                            product_mls.mapped('picking_id').name))
-                product.assert_serial_numbers(serial_numbers)
+                        _('Lot numbers %s already exist in picking %s') %
+                        (' '.join(product_mls_in_lot_numbers.mapped('lot_name')),
+                         product_mls.mapped('picking_id').name))
+                product.assert_serial_numbers(lot_numbers)
             elif product_mls:
                 # new serial numbers
-                product.assert_serial_numbers(serial_numbers)
+                product.assert_serial_numbers(lot_numbers)
             else:
                 # unexpected part?
                 pass
@@ -307,12 +307,14 @@ class StockMoveLine(models.Model):
             TODO: extend this function to handle damaged
                 damaged_qty, damaged_serial_numbers
         """
-        if product.tracking == 'serial':
-            if not 'lot_names' in info:
+        tracking = product.tracking
+        if tracking != 'none':
+            if 'lot_names' not in info:
                 raise ValidationError(
-                        _('Validating a serial numbered product without'
-                          ' serial numbers'))
-            if len(info['lot_names']) != info['qty']:
+                        _('Missing tracking info for product %s tracked by %s')
+                          % (product.name, tracking))
+            if tracking == 'serial' and \
+                    len(info['lot_names']) != info['qty']:
                 raise ValidationError(
                         _('The number of serial numbers and quantity done'
                           ' does not match for product %s') % product.name)
@@ -321,7 +323,7 @@ class StockMoveLine(models.Model):
             products_info[product] = info.copy()
         else:
             for key, value in info.items():
-                if isinstance(value, int) or isinstance(value,float):
+                if isinstance(value, int) or isinstance(value, float):
                     products_info[product][key] += value
                 elif isinstance(value, list):
                     products_info[product][key].extend(value)
@@ -396,7 +398,7 @@ class StockMoveLine(models.Model):
         # update products_info remaining qty to be marked as done
         info['qty'] -= qty_done
 
-        if product.tracking == 'serial':
+        if product.tracking != 'none':
             if self.lot_name:
                 # lot_name is set when it does not exist in the system
                 raise ValidationError(
@@ -408,8 +410,8 @@ class StockMoveLine(models.Model):
                 # check that is in the serial numbers list
                 if ml_lot_name not in info['lot_names']:
                     raise ValidationError(
-                            _('Cannot find serial number %s in the list'
-                              ' of serial numbers to validate') %
+                            _('Cannot find lot number %s in the list'
+                              ' of lot numbers to validate') %
                             ml_lot_name)
                 i = info['lot_names'].index(ml_lot_name)
                 # remove it from the list, no need to set lot_name because
