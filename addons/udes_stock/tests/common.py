@@ -29,9 +29,9 @@ class BaseUDES(common.SavepointCase):
         cls.fig = cls.create_product('Fig')
         cls.grape = cls.create_product('Grape')
 
-        ## Serial tracking
+        ## Serial/Lot tracking
         cls.strawberry = cls.create_product('Strawberry', tracking='serial')
-        cls.tangerine = cls.create_product('Tangerine', tracking='serial')
+        cls.tangerine = cls.create_product('Tangerine', tracking='lot')
 
         cls.setup_default_warehouse()
 
