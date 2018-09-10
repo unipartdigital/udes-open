@@ -466,6 +466,7 @@ class StockMoveLine(models.Model):
                              'ordered_qty': ordered_quantity_left_todo,
                              'qty_done': 0.0,
                              'result_package_id': False,
+                             'lot_name': False,
                     })
             # updated ordered_qty otherwise odoo will use product_uom_qty
             # new_ml.ordered_qty = ordered_quantity_left_todo
