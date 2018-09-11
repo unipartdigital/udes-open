@@ -595,32 +595,8 @@ class StockPicking(models.Model):
         new_moves = Move.browse()
 
         for current_move in mls.mapped('move_id'):
-            bk_move = Move.browse()
             current_mls = mls.filtered(lambda x: x.move_id == current_move)
-
-            if current_mls == current_move.move_line_ids and \
-                    not current_move.move_orig_ids.filtered(
-                        lambda x: x.state not in ('done', 'cancel')):
-                bk_move = current_move
-            else:
-                total_ordered_qty = sum(current_mls.mapped('ordered_qty'))
-                total_initial_qty = sum(current_mls.mapped('product_uom_qty'))
-                bk_move = current_move.copy({'picking_id': False,
-                                             'move_line_ids': [],
-                                             'move_orig_ids': [],
-                                             'ordered_qty': total_ordered_qty,
-                                             'product_uom_qty': total_initial_qty,
-                                             })
-                current_mls.write({'move_id': bk_move.id})
-                current_move.with_context(bypass_reservation_update=True).write({
-                    'ordered_qty': current_move.ordered_qty - total_ordered_qty,
-                    'product_uom_qty': current_move.product_uom_qty - total_initial_qty,
-                })
-
-                if current_move.move_orig_ids:
-                    (bk_move | current_move).update_orig_ids(current_move.move_orig_ids)
-
-            new_moves |= bk_move
+            new_moves |= current_move.split_out_move_lines(current_mls)
 
         # Create picking for completed move lines
         bk_picking = self.copy({
@@ -629,8 +605,8 @@ class StockPicking(models.Model):
             'move_line_ids': [],
             'backorder_id': self.id,
         })
-        new_moves.write({'picking_id': bk_picking.id, 'state': 'assigned'})
-        new_moves.mapped('move_line_ids').write({'picking_id': bk_picking.id, 'state': 'assigned'})
+        new_moves.write({'picking_id': bk_picking.id})
+        new_moves.mapped('move_line_ids').write({'picking_id': bk_picking.id})
         return bk_picking
 
     def _real_time_update(self, mls):
@@ -976,6 +952,8 @@ class StockPicking(models.Model):
                 _('Unexpected result from action assign.')
             )
         self._reserve_full_packages()
+
+        self.picking_type_id.post_reservation_split(self)
 
         return True
 

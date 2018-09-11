@@ -1,7 +1,12 @@
 # -*- coding: utf-8 -*-
+from itertools import groupby
 
-from odoo import fields, models, _
+from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
+
+import logging
+
+_logger = logging.getLogger(__name__)
 
 
 class StockPickingType(models.Model):
@@ -103,6 +108,11 @@ class StockPickingType(models.Model):
              'create batches when the user scans the pallet'
     )
 
+    u_move_line_key_format = fields.Char(
+        'Move Line Grouping Key',
+        help="A field name on stock.move.line"
+    )
+
     def _prepare_info(self):
         """
             Prepares the following info of the picking_type in self:
@@ -174,3 +184,80 @@ class StockPickingType(models.Model):
                     _('Cannot find picking type with id %s') %
                     picking_type_id)
         return picking_type
+
+    @api.model
+    def move_line_key(self, move_line):
+        ml_vals = {fname: getattr(move_line, fname)
+                   for fname, f in move_line._fields.items()}
+        return move_line.picking_id.picking_type_id. \
+            u_move_line_key_format.format(**ml_vals)
+
+    def post_reservation_split(self, pickings):
+        """
+        group the move lines by the splitting criteria
+        for each resulting group of stock.move.lines:
+            create a new picking
+            split any stock.move records that are only partially covered by the
+                group of stock.move.lines
+            attach the stock.moves and stock.move.lines to the new picking.
+        """
+        self.ensure_one()
+        MoveLine = self.env['stock.move.line']
+
+        if not self.u_move_line_key_format:
+            return
+
+        move_lines = pickings.mapped('move_line_ids')
+
+        mls_by_key = {k: MoveLine.browse([ml.id for ml in g])
+                      for k, g in
+                      groupby(sorted(move_lines, key=self.move_line_key),
+                              key=self.move_line_key)}
+
+        for key, ml_group in mls_by_key.items():
+            touched_moves = ml_group.mapped('move_id')
+            group_moves = self.env['stock.move']
+            for move in touched_moves:
+                # Get all the mls in current group that are for current move
+                move_mls = ml_group.filtered(lambda l: l.move_id == move)
+
+                # See if all mls for the move are in the current group
+                if move_mls != move.move_line_ids:
+                    # The move iss not entirely contained by the move lines
+                    # for this grouping. Need to split the move.
+                    group_moves |= move.split_out_move_lines(move_mls)
+                else:
+                    group_moves |= move
+
+            self.new_picking_for_group(key, ml_group, group_moves)
+
+        empty_picks = pickings.filtered(lambda p: len(p.move_lines) == 0)
+        if empty_picks:
+            _logger.info(_("Cancelling empty picks after splitting."))
+            # action_cancel does not cancel a picking with no moves.
+            empty_picks.write({
+                'state': 'cancel',
+                'is_locked': True
+            })
+
+    def new_picking_for_group(self, group_key, move_lines, moves):
+        Picking = self.env['stock.picking']
+        Group = self.env['procurement.group']
+
+        group = Group.get_group(group_identifier=group_key,
+                                create=True)
+        picking = Picking.create({
+            'picking_type_id': self.id,
+            'location_id': self.default_location_src_id.id,
+            'location_dest_id': self.default_location_dest_id.id,
+            'group_id': group.id
+            # TODO: Any other fields?
+        })
+
+        moves.write({
+            'group_id': group.id,
+            'picking_id': picking.id
+        })
+        move_lines.write({'picking_id': picking.id})
+
+        return picking
