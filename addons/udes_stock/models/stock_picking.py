@@ -633,6 +633,7 @@ class StockPicking(models.Model):
                      picking_priorities=None,
                      picking_ids=None,
                      bulky=None,
+                     batch_id=None,
                      extra_domain=None,
                      ):
 
@@ -752,6 +753,8 @@ class StockPicking(models.Model):
                 ('location_id', '=', location_id),
                 ('picking_type_id', '=', warehouse.int_type_id.id)
             ]
+        elif batch_id is not None:
+            domain = [('batch_id', '=', batch_id)]
         else:
             raise ValidationError(_('No valid options provided.'))
 
