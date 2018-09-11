@@ -169,8 +169,9 @@ class TestGoodsInUpdatePickingProducts(common.BaseUDES):
                         }]
         with self.assertRaises(ValidationError) as e:
             picking.update_picking(product_ids=product_ids)
-        self.assertEqual(e.exception.name, 'The number of serial numbers and quantity done does not ' \
-                                           'match for product Test product Strawberry',
+        self.assertEqual(e.exception.name,
+                         'The number of serial numbers and quantity done does '
+                         'not match for product Test product Strawberry',
                          'No/Incorrect error message was thrown')
 
     def test07_update_picking_repeated_serial_number(self):
@@ -199,7 +200,7 @@ class TestGoodsInUpdatePickingProducts(common.BaseUDES):
         einfo = (' '.join(sn0), picking.name, self.strawberry.name)
         with self.assertRaises(ValidationError) as e:
             picking.update_picking(product_ids=product_ids)
-        self.assertEqual(e.exception.name, 'Serial numbers %s are repeated '
+        self.assertEqual(e.exception.name, 'Lot numbers %s are repeated '
                                            'in picking %s for product %s' % einfo,
                          'No/Incorrect error message was thrown')
 
@@ -223,7 +224,7 @@ class TestGoodsInUpdatePickingProducts(common.BaseUDES):
 
         with self.assertRaises(ValidationError) as e:
             picking.update_picking(product_ids=product_ids)
-        self.assertEqual(e.exception.name, 'Serial numbers Strawberry0 already exist '
+        self.assertEqual(e.exception.name, 'Lot numbers Strawberry0 already exist '
                                              'in picking %s' % picking.name,
                          'No/Incorrect error message was thrown')
 
@@ -424,6 +425,101 @@ class TestGoodsInUpdatePickingProducts(common.BaseUDES):
         picking.update_picking(validate=True)
         self.assertEqual(picking.state, 'done', 'Stock picking is not in state done after validation.')
 
+    def test16_update_picking_validate_done_complete_lot_number(self):
+        """ Test update_picking completes when using a lot tracked product
+            in a single update.
+        """
+        create_info = [{'product': self.tangerine, 'qty': 4}]
+        picking = self.create_picking(self.picking_type_in,
+                                      products_info=create_info,
+                                      confirm=True)
+        picking = picking.sudo(self.inbound_user)
+
+        product_ids = [{'barcode': self.tangerine.barcode,
+                        'qty': 4,
+                        'lot_names': ['tangerine01']
+                        }]
+        self.assertEqual(sum(picking.mapped('move_line_ids.qty_done')), 0)
+        picking.update_picking(product_ids=product_ids)
+        self.assertEqual(len(picking.move_line_ids), 1)
+        self.assertEqual(picking.move_line_ids.qty_done, 4)
+
+        picking.update_picking(validate=True)
+        self.assertEqual(picking.state, 'done',
+                         'Stock picking is not in state done after validation.')
+
+    def test17_update_picking_validate_done_complete_two_lot_numbers(self):
+        """ Test update_picking completes when using a lot tracked product
+            in two updates.
+        """
+        create_info = [{'product': self.tangerine, 'qty': 4}]
+        picking = self.create_picking(self.picking_type_in,
+                                      products_info=create_info,
+                                      confirm=True)
+        picking = picking.sudo(self.inbound_user)
+
+        product_ids1 = [{'barcode': self.tangerine.barcode,
+                        'qty': 1,
+                        'lot_names': ['tangerine01']
+                        }]
+        product_ids2 = [{'barcode': self.tangerine.barcode,
+                        'qty': 3,
+                        'lot_names': ['tangerine02']
+                        }]
+        self.assertEqual(sum(picking.mapped('move_line_ids.qty_done')), 0)
+        picking.update_picking(product_ids=product_ids1)
+        self.assertEqual(len(picking.move_line_ids), 2)
+        first_ml = picking.move_line_ids.filtered(lambda ml: ml.qty_done > 0)
+        remaining_ml = picking.move_line_ids - first_ml
+        self.assertEqual(first_ml.qty_done, 1)
+        self.assertEqual(first_ml.lot_name, 'tangerine01')
+        self.assertFalse(remaining_ml.lot_name)
+
+        picking.update_picking(product_ids=product_ids2)
+        self.assertEqual(len(picking.move_line_ids), 2)
+        self.assertEqual(remaining_ml.qty_done, 3)
+        self.assertEqual(remaining_ml.lot_name, 'tangerine02')
+
+        self.assertEqual(sum(picking.mapped('move_line_ids.qty_done')), 4)
+
+        picking.update_picking(validate=True)
+        self.assertEqual(picking.state, 'done',
+                         'Stock picking is not in state done after validation.')
+
+    def test18_update_picking_repeated_lot_number(self):
+        """ Test update_picking raises an error when using a lot tracked product
+            in two updates and using the same lot number twice.
+        """
+        create_info = [{'product': self.tangerine, 'qty': 4}]
+        picking = self.create_picking(self.picking_type_in,
+                                      products_info=create_info,
+                                      confirm=True)
+        picking = picking.sudo(self.inbound_user)
+
+        product_ids1 = [{'barcode': self.tangerine.barcode,
+                        'qty': 1,
+                        'lot_names': ['tangerine01']
+                        }]
+        product_ids2 = [{'barcode': self.tangerine.barcode,
+                        'qty': 3,
+                        'lot_names': ['tangerine01']
+                        }]
+        self.assertEqual(sum(picking.mapped('move_line_ids.qty_done')), 0)
+        picking.update_picking(product_ids=product_ids1)
+        self.assertEqual(len(picking.move_line_ids), 2)
+        first_ml = picking.move_line_ids.filtered(lambda ml: ml.qty_done > 0)
+        remaining_ml = picking.move_line_ids - first_ml
+        self.assertEqual(first_ml.qty_done, 1)
+        self.assertEqual(first_ml.lot_name, 'tangerine01')
+        self.assertFalse(remaining_ml.lot_name)
+
+        with self.assertRaises(ValidationError) as e:
+            picking.update_picking(product_ids=product_ids2)
+        self.assertEqual(e.exception.name,
+                         'Lot numbers tangerine01 already exist in picking %s' %
+                         picking.name,
+                         'No/Incorrect error message was thrown')
+
 
 class TestGoodsInUpdatePickingPallet(common.BaseUDES):
 
@@ -432,7 +528,7 @@ class TestGoodsInUpdatePickingPallet(common.BaseUDES):
         super(TestGoodsInUpdatePickingPallet, cls).setUpClass()
         cls.picking_type_in.u_target_storage_format = 'pallet_products'
 
-    def test16_update_picking_set_result_package_id(self):
+    def test01_update_picking_set_result_package_id(self):
         """ Checks the correct result_package_id is set when
             result_package_name is used in update_picking.
         """
@@ -454,7 +550,7 @@ class TestGoodsInUpdatePickingPallet(common.BaseUDES):
         picking.update_picking(validate=True)
         self.assertEqual(picking.state, 'done', 'Stock picking is not in state done after validation.')
 
-    def test17_update_picking_set_result_package_id_mixed_package(self):
+    def test02_update_picking_set_result_package_id_mixed_package(self):
         """ Checks the correct result_package_id is set by update_picking
             when using result_package_name with two products.
         """
@@ -484,7 +580,7 @@ class TestGoodsInUpdatePickingPallet(common.BaseUDES):
         self.assertEqual(picking.state, 'done',
                          'Stock picking is not in state done after validation.')
 
-    def test18_update_picking_set_result_package_id_lot_names_one_per_update(self):
+    def test03_update_picking_set_result_package_id_lot_names_one_per_update(self):
         """ Checks the correct result_package_id is set by update_picking
             when using result_package_name over two calls when the
             product is tracked.
@@ -519,7 +615,7 @@ class TestGoodsInUpdatePickingPallet(common.BaseUDES):
         self.assertEqual(picking.state, 'done',
                          'Stock picking is not in state done after validation.')
 
-    def test19_update_picking_set_result_package_id_mixed_package_one_with_lot_names(self):
+    def test04_update_picking_set_result_package_id_mixed_package_one_with_lot_names(self):
         """ Checks the correct result_package_id is set by update_picking
             when using result_package_name for two products when one is tracked.
         """
@@ -549,6 +645,85 @@ class TestGoodsInUpdatePickingPallet(common.BaseUDES):
         picking.update_picking(product_ids=product_ids, result_package_name=package.name)
         packaged_move_lines = picking.mapped('move_line_ids').filtered(lambda x: x.result_package_id == package)
         self.assertEqual(len(packaged_move_lines), 3)
+        picking.update_picking(validate=True)
+        self.assertEqual(picking.state, 'done',
+                         'Stock picking is not in state done after validation.')
+
+    def test05_update_picking_set_result_package_id_one_lot_number(self):
+        """ Test update_picking completes when using a lot tracked product
+            in a single update also setting result package_id.
+        """
+        Package = self.env['stock.quant.package']
+        package = Package.get_package('test_package', create=True)
+
+        create_info = [{'product': self.tangerine, 'qty': 4}]
+        picking = self.create_picking(self.picking_type_in,
+                                      products_info=create_info,
+                                      confirm=True)
+        picking = picking.sudo(self.inbound_user)
+
+        product_ids = [{'barcode': self.tangerine.barcode,
+                        'qty': 4,
+                        'lot_names': ['tangerine01']
+                        }]
+        self.assertEqual(sum(picking.mapped('move_line_ids.qty_done')), 0)
+        picking.update_picking(product_ids=product_ids,
+                               result_package_name=package.name)
+        self.assertEqual(len(picking.move_line_ids), 1)
+        self.assertEqual(picking.move_line_ids.qty_done, 4)
+
+        packaged_move_lines = picking.mapped('move_line_ids').filtered(
+            lambda x: x.result_package_id == package and x.lot_name == 'tangerine01')
+        self.assertEqual(len(packaged_move_lines), 1)
+
+        picking.update_picking(validate=True)
+        self.assertEqual(picking.state, 'done',
+                         'Stock picking is not in state done after validation.')
+
+    def test06_update_picking_set_result_package_id_two_lot_numbers(self):
+        """ Test update_picking completes when using a lot tracked product
+            in two updates also setting result package_id.
+        """
+        Package = self.env['stock.quant.package']
+        package = Package.get_package('test_package', create=True)
+
+        create_info = [{'product': self.tangerine, 'qty': 4}]
+        picking = self.create_picking(self.picking_type_in,
+                                      products_info=create_info,
+                                      confirm=True)
+        picking = picking.sudo(self.inbound_user)
+
+        product_ids1 = [{'barcode': self.tangerine.barcode,
+                        'qty': 1,
+                        'lot_names': ['tangerine01']
+                        }]
+        product_ids2 = [{'barcode': self.tangerine.barcode,
+                        'qty': 3,
+                        'lot_names': ['tangerine02']
+                        }]
+
+        self.assertEqual(sum(picking.mapped('move_line_ids.qty_done')), 0)
+        picking.update_picking(product_ids=product_ids1,
+                               result_package_name=package.name)
+        self.assertEqual(len(picking.move_line_ids), 2)
+        first_ml = picking.move_line_ids.filtered(lambda ml: ml.qty_done > 0)
+        remaining_ml = picking.move_line_ids - first_ml
+        self.assertEqual(first_ml.qty_done, 1)
+        self.assertEqual(first_ml.lot_name, 'tangerine01')
+        self.assertFalse(remaining_ml.lot_name)
+
+        picking.update_picking(product_ids=product_ids2,
+                               result_package_name=package.name)
+        self.assertEqual(len(picking.move_line_ids), 2)
+        self.assertEqual(remaining_ml.qty_done, 3)
+        self.assertEqual(remaining_ml.lot_name, 'tangerine02')
+
+        packaged_move_lines = picking.mapped('move_line_ids').filtered(
+            lambda x: x.result_package_id == package)
+
+        self.assertEqual(sum(packaged_move_lines.mapped('qty_done')), 4)
+        self.assertEqual(len(packaged_move_lines), 2)
+
         picking.update_picking(validate=True)
         self.assertEqual(picking.state, 'done',
                          'Stock picking is not in state done after validation.')
