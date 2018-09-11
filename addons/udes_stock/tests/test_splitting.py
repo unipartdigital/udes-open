@@ -149,3 +149,78 @@ class TestPackageSwap(common.BaseUDES):
         self.assertEqual(grape_ml.result_package_id, mixed_pallet)
 
         self.assertEqual(self.picking.state, 'cancel')
+
+    def test04_combine_two_pickings_at_reserve(self):
+        """Create two pickings for two items on the same pallet. Reserve them
+        simultaneously and check they result in one picking with two moves.
+        """
+        Picking = self.env['stock.picking']
+        pallet = self.create_package()
+        self.create_quant(self.elderberry.id, self.test_location_01.id,
+                          5, package_id=pallet.id)
+        self.create_quant(self.elderberry.id, self.test_location_01.id,
+                          10, package_id=pallet.id)
+        p1 = self.picking
+        p2 = self.create_picking(self.picking_type_pick)
+        m1 = self.create_move(self.elderberry, 5, p1)
+        m2 = self.create_move(self.elderberry, 10, p2)
+        (p1 | p2).action_assign()
+
+        pick = Picking.get_pickings(package_name=pallet.name)
+
+        self.assertEqual(pick.state, 'assigned')
+        self.assertEqual(pick.group_id.name, pallet.name)
+
+        # Check we haven't mangled the moves or move_lines
+        self.assertEqual((m1 | m2).ids, pick.move_lines.ids)
+
+        mls = pick.move_line_ids
+        self.assertEqual(len(mls), 2)
+        ml1 = mls.filtered(lambda ml: ml.move_id == m1)
+        self.assertEqual(ml1.product_qty, 5)
+        self.assertEqual(ml1.package_id, pallet)
+        self.assertEqual(ml1.product_id, self.elderberry)
+        ml2 = mls.filtered(lambda ml: ml.move_id == m2)
+        self.assertEqual(ml2.product_qty, 10)
+        self.assertEqual(ml2.package_id, pallet)
+        self.assertEqual(ml2.product_id, self.elderberry)
+
+        self.assertEqual(self.picking.state, 'cancel')
+
+    def test05_add_to_existing_picking(self):
+        """Create two pickings for two items on the same pallet. Reserve them
+        sequentially and check they result in one picking with two moves.
+        """
+        Picking = self.env['stock.picking']
+        pallet = self.create_package()
+        self.create_quant(self.elderberry.id, self.test_location_01.id,
+                          5, package_id=pallet.id)
+        self.create_quant(self.elderberry.id, self.test_location_01.id,
+                          10, package_id=pallet.id)
+        p1 = self.picking
+        p2 = self.create_picking(self.picking_type_pick)
+        m1 = self.create_move(self.elderberry, 5, p1)
+        m2 = self.create_move(self.elderberry, 10, p2)
+        p1.action_assign()
+        p2.action_assign()
+
+        pick = Picking.get_pickings(package_name=pallet.name)
+
+        self.assertEqual(pick.state, 'assigned')
+        self.assertEqual(pick.group_id.name, pallet.name)
+
+        # Check we haven't mangled the moves or move_lines
+        self.assertEqual((m1 | m2).ids, pick.move_lines.ids)
+
+        mls = pick.move_line_ids
+        self.assertEqual(len(mls), 2)
+        ml1 = mls.filtered(lambda ml: ml.move_id == m1)
+        self.assertEqual(ml1.product_qty, 5)
+        self.assertEqual(ml1.package_id, pallet)
+        self.assertEqual(ml1.product_id, self.elderberry)
+        ml2 = mls.filtered(lambda ml: ml.move_id == m2)
+        self.assertEqual(ml2.product_qty, 10)
+        self.assertEqual(ml2.package_id, pallet)
+        self.assertEqual(ml2.product_id, self.elderberry)
+
+        self.assertEqual(self.picking.state, 'cancel')

@@ -110,7 +110,8 @@ class StockPickingType(models.Model):
 
     u_move_line_key_format = fields.Char(
         'Move Line Grouping Key',
-        help="A field name on stock.move.line"
+        help="""A field name on stock.move.line that is used to group move 
+        lines post-reservation."""
     )
 
     def _prepare_info(self):
@@ -192,6 +193,13 @@ class StockPickingType(models.Model):
         return move_line.picking_id.picking_type_id. \
             u_move_line_key_format.format(**ml_vals)
 
+    def group_move_lines(self, move_lines):
+        MoveLine = self.env['stock.move.line']
+        return {k: MoveLine.browse([ml.id for ml in g])
+                for k, g in
+                groupby(sorted(move_lines, key=self.move_line_key),
+                        key=self.move_line_key)}
+
     def post_reservation_split(self, pickings):
         """
         group the move lines by the splitting criteria
@@ -201,18 +209,11 @@ class StockPickingType(models.Model):
                 group of stock.move.lines
             attach the stock.moves and stock.move.lines to the new picking.
         """
-        self.ensure_one()
         MoveLine = self.env['stock.move.line']
-
         if not self.u_move_line_key_format:
             return
 
-        move_lines = pickings.mapped('move_line_ids')
-
-        mls_by_key = {k: MoveLine.browse([ml.id for ml in g])
-                      for k, g in
-                      groupby(sorted(move_lines, key=self.move_line_key),
-                              key=self.move_line_key)}
+        mls_by_key = self.group_move_lines(pickings.mapped('move_line_ids'))
 
         for key, ml_group in mls_by_key.items():
             touched_moves = ml_group.mapped('move_id')
@@ -246,13 +247,18 @@ class StockPickingType(models.Model):
 
         group = Group.get_group(group_identifier=group_key,
                                 create=True)
-        picking = Picking.create({
-            'picking_type_id': self.id,
-            'location_id': self.default_location_src_id.id,
-            'location_dest_id': self.default_location_dest_id.id,
-            'group_id': group.id
-            # TODO: Any other fields?
-        })
+        picking = Picking.search([
+            ('picking_type_id', '=', self.id),
+            ('group_id', '=', group.id),
+            ('state', '=', 'assigned'),
+        ])
+        if not picking or len(picking) > 1:
+            picking = Picking.create({
+                'picking_type_id': self.id,
+                'location_id': self.default_location_src_id.id,
+                'location_dest_id': self.default_location_dest_id.id,
+                'group_id': group.id
+            })
 
         moves.write({
             'group_id': group.id,
