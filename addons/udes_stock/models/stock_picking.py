@@ -937,7 +937,7 @@ class StockPicking(models.Model):
             Override action_confirm to create procurement groups if needed
         """
         for pick in self.filtered(
-                lambda p: p.picking_type_id.u_create_procurement_group
+                lambda p: p.picking_type_id.u_create_procurement_group 
                           and not p.group_id):
             pick._create_own_procurement_group()
         return super(StockPicking, self).action_confirm()
@@ -953,7 +953,9 @@ class StockPicking(models.Model):
             )
         self._reserve_full_packages()
 
-        self.picking_type_id.post_reservation_split(self)
+        for picking_type in self.mapped('picking_type_id'):
+            picking_type.post_reservation_split(
+                self.filtered(lambda p: p.picking_type_id == picking_type))
 
         return True
 
