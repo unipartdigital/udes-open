@@ -89,3 +89,51 @@ class StockMove(models.Model):
                                             )
                 updated_origin_ids |= previous_mls.mapped('move_id')
             move.move_orig_ids = updated_origin_ids
+
+    def split_out_move_lines(self, move_lines):
+        """ Split sufficient quantity from self to cover move_lines, and
+        attach move_lines to the new move. Return the move that now holds all
+        of move_lines.
+        If self is completely covered by move_lines, it will be removed from
+        its picking and returned.
+        Preconditions: self is a single move,
+                       all moves_line are attached to self
+        :return: The (possibly new) move that covers all of move_lines,
+                 not currently attached to any picking.
+        """
+        self.ensure_one()
+        if not all(ml.move_id == self for ml in move_lines):
+            raise ValueError(_("Cannot split move lines from a move they are"
+                               "not part of."))
+
+        if move_lines == self.move_line_ids and \
+                not self.move_orig_ids.filtered(
+                    lambda x: x.state not in ('done', 'cancel')):
+            bk_move = self
+            bk_move.write({'picking_id': None})
+        else:
+            # TODO: consider using odoo core stock.move._split?
+            total_ordered_qty = sum(move_lines.mapped('ordered_qty'))
+            total_initial_qty = sum(move_lines.mapped('product_uom_qty'))
+            bk_move = self.copy({
+                'picking_id': False,
+                'move_line_ids': [],
+                'move_orig_ids': [],
+                'ordered_qty': total_ordered_qty,
+                'product_uom_qty': total_initial_qty,
+                'state': 'assigned',
+            })
+            move_lines.write({
+                'move_id': bk_move.id,
+                'state': 'assigned',
+                'picking_id': None,
+            })
+            self.with_context(bypass_reservation_update=True).write({
+                'ordered_qty': self.ordered_qty - total_ordered_qty,
+                'product_uom_qty': self.product_uom_qty - total_initial_qty,
+            })
+
+            if self.move_orig_ids:
+                (bk_move | self).update_orig_ids(self.move_orig_ids)
+
+        return bk_move
