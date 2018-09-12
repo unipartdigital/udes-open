@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from itertools import groupby
 
 from odoo import api, models,  _
 from odoo.exceptions import ValidationError
@@ -598,8 +599,14 @@ class StockMoveLine(models.Model):
         return task
 
     @api.model
-    def move_line_key(self, move_line):
+    def splitting_key(self, move_line):
         ml_vals = {fname: getattr(move_line, fname)
-                   for fname, f in move_line._fields.items()}
+                   for fname in move_line._fields.keys()}
         return move_line.picking_id.picking_type_id. \
             u_move_line_key_format.format(**ml_vals)
+
+    def group_by_splitting_key(self):
+        return {k: self.browse([ml.id for ml in g])
+                for k, g in
+                groupby(sorted(self, key=self.splitting_key),
+                        key=self.splitting_key)}
