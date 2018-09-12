@@ -18,7 +18,12 @@ class PickingApi(UdesApi):
                 Subset of the default returned fields to return.
         """
         Picking = request.env['stock.picking']
+
         pickings = Picking.get_pickings(**kwargs)
+
+        if 'package_name' in kwargs and pickings.picking_type_id.u_auto_batch_pallet:
+            pickings.batch_to_user(request.env.user)
+
         return pickings.get_info(fields_to_fetch=fields_to_fetch)
 
     @http.route('/api/stock-picking/', type='json', methods=['POST'], auth='user')

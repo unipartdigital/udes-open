@@ -792,6 +792,21 @@ class StockPicking(models.Model):
 
         return pickings
 
+    def batch_to_user(self, user):
+        """ Throws error if picking is batched to another user
+         creates batch and adds picking to it otherwise """
+
+        PickingBatch = self.env['stock.picking.batch']
+
+        if self.batch_id and (self.batch_id.user_id != user):
+            raise ValidationError(_('Picking %s is in a batch owned by another user %s')
+                                  % (self.name, self.batch_id.user_id.name))
+
+        if self.batch_id.id is False:
+            batch = PickingBatch.create({'user_id': user.id})
+            self.batch_id = batch.id
+            batch.write({'state': 'in_progress'})
+
     def _get_package_search_domain(self, package):
         """ Generate the domain for searching pickings of a package
         """
