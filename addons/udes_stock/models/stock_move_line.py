@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from itertools import groupby
 
-from odoo import api, models,  _
+from odoo import api, fields, models,  _
 from odoo.exceptions import ValidationError
 from odoo.tools.float_utils import float_compare, float_round
 from copy import deepcopy
@@ -10,6 +10,9 @@ from collections import Counter, defaultdict
 
 class StockMoveLine(models.Model):
     _inherit = 'stock.move.line'
+
+    u_grouping_key = fields.Char('Key', compute='compute_grouping_key')
+    
 
     def get_lines_todo(self):
         """ Return the move lines in self that are not completed,
@@ -598,15 +601,19 @@ class StockMoveLine(models.Model):
 
         return task
 
-    @api.model
-    def splitting_key(self, move_line):
-        ml_vals = {fname: getattr(move_line, fname)
-                   for fname in move_line._fields.keys()}
-        return move_line.picking_id.picking_type_id. \
-            u_move_line_key_format.format(**ml_vals)
+    def compute_grouping_key(self):
+        for ml in self:
+            ml_vals = {fname: getattr(ml, fname)
+                       for fname in ml._fields.keys()}
 
-    def group_by_splitting_key(self):
+            ml.u_grouping_key = ml.picking_id.picking_type_id. \
+                u_move_line_key_format.format(**ml_vals)
+
+    def group_by_key(self):
+        # force recompute on u_grouping_key so we have an up-to-date key:
+        self._fields['u_grouping_key'].compute_value(self)
+
+        by_key = lambda ml: ml.u_grouping_key
         return {k: self.browse([ml.id for ml in g])
                 for k, g in
-                groupby(sorted(self, key=self.splitting_key),
-                        key=self.splitting_key)}
+                groupby(sorted(self, key=by_key), key=by_key)}
