@@ -33,6 +33,7 @@
                     <field name="u_create_procurement_group"/>
                     <field name="u_suggest_location" />
                     <field name="u_confirm_serial_numbers" />
+                    <field name="u_auto_batch_pallet" />
                 </group>
             </xpath>
 

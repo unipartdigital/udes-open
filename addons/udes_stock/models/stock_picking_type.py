@@ -96,6 +96,13 @@ class StockPickingType(models.Model):
              'to user'
     )
 
+    u_auto_batch_pallet = fields.Boolean(
+        string='Auto batch pallet',
+        default=False,
+        help='Flag to indicate whether picking type will automatically '
+             'create batches when the user scans the pallet'
+    )
+
     def _prepare_info(self):
         """
             Prepares the following info of the picking_type in self:
@@ -118,6 +125,7 @@ class StockPickingType(models.Model):
             - u_enforce_location_dest_id: boolean
             - u_reserve_as_packages: boolean
             - u_confirm_serial_numbers: string
+            - u_auto_batch_pallet: boolean
         """
         self.ensure_one()
 
@@ -145,6 +153,7 @@ class StockPickingType(models.Model):
                 'u_create_procurement_group': self.u_create_procurement_group,
                 'u_confirm_serial_numbers': self.u_confirm_serial_numbers,
                 'u_suggest_location': self.u_suggest_location,
+                'u_auto_batch_pallet': self.u_auto_batch_pallet,
                 }
 
     def get_info(self):
