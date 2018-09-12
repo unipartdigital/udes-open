@@ -2,10 +2,6 @@
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
 
-import logging
-
-_logger = logging.getLogger(__name__)
-
 
 class StockPickingType(models.Model):
     _inherit = "stock.picking.type"
@@ -183,72 +179,3 @@ class StockPickingType(models.Model):
                     _('Cannot find picking type with id %s') %
                     picking_type_id)
         return picking_type
-
-    def post_reservation_split(self, moves):
-        """
-        group the move lines by the splitting criteria
-        for each resulting group of stock.move.lines:
-            create a new picking
-            split any stock.move records that are only partially covered by the
-                group of stock.move.lines
-            attach the stock.moves and stock.move.lines to the new picking.
-        """
-        MoveLine = self.env['stock.move.line']
-        if not self.u_move_line_key_format:
-            return
-
-        pickings = moves.mapped('picking_id')
-        mls_by_key = moves.mapped('move_line_ids').group_by_splitting_key()
-
-        for key, ml_group in mls_by_key.items():
-            touched_moves = ml_group.mapped('move_id')
-            group_moves = self.env['stock.move']
-            for move in touched_moves:
-                # Get all the mls in current group that are for current move
-                move_mls = ml_group.filtered(lambda l: l.move_id == move)
-
-                # See if all mls for the move are in the current group
-                if move_mls != move.move_line_ids:
-                    # The move iss not entirely contained by the move lines
-                    # for this grouping. Need to split the move.
-                    group_moves |= move.split_out_move_lines(move_mls)
-                else:
-                    group_moves |= move
-
-            self._new_picking_for_group(key, ml_group, group_moves)
-
-        empty_picks = pickings.filtered(lambda p: len(p.move_lines) == 0)
-        if empty_picks:
-            _logger.info(_("Cancelling empty picks after splitting."))
-            # action_cancel does not cancel a picking with no moves.
-            empty_picks.write({
-                'state': 'cancel',
-                'is_locked': True
-            })
-
-    def _new_picking_for_group(self, group_key, move_lines, moves):
-        Picking = self.env['stock.picking']
-        Group = self.env['procurement.group']
-
-        group = Group.get_group(group_identifier=group_key,
-                                create=True)
-        picking = Picking.search([
-            ('picking_type_id', '=', self.id),
-            ('group_id', '=', group.id),
-            ('state', '=', 'assigned'),
-        ])
-        if not picking or len(picking) > 1:
-            picking = Picking.create({
-                'picking_type_id': self.id,
-                'location_id': self.default_location_src_id.id,
-                'location_dest_id': self.default_location_dest_id.id,
-                'group_id': group.id
-            })
-
-        moves.write({
-            'group_id': group.id,
-            'picking_id': picking.id
-        })
-        move_lines.write({'picking_id': picking.id})
-
-        return picking

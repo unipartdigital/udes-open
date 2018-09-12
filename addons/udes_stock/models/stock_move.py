@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 
-from odoo import models
+from odoo import models, _
+from odoo.exceptions import UserError
+
+import logging
+
+_logger = logging.getLogger(__name__)
 
 
 class StockMove(models.Model):
@@ -141,5 +146,50 @@ class StockMove(models.Model):
     def _action_assign(self):
         res = super(StockMove, self)._action_assign()
         for picking_type in self.mapped('picking_type_id'):
-            picking_type.post_reservation_split(
-                self.filtered(lambda m: m.picking_type_id == picking_type))
+            self.filtered(lambda m: m.picking_type_id == picking_type). \
+                post_reservation_split()
+
+    def post_reservation_split(self):
+        """
+        group the move lines by the splitting criteria
+        for each resulting group of stock.move.lines:
+            create a new picking
+            split any stock.move records that are only partially covered by the
+                group of stock.move.lines
+            attach the stock.moves and stock.move.lines to the new picking.
+        """
+        MoveLine = self.env['stock.move.line']
+        Picking = self.env['stock.picking']
+
+        picking_type = self.mapped('picking_type_id')
+        picking_type.ensure_one()
+
+        if not picking_type.u_move_line_key_format:
+            return
+
+        pickings = self.mapped('picking_id')
+        mls_by_key = self.mapped('move_line_ids').group_by_key()
+
+        for key, ml_group in mls_by_key.items():
+            touched_moves = ml_group.mapped('move_id')
+            group_moves = self.env['stock.move']
+            for move in touched_moves:
+                move_mls = ml_group.filtered(lambda l: l.move_id == move)
+
+                if move_mls != move.move_line_ids:
+                    # The move is not entirely contained by the move lines
+                    # for this grouping. Need to split the move.
+                    group_moves |= move.split_out_move_lines(move_mls)
+                else:
+                    group_moves |= move
+
+            Picking._new_picking_for_group(key, group_moves, ml_group)
+
+        empty_picks = pickings.filtered(lambda p: len(p.move_lines) == 0)
+        if empty_picks:
+            _logger.info(_("Cancelling empty picks after splitting."))
+            # action_cancel does not cancel a picking with no moves.
+            empty_picks.write({
+                'state': 'cancel',
+                'is_locked': True
+            })
