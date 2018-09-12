@@ -106,8 +106,15 @@ class StockPickingType(models.Model):
 
     u_move_line_key_format = fields.Char(
         'Move Line Grouping Key',
-        help="""A field name on stock.move.line that is used to group move 
+        help="""A field name on stock.move.line that is used to group move
         lines post-reservation."""
+    )
+
+    u_check_work_available = fields.Boolean(
+        string='Check for more work',
+        default=False,
+        help='Flag to indicate with if picking type should display if there is'
+             'picks of this type which are not in a batch'
     )
 
     def _prepare_info(self):
@@ -133,6 +140,7 @@ class StockPickingType(models.Model):
             - u_reserve_as_packages: boolean
             - u_confirm_serial_numbers: string
             - u_auto_batch_pallet: boolean
+            - u_check_work_available: boolean
         """
         self.ensure_one()
 
@@ -161,6 +169,7 @@ class StockPickingType(models.Model):
                 'u_confirm_serial_numbers': self.u_confirm_serial_numbers,
                 'u_suggest_location': self.u_suggest_location,
                 'u_auto_batch_pallet': self.u_auto_batch_pallet,
+                'u_check_work_available': self.u_check_work_available,
                 }
 
     def get_info(self):
