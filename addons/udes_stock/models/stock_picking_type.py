@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-from itertools import groupby
-
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
 
@@ -186,13 +184,6 @@ class StockPickingType(models.Model):
                     picking_type_id)
         return picking_type
 
-    def group_move_lines(self, move_lines):
-        MoveLine = self.env['stock.move.line']
-        return {k: MoveLine.browse([ml.id for ml in g])
-                for k, g in
-                groupby(sorted(move_lines, key=MoveLine.move_line_key),
-                        key=MoveLine.move_line_key)}
-
     def post_reservation_split(self, moves):
         """
         group the move lines by the splitting criteria
@@ -207,7 +198,7 @@ class StockPickingType(models.Model):
             return
 
         pickings = moves.mapped('picking_id')
-        mls_by_key = self.group_move_lines(moves.mapped('move_line_ids'))
+        mls_by_key = moves.mapped('move_line_ids').group_by_splitting_key()
 
         for key, ml_group in mls_by_key.items():
             touched_moves = ml_group.mapped('move_id')
@@ -224,7 +215,7 @@ class StockPickingType(models.Model):
                 else:
                     group_moves |= move
 
-            self.new_picking_for_group(key, ml_group, group_moves)
+            self._new_picking_for_group(key, ml_group, group_moves)
 
         empty_picks = pickings.filtered(lambda p: len(p.move_lines) == 0)
         if empty_picks:
@@ -235,7 +226,7 @@ class StockPickingType(models.Model):
                 'is_locked': True
             })
 
-    def new_picking_for_group(self, group_key, move_lines, moves):
+    def _new_picking_for_group(self, group_key, move_lines, moves):
         Picking = self.env['stock.picking']
         Group = self.env['procurement.group']
 

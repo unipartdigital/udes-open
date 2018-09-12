@@ -4,18 +4,14 @@ from . import common
 from odoo.exceptions import ValidationError
 
 
-class TestPackageSwap(common.BaseUDES):
-
-    @classmethod
-    def setUpClass(cls):
-        super(TestPackageSwap, cls).setUpClass()
+class TestPickSplitting(common.BaseUDES):
 
     def setUp(self):
         """
         Create stock: pallet with apples, pallet with bananas
         create picking: for all of both
         """
-        super(TestPackageSwap, self).setUp()
+        super(TestPickSplitting, self).setUp()
         Package = self.env['stock.quant.package']
 
         self.picking_type_pick.u_move_line_key_format = "{package_id.name}"
