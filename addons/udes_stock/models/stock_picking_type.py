@@ -186,21 +186,14 @@ class StockPickingType(models.Model):
                     picking_type_id)
         return picking_type
 
-    @api.model
-    def move_line_key(self, move_line):
-        ml_vals = {fname: getattr(move_line, fname)
-                   for fname, f in move_line._fields.items()}
-        return move_line.picking_id.picking_type_id. \
-            u_move_line_key_format.format(**ml_vals)
-
     def group_move_lines(self, move_lines):
         MoveLine = self.env['stock.move.line']
         return {k: MoveLine.browse([ml.id for ml in g])
                 for k, g in
-                groupby(sorted(move_lines, key=self.move_line_key),
-                        key=self.move_line_key)}
+                groupby(sorted(move_lines, key=MoveLine.move_line_key),
+                        key=MoveLine.move_line_key)}
 
-    def post_reservation_split(self, pickings):
+    def post_reservation_split(self, moves):
         """
         group the move lines by the splitting criteria
         for each resulting group of stock.move.lines:
@@ -213,7 +206,8 @@ class StockPickingType(models.Model):
         if not self.u_move_line_key_format:
             return
 
-        mls_by_key = self.group_move_lines(pickings.mapped('move_line_ids'))
+        pickings = moves.mapped('picking_id')
+        mls_by_key = self.group_move_lines(moves.mapped('move_line_ids'))
 
         for key, ml_group in mls_by_key.items():
             touched_moves = ml_group.mapped('move_id')

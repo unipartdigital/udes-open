@@ -137,3 +137,9 @@ class StockMove(models.Model):
                 (bk_move | self).update_orig_ids(self.move_orig_ids)
 
         return bk_move
+
+    def _action_assign(self):
+        res = super(StockMove, self)._action_assign()
+        for picking_type in self.mapped('picking_type_id'):
+            picking_type.post_reservation_split(
+                self.filtered(lambda m: m.picking_type_id == picking_type))

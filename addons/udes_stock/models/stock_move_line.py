@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from odoo import models,  _
+from odoo import api, models,  _
 from odoo.exceptions import ValidationError
 from odoo.tools.float_utils import float_compare, float_round
 from copy import deepcopy
@@ -596,3 +596,10 @@ class StockMoveLine(models.Model):
             task['package_id'] = info[0]
 
         return task
+
+    @api.model
+    def move_line_key(self, move_line):
+        ml_vals = {fname: getattr(move_line, fname)
+                   for fname, f in move_line._fields.items()}
+        return move_line.picking_id.picking_type_id. \
+            u_move_line_key_format.format(**ml_vals)
