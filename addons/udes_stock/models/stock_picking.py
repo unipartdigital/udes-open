@@ -952,11 +952,6 @@ class StockPicking(models.Model):
                 _('Unexpected result from action assign.')
             )
         self._reserve_full_packages()
-
-        for picking_type in self.mapped('picking_type_id'):
-            picking_type.post_reservation_split(
-                self.filtered(lambda p: p.picking_type_id == picking_type))
-
         return True
 
     def _check_entire_pack(self):
