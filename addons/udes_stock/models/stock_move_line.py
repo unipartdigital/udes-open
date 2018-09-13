@@ -135,11 +135,13 @@ class StockMoveLine(models.Model):
             move_lines = move_lines.get_lines_todo()
             # TODO all in one function?
             move_lines = move_lines._check_enough_quantity(products_info_by_product, picking_id=picking)
-            # TODO: check this condition, if it is not needed, we don't need package in this function
-            if not package and not result_package and move_lines.mapped('package_id'):
+
+            if not package and move_lines.mapped('package_id'):
                 raise ValidationError(_('Setting as done package operations as product operations'))
+
         if not move_lines:
             raise ValidationError(_("Cannot find move lines to mark as done"))
+
         if move_lines.filtered(lambda ml: ml.qty_done > 0):
             raise ValidationError(_("The operation is already done"))
 
