@@ -234,9 +234,9 @@ class StockMoveLine(models.Model):
             elif mls_with_lot_name:
                 # none of them has lot id, so they are new lot numbers
                 product_mls_in_lot_numbers = mls_with_lot_name.filtered(lambda ml: ml.lot_name in lot_numbers)
-                if product_mls_in_lot_numbers:
+                if product.tracking == 'serial' and product_mls_in_lot_numbers:
                     raise ValidationError(
-                        _('Lot numbers %s already exist in picking %s') %
+                        _('Serial numbers %s already exist in picking %s') %
                         (' '.join(product_mls_in_lot_numbers.mapped('lot_name')),
                          product_mls.mapped('picking_id').name))
                 product.assert_serial_numbers(lot_numbers)

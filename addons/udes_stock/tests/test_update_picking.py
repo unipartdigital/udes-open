@@ -216,16 +216,17 @@ class TestGoodsInUpdatePickingProducts(common.BaseUDES):
         picking = picking.sudo(self.inbound_user)
 
         product_ids = [{
-                            'barcode': self.strawberry.barcode,
-                            'qty': 1,
-                            'lot_names': ['Strawberry0']
-                        }]
+            'barcode': self.strawberry.barcode,
+            'qty': 1,
+            'lot_names': ['Strawberry0']
+        }]
         picking.update_picking(product_ids=product_ids)
 
         with self.assertRaises(ValidationError) as e:
             picking.update_picking(product_ids=product_ids)
-        self.assertEqual(e.exception.name, 'Lot numbers Strawberry0 already exist '
-                                             'in picking %s' % picking.name,
+        self.assertEqual(e.exception.name,
+                         'Serial numbers Strawberry0 already exist in '
+                         'picking %s' % picking.name,
                          'No/Incorrect error message was thrown')
 
     def test09_update_picking_over_received_single(self):
@@ -487,7 +488,7 @@ class TestGoodsInUpdatePickingProducts(common.BaseUDES):
                          'Stock picking is not in state done after validation.')
 
     def test18_update_picking_repeated_lot_number(self):
-        """ Test update_picking raises an error when using a lot tracked product
+        """ Test update_picking completes when using a lot tracked product
             in two updates and using the same lot number twice.
         """
         create_info = [{'product': self.tangerine, 'qty': 4}]
@@ -513,12 +514,16 @@ class TestGoodsInUpdatePickingProducts(common.BaseUDES):
         self.assertEqual(first_ml.lot_name, 'tangerine01')
         self.assertFalse(remaining_ml.lot_name)
 
-        with self.assertRaises(ValidationError) as e:
-            picking.update_picking(product_ids=product_ids2)
-        self.assertEqual(e.exception.name,
-                         'Lot numbers tangerine01 already exist in picking %s' %
-                         picking.name,
-                         'No/Incorrect error message was thrown')
+        picking.update_picking(product_ids=product_ids2)
+        self.assertEqual(len(picking.move_line_ids), 2)
+        self.assertEqual(remaining_ml.qty_done, 3)
+        self.assertEqual(remaining_ml.lot_name, 'tangerine01')
+
+        self.assertEqual(sum(picking.mapped('move_line_ids.qty_done')), 4)
+
+        picking.update_picking(validate=True)
+        self.assertEqual(picking.state, 'done',
+                         'Stock picking is not in state done after validation.')
 
 
 class TestGoodsInUpdatePickingPallet(common.BaseUDES):
