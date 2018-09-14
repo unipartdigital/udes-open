@@ -2,7 +2,7 @@
 from itertools import groupby
 
 from odoo import api, fields, models,  _
-from odoo.exceptions import ValidationError
+from odoo.exceptions import UserError, ValidationError
 from odoo.tools.float_utils import float_compare, float_round
 from copy import deepcopy
 from collections import Counter, defaultdict
@@ -605,13 +605,21 @@ class StockMoveLine(models.Model):
         for ml in self:
             ml_vals = {fname: getattr(ml, fname)
                        for fname in ml._fields.keys()}
+            format_str = ml.picking_id.picking_type_id.u_move_line_key_format
 
-            ml.u_grouping_key = ml.picking_id.picking_type_id. \
-                u_move_line_key_format.format(**ml_vals)
+            if format_str:
+                ml.u_grouping_key = format_str.format(**ml_vals)
+            else:
+                ml.u_grouping_key = None
 
     def group_by_key(self):
         # force recompute on u_grouping_key so we have an up-to-date key:
         self._fields['u_grouping_key'].compute_value(self)
+
+        if any(pt.u_move_line_key_format is False
+               for pt in self.mapped('picking_id.picking_type_id')):
+            raise UserError(_("Cannot group move lines when their picking type"
+                              "has no grouping key set."))
 
         by_key = lambda ml: ml.u_grouping_key
         return {k: self.browse([ml.id for ml in g])
