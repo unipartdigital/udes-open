@@ -434,3 +434,10 @@ class StockLocation(models.Model):
             stock_drift[info] = adj['quantity']
 
         return stock_drift
+
+    def get_quant_policy(self):
+        self.ensure_one()
+        my_policy = self.u_quant_policy
+        if not my_policy and self.location_id:
+            return self.location_id.get_quant_policy()
+        return my_policy
