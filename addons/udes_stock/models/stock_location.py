@@ -3,7 +3,7 @@
 from collections import namedtuple
 from datetime import datetime
 
-from odoo import fields, models,  _
+from odoo import fields, models,  _, api
 from odoo.exceptions import ValidationError
 
 
@@ -457,3 +457,11 @@ class StockLocation(models.Model):
                 _('Pick locations cannot contain more than one product.')
                 )
 
+    @api.constrains('u_quant_policy', 'location_id')
+    def apply_location_policy_change_to_descendants(self):
+        examine_locations = self.env["stock.location"].search(
+            [('location_id', 'child_of', self.ids)]
+            )
+        for examine_location in examine_locations:
+            if examine_location.quant_ids:
+                examine_location.apply_quant_policy()
