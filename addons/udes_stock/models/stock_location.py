@@ -441,3 +441,19 @@ class StockLocation(models.Model):
         if not my_policy and self.location_id:
             return self.location_id.get_quant_policy()
         return my_policy
+
+    def apply_quant_policy(self):
+        for loc in self:
+            policy = loc.get_quant_policy()
+            if policy:
+                func = getattr(self, '_apply_quant_policy_' + policy, None)
+                if func:
+                    func(policy, loc)
+
+    def _apply_quant_policy_single_product_id(self, policy, loc):
+        if policy == 'single_product_id' and\
+                    len(loc.quant_ids.mapped('product_id')) > 1:
+            raise ValidationError(
+                _('Pick locations cannot contain more than one product.')
+                )
+
