@@ -139,18 +139,22 @@ class StockPickingBatch(models.Model):
 
         return batch
 
-    def _check_batches(self, user_id):
+    def _check_batches(self, user_id, batches=None, raise_error=True):
         """
-        In case there is a batch for the specified user, run
-        through its pickings and raise a ValidationError if any
-        non-draft picking is incomplete, otherwise mark the batch
-        as done.
+        Checks if batches are complete, and marks as done.
+
+        If no batch is provided, searches all batches in progress
+        for the specified user.
+
+        Optionally raises a ValidationError if any non-draft picking
+        is incomplete.
         """
         Picking = self.env['stock.picking']
         PickingBatch = self.env['stock.picking.batch']
 
-        batches = PickingBatch.search([('user_id', '=', user_id),
-                                       ('state', '=', 'in_progress')])
+        if not batches:
+            batches = PickingBatch.search([('user_id', '=', user_id),
+                                           ('state', '=', 'in_progress')])
 
         if batches:
             draft_picks = Picking.browse()
@@ -165,7 +169,7 @@ class StockPickingBatch(models.Model):
             if draft_picks:
                 draft_picks.write({'batch_id': None})
 
-            if incomplete_picks:
+            if incomplete_picks and raise_error:
                 picks_txt = ','.join([x.name for x in incomplete_picks])
                 raise ValidationError(
                     _("The user already has pickings that need completing - "
@@ -173,7 +177,8 @@ class StockPickingBatch(models.Model):
                       "more:\n {}".format(picks_txt)))
 
             # all the picks in the waves are finished
-            batches.done()
+            if not incomplete_picks:
+                batches.done()
 
     def drop_off_picked(self, continue_batch, location_barcode):
         """
@@ -213,25 +218,18 @@ class StockPickingBatch(models.Model):
                 # at this point pick_todo should contain only mls done
                 pick_todo.update_picking(validate=True)
 
-
         incomplete_picks = self.picking_ids.filtered(
             lambda x: x.state not in ['done', 'cancel'])
-        all_done = not incomplete_picks
 
         if not continue_batch:
             incomplete_picks.write({'batch_id': False})
-            all_done = True
-
-        if all_done:
-            # there's nothing else to be picked...
-            self.done()
 
         return self
 
     def is_valid_location_dest_id(self, location_ref):
         """
         Whether the specified location (via ID, name or barcode)
-        is a valid putaway location for the all the relavant
+        is a valid putaway location for the all the relevant
         pickings of the batch.
         Expects a singleton instance.
 
@@ -403,3 +401,16 @@ class StockPickingBatch(models.Model):
 
         return mls
 
+    @api.one
+    def check_batches(self):
+        """ If picking IDs are updated on an in progress batch, check if it is now complete
+        """
+        if self.state == 'in_progress':
+            self._check_batches(None, batches=self, raise_error=False)
+
+    def write(self, vals):
+        """ If writing batch, check if now complete
+        """
+        res = super(StockPickingBatch, self).write(vals)
+        self.check_batches()
+        return res

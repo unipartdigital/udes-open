@@ -176,9 +176,37 @@ class StockPicking(models.Model):
                       " preceding pickings are done.") % picking.name)
 
     def action_done(self):
-        """ Ensure we don't incorrectly validate pending pickings."""
+        """
+        Ensure we don't incorrectly validate pending pickings.
+        Check if picking batch is now complete
+        """
         self.assert_not_pending()
-        return super(StockPicking, self).action_done()
+        res = super(StockPicking, self).action_done()
+        self.check_batch()
+        return res
+
+    def action_cancel(self):
+        """
+        Check if picking batch is now complete
+        """
+        res = super(StockPicking, self).action_cancel()
+        self.check_batch()
+        return res
+
+    @api.one
+    def check_batch(self):
+        """ If picking state changes, check if batch is now complete
+        """
+        if self.batch_id:
+            self.batch_id.check_batches()
+
+    def write(self, vals):
+        """ If writing picking, check if previous batch is now complete
+        """
+        batches = self.mapped(lambda p: p.batch_id)
+        res = super(StockPicking, self).write(vals)
+        batches.check_batches()
+        return res
 
     def button_validate(self):
         """ Ensure we don't incorrectly validate pending pickings."""
