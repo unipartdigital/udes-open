@@ -454,7 +454,7 @@ class StockLocation(models.Model):
         if policy == 'single_product_id' and\
                     len(loc.quant_ids.mapped('product_id')) > 1:
             raise ValidationError(
-                _('Pick locations cannot contain more than one product.')
+                _('Location %s cannot contain more than one product.' % loc.name)
                 )
 
     @api.constrains('u_quant_policy', 'location_id')

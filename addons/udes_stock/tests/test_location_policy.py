@@ -35,7 +35,8 @@ class TestLocationPolicy(common.BaseUDES):
         10)
 
         with self.assertRaisesRegex(ValidationError,
-                        'Pick locations cannot contain more than one product.'):
+                        'Location %s cannot contain more than one product.'
+                                % self.test_location_last_child_stock.name):
             self.create_quant(self.fig.id, self.test_location_last_child_stock.id,
         10)
 
@@ -45,7 +46,8 @@ class TestLocationPolicy(common.BaseUDES):
         10)
 
         with self.assertRaisesRegex(ValidationError,
-                        'Pick locations cannot contain more than one product.'):
+                        'Location %s cannot contain more than one product.'
+                                % self.test_location_last_child_stock.name):
             self.create_quant(self.fig.id, self.test_location_last_child_stock.id,
         10)
     
@@ -55,7 +57,8 @@ class TestLocationPolicy(common.BaseUDES):
         10)
 
         with self.assertRaisesRegex(ValidationError,
-                        'Pick locations cannot contain more than one product.'):
+                        'Location %s cannot contain more than one product.'
+                                % self.test_location_last_child_stock.name):
             self.create_quant(self.fig.id, self.test_location_last_child_stock.id,
         10)
 
@@ -76,7 +79,8 @@ class TestLocationPolicy(common.BaseUDES):
         10)
 
         with self.assertRaisesRegex(ValidationError,
-                        'Pick locations cannot contain more than one product.'):
+                        'Location %s cannot contain more than one product.'
+                                % self.test_location_last_child_stock.name):
             self.test_location_last_child_stock.location_id = \
                                     self.test_location_parent_stock.id
 
@@ -86,7 +90,8 @@ class TestLocationPolicy(common.BaseUDES):
         self.create_quant(self.fig.id, self.test_location_last_child_stock.id,
         10)
         with self.assertRaisesRegex(ValidationError,
-                        'Pick locations cannot contain more than one product.'):
+                        'Location %s cannot contain more than one product.'
+                                % self.test_location_last_child_stock.name):
             self.test_location_last_child_stock.u_quant_policy = \
                                                              'single_product_id'
 
@@ -96,7 +101,8 @@ class TestLocationPolicy(common.BaseUDES):
         self.create_quant(self.fig.id, self.test_location_last_child_stock.id,
         10)
         with self.assertRaisesRegex(ValidationError,
-                        'Pick locations cannot contain more than one product.'):
+                        'Location %s cannot contain more than one product.'
+                                % self.test_location_last_child_stock.name):
             self.test_location_parent_stock.u_quant_policy = 'single_product_id'
     
     def test08_change_direct_parent_location_policy(self):
@@ -105,7 +111,8 @@ class TestLocationPolicy(common.BaseUDES):
         self.create_quant(self.fig.id, self.test_location_last_child_stock.id,
         10)
         with self.assertRaisesRegex(ValidationError,
-                        'Pick locations cannot contain more than one product.'):
+                        'Location %s cannot contain more than one product.'
+                                % self.test_location_last_child_stock.name):
             self.test_location_middle_child_stock.u_quant_policy =\
                                                              'single_product_id'
     
@@ -115,7 +122,8 @@ class TestLocationPolicy(common.BaseUDES):
         self.create_quant(self.fig.id, self.test_location_middle_child_stock.id,
         10)
         with self.assertRaisesRegex(ValidationError,
-                        'Pick locations cannot contain more than one product.'):
+                        'Location %s cannot contain more than one product.'
+                                % self.test_location_middle_child_stock.name):
             self.test_location_parent_stock.u_quant_policy = 'single_product_id'
 
     def test10_change_middle_child_direct_parent_location_policy(self):
@@ -124,6 +132,7 @@ class TestLocationPolicy(common.BaseUDES):
         self.create_quant(self.fig.id, self.test_location_middle_child_stock.id,
         10)
         with self.assertRaisesRegex(ValidationError,
-                        'Pick locations cannot contain more than one product.'):
+                        'Location %s cannot contain more than one product.'
+                                % self.test_location_middle_child_stock.name):
             self.test_location_first_child_stock.u_quant_policy =\
                                                              'single_product_id'
