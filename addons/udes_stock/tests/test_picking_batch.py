@@ -88,8 +88,22 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         Batch = self.env['stock.picking.batch']
         Batch = Batch.sudo(self.outbound_user)
 
-        self.create_batch(state='in_progress', user=self.outbound_user)
-        self.create_batch(state='in_progress', user=self.outbound_user)
+        batch01 = self.create_batch(user=self.outbound_user)
+        self.create_picking(self.picking_type_pick,
+                            products_info=self.pack_4apples_info,
+                            confirm=True,
+                            assign=True,
+                            batch_id=batch01.id)
+        batch01.state = 'in_progress'
+
+        batch02 = self.create_batch(user=self.outbound_user)
+        self.create_picking(self.picking_type_pick,
+                            products_info=self.pack_4apples_info,
+                            confirm=True,
+                            assign=True,
+                            batch_id=batch02.id)
+        batch02.state = 'in_progress'
+
         batches = Batch.search([('user_id', '=', self.outbound_user.id),
                                 ('state', '=', 'in_progress')])
 
@@ -188,7 +202,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         # check pre-conditions
         self.assertEqual(picking.state, 'done')
         self.assertEqual(len(batch.picking_ids), 1)
-        self.assertEqual(batch.state, 'in_progress')
+        self.assertEqual(batch.state, 'done')
         self.assertEqual(batch.picking_ids[0].state, 'done')
 
         # method under test
@@ -242,8 +256,8 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         self.assertTrue(
             err.exception.name.startswith("The user already has pickings"))
 
-    def test11_drop_off_picked(self):
-        """ Marks the batch as done if the picking is complete """
+    def test11_automatic_batch_done(self):
+        """ Verifies the batch is done if the picking is complete """
         Batch = self.env['stock.picking.batch']
         Batch = Batch.sudo(self.outbound_user)
 
@@ -259,13 +273,8 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
         # check pre-conditions
         self.assertEqual(len(batch.picking_ids), 1)
-        self.assertEqual(batch.state, 'in_progress')
+        self.assertEqual(batch.state, 'done')
         self.assertEqual(batch.picking_ids[0].state, 'done')
-
-        # method under test
-        batch.drop_off_picked(False, self.test_location_01.barcode)
-
-        self.assertEqual(batch.state, 'done', "Batch was not completed")
 
     def _create_valid_batch(self):
         Batch = self.env['stock.picking.batch']
