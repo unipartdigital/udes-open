@@ -58,6 +58,12 @@ class StockLocation(models.Model):
         help="The date that the location stock was last checked and all "
              "products were correct")
 
+    u_quant_policy = fields.Selection(
+        string='Location Policy',
+        selection=[('all', 'Allow all'),
+        ('single_product_id', 'One product per location')]
+        )
+
     def _prepare_info(self, extended=False, load_quants=False):
         """
             Prepares the following info of the location in self:
