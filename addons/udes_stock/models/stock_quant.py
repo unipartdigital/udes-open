@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from odoo import models, _
+from odoo import models, _, api
 from odoo.exceptions import ValidationError
 
 from collections import defaultdict
@@ -115,3 +115,8 @@ class StockQuant(models.Model):
             res.append(quant._prepare_info())
 
         return res
+
+    @api.constrains('location_id')
+    def quant_location_policy(self):
+        self.ensure_one()
+        self.location_id.apply_quant_policy()
