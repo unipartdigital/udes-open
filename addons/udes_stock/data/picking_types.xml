@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<odoo>
+  <data>
+
+    <!-- Update "Goods In" picking type -->
+    <record id="stock.picking_type_in" model="stock.picking.type">
+      <field name="show_operations" eval="1"/>
+    </record>
+
+    <!-- Update "Delivery" picking type -->
+    <record id="stock.picking_type_out" model="stock.picking.type">
+      <field name="show_operations" eval="1"/>
+    </record>
+
+    <!-- Update "Internal Transfer" picking type -->
+    <record id="stock.picking_type_internal" model="stock.picking.type">
+      <field name="show_operations" eval="1"/>
+    </record>
+
+  </data>
+</odoo>
+

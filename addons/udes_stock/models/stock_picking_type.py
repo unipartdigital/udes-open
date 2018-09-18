@@ -6,6 +6,8 @@ from odoo.exceptions import ValidationError
 class StockPickingType(models.Model):
     _inherit = "stock.picking.type"
 
+    show_operations = fields.Boolean(default=True)
+
     u_allow_swapping_packages = fields.Boolean('Allow swapping packages')
     u_skip_allowed = fields.Boolean(
             string='Skip allowed',
