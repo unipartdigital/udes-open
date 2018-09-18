@@ -119,18 +119,6 @@ class StockQuantPackage(models.Model):
                 _('Cannot mark as done a partially reserved package.')
             )
 
-    # TODO Fix in odoo core (copy pasted from there)
-    def _get_all_products_quantities(self):
-        '''This function computes the different product quantities for the given package
-        '''
-        # TDE CLEANME: probably to move somewhere else, like in pack op
-        res = {}
-        for quant in self._get_contained_quants():
-            if quant.product_id not in res:
-                res[quant.product_id] = 0
-            res[quant.product_id] += quant.quantity
-        return res
-
     @api.multi
     def is_reserved(self):
         """ Whether the package is reserved for any picking.
