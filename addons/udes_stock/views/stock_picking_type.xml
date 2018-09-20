@@ -34,6 +34,7 @@
                     <field name="u_suggest_location" />
                     <field name="u_confirm_serial_numbers" />
                     <field name="u_auto_batch_pallet" />
+                    <field name="u_check_work_available" />
                 </group>
             </xpath>
 
