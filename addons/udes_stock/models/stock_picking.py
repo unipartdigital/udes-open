@@ -28,6 +28,7 @@ def _update_move_lines_and_log_swap(move_lines, pack, other_pack):
     move_lines[0].picking_id.message_post(body=msg)
     _logger.info(msg)
 
+
 class StockPicking(models.Model):
     _inherit = 'stock.picking'
 
@@ -537,8 +538,10 @@ class StockPicking(models.Model):
 
         if location_dest_id or location_dest_barcode or location_dest_name:
             values['location_dest'] = location_dest_id or location_dest_barcode or location_dest_name
+
         if result_package_name:
             values['result_package'] = result_package_name
+
         if not move_parent_package:
             # not needed yet, move it outside udes_stock
             # when false remove parent_id of the result_package_id ??
@@ -971,7 +974,7 @@ class StockPicking(models.Model):
             Override action_confirm to create procurement groups if needed
         """
         for pick in self.filtered(
-                lambda p: p.picking_type_id.u_create_procurement_group 
+                lambda p: p.picking_type_id.u_create_procurement_group
                           and not p.group_id):
             pick._create_own_procurement_group()
         return super(StockPicking, self).action_confirm()

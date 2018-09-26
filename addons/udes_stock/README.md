@@ -123,34 +123,34 @@ A lot of custom UDES functionality is specfied at the picking type level. This i
 
 A move of an item of stock from one location to another.
 
-| Field Name                | Type    | Description                                       |
-| ------------------------- | ------- | ------------------------------------------------- |
-| id | int | |
+| Field Name       | Type     | Description                                       |
+| ---------------- | -------- | ------------------------------------------------- |
+| id               | int      | |
 | location_dest_id | {id: stock.location.id, name: stock.location.name, stock.location.barcode} | Cut down location summary, for the destination location |
-| location_id | As above | Source location |
-| ordered_qty | float | Ordered quantity |
-| product_id | {product.product} | Product summary |
-| product_qty | float | Real quantity expected |
-| quantity_done | float | Quantity received so far |
-| move_line_ids | [{stock.move.line}] | The lines associated with this move. |
+| location_id      | As above | Source location |
+| ordered_qty      | float    | Ordered quantity |
+| product_id       | {product.product} | Product summary |
+| product_qty      | float    | Real quantity expected |
+| quantity_done    | float    | Quantity received so far |
+| move_line_ids    | [{stock.move.line}] | The lines associated with this move |
 
 ## Stock Move Line (model: stock.move.line)
 
 A move of a specific, handleable item of stock - such as 5 phones, or 1 car door.
 
-| Field Name                | Type     | Description                                       |
-| ------------------------- | -------- | ------------------------------------------------- |
-| id                        | int      | |
-| create_date               | datetime | |
-| location_dest_id          | {id: stock.location.id, name: stock.location.name, stock.location.barcode} | Cut down location summary, for the destination location |
-| location_id               | As above | Source location |
-| lot_id | ??? | TBC |
-| package_id                | {stock.quant.package} | Source package |
-| qty_done                  | float | |
-| product_uom_qty           | float | Reserved quantity |
-| result_package_id         | {stock.quant.package} | Destination package
-| u_result_parent_package_id | {stock.quant.package} | Destination parent package of the result_package_id
-| write_date                | datetime | |
+| Field Name                 | Type     | Description                                       |
+| -------------------------- | -------- | ------------------------------------------------- |
+| id                         | int      | |
+| create_date                | datetime | |
+| location_dest_id           | {id: stock.location.id, name: stock.location.name, stock.location.barcode} | Cut down location summary, for the destination location |
+| location_id                | As above | Source location |
+| lot_id                     | ???      | TBC  |
+| package_id                 | {stock.quant.package} | Source package |
+| qty_done                   | float    | |
+| product_uom_qty            | float    | Reserved quantity |
+| result_package_id          | {stock.quant.package} | Destination package |
+| u_result_parent_package_id | {stock.quant.package} | Destination parent package of the result_package_id |
+| write_date                 | datetime | |
 
 ## Stock Warehouse
 
