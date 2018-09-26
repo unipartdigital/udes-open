@@ -88,6 +88,11 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         Batch = self.env['stock.picking.batch']
         Batch = Batch.sudo(self.outbound_user)
 
+        self.create_quant(self.apple.id, self.test_location_01.id, 4,
+                          package_id=self.package_one.id)
+        self.create_quant(self.apple.id, self.test_location_01.id, 4,
+                          package_id=self.package_two.id)
+
         batch01 = self.create_batch(user=self.outbound_user)
         self.create_picking(self.picking_type_pick,
                             products_info=self.pack_4apples_info,

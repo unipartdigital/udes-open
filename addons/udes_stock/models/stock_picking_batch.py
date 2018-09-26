@@ -157,17 +157,17 @@ class StockPickingBatch(models.Model):
                                            ('state', '=', 'in_progress')])
 
         if batches:
-            draft_picks = Picking.browse()
+            not_ready_picks = Picking.browse()
             incomplete_picks = Picking.browse()
 
             for pick in batches.mapped('picking_ids'):
-                if pick.state == 'draft':
-                    draft_picks += pick
+                if pick.state in ['draft', 'waiting', 'confirmed']:
+                    not_ready_picks += pick
                 elif pick.state not in ['done', 'cancel']:
                     incomplete_picks += pick
 
-            if draft_picks:
-                draft_picks.write({'batch_id': None})
+            if not_ready_picks:
+                not_ready_picks.write({'batch_id': None})
 
             if incomplete_picks and raise_error:
                 picks_txt = ','.join([x.name for x in incomplete_picks])
