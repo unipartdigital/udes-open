@@ -1,6 +1,7 @@
 from . import common
 from odoo.exceptions import ValidationError
 
+
 class TestGoodsInUpdatePickingProducts(common.BaseUDES):
 
     @classmethod
@@ -732,3 +733,130 @@ class TestGoodsInUpdatePickingPallet(common.BaseUDES):
         picking.update_picking(validate=True)
         self.assertEqual(picking.state, 'done',
                          'Stock picking is not in state done after validation.')
+
+
+class TestUpdatePickingMarksMoveLinesAsDone(common.BaseUDES):
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestUpdatePickingMarksMoveLinesAsDone, cls).setUpClass()
+        cls.picking_type_in.u_target_storage_format = 'product'
+
+    def test01_child_drop_location_success(self):
+        """ If the updated destination location is a child of the
+            expected dest location of the picking, the picking
+            update succeeds.
+        """
+        self.create_quant(self.apple.id, self.test_location_01.id, 4)
+        self.create_quant(self.banana.id, self.test_location_01.id, 4)
+        create_info = [
+            {'product': self.apple,
+             'qty': 4,
+             'location_dest_id': self.test_output_location_01.id},
+            {'product': self.banana,
+             'qty': 4,
+             'location_dest_id': self.test_output_location_01.id}]
+
+        picking = self.create_picking(self.picking_type_pick,
+                                      products_info=create_info,
+                                      confirm=True,
+                                      assign=True)
+        picking = picking.sudo(self.outbound_user)
+
+        product_ids = [
+            {'barcode': self.apple.barcode,
+             'qty': 4},
+            {'barcode': self.banana.barcode,
+             'qty': 4}]
+
+        # The following should trigger the drop location constraint
+        # validation without throwing
+        picking.move_line_ids.write(
+            {'location_dest_id': self.test_output_location_01.id})
+
+        for ml in picking.move_line_ids:
+            self.assertEqual(ml.qty_done, 0)
+
+        picking.update_picking(product_ids=product_ids,
+                               location_dest_id=self.test_output_location_01.id)
+        self.assertEqual(sum([ml.qty_done for ml in picking.move_line_ids]), 8)
+        picking.update_picking(validate=True)
+        self.assertEqual(picking.state, 'done',
+                         'Stock picking is not in state done after validation.')
+
+    def test02_child_drop_location_failure(self):
+        """ If the updated destination location is NOT a child of
+            the expected dest location of the picking, a validation
+            error is thrown after the update_picking() invocation.
+        """
+        self.create_quant(self.apple.id, self.test_location_01.id, 4)
+        create_info = [
+            {'product': self.apple,
+             'qty': 4,
+             'location_dest_id': self.test_output_location_01.id}]
+
+        picking = self.create_picking(self.picking_type_pick,
+                                      products_info=create_info,
+                                      confirm=True,
+                                      assign=True)
+        picking = picking.sudo(self.outbound_user)
+
+        product_ids = [
+            {'barcode': self.apple.barcode,
+             'qty': 4}]
+        err = "The location '%s' is not a child of the picking destination location '%s'" \
+              % (self.test_location_01.name, picking.location_dest_id.name)
+
+        with self.assertRaises(ValidationError) as e_1:
+            picking.move_line_ids.write({'location_dest_id': self.test_location_01.id})
+
+        self.assertEqual(e_1.exception.name, err)
+        self.assertEqual(picking.move_lines.quantity_done, 0)
+
+        with self.assertRaises(ValidationError) as e_2:
+            picking.update_picking(product_ids=product_ids,
+                                   location_dest_id=self.test_location_01.id)
+
+        self.assertEqual(e_2.exception.name, err)
+
+    def test03_child_drop_location_failure_multiple_products(self):
+        """ If the updated destination location is NOT a child of
+            the expected dest location of the picking, a validation
+            error is thrown after the update_picking() invocation
+            (case of multiple products).
+        """
+        self.create_quant(self.apple.id, self.test_location_01.id, 4)
+        self.create_quant(self.banana.id, self.test_location_01.id, 4)
+        create_info = [
+            {'product': self.apple,
+             'qty': 4,
+             'location_dest_id': self.test_output_location_01.id},
+            {'product': self.banana,
+             'qty': 4,
+             'location_dest_id': self.test_output_location_01.id}]
+
+        picking = self.create_picking(self.picking_type_pick,
+                                      products_info=create_info,
+                                      confirm=True,
+                                      assign=True)
+        picking = picking.sudo(self.outbound_user)
+
+        product_ids = [
+            {'barcode': self.apple.barcode,
+             'qty': 4},
+            {'barcode': self.banana.barcode,
+             'qty': 4}]
+        err = "The location '%s' is not a child of the picking destination location '%s'" \
+              % (self.test_location_01.name, picking.location_dest_id.name)
+
+        with self.assertRaises(ValidationError) as e_1:
+            picking.move_line_ids.write({'location_dest_id': self.test_location_01.id})
+
+        self.assertEqual(e_1.exception.name, err)
+        self.assertEqual(sum([p.quantity_done for p in picking.move_lines]), 0)
+
+        with self.assertRaises(ValidationError) as e_2:
+            picking.update_picking(product_ids=product_ids,
+                                   location_dest_id=self.test_location_01.id)
+
+        self.assertEqual(e_2.exception.name, err)
