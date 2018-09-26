@@ -95,29 +95,46 @@ The type of stock.picking can is defined by this type. It can represent a goods 
 
 A lot of custom UDES functionality is specfied at the picking type level. This is where the stock storage format is specified, so the system knows how to store stock (i.e. as just products, in packages or pallets).
 
-| Field Name                | Type    | Description                                       |
-| ------------------------- | ------- | ------------------------------------------------- |
-| id                        | int     | |
-| code                      | string  | |
-| count_picking_ready       | int     | |
-| default_location_dest_id  | int     | |
-| default_location_src_id   | int     | |
-| display_name              | string  | |
-| name                      | string  | |
-| sequence                  | int     | Used for ordering picking types in a display. |
-| u_allow_swapping_packages | boolean | During a specified pick, this field determines whether we can we swap one package for another if they contain exactly the same. |
-| u_skip_allowed            | boolean | Is the user allowed to skip to the next item to pick? |
-| u_split_on_drop_off       | boolean | |
-| u_suggest_qty             | boolean | Do we display the suggested quantity, or get the user to enter it without any vision of what is expected. When we suggest it, the risk is that users will be automatically confirming it without a thorough check. |
-| u_over_receive            | boolean | Is the system able to receive more than is expected. |
-| u_target_storage_format   | string  | This defines how the stock is stored at the end of the stock.picking. |
-| u_user_scans              | string  | This defines what the user will scan. |
-| u_validate_real_time      | boolean | Do we validate move lines in real time |
+
+
+// TODO: REMOVE VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV
+
+This will always be true, as will be using an `api.contrains()` decorator
+
 | u_enforce_location_dest_id| boolean | If the destination location on validation has to excatly match with the location_dest_id of the move lines |
+
+
+This will be managed by u_drop_location_constraint
+
 | u_confirm_location_dest_id| boolean | Flag to indicate whether we need to scan the Destination Location of operations, or if it is automatically confirmed as the preset Destination Location |
-| u_display_summary| boolean | When True, we display the Source Document and a summary of all Package Names associated with that Source Document number at Goods-Out |
-| u_handle_partials         | boolean | If the picking type is allowed to handle partially available pickings. If True, then pickings of this type will report their u_pending value. |
-| u_create_procurement_group| boolean | Indicate if a procurement group should be created on confirmation of the picking if one does not already exist |
+
+// TODO: REMOVE ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+
+| Field Name                 | Type    | Description                                       |
+| -------------------------- | ------- | ------------------------------------------------- |
+| id                         | int     | |
+| code                       | string  | |
+| count_picking_ready        | int     | |
+| default_location_dest_id   | int     | |
+| default_location_src_id    | int     | |
+| display_name               | string  | |
+| name                       | string  | |
+| sequence                   | int     | Used for ordering picking types in a display. |
+| u_allow_swapping_packages  | boolean | During a specified pick, this field determines whether we can we swap one package for another if they contain exactly the same. |
+| u_skip_allowed             | boolean | Is the user allowed to skip to the next item to pick? |
+| u_split_on_drop_off        | boolean | |
+| u_suggest_qty              | boolean | Do we display the suggested quantity, or get the user to enter it without any vision of what is expected. When we suggest it, the risk is that users will be automatically confirming it without a thorough check. |
+| u_over_receive             | boolean | Is the system able to receive more than is expected. |
+| u_target_storage_format    | string  | This defines how the stock is stored at the end of the stock.picking (enum: 'pallet_products', 'pallet_packages', 'package', 'product'). |
+| u_user_scans               | string  | This defines what the user will scan (enum: 'pallet', 'package', 'product'). |
+| u_validate_real_time       | boolean | Do we validate move lines in real time. |
+| u_drop_location_constraint | string  | Whether drop locations should be suggested and, then, enforced (enum: 'suggest', 'enforce'); default: don't suggest. |
+| u_drop_locations_policy    | string  | To indicate the policy for suggesting drop locations (enum: 'exactly_match_move_line', 'group_by_products', 'group_by_packages'); default: suggest the `dest_locationt_id` of the move line. |
+| u_display_summary          | string  | How to display the Source Document and a summary of all Package Names associated with that Source Document number at Goods-Out (enum: 'none', 'list', 'list_contents'). |
+| u_handle_partials          | boolean | If the picking type is allowed to handle partially available pickings. If True, then pickings of this type will report their u_pending value. |
+| u_create_procurement_group | boolean | Indicate if a procurement group should be created on confirmation of the picking if one does not already exist. |
 
 ## Stock Move (model: stock.move)
 
