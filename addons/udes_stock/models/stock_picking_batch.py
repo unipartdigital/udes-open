@@ -19,10 +19,16 @@ class StockPickingBatch(models.Model):
                 'num_tasks_to_pick': 0,
                 }
         if mls:
-            task.update(mls[0]._prepare_task_info())
-            user_scans = mls[0].picking_id.picking_type_id.u_user_scans
+            group_key = lambda ml: (ml.package_id.id,
+                                    ml.product_id.id,
+                                    ml.location_id.id)
+            grouped_mls = mls.groupby(group_key)
+            _key, task_mls = next(grouped_mls)
+            next_ml = task_mls[0]
+            task.update(task_mls._prepare_task_info())
+            user_scans = next_ml.picking_id.picking_type_id.u_user_scans
             if user_scans == 'product':
-                num_tasks_to_pick = len(mls)
+                num_tasks_to_pick = len(list(grouped_mls)) + 1
             else:
                 # TODO: check pallets
                 num_tasks_to_pick = len(mls.mapped('package_id'))

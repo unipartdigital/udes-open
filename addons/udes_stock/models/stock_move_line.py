@@ -579,23 +579,25 @@ class StockMoveLine(models.Model):
     def _prepare_task_info(self):
         """ Prepares info of a task
         """
-        self.ensure_one()
-
+        picking = self.mapped('picking_id')
+        picking.ensure_one()
         task = {
-            'picking_id': self.picking_id.id,
+            'picking_id': picking.id,
         }
-        user_scans = self.picking_id.picking_type_id.u_user_scans
+        user_scans = picking.picking_type_id.u_user_scans
         if user_scans == 'product':
-            task['pick_quantity'] = self.product_qty
+            task['pick_quantity'] = sum(self.mapped('product_qty'))
             quant = self.get_quants()
             task['quant_id'] = quant.get_info()[0]
         else:
-            info = self.package_id.get_info(extended=True)
+            package = self.mapped('package_id')
+            package.ensure_one()
+            info = package.get_info(extended=True)
             if not info:
                 raise ValidationError(
                     _('Expecting package information for next task to pick,'
                       ' but move line does not contain it. Contact team'
-                      'leader and check picking %s') % self.picking_id.name
+                      'leader and check picking %s') % picking.name
                 )
             task['package_id'] = info[0]
 
