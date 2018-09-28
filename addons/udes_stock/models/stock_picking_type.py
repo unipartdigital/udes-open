@@ -91,11 +91,13 @@ class StockPickingType(models.Model):
     )
 
     u_drop_location_constraint = fields.Selection([
+        ('dont_scan', 'Do not scan'),
+        ('scan', 'Scan'),
         ('suggest', 'Suggest'),
         ('enforce', 'Enforce'),
     ],
         string='Suggest Locations Constraint',
-        help='Whether drop locations should be suggested and, then, enforced.'
+        help='Whether drop locations should be scanned, suggested and, then, enforced.'
     )
 
     u_drop_location_policy = fields.Selection([
