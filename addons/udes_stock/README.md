@@ -95,24 +95,6 @@ The type of stock.picking can is defined by this type. It can represent a goods 
 
 A lot of custom UDES functionality is specfied at the picking type level. This is where the stock storage format is specified, so the system knows how to store stock (i.e. as just products, in packages or pallets).
 
-
-
-// TODO: REMOVE VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV
-
-This will always be true, as will be using an `api.contrains()` decorator
-
-| u_enforce_location_dest_id| boolean | If the destination location on validation has to excatly match with the location_dest_id of the move lines |
-
-
-This will be managed by u_drop_location_constraint (where u_confirm_location_dest_id was set as false,
-u_confirm_location_dest_id will be 'dont_scan')
-
-| u_confirm_location_dest_id| boolean | Flag to indicate whether we need to scan the Destination Location of operations, or if it is automatically confirmed as the preset Destination Location |
-
-// TODO: REMOVE ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-
-
 | Field Name                 | Type    | Description                                       |
 | -------------------------- | ------- | ------------------------------------------------- |
 | id                         | int     | |
@@ -132,7 +114,7 @@ u_confirm_location_dest_id will be 'dont_scan')
 | u_user_scans               | string  | This defines what the user will scan (enum: 'pallet', 'package', 'product'). |
 | u_validate_real_time       | boolean | Do we validate move lines in real time. |
 | u_drop_location_constraint | string  | Whether drop location should be scanned, suggested and, then, enforced (enum: 'dont_scan', 'scan', 'enforce', 'suggest'); default: 'scan'. |
-| u_drop_locations_policy    | string  | To indicate the policy for suggesting drop locations (enum: 'exactly_match_move_line', 'group_by_products', 'group_by_packages'); default: suggest the `dest_locationt_id` of the move line. |
+| u_drop_locations_policy    | string  | To indicate the policy for suggesting drop locations (enum: 'exactly_match_move_line', 'by_products', 'by_packages'); default: 'exactly_match_move_line'. |
 | u_display_summary          | string  | How to display the Source Document and a summary of all Package Names associated with that Source Document number at Goods-Out (enum: 'none', 'list', 'list_contents'). |
 | u_handle_partials          | boolean | If the picking type is allowed to handle partially available pickings. If True, then pickings of this type will report their u_pending value. |
 | u_create_procurement_group | boolean | Indicate if a procurement group should be created on confirmation of the picking if one does not already exist. |
@@ -147,8 +129,8 @@ More on the enumeration fields below.
 
 `u_drop_locations_policy`:
  - `exactly_match_move_line`: the system will suggest the location that is already expected for the move line;
- - `group_by_products`: the system will suggest locations by aiming to group together the same products;
- - `group_by_packages`: the system will suggest locations by aiming to group together the packages.
+ - `by_products`: the system will suggest locations by aiming to group together the same products;
+ - `by_packages`: the system will suggest locations by aiming to group together the packages.
 
 ## Stock Move (model: stock.move)
 
