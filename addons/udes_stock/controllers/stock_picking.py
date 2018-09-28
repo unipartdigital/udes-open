@@ -85,4 +85,5 @@ class PickingApi(UdesApi):
         elif move_line_ids:
             kwargs['move_line_ids'] = MoveLine.browse(move_line_ids)
         locations = picking.get_suggested_locations(**kwargs)
+
         return locations.get_info()

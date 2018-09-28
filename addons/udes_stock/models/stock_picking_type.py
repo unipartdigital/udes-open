@@ -101,9 +101,9 @@ class StockPickingType(models.Model):
     )
 
     u_drop_location_policy = fields.Selection([
-        ('exactly_match_move_line', 'Exactly Match the Move Line Location'),
-        ('group_by_products', 'Group By Products'),
-        ('group_by_packages', 'Group By Packages'),
+        ('exactly_match_move_line', 'Exactly Match The Move Line Destination Location'),
+        ('by_products', 'By Products'),
+        ('by_packages', 'By Products in Packages'),
     ],
         string='Suggest Locations Policy',
         default='exactly_match_move_line',

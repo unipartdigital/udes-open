@@ -1253,7 +1253,7 @@ class StockPicking(models.Model):
         location = move_line_ids.mapped('location_dest_id')
         return location.ensure_one()
 
-    def _get_suggested_location_group_by_products(self, products=None,
+    def _get_suggested_location_by_products(self, products=None,
                                                   move_line_ids=None):
         Quant = self.env['stock.quant']
 
@@ -1271,7 +1271,7 @@ class StockPicking(models.Model):
         return quants.mapped('location_id') \
             .filtered(lambda loc: not loc.u_blocked and loc.barcode)
 
-    def _get_suggested_location_group_by_packages(self, package):
+    def _get_suggested_location_by_packages(self, package):
 
         if package not in self.mapped('move_line_ids.package_id'):
             raise ValidationError(
@@ -1284,5 +1284,4 @@ class StockPicking(models.Model):
         if not quants:
             raise ValidationError(_('Package %s is empty' % package.name))
         products = quants.mapped('product_id')
-
-        return self._get_suggested_location_group_by_products(products)
+        return self._get_suggested_location_by_products(products)
