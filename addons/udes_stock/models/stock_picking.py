@@ -1226,3 +1226,63 @@ class StockPicking(models.Model):
         move_lines.write({'picking_id': picking.id})
 
         return picking
+
+    def get_suggested_locations(self, **kwargs):
+        result = self.env['stock.location']
+        for picking in self:
+            policy = picking.picking_type_id.u_drop_location_policy
+            if policy:
+                func = getattr(self, '_get_suggested_location_' + policy, None)
+                if func:
+                    result = func(**kwargs)
+
+        return result
+
+    def _check_picking_move_lines_suggest_location(self, move_line_ids):
+        pick_move_lines = self.mapped('move_line_ids').filtered(
+            lambda ml: ml in move_line_ids
+        )
+        if len(pick_move_lines) != len(move_line_ids):
+            raise ValidationError(
+                _('Some move lines not found in picking %s to suggest '
+                  'drop off locations for them.' % self.name)
+            )
+
+    def _get_suggested_location_exactly_match_move_line(self, move_line_ids):
+        self._check_picking_move_lines_suggest_location(move_line_ids)
+        location = move_line_ids.mapped('location_dest_id')
+        return location.ensure_one()
+
+    def _get_suggested_location_group_by_products(self, products=None,
+                                                  move_line_ids=None):
+        Quant = self.env['stock.quant']
+
+        if move_line_ids:
+            self._check_picking_move_lines_suggest_location(move_line_ids)
+            products = move_line_ids.mapped('product_id')
+
+        if not products:
+            raise ValidationError(
+                _('Products missing to suggest location for.'))
+        quants = Quant.search([
+            ('product_id', 'in', products.ids),
+            ('location_id', 'child_of', self.location_dest_id.ids)
+        ])
+        return quants.mapped('location_id') \
+            .filtered(lambda loc: not loc.u_blocked and loc.barcode)
+
+    def _get_suggested_location_group_by_packages(self, package):
+
+        if package not in self.mapped('move_line_ids.package_id'):
+            raise ValidationError(
+                _('Package %s not found in picking %s in order to suggest '
+                  'drop off locations for it.' %
+                  (package.name, self.name))
+            )
+
+        quants = package._get_contained_quants()
+        if not quants:
+            raise ValidationError(_('Package %s is empty' % package.name))
+        products = quants.mapped('product_id')
+
+        return self._get_suggested_location_group_by_products(products)
