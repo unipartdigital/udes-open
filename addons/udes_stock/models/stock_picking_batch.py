@@ -29,9 +29,12 @@ class StockPickingBatch(models.Model):
             user_scans = next_ml.picking_id.picking_type_id.u_user_scans
             if user_scans == 'product':
                 num_tasks_to_pick = len(list(grouped_mls)) + 1
+                task['move_line_ids'] = task_mls.ids
             else:
                 # TODO: check pallets
                 num_tasks_to_pick = len(mls.mapped('package_id'))
+                task['move_line_ids'] = mls.filtered(
+                    lambda ml: ml.package_id == next_ml.package_id).ids
             task['num_tasks_to_pick'] = num_tasks_to_pick
 
         return task

@@ -42,7 +42,6 @@ class PickingApi(UdesApi):
         picking = Picking.browse(int(ident))
         if not picking.exists():
             raise ValidationError(_('Cannot find stock.picking with id %s') % ident)
-        #TODO: validate location_id child of picking.location_id ?
         picking.update_picking(**kwargs)
         return picking.get_info()[0]
 
