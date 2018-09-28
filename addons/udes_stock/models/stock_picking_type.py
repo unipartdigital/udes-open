@@ -179,7 +179,7 @@ class StockPickingType(models.Model):
                 'u_handle_partials': self.u_handle_partials,
                 'u_create_procurement_group': self.u_create_procurement_group,
                 'u_confirm_serial_numbers': self.u_confirm_serial_numbers,
-                'u_drop_location_constraint': self.u_drop_locations_constraint,
+                'u_drop_location_constraint': self.u_drop_location_constraint,
                 'u_drop_location_policy': self.u_drop_locations_policy,
                 'u_auto_batch_pallet': self.u_auto_batch_pallet,
                 'u_check_work_available': self.u_check_work_available,
