@@ -114,7 +114,7 @@ A lot of custom UDES functionality is specfied at the picking type level. This i
 | u_user_scans               | string  | This defines what the user will scan (enum: 'pallet', 'package', 'product'). |
 | u_validate_real_time       | boolean | Do we validate move lines in real time. |
 | u_drop_location_constraint | string  | Whether drop location should be scanned, suggested and, then, enforced (enum: 'dont_scan', 'scan', 'enforce', 'suggest'); default: 'scan'. |
-| u_drop_locations_policy    | string  | To indicate the policy for suggesting drop locations (enum: 'exactly_match_move_line', 'by_products', 'by_packages'); default: 'exactly_match_move_line'. |
+| u_drop_location_policy     | string  | To indicate the policy for suggesting drop locations (enum: 'exactly_match_move_line', 'by_products', 'by_packages'); default: 'exactly_match_move_line'. |
 | u_display_summary          | string  | How to display the Source Document and a summary of all Package Names associated with that Source Document number at Goods-Out (enum: 'none', 'list', 'list_contents'). |
 | u_handle_partials          | boolean | If the picking type is allowed to handle partially available pickings. If True, then pickings of this type will report their u_pending value. |
 | u_create_procurement_group | boolean | Indicate if a procurement group should be created on confirmation of the picking if one does not already exist. |
@@ -127,7 +127,7 @@ More on the enumeration fields below.
  - `suggest`: before require scanning (as per above 'scan'), the system will suggest one or more locations for dropping (NB: such list may be empty; in that case, nothing will be displayed);
  - `enforce`: as 'suggest', but the system will require (by validating the scanned location barcode) dropping in one of the suggested locations (NB: if the list is empty, any child of the pick parent destination location would be valid).
 
-`u_drop_locations_policy`:
+`u_drop_location_policy`:
  - `exactly_match_move_line`: the system will suggest the location that is already expected for the move line;
  - `by_products`: the system will suggest locations by aiming to group together the same products;
  - `by_packages`: the system will suggest locations by aiming to group together the packages.
