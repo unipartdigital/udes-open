@@ -302,7 +302,6 @@ class TestLocationPI(common.BaseUDES):
                         "location_dest_id": self.test_location_02.id}]
 
         pickings = self.test_location_02._process_pi_count_moves(count_moves)
-
         self.assertEqual(len(pickings), 1,
                          "Did not create exactly one picking")
         self._check_picking_loc01_to_loc02(pickings[0], 0)
