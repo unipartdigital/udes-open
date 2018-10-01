@@ -218,11 +218,10 @@ class StockPickingBatch(models.Model):
             lambda x: x.qty_done > 0
                       and x.picking_id.state not in ['cancel', 'done'])
 
-        if not dest_loc and completed_move_lines:
-            raise ValidationError(_("Drop off lane not found."))
-
         if dest_loc and completed_move_lines:
             completed_move_lines.write({'location_dest_id': dest_loc.id})
+
+        if completed_move_lines:
             pickings = completed_move_lines.mapped('picking_id')
 
             for pick in pickings:
