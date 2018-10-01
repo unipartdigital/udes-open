@@ -36,6 +36,8 @@ class Package(UdesApi):
             res = package.get_info(extended=True)[0]
         return res
 
+    # TODO(ale): get rid of this and everything related (docs, tests...)
+
     @http.route('/api/stock-quant-package/<identifier>/suggested-locations',
                 type='json', methods=['GET'], auth='user')
     def suggested_locations(self, identifier):
