@@ -96,6 +96,7 @@ class StockPickingType(models.Model):
         ('suggest', 'Suggest'),
         ('enforce', 'Enforce'),
     ],
+        default='scan',
         string='Suggest Locations Constraint',
         help='Whether drop locations should be scanned, suggested and, then, enforced.'
     )
