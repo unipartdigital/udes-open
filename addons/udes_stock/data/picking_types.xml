@@ -2,21 +2,223 @@
 <odoo>
   <data>
 
-    <!-- Update "Goods In" picking type -->
-    <record id="stock.picking_type_in" model="stock.picking.type">
-      <field name="show_operations" eval="1"/>
+    <!-- Create "Goods In" sequence -->
+    <record id="sequence_in" model="ir.sequence">
+      <field name="name">Goods In</field>
+      <field name="prefix">IN</field>
+      <field name="padding" eval="5"/>
     </record>
 
-    <!-- Update "Delivery" picking type -->
-    <record id="stock.picking_type_out" model="stock.picking.type">
+    <!-- Create "Putaway" sequence -->
+    <record id="sequence_putaway" model="ir.sequence">
+      <field name="name">Putaway</field>
+      <field name="prefix">PUT</field>
+      <field name="padding" eval="5"/>
+    </record>
+
+    <!-- Create "Pick" sequence -->
+    <record id="sequence_pick" model="ir.sequence">
+      <field name="name">Pick</field>
+      <field name="prefix">PICK</field>
+      <field name="padding" eval="5"/>
+    </record>
+
+    <!-- Create "Check" sequence -->
+    <record id="sequence_check" model="ir.sequence">
+      <field name="name">Check</field>
+      <field name="prefix">CHECK</field>
+      <field name="padding" eval="5"/>
+    </record>
+
+    <!-- Create "Goods Out" sequence -->
+    <record id="sequence_out" model="ir.sequence">
+      <field name="name">Goods Out</field>
+      <field name="prefix">OUT</field>
+      <field name="padding" eval="5"/>
+    </record>
+
+    <!-- Create "Internal Transfer" sequence -->
+    <record id="sequence_internal" model="ir.sequence">
+      <field name="name">Internal Transfer</field>
+      <field name="prefix">INT</field>
+      <field name="padding" eval="5"/>
+    </record>
+
+    <!-- Create "PI count move" sequence -->
+    <record id="sequence_pic_move" model="ir.sequence">
+      <field name="name">PI count move quants or packages</field>
+      <field name="prefix">PICM</field>
+      <field name="padding" eval="5"/>
+    </record>
+
+    <!-- Create "PI count product without package" sequence -->
+    <record id="sequence_pic_pack" model="ir.sequence">
+      <field name="name">PI count product without package</field>
+      <field name="prefix">PICP</field>
+      <field name="padding" eval="5"/>
+    </record>
+
+    <!-- Create "Stock Investigation" sequence -->
+    <record id="sequence_stock_inv" model="ir.sequence">
+      <field name="name">Stock Investigation</field>
+      <field name="prefix">STOCKINV</field>
+      <field name="padding" eval="5"/>
+    </record>
+
+    <!-- Create "Return Stock" sequence -->
+    <record id="sequence_return" model="ir.sequence">
+      <field name="name">Return Stock</field>
+      <field name="prefix">RET</field>
+      <field name="padding" eval="5"/>
+    </record>
+
+    <!-- Update "Goods In" picking type -->
+    <record id="stock.picking_type_in" model="stock.picking.type">
+      <field name="name">Goods In</field>
+      <field name="sequence" eval="10"/>
+      <field name="code">incoming</field>
+      <field name="sequence_id" ref="sequence_in"/>
+      <field name="use_create_lots" eval="1"/>
+      <field name="default_location_src_id" ref="stock.stock_location_suppliers"/>
+      <field name="default_location_dest_id" ref="location_input_received"/>
+      <field name="u_target_storage_format">pallet_products</field>
       <field name="show_operations" eval="1"/>
+      <field name= "active"> False </field>
+    </record>
+
+    <!-- Update "Goods Out" picking type -->
+    <record id="stock.picking_type_out" model="stock.picking.type">
+      <field name="name">Goods Out</field>
+      <field name="sequence" eval="23"/>
+      <field name="code">outgoing</field>
+      <field name="sequence_id" ref="sequence_out"/>
+      <field name="use_existing_lots" eval="1"/>
+      <field name="default_location_src_id" ref="stock.stock_location_output"/>
+      <field name="default_location_dest_id" ref="stock.stock_location_customers"/>
+      <field name="u_user_scans">pallet</field>
+      <field name="u_target_storage_format">pallet_products</field>
+      <field name="u_requires_transport" eval="True"/>
+      <field name="show_operations" eval="1"/>
+      <field name= "active"> False </field>
     </record>
 
     <!-- Update "Internal Transfer" picking type -->
     <record id="stock.picking_type_internal" model="stock.picking.type">
+      <field name="name">Internal Transfer</field>
+      <field name="sequence" eval="30"/>
+      <field name="code">internal</field>
+      <field name="sequence_id" ref="sequence_internal"/>
+      <field name="use_existing_lots" eval="1"/>
+      <field name="default_location_src_id" ref="stock.stock_location_stock"/>
+      <field name="default_location_dest_id" ref="stock.stock_location_stock"/>
+      <field name="u_reserve_as_packages" eval="True"/>
+      <field name="u_target_storage_format">pallet_products</field>
+      <field name="u_user_scans">pallet</field>
       <field name="show_operations" eval="1"/>
+      <field name= "active"> False </field>
+    </record>
+
+    <!-- Add additional picking types used in UDES -->
+
+    <record id="picking_type_putaway" model="stock.picking.type">
+      <field name="name">Putaway</field>
+      <field name="sequence" eval="13"/>
+      <field name="code">internal</field>
+      <field name="sequence_id" ref="sequence_putaway"/>
+      <field name="use_existing_lots" eval="1"/>
+      <field name="default_location_src_id" ref="location_input_received"/>
+      <field name="default_location_dest_id" ref="stock.stock_location_stock"/>
+      <field name="u_target_storage_format">pallet_products</field>
+      <field name="u_user_scans">pallet</field>
+      <field name="show_operations" eval="1"/>
+      <field name= "active"> False </field>
+    </record>
+
+    <record id="picking_type_pick" model="stock.picking.type">
+      <field name="name">Pick</field>
+      <field name="sequence" eval="20"/>
+      <field name="code">internal</field>
+      <field name="sequence_id" ref="sequence_pick"/>
+      <field name="use_existing_lots" eval="1"/>
+      <field name="default_location_src_id" ref="stock.stock_location_stock"/>
+      <field name="default_location_dest_id" ref="stock.stock_location_output"/>
+      <field name="u_reserve_as_packages" eval="True"/>
+      <field name="u_allow_swapping_packages" eval="True"/>
+      <field name="u_skip_allowed" eval="True"/>
+      <field name="u_target_storage_format">pallet_products</field>
+      <field name="u_user_scans">pallet</field>
+      <field name="u_create_procurement_group" eval="True"/>
+      <field name="show_operations" eval="1"/>
+      <field name= "active"> False </field>
+    </record>
+
+    <record id="picking_type_check" model="stock.picking.type">
+      <field name="name">Check</field>
+      <field name="sequence" eval="21"/>
+      <field name="code">internal</field>
+      <field name="sequence_id" ref="sequence_check"/>
+      <field name="use_existing_lots" eval="1"/>
+      <field name="default_location_src_id" ref="stock.stock_location_stock"/>
+      <field name="default_location_dest_id" ref="stock.stock_location_stock"/>
+      <field name="u_user_scans">pallet</field>
+      <field name="u_target_storage_format">pallet_products</field>
+      <field name="u_requires_transport" eval="False"/>
+      <field name="u_confirm_location_dest_id" eval="False"/>
+      <field name="u_handle_partials" eval="False"/>
+      <field name="u_display_summary">list_contents</field>
+      <field name="show_operations" eval="1"/>
+      <field name= "active"> False </field>
+    </record>
+
+    <record id="picking_type_pic_move" model="stock.picking.type">
+      <field name="name">PI count move quants or packages</field>
+      <field name="sequence" eval="50"/>
+      <field name="code">internal</field>
+      <field name="sequence_id" ref="sequence_pic_move"/>
+      <field name="use_existing_lots" eval="1"/>
+      <field name="default_location_src_id" ref="stock.stock_location_stock"/>
+      <field name="default_location_dest_id" ref="stock.stock_location_stock"/>
+      <field name="show_operations" eval="1"/>
+      <field name= "active"> False </field>
+    </record>
+
+    <record id="picking_type_pic_pack" model="stock.picking.type">
+      <field name="name">PI count product without package</field>
+      <field name="sequence" eval="50"/>
+      <field name="code">internal</field>
+      <field name="sequence_id" ref="sequence_pic_pack"/>
+      <field name="use_existing_lots" eval="1"/>
+      <field name="default_location_src_id" ref="stock.stock_location_stock"/>
+      <field name="default_location_dest_id" ref="stock.stock_location_stock"/>
+      <field name="show_operations" eval="1"/>
+      <field name= "active"> False </field>
+    </record>
+
+    <record id="picking_type_stock_inv" model="stock.picking.type">
+      <field name="name">Stock Investigation</field>
+      <field name="sequence" eval="60"/>
+      <field name="code">internal</field>
+      <field name="sequence_id" ref="sequence_stock_inv"/>
+      <field name="use_existing_lots" eval="1"/>
+      <field name="default_location_src_id" ref="stock.stock_location_stock"/>
+      <field name="default_location_dest_id" ref="location_stock_investigation"/>
+      <field name="show_operations" eval="1"/>
+      <field name= "active"> False </field>
+    </record>
+
+    <!-- Create "Return Stock" picking type for future use -->
+    <record id="picking_type_return" model="stock.picking.type">
+      <field name="name">Return Stock</field>
+      <field name="sequence" eval="40"/>
+      <field name="code">incoming</field>
+      <field name="sequence_id" ref="sequence_return"/>
+      <field name="use_create_lots" eval="0"/>
+      <field name="use_existing_lots" eval="1"/>
+      <field name="default_location_src_id" ref="stock.stock_location_suppliers"/>
+      <field name="default_location_dest_id" ref="location_input_received"/>
+      <field name="show_operations" eval="1"/>
+      <field name= "active"> False </field>
     </record>
 
   </data>
 </odoo>
-
