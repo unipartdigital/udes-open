@@ -358,6 +358,33 @@ Check that a package is not in use and hence is compatible with the stock pickin
 * @param id - the id of the stock.picking to check.
 * @param package_name - string with the name of the package.
 
+### Retrieve the list of suggested locations for a given package or move lines
+
+```
+URI: /api/stock-picking/:id/suggested-locations
+HTTP Method: GET
+```
+Suggest drop off locations based on the configured `u_drop_location_policy`.
+
+* `id` - the id of the stock.picking that is being processed.
+
+Request payload - json object:
+
+* `package_name`: (optional) the barcode of the package being dropped off.
+* `move_line_ids`: (optional) list of the move line ids being processed.
+
+The above info is used by the policy logic to determine the suggestions; of
+course, the required info will depend on the particular policy being used.
+
+Response payload - json array with Location objects; exmple:
+
+```javascript
+{ "jsonrpc": "2.0",
+  "result" : [
+    {"id": 1, "name": "Location 1", "barcode": "L00000100"},
+    {"id": 2, "name": "Location 2", "barcode": "L00000200"}
+]}
+```
 
 ## Stock Location
 
@@ -404,23 +431,6 @@ If no package can be found then this will return an empty array
 * @param package_name - (optional) this is a string that entirely matches the name
 * @param check_reserved - (optional, default = false) When enabled, checks if the package has stock reserved, in which case an error will be raise.
 
-```
-URI: /api/stock-quant-package/<identifier>/suggested-locations
-HTTP Method: GET
-Old method(s): None
-```
-Search for locations which products within a package are currently stored.
-
-* @param identifier - a package identifier
-
-Example output:
-```javascript
-{ "jsonrpc": "2.0",
-  "result" : [
-    {"id": 1, "name": "Location 1", "barcode": "L00000100"},
-    {"id": 2, "name": "Location 2", "barcode": "L00000200"}
-]}
-```
 ## Products
 
 ```
