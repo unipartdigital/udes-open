@@ -24,14 +24,13 @@
                     <field name="u_split_on_drop_off_picked" />
                     <field name="u_suggest_qty" />
                     <field name="u_over_receive" />
-                    <field name="u_enforce_location_dest_id" />
-                    <field name="u_confirm_location_dest_id" />
                     <field name="u_display_summary" />
                     <field name="u_validate_real_time" />
                     <field name="u_reserve_as_packages" />
                     <field name="u_handle_partials" />
                     <field name="u_create_procurement_group"/>
-                    <field name="u_suggest_location" />
+                    <field name="u_drop_location_constraint" />
+                    <field name="u_drop_location_policy" />
                     <field name="u_confirm_serial_numbers" />
                     <field name="u_auto_batch_pallet" />
                     <field name="u_check_work_available" />

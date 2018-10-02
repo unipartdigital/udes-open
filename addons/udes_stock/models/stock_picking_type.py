@@ -9,33 +9,28 @@ class StockPickingType(models.Model):
     show_operations = fields.Boolean(default=True)
 
     u_allow_swapping_packages = fields.Boolean('Allow swapping packages')
+
     u_skip_allowed = fields.Boolean(
-            string='Skip allowed',
-            default=False,
-            help='Flag to indicate if the skip button will be shown.',
-            )
+        string='Skip allowed',
+        default=False,
+        help='Flag to indicate if the skip button will be shown.',
+    )
+
     u_split_on_drop_off_picked = fields.Boolean('Split on drop off picked')
+
     u_suggest_qty = fields.Boolean(
         string='Suggest Qty',
         default=True,
         help='If True, suggest quantity on mobile if there is an expected quantity.',
     )
+
     u_over_receive = fields.Boolean(
         string='Over Receive',
         default=True,
         help='If True, allow additional items not in the ASN, or over the expected quantity, '
              'to be added at goods in.',
     )
-    u_enforce_location_dest_id = fields.Boolean(
-        string='Enforce Destination Location',
-        default=False,
-        help='Flag to indicate if the destination location of operations should '
-             'be forced to be a child_of the picking location_dest_id.',)
-    u_confirm_location_dest_id = fields.Boolean(
-        string='Confirm Destination Location',
-        default=True,
-        help='Flag to indicate whether we need to scan the Destination Location of operations, '
-             'or if it is automatically confirmed as the preset Destination Location.',)
+
     u_display_summary = fields.Selection([
         ('none', 'None'),
         ('list', 'List'),
@@ -44,11 +39,13 @@ class StockPickingType(models.Model):
         string='Display Summary',
         default='none'
     )
+
     u_validate_real_time = fields.Boolean(
         string='Validate In Real Time',
         default=False,
         help='When True, operations are automatically validated in real time.'
     )
+
     u_target_storage_format = fields.Selection([
         ('pallet_products', 'Pallet of products'),
         ('pallet_packages', 'Pallet of packages'),
@@ -60,10 +57,13 @@ class StockPickingType(models.Model):
     u_user_scans = fields.Selection([
         ('pallet', 'Pallets'),
         ('package', 'Packages'),
-        ('product', 'Products'),],
+        ('product', 'Products'),
+    ],
         string='What the User Scans',
         help='What the user scans when asked to '
-        'scan something from pickings of this type')
+        'scan something from pickings of this type'
+    )
+
     u_reserve_as_packages = fields.Boolean(
         string='Reserve entire packages',
         default=False,
@@ -90,11 +90,25 @@ class StockPickingType(models.Model):
              'confirmation of the picking if one does not already exist.',
     )
 
-    u_suggest_location = fields.Boolean(
-        string='Suggest locations',
-        default=False,
-        help='Flag to indicate with if picking type should suggest locations '
-             'to user'
+    u_drop_location_constraint = fields.Selection([
+        ('dont_scan', 'Do not scan'),
+        ('scan', 'Scan'),
+        ('suggest', 'Suggest'),
+        ('enforce', 'Enforce'),
+    ],
+        default='scan',
+        string='Suggest Locations Constraint',
+        help='Whether drop locations should be scanned, suggested and, then, enforced.'
+    )
+
+    u_drop_location_policy = fields.Selection([
+        ('exactly_match_move_line', 'Exactly Match The Move Line Destination Location'),
+        ('by_products', 'By Products'),
+        ('by_packages', 'By Products in Packages'),
+    ],
+        string='Suggest Locations Policy',
+        default='exactly_match_move_line',
+        help='Indicate the policy for suggesting drop locations.'
     )
 
     u_auto_batch_pallet = fields.Boolean(
@@ -136,11 +150,12 @@ class StockPickingType(models.Model):
             - u_validate_real_time: boolean
             - u_target_storage_format: string
             - u_user_scans: string
-            - u_enforce_location_dest_id: boolean
             - u_reserve_as_packages: boolean
             - u_confirm_serial_numbers: string
             - u_auto_batch_pallet: boolean
             - u_check_work_available: boolean
+            - u_drop_location_constraint: string
+            - u_drop_location_policy: string
         """
         self.ensure_one()
 
@@ -160,14 +175,13 @@ class StockPickingType(models.Model):
                 'u_validate_real_time': self.u_validate_real_time,
                 'u_target_storage_format': self.u_target_storage_format,
                 'u_user_scans': self.u_user_scans,
-                'u_enforce_location_dest_id': self.u_enforce_location_dest_id,
-                'u_confirm_location_dest_id': self.u_confirm_location_dest_id,
                 'u_display_summary': self.u_display_summary,
                 'u_reserve_as_packages': self.u_reserve_as_packages,
                 'u_handle_partials': self.u_handle_partials,
                 'u_create_procurement_group': self.u_create_procurement_group,
                 'u_confirm_serial_numbers': self.u_confirm_serial_numbers,
-                'u_suggest_location': self.u_suggest_location,
+                'u_drop_location_constraint': self.u_drop_location_constraint,
+                'u_drop_location_policy': self.u_drop_location_policy,
                 'u_auto_batch_pallet': self.u_auto_batch_pallet,
                 'u_check_work_available': self.u_check_work_available,
                 }

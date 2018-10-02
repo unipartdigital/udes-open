@@ -12,12 +12,15 @@ class StockPickingBatch(models.Model):
         """
         self.ensure_one()
 
-        mls = self.get_available_move_lines(state='not_done', skipped_product_ids=skipped_product_ids, sorted=True)
-        tasks_picked = len(self.get_available_move_lines().filtered(lambda ml: ml.qty_done == ml.product_qty)) > 0
-
+        mls = self.get_available_move_lines(
+            state='not_done',
+            skipped_product_ids=skipped_product_ids, sorted=True)
+        tasks_picked = len(self.get_available_move_lines().filtered(
+            lambda ml: ml.qty_done == ml.product_qty)) > 0
         task = {'tasks_picked': tasks_picked,
                 'num_tasks_to_pick': 0,
-                }
+                'move_line_ids': []}
+
         if mls:
             group_key = lambda ml: (ml.package_id.id,
                                     ml.product_id.id,
@@ -25,14 +28,20 @@ class StockPickingBatch(models.Model):
             grouped_mls = mls.groupby(group_key)
             _key, task_mls = next(grouped_mls)
             next_ml = task_mls[0]
+
+            # NB(ale): this is how we add all the MLs state to the response
             task.update(task_mls._prepare_task_info())
+
             user_scans = next_ml.picking_id.picking_type_id.u_user_scans
+
             if user_scans == 'product':
-                num_tasks_to_pick = len(list(grouped_mls)) + 1
+                task['num_tasks_to_pick'] = len(list(grouped_mls)) + 1
+                task['move_line_ids'] = task_mls.ids
             else:
                 # TODO: check pallets
-                num_tasks_to_pick = len(mls.mapped('package_id'))
-            task['num_tasks_to_pick'] = num_tasks_to_pick
+                task['num_tasks_to_pick'] = len(mls.mapped('package_id'))
+                task['move_line_ids'] = mls.filtered(
+                    lambda ml: ml.package_id == next_ml.package_id).ids
 
         return task
 
@@ -209,11 +218,10 @@ class StockPickingBatch(models.Model):
             lambda x: x.qty_done > 0
                       and x.picking_id.state not in ['cancel', 'done'])
 
-        if not dest_loc and completed_move_lines:
-            raise ValidationError(_("Drop off lane not found."))
-
         if dest_loc and completed_move_lines:
             completed_move_lines.write({'location_dest_id': dest_loc.id})
+
+        if completed_move_lines:
             pickings = completed_move_lines.mapped('picking_id')
 
             for pick in pickings:

@@ -28,6 +28,7 @@ def _update_move_lines_and_log_swap(move_lines, pack, other_pack):
     move_lines[0].picking_id.message_post(body=msg)
     _logger.info(msg)
 
+
 class StockPicking(models.Model):
     _inherit = 'stock.picking'
 
@@ -537,8 +538,10 @@ class StockPicking(models.Model):
 
         if location_dest_id or location_dest_barcode or location_dest_name:
             values['location_dest'] = location_dest_id or location_dest_barcode or location_dest_name
+
         if result_package_name:
             values['result_package'] = result_package_name
+
         if not move_parent_package:
             # not needed yet, move it outside udes_stock
             # when false remove parent_id of the result_package_id ??
@@ -971,7 +974,7 @@ class StockPicking(models.Model):
             Override action_confirm to create procurement groups if needed
         """
         for pick in self.filtered(
-                lambda p: p.picking_type_id.u_create_procurement_group 
+                lambda p: p.picking_type_id.u_create_procurement_group
                           and not p.group_id):
             pick._create_own_procurement_group()
         return super(StockPicking, self).action_confirm()
@@ -1223,3 +1226,62 @@ class StockPicking(models.Model):
         move_lines.write({'picking_id': picking.id})
 
         return picking
+
+    def get_suggested_locations(self, **kwargs):
+        result = self.env['stock.location']
+        for picking in self:
+            policy = picking.picking_type_id.u_drop_location_policy
+            if policy:
+                func = getattr(self, '_get_suggested_location_' + policy, None)
+                if func:
+                    result = func(**kwargs)
+
+        return result
+
+    def _check_picking_move_lines_suggest_location(self, move_line_ids):
+        pick_move_lines = self.mapped('move_line_ids').filtered(
+            lambda ml: ml in move_line_ids
+        )
+        if len(pick_move_lines) != len(move_line_ids):
+            raise ValidationError(
+                _('Some move lines not found in picking %s to suggest '
+                  'drop off locations for them.' % self.name)
+            )
+
+    def _get_suggested_location_exactly_match_move_line(self, move_line_ids,
+                                                        **kwargs):
+        self._check_picking_move_lines_suggest_location(move_line_ids)
+        location = move_line_ids.mapped('location_dest_id')
+        return location.ensure_one()
+
+    def _get_suggested_location_by_products(self, products=None,
+                                            move_line_ids=None, **kwargs):
+        Quant = self.env['stock.quant']
+
+        if move_line_ids:
+            self._check_picking_move_lines_suggest_location(move_line_ids)
+            products = move_line_ids.mapped('product_id')
+
+        if not products:
+            raise ValidationError(
+                _('Products missing to suggest location for.'))
+        quants = Quant.search([
+            ('product_id', 'in', products.ids),
+            ('location_id', 'child_of', self.location_dest_id.ids)
+        ])
+        return quants.mapped('location_id') \
+            .filtered(lambda loc: not loc.u_blocked and loc.barcode)
+
+    def _get_suggested_location_by_packages(self, package, **kwargs):
+
+        mls = self.mapped('move_line_ids').filtered(
+            lambda ml: ml.package_id == package)
+        if not mls:
+            raise ValidationError(
+                _('Package %s not found in picking %s in order to suggest '
+                  'drop off locations for it.' %
+                  (package.name, self.name))
+            )
+
+        products = mls.mapped('product_id')
+        return self._get_suggested_location_by_products(products)

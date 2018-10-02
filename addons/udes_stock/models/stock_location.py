@@ -61,8 +61,7 @@ class StockLocation(models.Model):
     u_quant_policy = fields.Selection(
         string='Location Policy',
         selection=[('all', 'Allow all'),
-        ('single_product_id', 'One product per location')]
-        )
+                   ('single_product_id', 'One product per location')])
 
     def _prepare_info(self, extended=False, load_quants=False):
         """
@@ -451,17 +450,16 @@ class StockLocation(models.Model):
                     func(policy, loc)
 
     def _apply_quant_policy_single_product_id(self, policy, loc):
-        if policy == 'single_product_id' and\
-                    len(loc.quant_ids.mapped('product_id')) > 1:
+        if policy == 'single_product_id' \
+                and len(loc.quant_ids.mapped('product_id')) > 1:
             raise ValidationError(
-                _('Location %s cannot contain more than one product.' % loc.name)
-                )
+                _('Location %s cannot contain more than one product.' % loc.name))
 
     @api.constrains('u_quant_policy', 'location_id')
     def apply_location_policy_change_to_descendants(self):
         examine_locations = self.env["stock.location"].search(
-            [('location_id', 'child_of', self.ids)]
-            )
+            [('location_id', 'child_of', self.ids)])
+
         for examine_location in examine_locations:
             if examine_location.quant_ids:
                 examine_location.apply_quant_policy()

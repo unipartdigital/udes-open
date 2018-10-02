@@ -9,6 +9,7 @@ from . import test_location_pi
 from . import test_package_reservation
 from . import test_package_swap
 from . import test_picking
+from . import test_picking_type
 from . import test_create_picking
 from . import test_picking_batch
 from . import test_res_users

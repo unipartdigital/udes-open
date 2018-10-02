@@ -12,7 +12,7 @@ class StockMoveLine(models.Model):
     _inherit = 'stock.move.line'
 
     u_grouping_key = fields.Char('Key', compute='compute_grouping_key')
-    
+
 
     def get_lines_todo(self):
         """ Return the move lines in self that are not completed,
@@ -108,15 +108,20 @@ class StockMoveLine(models.Model):
         result_package, parent_package = \
             self._prepare_result_packages(package, result_package, product_ids)
 
-
         move_lines = self
         values = {}
+        loc_dest_instance = None
 
-        location = None
-        if location_dest:
-            # get the location to check if it is valid
-            location = Location.get_location(location_dest)
-            values['location_dest_id'] = location.id
+        if location_dest is not None:
+            # NB: checking if the dest loc is valid; better erroring
+            # sooner than later (we'll write the new loc dest below)
+            loc_dest_instance = Location.get_location(location_dest)
+            picking = self.mapped('picking_id')
+
+            if not picking.is_valid_location_dest_id(loc_dest_instance):
+                raise ValidationError(
+                    _("The location '%s' is not a child of the picking destination "
+                      "location '%s'" % (loc_dest_instance.name, picking.location_dest_id.name)))
 
         if result_package:
             # get the result package to check if it is valid
@@ -166,6 +171,11 @@ class StockMoveLine(models.Model):
             else:
                 ml_values['qty_done'] = ml.product_qty
             mls_done |= ml._mark_as_done(ml_values)
+
+        if loc_dest_instance is not None:
+            # HERE(ale): updating the dest loc here to have a single
+            # invocation of its constraint handler (see below)
+            mls_done.write({'location_dest_id': loc_dest_instance.id})
 
         # TODO: at this point products_info_by_product should be with qty_todo = 0?
         #       No necessarily, can we have add unexpected parts and not enough stock?
@@ -627,3 +637,22 @@ class StockMoveLine(models.Model):
         return {k: self.browse([ml.id for ml in g])
                 for k, g in
                 groupby(sorted(self, key=by_key), key=by_key)}
+
+    #
+    ## Drop Location Constraint
+    #
+
+    @api.constrains('location_dest_id')
+    def _validate_location_dest(self):
+        """ Ensures that the location destination is a child of the
+            default_location_dest_id of the picking.
+        """
+        location = self.mapped('location_dest_id')
+
+        # HERE(ale): iterating picking_id even if it's a many2one
+        # because the constraint can be triggered anywhere
+        for picking in self.mapped('picking_id'):
+            if not picking.is_valid_location_dest_id(location=location):
+                raise ValidationError(
+                    _("The location '%s' is not a child of the picking destination "
+                      "location '%s'" % (location.name, picking.location_dest_id.name)))

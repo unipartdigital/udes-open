@@ -95,62 +95,75 @@ The type of stock.picking can is defined by this type. It can represent a goods 
 
 A lot of custom UDES functionality is specfied at the picking type level. This is where the stock storage format is specified, so the system knows how to store stock (i.e. as just products, in packages or pallets).
 
-| Field Name                | Type    | Description                                       |
-| ------------------------- | ------- | ------------------------------------------------- |
-| id                        | int     | |
-| code                      | string  | |
-| count_picking_ready       | int     | |
-| default_location_dest_id  | int     | |
-| default_location_src_id   | int     | |
-| display_name              | string  | |
-| name                      | string  | |
-| sequence                  | int     | Used for ordering picking types in a display. |
-| u_allow_swapping_packages | boolean | During a specified pick, this field determines whether we can we swap one package for another if they contain exactly the same. |
-| u_skip_allowed            | boolean | Is the user allowed to skip to the next item to pick? |
-| u_split_on_drop_off       | boolean | |
-| u_suggest_qty             | boolean | Do we display the suggested quantity, or get the user to enter it without any vision of what is expected. When we suggest it, the risk is that users will be automatically confirming it without a thorough check. |
-| u_over_receive            | boolean | Is the system able to receive more than is expected. |
-| u_target_storage_format   | string  | This defines how the stock is stored at the end of the stock.picking. |
-| u_user_scans              | string  | This defines what the user will scan. |
-| u_validate_real_time      | boolean | Do we validate move lines in real time |
-| u_enforce_location_dest_id| boolean | If the destination location on validation has to excatly match with the location_dest_id of the move lines |
-| u_confirm_location_dest_id| boolean | Flag to indicate whether we need to scan the Destination Location of operations, or if it is automatically confirmed as the preset Destination Location |
-| u_display_summary| boolean | When True, we display the Source Document and a summary of all Package Names associated with that Source Document number at Goods-Out |
-| u_handle_partials         | boolean | If the picking type is allowed to handle partially available pickings. If True, then pickings of this type will report their u_pending value. |
-| u_create_procurement_group| boolean | Indicate if a procurement group should be created on confirmation of the picking if one does not already exist |
+| Field Name                 | Type    | Description                                       |
+| -------------------------- | ------- | ------------------------------------------------- |
+| id                         | int     | |
+| code                       | string  | |
+| count_picking_ready        | int     | |
+| default_location_dest_id   | int     | |
+| default_location_src_id    | int     | |
+| display_name               | string  | |
+| name                       | string  | |
+| sequence                   | int     | Used for ordering picking types in a display. |
+| u_allow_swapping_packages  | boolean | During a specified pick, this field determines whether we can we swap one package for another if they contain exactly the same. |
+| u_skip_allowed             | boolean | Is the user allowed to skip to the next item to pick? |
+| u_split_on_drop_off        | boolean | |
+| u_suggest_qty              | boolean | Do we display the suggested quantity, or get the user to enter it without any vision of what is expected. When we suggest it, the risk is that users will be automatically confirming it without a thorough check. |
+| u_over_receive             | boolean | Is the system able to receive more than is expected. |
+| u_target_storage_format    | string  | This defines how the stock is stored at the end of the stock.picking (enum: 'pallet_products', 'pallet_packages', 'package', 'product'). |
+| u_user_scans               | string  | This defines what the user will scan (enum: 'pallet', 'package', 'product'). |
+| u_validate_real_time       | boolean | Do we validate move lines in real time. |
+| u_drop_location_constraint | string  | Whether drop location should be scanned, suggested and, then, enforced (enum: 'dont_scan', 'scan', 'enforce', 'suggest'); default: 'scan'. |
+| u_drop_location_policy     | string  | To indicate the policy for suggesting drop locations (enum: 'exactly_match_move_line', 'by_products', 'by_packages'); default: 'exactly_match_move_line'. |
+| u_display_summary          | string  | How to display the Source Document and a summary of all Package Names associated with that Source Document number at Goods-Out (enum: 'none', 'list', 'list_contents'). |
+| u_handle_partials          | boolean | If the picking type is allowed to handle partially available pickings. If True, then pickings of this type will report their u_pending value. |
+| u_create_procurement_group | boolean | Indicate if a procurement group should be created on confirmation of the picking if one does not already exist. |
+
+More on the enumeration fields below.
+
+`u_drop_location_constraint`:
+ - `dont_scan`: don't require scanning the destination location;
+ - `scan` (default): the system will require scanning the destination location and it will validate it by checking if it's a child of the pick parent destination location;
+ - `suggest`: before require scanning (as per above 'scan'), the system will suggest one or more locations for dropping (NB: such list may be empty; in that case, nothing will be displayed);
+ - `enforce`: as 'suggest', but the system will require (by validating the scanned location barcode) dropping in one of the suggested locations (NB: if the list is empty, any child of the pick parent destination location would be valid).
+
+`u_drop_location_policy`:
+ - `exactly_match_move_line`: the system will suggest the location that is already expected for the move line;
+ - `by_products`: the system will suggest locations by aiming to group together the same products;
+ - `by_packages`: the system will suggest locations by aiming to group together the packages.
 
 ## Stock Move (model: stock.move)
 
 A move of an item of stock from one location to another.
 
-| Field Name                | Type    | Description                                       |
-| ------------------------- | ------- | ------------------------------------------------- |
-| id | int | |
+| Field Name       | Type     | Description                                       |
+| ---------------- | -------- | ------------------------------------------------- |
+| id               | int      | |
 | location_dest_id | {id: stock.location.id, name: stock.location.name, stock.location.barcode} | Cut down location summary, for the destination location |
-| location_id | As above | Source location |
-| ordered_qty | float | Ordered quantity |
-| product_id | {product.product} | Product summary |
-| product_qty | float | Real quantity expected |
-| quantity_done | float | Quantity received so far |
-| move_line_ids | [{stock.move.line}] | The lines associated with this move. |
+| location_id      | As above | Source location |
+| ordered_qty      | float    | Ordered quantity |
+| product_id       | {product.product} | Product summary |
+| product_qty      | float    | Real quantity expected |
+| quantity_done    | float    | Quantity received so far |
+| move_line_ids    | [{stock.move.line}] | The lines associated with this move |
 
 ## Stock Move Line (model: stock.move.line)
 
 A move of a specific, handleable item of stock - such as 5 phones, or 1 car door.
 
-| Field Name                | Type     | Description                                       |
-| ------------------------- | -------- | ------------------------------------------------- |
-| id                        | int      | |
-| create_date               | datetime | |
-| location_dest_id          | {id: stock.location.id, name: stock.location.name, stock.location.barcode} | Cut down location summary, for the destination location |
-| location_id               | As above | Source location |
-| lot_id | ??? | TBC |
-| package_id                | {stock.quant.package} | Source package |
-| qty_done                  | float | |
-| product_uom_qty           | float | Reserved quantity |
-| result_package_id         | {stock.quant.package} | Destination package
-| u_result_parent_package_id | {stock.quant.package} | Destination parent package of the result_package_id
-| write_date                | datetime | |
+| Field Name                 | Type     | Description                                       |
+| -------------------------- | -------- | ------------------------------------------------- |
+| id                         | int      | |
+| create_date                | datetime | |
+| location_dest_id           | {id: stock.location.id, name: stock.location.name, stock.location.barcode} | Cut down location summary, for the destination location |
+| location_id                | As above | Source location |
+| lot_id                     | ???      | TBC  |
+| package_id                 | {stock.quant.package} | Source package |
+| qty_done                   | float    | |
+| product_uom_qty            | float    | Reserved quantity |
+| result_package_id          | {stock.quant.package} | Destination package |
+| u_result_parent_package_id | {stock.quant.package} | Destination parent package of the result_package_id |
+| write_date                 | datetime | |
 
 ## Stock Warehouse
 
@@ -175,7 +188,6 @@ Configuration information for the an entire warehouse.
 | u_pallet_barcode_regex             | string           | |
 | u_pi_count_move_picking_type       | string           | |
 | u_stock_investigation_picking_type | string           | |
-| u_suggested_locations              | boolean          | |
 
 ## Picking Batches (model: stock.picking.batch)
 
@@ -346,6 +358,33 @@ Check that a package is not in use and hence is compatible with the stock pickin
 * @param id - the id of the stock.picking to check.
 * @param package_name - string with the name of the package.
 
+### Retrieve the list of suggested locations for a given package or move lines
+
+```
+URI: /api/stock-picking/:id/suggested-locations
+HTTP Method: GET
+```
+Suggest drop off locations based on the configured `u_drop_location_policy`.
+
+* `id` - the id of the stock.picking that is being processed.
+
+Request payload - json object:
+
+* `package_name`: (optional) the barcode of the package being dropped off.
+* `move_line_ids`: (optional) list of the move line ids being processed.
+
+The above info is used by the policy logic to determine the suggestions; of
+course, the required info will depend on the particular policy being used.
+
+Response payload - json array with Location objects; exmple:
+
+```javascript
+{ "jsonrpc": "2.0",
+  "result" : [
+    {"id": 1, "name": "Location 1", "barcode": "L00000100"},
+    {"id": 2, "name": "Location 2", "barcode": "L00000200"}
+]}
+```
 
 ## Stock Location
 
@@ -392,23 +431,6 @@ If no package can be found then this will return an empty array
 * @param package_name - (optional) this is a string that entirely matches the name
 * @param check_reserved - (optional, default = false) When enabled, checks if the package has stock reserved, in which case an error will be raise.
 
-```
-URI: /api/stock-quant-package/<identifier>/suggested-locations
-HTTP Method: GET
-Old method(s): None
-```
-Search for locations which products within a package are currently stored.
-
-* @param identifier - a package identifier
-
-Example output:
-```javascript
-{ "jsonrpc": "2.0",
-  "result" : [
-    {"id": 1, "name": "Location 1", "barcode": "L00000100"},
-    {"id": 2, "name": "Location 2", "barcode": "L00000200"}
-]}
-```
 ## Products
 
 ```
@@ -470,6 +492,9 @@ Old method(s): is_valid_location_dest_id
 
 One of [`location_id`, `location_name`, `location_barcode`] must
 be specified in the request.
+
+Response: contains a boolean, indicating whether the location specified in the
+request can be used for the drop off.
 
 ### Create unpickable item
 ```

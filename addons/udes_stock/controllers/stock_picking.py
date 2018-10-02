@@ -42,7 +42,6 @@ class PickingApi(UdesApi):
         picking = Picking.browse(int(ident))
         if not picking.exists():
             raise ValidationError(_('Cannot find stock.picking with id %s') % ident)
-        #TODO: validate location_id child of picking.location_id ?
         picking.update_picking(**kwargs)
         return picking.get_info()[0]
 
@@ -58,3 +57,32 @@ class PickingApi(UdesApi):
         if not picking.exists():
             raise ValidationError(_('Cannot find stock.picking with id %s') % ident)
         return picking.is_compatible_package(package_name)
+
+    @http.route('/api/stock-picking/<identifier>/suggested-locations',
+                type='json', methods=['GET'], auth='user')
+    def suggested_locations(self, identifier, package_name=None,
+                            move_line_ids=None):
+        """ Search suggested locations
+
+            Example output:
+                { "jsonrpc": "2.0",
+                  "result" : [
+                    {"id": 1, "name": "Location 1", "barcode": "L00000100"},
+                    {"id": 2, "name": "Location 2", "barcode": "L00000200"}
+                ]}
+        """
+        Package = request.env['stock.quant.package']
+        MoveLine = request.env['stock.move.line']
+        Picking = request.env['stock.picking']
+
+        picking = Picking.browse(int(identifier))
+
+        kwargs = {}
+        if package_name:
+            package = Package.get_package(package_name)
+            kwargs['package'] = package
+        if move_line_ids:
+            kwargs['move_line_ids'] = MoveLine.browse(move_line_ids)
+        locations = picking.get_suggested_locations(**kwargs)
+
+        return locations.get_info()
