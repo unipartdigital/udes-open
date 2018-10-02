@@ -129,7 +129,7 @@ class TestPickingType(common.BaseUDES):
 
         self.create_quant(self.apple.id,
                           self.picking_type_putaway.default_location_src_id.id,
-                          4, package_id=self.package_one.id)
+                          4, package_id=self.package_two.id)
         picking2 = self.create_picking(self.picking_type_putaway,
                                        products_info=self.pack_4apples_info,
                                        confirm=True,
