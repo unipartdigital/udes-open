@@ -189,11 +189,6 @@ Configuration information for the an entire warehouse.
 | u_pi_count_move_picking_type       | string           | |
 | u_stock_investigation_picking_type | string           | |
 
-// TODO: the field below, u_suggested_locations, it's not defined nor used
-//       anywhere; ensure that's correct and remove it
-
-| u_suggested_locations              | boolean          | |
-
 ## Picking Batches (model: stock.picking.batch)
 
 Group of pickings to be completed by a user.
