@@ -1273,15 +1273,14 @@ class StockPicking(models.Model):
 
     def _get_suggested_location_by_packages(self, package):
 
-        if package not in self.mapped('move_line_ids.package_id'):
+        mls = self.mapped('move_line_ids').filtered(
+            lambda ml: ml.package_id == package)
+        if not mls:
             raise ValidationError(
                 _('Package %s not found in picking %s in order to suggest '
                   'drop off locations for it.' %
                   (package.name, self.name))
             )
 
-        quants = package._get_contained_quants()
-        if not quants:
-            raise ValidationError(_('Package %s is empty' % package.name))
-        products = quants.mapped('product_id')
+        products = mls.mapped('product_id')
         return self._get_suggested_location_by_products(products)
