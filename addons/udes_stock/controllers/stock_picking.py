@@ -81,7 +81,7 @@ class PickingApi(UdesApi):
         if package_name:
             package = Package.get_package(package_name)
             kwargs['package'] = package
-        elif move_line_ids:
+        if move_line_ids:
             kwargs['move_line_ids'] = MoveLine.browse(move_line_ids)
         locations = picking.get_suggested_locations(**kwargs)
 

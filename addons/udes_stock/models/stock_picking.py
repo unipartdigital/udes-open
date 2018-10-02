@@ -1248,13 +1248,14 @@ class StockPicking(models.Model):
                   'drop off locations for them.' % self.name)
             )
 
-    def _get_suggested_location_exactly_match_move_line(self, move_line_ids):
+    def _get_suggested_location_exactly_match_move_line(self, move_line_ids,
+                                                        **kwargs):
         self._check_picking_move_lines_suggest_location(move_line_ids)
         location = move_line_ids.mapped('location_dest_id')
         return location.ensure_one()
 
     def _get_suggested_location_by_products(self, products=None,
-                                                  move_line_ids=None):
+                                            move_line_ids=None, **kwargs):
         Quant = self.env['stock.quant']
 
         if move_line_ids:
@@ -1271,7 +1272,7 @@ class StockPicking(models.Model):
         return quants.mapped('location_id') \
             .filtered(lambda loc: not loc.u_blocked and loc.barcode)
 
-    def _get_suggested_location_by_packages(self, package):
+    def _get_suggested_location_by_packages(self, package, **kwargs):
 
         mls = self.mapped('move_line_ids').filtered(
             lambda ml: ml.package_id == package)
