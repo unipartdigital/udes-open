@@ -83,7 +83,7 @@
       <field name="default_location_dest_id" ref="location_input_received"/>
       <field name="u_target_storage_format">pallet_products</field>
       <field name="show_operations" eval="1"/>
-      <field name="active">False</field>
+      <field name="active">True</field>
     </record>
 
     <!-- Update "Goods Out" picking type -->
@@ -99,7 +99,7 @@
       <field name="u_target_storage_format">pallet_products</field>
       <field name="u_requires_transport" eval="True"/>
       <field name="show_operations" eval="1"/>
-      <field name="active">False</field>
+      <field name="active">True</field>
     </record>
 
     <!-- Update "Internal Transfer" picking type -->
@@ -111,11 +111,10 @@
       <field name="use_existing_lots" eval="1"/>
       <field name="default_location_src_id" ref="stock.stock_location_stock"/>
       <field name="default_location_dest_id" ref="stock.stock_location_stock"/>
-      <field name="u_reserve_as_packages" eval="True"/>
       <field name="u_target_storage_format">pallet_products</field>
       <field name="u_user_scans">pallet</field>
       <field name="show_operations" eval="1"/>
-      <field name="active">False</field>
+      <field name="active">True</field>
     </record>
 
     <!-- Add additional picking types used in UDES -->
