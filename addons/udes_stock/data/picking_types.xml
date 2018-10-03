@@ -83,7 +83,7 @@
       <field name="default_location_dest_id" ref="location_input_received"/>
       <field name="u_target_storage_format">pallet_products</field>
       <field name="show_operations" eval="1"/>
-      <field name= "active"> False </field>
+      <field name="active">False</field>
     </record>
 
     <!-- Update "Goods Out" picking type -->
@@ -99,7 +99,7 @@
       <field name="u_target_storage_format">pallet_products</field>
       <field name="u_requires_transport" eval="True"/>
       <field name="show_operations" eval="1"/>
-      <field name= "active"> False </field>
+      <field name="active">False</field>
     </record>
 
     <!-- Update "Internal Transfer" picking type -->
@@ -115,7 +115,7 @@
       <field name="u_target_storage_format">pallet_products</field>
       <field name="u_user_scans">pallet</field>
       <field name="show_operations" eval="1"/>
-      <field name= "active"> False </field>
+      <field name="active">False</field>
     </record>
 
     <!-- Add additional picking types used in UDES -->
@@ -131,7 +131,7 @@
       <field name="u_target_storage_format">pallet_products</field>
       <field name="u_user_scans">pallet</field>
       <field name="show_operations" eval="1"/>
-      <field name= "active"> False </field>
+      <field name="active">False</field>
     </record>
 
     <record id="picking_type_pick" model="stock.picking.type">
@@ -149,7 +149,7 @@
       <field name="u_user_scans">pallet</field>
       <field name="u_create_procurement_group" eval="True"/>
       <field name="show_operations" eval="1"/>
-      <field name= "active"> False </field>
+      <field name="active">False</field>
     </record>
 
     <record id="picking_type_check" model="stock.picking.type">
@@ -167,7 +167,7 @@
       <field name="u_handle_partials" eval="False"/>
       <field name="u_display_summary">list_contents</field>
       <field name="show_operations" eval="1"/>
-      <field name= "active"> False </field>
+      <field name="active">False</field>
     </record>
 
     <record id="picking_type_pic_move" model="stock.picking.type">
@@ -179,7 +179,7 @@
       <field name="default_location_src_id" ref="stock.stock_location_stock"/>
       <field name="default_location_dest_id" ref="stock.stock_location_stock"/>
       <field name="show_operations" eval="1"/>
-      <field name= "active"> False </field>
+      <field name="active">False</field>
     </record>
 
     <record id="picking_type_pic_pack" model="stock.picking.type">
@@ -191,7 +191,7 @@
       <field name="default_location_src_id" ref="stock.stock_location_stock"/>
       <field name="default_location_dest_id" ref="stock.stock_location_stock"/>
       <field name="show_operations" eval="1"/>
-      <field name= "active"> False </field>
+      <field name="active">False</field>
     </record>
 
     <record id="picking_type_stock_inv" model="stock.picking.type">
@@ -203,7 +203,7 @@
       <field name="default_location_src_id" ref="stock.stock_location_stock"/>
       <field name="default_location_dest_id" ref="location_stock_investigation"/>
       <field name="show_operations" eval="1"/>
-      <field name= "active"> False </field>
+      <field name="active">False</field>
     </record>
 
     <!-- Create "Return Stock" picking type for future use -->
@@ -217,7 +217,7 @@
       <field name="default_location_src_id" ref="stock.stock_location_suppliers"/>
       <field name="default_location_dest_id" ref="location_input_received"/>
       <field name="show_operations" eval="1"/>
-      <field name= "active"> False </field>
+      <field name="active">False</field>
     </record>
 
   </data>
