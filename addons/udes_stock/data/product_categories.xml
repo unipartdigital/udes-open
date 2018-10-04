@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<odoo>
+  <data>
+
+    <!-- Construct "Height" product category -->
+    <record id="product_category_height" model="product.category">
+      <field name="name">Height</field>
+      <field name="parent_id" ref="product.product_category_all"/>
+    </record>
+
+    <!-- Construct "Speed" product category -->
+    <record id="product_category_speed" model="product.category">
+      <field name="name">Speed</field>
+      <field name="parent_id" ref="product.product_category_all"/>
+    </record>
+
+  </data>
+</odoo>

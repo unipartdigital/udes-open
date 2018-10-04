@@ -22,6 +22,7 @@
         'data/stock_config.xml',
         'data/locations.xml',
         'data/picking_types.xml',
+        'data/product_categories.xml',
         'report/product_product_templates.xml',
         'report/report_stockpicking_operations.xml',
         'views/product_template.xml',
