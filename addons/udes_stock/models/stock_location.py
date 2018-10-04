@@ -43,6 +43,16 @@ class StockLocation(models.Model):
     # Add messages to locations.
     _inherit = ['stock.location', 'mail.thread']
 
+    def _domain_height_category(self):
+        """Domain for height product category"""
+        Product = self.env['product.template']
+        return Product._domain_height_category()
+
+    def _domain_speed_category(self):
+        """Domain for speed product category"""
+        Product = self.env['product.template']
+        return Product._domain_speed_category()
+
     # Disable translation instead of renaming.
     name = fields.Char(translate=False)
 
@@ -63,14 +73,17 @@ class StockLocation(models.Model):
         selection=[('all', 'Allow all'),
                    ('single_product_id', 'One product per location')])
 
-    # TODO domain child_of default category height/speed
     u_height_category_id = fields.Many2one(
         comodel_name='product.category',
+        domain=_domain_height_category,
+        index=True,
         string='Product Category Height',
         help="Product category height to match with location height.",
     )
     u_speed_category_id = fields.Many2one(
         comodel_name='product.category',
+        domain=_domain_speed_category,
+        index=True,
         string='Product Category Speed',
         help="Product category speed to match with location speed.",
     )
