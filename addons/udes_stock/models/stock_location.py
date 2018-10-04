@@ -63,6 +63,18 @@ class StockLocation(models.Model):
         selection=[('all', 'Allow all'),
                    ('single_product_id', 'One product per location')])
 
+    # TODO domain child_of default category height/speed
+    u_height_category_id = fields.Many2one(
+        comodel_name='product.category',
+        string='Product Category Height',
+        help="Product category height to match with location height.",
+    )
+    u_speed_category_id = fields.Many2one(
+        comodel_name='product.category',
+        string='Product Category Speed',
+        help="Product category speed to match with location speed.",
+    )
+
     def _prepare_info(self, extended=False, load_quants=False):
         """
             Prepares the following info of the location in self:

@@ -14,6 +14,8 @@
             <xpath expr="//page[@name='inventory']" position="inside">
                 <group string="UDES" name="inventory_udes">
                     <field name="u_hazardous" />
+                    <field name="u_height_category_id" />
+                    <field name="u_speed_category_id" />
                 </group>
             </xpath>
         </field>
