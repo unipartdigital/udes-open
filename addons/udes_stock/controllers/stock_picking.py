@@ -70,8 +70,7 @@ class PickingApi(UdesApi):
 
     @http.route('/api/stock-picking/<identifier>/suggested-locations',
                 type='json', methods=['GET'], auth='user')
-    def suggested_locations(self, identifier, package_name=None,
-                            move_line_ids=None):
+    def suggested_locations(self, identifier, move_line_ids=None):
         """ Search suggested locations
 
             Example output:
@@ -81,18 +80,14 @@ class PickingApi(UdesApi):
                     {"id": 2, "name": "Location 2", "barcode": "L00000200"}
                 ]}
         """
-        Package = request.env['stock.quant.package']
         MoveLine = request.env['stock.move.line']
         Picking = request.env['stock.picking']
 
-        picking = Picking.browse(int(identifier))
+        if move_line_ids is None:
+            raise ValidationError(_("Must specify the 'move_line_ids' entry"))
 
-        kwargs = {}
-        if package_name:
-            package = Package.get_package(package_name)
-            kwargs['package'] = package
-        if move_line_ids:
-            kwargs['move_line_ids'] = MoveLine.browse(move_line_ids)
-        locations = picking.get_suggested_locations(**kwargs)
+        mls = MoveLine.browse(move_line_ids)
+        picking = Picking.browse(int(identifier))
+        locations = picking.get_suggested_locations(mls)
 
         return locations.get_info()
