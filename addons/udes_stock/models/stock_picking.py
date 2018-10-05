@@ -1227,61 +1227,78 @@ class StockPicking(models.Model):
 
         return picking
 
-    def get_suggested_locations(self, **kwargs):
+    def get_suggested_locations(self, move_line_ids):
+        ''' Dispatch the configured suggestion location policy to
+            retrieve the suggested locations
+        '''
         result = self.env['stock.location']
+
         for picking in self:
             policy = picking.picking_type_id.u_drop_location_policy
+
             if policy:
                 func = getattr(self, '_get_suggested_location_' + policy, None)
+
                 if func:
-                    result = func(**kwargs)
+                    result = func(move_line_ids)
 
         return result
 
+    #
+    ## Suggested locations policies
+    #
+
     def _check_picking_move_lines_suggest_location(self, move_line_ids):
         pick_move_lines = self.mapped('move_line_ids').filtered(
-            lambda ml: ml in move_line_ids
-        )
+            lambda ml: ml in move_line_ids)
+
         if len(pick_move_lines) != len(move_line_ids):
             raise ValidationError(
                 _('Some move lines not found in picking %s to suggest '
-                  'drop off locations for them.' % self.name)
-            )
+                  'drop off locations for them.' % self.name))
 
-    def _get_suggested_location_exactly_match_move_line(self, move_line_ids,
-                                                        **kwargs):
+    def _get_suggested_location_exactly_match_move_line(self, move_line_ids):
         self._check_picking_move_lines_suggest_location(move_line_ids)
         location = move_line_ids.mapped('location_dest_id')
+
         return location.ensure_one()
 
-    def _get_suggested_location_by_products(self, products=None,
-                                            move_line_ids=None, **kwargs):
+    def _get_suggested_location_by_products(self, move_line_ids, products=None):
         Quant = self.env['stock.quant']
 
-        if move_line_ids:
-            self._check_picking_move_lines_suggest_location(move_line_ids)
+        if not move_line_ids:
+            raise ValidationError(
+                _('Cannot determine the suggested location: missing move lines'))
+
+        self._check_picking_move_lines_suggest_location(move_line_ids)
+
+        if products is None:
             products = move_line_ids.mapped('product_id')
 
         if not products:
             raise ValidationError(
                 _('Products missing to suggest location for.'))
-        quants = Quant.search([
-            ('product_id', 'in', products.ids),
-            ('location_id', 'child_of', self.location_dest_id.ids)
-        ])
+
+        quants = Quant.search(
+            [('product_id', 'in', products.ids),
+             ('location_id', 'child_of', self.location_dest_id.ids)])
+
         return quants.mapped('location_id') \
             .filtered(lambda loc: not loc.u_blocked and loc.barcode)
 
-    def _get_suggested_location_by_packages(self, package, **kwargs):
+    def _get_suggested_location_by_packages(self, move_line_ids):
+        package = move_line_ids.mapped('package_id')
+        package.ensure_one()
 
         mls = self.mapped('move_line_ids').filtered(
             lambda ml: ml.package_id == package)
+
         if not mls:
             raise ValidationError(
                 _('Package %s not found in picking %s in order to suggest '
-                  'drop off locations for it.' %
-                  (package.name, self.name))
-            )
+                  'drop off locations for it.'
+                  % (package.name, self.name)))
 
         products = mls.mapped('product_id')
-        return self._get_suggested_location_by_products(products)
+
+        return self._get_suggested_location_by_products(mls, products)

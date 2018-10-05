@@ -346,7 +346,6 @@ odoo.__DEBUG__.services['web.ajax'].jsonRpc('/api/stock-picking/60', 'call', {
 }).then(function(result){console.log(result); } )
 ```
 
-
 ### Package is compatible with stock picking
 ```
 URI: /api/stock-picking/:id/is_compatible_package/:package_name
@@ -370,11 +369,7 @@ Suggest drop off locations based on the configured `u_drop_location_policy`.
 
 Request payload - json object:
 
-* `package_name`: (optional) the barcode of the package being dropped off.
-* `move_line_ids`: (optional) list of the move line ids being processed.
-
-The above info is used by the policy logic to determine the suggestions; of
-course, the required info will depend on the particular policy being used.
+* `move_line_ids`: list of the move line ids being processed.
 
 Response payload - json array with Location objects; exmple:
 
