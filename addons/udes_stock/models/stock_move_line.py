@@ -643,9 +643,12 @@ class StockMoveLine(models.Model):
     ## Drop Location Constraint
     #
     @api.constrains('location_dest_id')
+    @api.onchange('location_dest_id')
     def _validate_location_dest(self):
         """ Ensures that the location destination is a child of the
-            default_location_dest_id of the picking.
+            default_location_dest_id of the picking and that is
+            one of the suggested locations if the drop off policy
+            is enforce.
         """
         location = self.mapped('location_dest_id')
 
@@ -661,8 +664,20 @@ class StockMoveLine(models.Model):
         for picking in self.mapped('picking_id'):
             if not picking.is_valid_location_dest_id(location=location):
                 raise ValidationError(
-                    _("The location '%s' is not a child of the picking destination "
-                      "location '%s'" % (location.name, picking.location_dest_id.name)))
+                    _("The location '%s' is not a child of the picking "
+                      "destination location '%s'" %
+                      (location.name, picking.location_dest_id.name))
+                )
+
+            if picking.picking_type_id.u_drop_location_constraint == 'enforce':
+                mls = self.filtered(lambda ml: ml.picking_id == picking)
+                locations = picking.get_suggested_locations(mls)
+                # location should be one of the suggested locations if there
+                # are any
+                if locations and location not in locations:
+                    raise ValidationError(
+                        _("Drop off location must be one of the suggested "
+                          "locations."))
 
     def any_destination_locations_default(self):
         """Checks if all location_dest_id's are default_location_dest_id of
