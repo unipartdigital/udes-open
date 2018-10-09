@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="privacy_wrapping" model="product.packaging">
+        <field name="name">Privacy</field>
+    </record>
+</odoo>
