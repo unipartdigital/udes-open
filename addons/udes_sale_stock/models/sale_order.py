@@ -36,3 +36,8 @@ class SaleOrder(models.Model):
                 order.action_done()
             if len(order.picking_ids) == len(cancel_pickings):
                 order.with_context(from_sale=True).action_cancel()
+
+    def action_cancel(self):
+        """Override to cancel by moves instead of by pickings"""
+        self.mapped('order_line.move_ids')._action_cancel()
+        return self.write({'state': 'cancel'})
