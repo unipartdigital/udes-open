@@ -12,7 +12,7 @@ class SaleOrder(models.Model):
         ('done', 'Done'),
     ])
 
-    picking_ids = fields.One2many('stock.picking',
+    picking_ids = fields.One2many('stock.picking', inverse_name=None,
                                   compute="_compute_picking_ids_by_line")
 
     @api.depends('order_line.move_ids.picking_id')
