@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from odoo import models, _
+from odoo import api, models, _
 from odoo.exceptions import UserError
 
 import logging
@@ -157,6 +157,62 @@ class StockMove(models.Model):
             if picking_type_id.u_drop_location_preprocess:
                 moves.mapped('picking_id').apply_drop_location_policy()
         return res
+
+    def _action_done(self):
+        done_moves = super(StockMove, self)._action_done()
+        done_moves.push_from_drop()
+        return done_moves
+
+    def push_from_drop(self):
+        Move = self.env['stock.move']
+        MoveLine = self.env['stock.move.line']
+        Push = self.env['stock.location.path']
+
+        done_moves = self.filtered(lambda m: m.state == 'done')
+
+        # load all the move lines, grouped by location
+        move_lines_by_location = done_moves.mapped('move_line_ids').groupby('location_dest_id')
+
+        # Build mapping of push rule -> move lines to push
+        move_lines_by_push = {}
+        for location, loc_mls in move_lines_by_location:
+            # Get the push rule that moves from the location.
+            push_step = Push.get_path_from_location(location)
+            if not push_step:
+                continue
+            if push_step not in move_lines_by_push:
+                move_lines_by_push[push_step] = MoveLine.browse()
+            move_lines_by_push[push_step] |= loc_mls
+
+        created_moves = Move.browse()
+        for push, move_lines in move_lines_by_push.items():
+            created_moves |= self._create_moves_for_push(push, move_lines)
+
+        created_moves._action_confirm()
+        created_moves._action_assign()
+
+    @api.model
+    def _create_moves_for_push(self, push, move_lines):
+        """Create moves for a push rule to cover the quantity in move_lines"""
+        Move = self.env['stock.move']
+
+        # Group mls by move so we can preserve move information.
+        mls_by_move = move_lines.groupby('move_id')
+        created_moves = Move.browse()
+        base_vals = {
+            'picking_type_id': push.picking_type_id.id,
+            'location_id': push.location_from_id.id,
+            'location_dest_id': push.location_dest_id.id,
+            'picking_id': None,
+        }
+        for move, mls in mls_by_move:
+            move_vals = base_vals.copy()
+            move_vals.update({
+                'product_uom_qty': sum(mls.mapped('qty_done')),
+                'move_orig_ids': [(6, 0, [move.id,])]
+            })
+            created_moves |= move.copy(move_vals)
+        return created_moves
 
     def post_reservation_split(self):
         """
