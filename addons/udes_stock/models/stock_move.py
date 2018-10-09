@@ -41,6 +41,7 @@ class StockMove(models.Model):
                 "quantity_done": self.quantity_done,
                 "product_id": self.product_id.get_info()[0],
                 "moves_line_ids": self.move_line_ids.get_info(),
+                "product_packaging": self.product_packaging.name,
                }
 
     def get_info(self):
