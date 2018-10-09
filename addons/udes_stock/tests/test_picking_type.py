@@ -67,15 +67,13 @@ class TestPickingType(common.BaseUDES):
 
         self.assertEqual(locations, self.test_locations)
 
-    def test03_get_suggested_locations_by_product_using_move_lines(self):
-        """ All of the suggested locations should have current stock of the
-            product, this test uses move_line_ids as parameter instead of
-            products.
+    def test03_get_suggested_locations_by_product_single_location(self):
+        """ If a single location has the product then only such location
+            is suggested.
         """
         self.picking_type_putaway.u_drop_location_policy = 'by_products'
         self.create_quant(self.apple.id, self.test_location_01.id, 4,
                           package_id=self.package_two.id)
-        self.create_quant(self.apple.id, self.test_location_02.id, 4)
 
         self.create_quant(self.apple.id,
                           self.picking_type_putaway.default_location_src_id.id,
@@ -87,9 +85,54 @@ class TestPickingType(common.BaseUDES):
         mls = picking.move_line_ids
         locations = picking.get_suggested_locations(mls)
 
-        self.assertEqual(locations, self.test_locations)
+        self.assertEqual(locations, self.test_location_01)
 
-    def test04_get_suggested_locations_by_package(self):
+    def test04_get_suggested_locations_by_product_empty_lines_suggested(self):
+        """ In case no quants are present in the drop locations,
+            the empty ones should be suggested.
+        """
+        self.picking_type_putaway.u_drop_location_policy = 'by_products'
+        self.create_quant(self.banana.id, self.test_location_01.id, 2,
+                          package_id=self.package_two.id)
+
+        self.create_quant(self.apple.id,
+                          self.picking_type_putaway.default_location_src_id.id,
+                          4, package_id=self.package_one.id)
+        picking = self.create_picking(self.picking_type_putaway,
+                            products_info=self.pack_4apples_info,
+                            confirm=True,
+                            assign=True)
+        mls = picking.move_line_ids
+        locations = picking.get_suggested_locations(mls)
+
+        self.assertEqual(locations, self.test_location_02)
+
+    def test05_get_suggested_locations_by_product_no_lines(self):
+        """ In case all locations are already used for other products, no
+            location is suggested.
+        """
+        Location = self.env['stock.location']
+
+        self.picking_type_putaway.u_drop_location_policy = 'by_products'
+        self.create_quant(self.banana.id, self.test_location_01.id, 4,
+                          package_id=self.package_two.id)
+        self.create_quant(self.cherry.id, self.test_location_02.id, 4)
+
+        self.create_quant(self.apple.id,
+                          self.picking_type_putaway.default_location_src_id.id,
+                          4, package_id=self.package_three.id)
+        picking = self.create_picking(self.picking_type_putaway,
+                            products_info=self.pack_4apples_info,
+                            confirm=True,
+                            assign=True)
+        mls = picking.move_line_ids
+        locations = picking.get_suggested_locations(mls)
+
+
+        self.assertEqual(locations, Location.browse())
+
+
+    def test06_get_suggested_locations_by_package(self):
         """ Suggested locations should be all where the products inside the
             package are at.
             Note that for packages with multiple products it is suggested any
@@ -115,7 +158,7 @@ class TestPickingType(common.BaseUDES):
 
         self.assertEqual(locations, self.test_locations)
 
-    def test05_get_suggested_locations_wrong_move_lines(self):
+    def test07_get_suggested_locations_wrong_move_lines(self):
         """ Validation error raised when trying to suggest locations of a
             picking using move lines of another picking.
         """
@@ -146,7 +189,7 @@ class TestPickingType(common.BaseUDES):
               'drop off locations for them.' % picking2.name
         self.assertEqual(err.exception.name, msg)
 
-    def test06_get_suggested_locations_by_products_missing_parameter(self):
+    def test08_get_suggested_locations_by_products_missing_parameter(self):
         """ Validation error raised when trying to suggest locations of a
             picking by products and passing an empty list of move lines.
         """
