@@ -191,7 +191,7 @@ class TestPickingType(common.BaseUDES):
 
     def test08_get_suggested_locations_by_products_missing_parameter(self):
         """ Validation error raised when trying to suggest locations of a
-            picking by products and passing an empty list of move lines.
+            picking by products and passing an empty set of move lines.
         """
         self.picking_type_putaway.u_drop_location_policy = 'by_products'
 
@@ -199,12 +199,13 @@ class TestPickingType(common.BaseUDES):
                           self.picking_type_putaway.default_location_src_id.id,
                           4, package_id=self.package_one.id)
         picking = self.create_picking(self.picking_type_putaway,
-                                       products_info=self.pack_4apples_info,
-                                       confirm=True,
-                                       assign=True)
+                                      products_info=self.pack_4apples_info,
+                                      confirm=True,
+                                      assign=True)
 
+        MoveLine = self.env['stock.move.line']
         with self.assertRaises(ValidationError) as err:
-            locations = picking.get_suggested_locations([])
+            locations = picking.get_suggested_locations(MoveLine)
 
         msg = 'Cannot determine the suggested location: missing move lines'
         self.assertEqual(err.exception.name, msg)
