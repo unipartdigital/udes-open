@@ -672,12 +672,12 @@ class StockMoveLine(models.Model):
             if picking.picking_type_id.u_drop_location_constraint == 'enforce':
                 mls = self.filtered(lambda ml: ml.picking_id == picking)
                 locations = picking.get_suggested_locations(mls)
-                # location should be one of the suggested locations if there
-                # are any
+
+                # location should be one of the suggested locations, if any
                 if locations and location not in locations:
                     raise ValidationError(
                         _("Drop off location must be one of the suggested "
-                          "locations."))
+                          "locations"))
 
     def any_destination_locations_default(self):
         """Checks if all location_dest_id's are default_location_dest_id of
