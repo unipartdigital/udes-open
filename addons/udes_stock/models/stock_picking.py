@@ -29,6 +29,11 @@ def _update_move_lines_and_log_swap(move_lines, pack, other_pack):
     _logger.info(msg)
 
 
+def allow_preprocess(func):
+    func._allow_preprocess = True
+    return func
+
+
 class StockPicking(models.Model):
     _inherit = 'stock.picking'
 
@@ -1247,6 +1252,37 @@ class StockPicking(models.Model):
         moves.mapped('move_line_ids').write({'picking_id': picking.id})
 
         return picking
+
+    def check_policy_for_preprocessing(self, policy):
+        """"Check policy allows pre processing as not all polices
+            can be used in this way
+        """
+        func = getattr(self, '_get_suggested_location_' + policy, None)
+
+        if not hasattr(func, '_allow_preprocess'):
+            raise ValidationError(
+                _('This policy(%s) is not meant to be used in '
+                  'preprocessing') % policy
+            )
+
+    def apply_drop_location_policy(self):
+        """Apply suggested locations to move lines
+
+           raise ValidationError: if the policy set does not have
+                                  _allow_preprocess set
+        """
+        by_pack_or_single = lambda ml: ml.package_id.package_id \
+                                       or ml.package_id or ml.id
+
+        for pick in self:
+            self.check_policy_for_preprocessing(
+                pick.picking_type_id.u_drop_location_policy
+            )
+            # Group by pallet or package
+            for _pack, mls in pick.move_line_ids.groupby(by_pack_or_single):
+                locs = pick.get_suggested_locations(mls)
+                if locs:
+                    mls.write({'location_dest_id':  locs[0].id})
 
     def get_suggested_locations(self, move_line_ids):
         ''' Dispatch the configured suggestion location policy to
