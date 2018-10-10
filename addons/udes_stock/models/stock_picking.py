@@ -1005,6 +1005,13 @@ class StockPicking(models.Model):
         """
             Override action_assign to reserve full packages if applicable
         """
+
+        # stock.picking.action_assign is usually only called when manually
+        # clicking "check availability" in Odoo UI or when explicitly called.
+        # When the next step in a route is being reserved
+        # stock.move._action_assign is called directly
+        #
+
         res = super(StockPicking, self).action_assign()
         if res is not True:
             raise ValidationError(
