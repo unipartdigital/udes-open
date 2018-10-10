@@ -1352,12 +1352,12 @@ class StockPicking(models.Model):
             raise ValidationError(
                 _('Products missing to suggest location for.'))
 
-        quants = Quant.search(
-            [('product_id', 'in', products.ids),
-             ('location_id', 'child_of', self.location_dest_id.ids)])
-
-        suggested_locations = quants.mapped('location_id') \
-            .filtered(lambda loc: not loc.u_blocked and loc.barcode)
+        suggested_locations = Quant.search([
+            ('product_id', 'in', products.ids),
+            ('location_id', 'child_of', self.location_dest_id.ids),
+            ('location_id.u_blocked', '=', False),
+            ('location_id.barcode', '!=', False),
+        ]).mapped('location_id')
 
         if not suggested_locations:
             # No drop locations currently used for this product;
