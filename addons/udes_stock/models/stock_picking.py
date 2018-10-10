@@ -911,6 +911,22 @@ class StockPicking(models.Model):
 
         return move_lines.filtered(lambda o: o.qty_done > 0)
 
+    def _get_child_dest_locations(self, domains=None):
+        """ Return the child locations of the instance dest location.
+            Extra domains are added to the child locations search query,
+            when specified.
+            Expects a singleton instance.
+        """
+        Location = self.env['stock.location']
+        self.ensure_one()
+
+        if domains is None:
+            domains = []
+
+        domains.append(('id', 'child_of', self.location_dest_id.id))
+
+        return Location.search(domains)
+
     def is_valid_location_dest_id(self, location=None, location_ref=None):
         """ Whether the specified location or location reference
             (i.e. ID, name or barcode) is a valid putaway location
@@ -921,8 +937,10 @@ class StockPicking(models.Model):
         """
         Location = self.env['stock.location']
         self.ensure_one()
+
         if not location and not location_ref:
             raise ValidationError("Must specify a location or ref")
+
         dest_locations = None
 
         if location is not None:
@@ -933,8 +951,7 @@ class StockPicking(models.Model):
         if not dest_locations:
             raise ValidationError(_("The specified location is unknown."))
 
-        valid_locations = Location.search(
-            [('id', 'child_of', self.location_dest_id.id)])
+        valid_locations = self._get_child_dest_locations()
         invalid_locations = dest_locations - valid_locations
 
         return len(invalid_locations) == 0
@@ -1283,8 +1300,18 @@ class StockPicking(models.Model):
             [('product_id', 'in', products.ids),
              ('location_id', 'child_of', self.location_dest_id.ids)])
 
-        return quants.mapped('location_id') \
+        suggested_locations = quants.mapped('location_id') \
             .filtered(lambda loc: not loc.u_blocked and loc.barcode)
+
+        if not suggested_locations:
+            # No drop locations currently used for this product;
+            # gather the empty ones
+            suggested_locations = self._get_child_dest_locations(
+                [('u_blocked', '=', False),
+                 ('barcode', '!=', False),
+                 ('quant_ids', '=', False)])
+
+        return suggested_locations
 
     def _get_suggested_location_by_packages(self, move_line_ids):
         package = move_line_ids.mapped('package_id')
