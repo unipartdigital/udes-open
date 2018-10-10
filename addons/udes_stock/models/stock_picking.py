@@ -1198,24 +1198,28 @@ class StockPicking(models.Model):
         return res
 
     @api.model
-    def _new_picking_for_group(self, group_key, moves, move_lines):
+    def _new_picking_for_group(self, group_key, moves):
         Group = self.env['procurement.group']
 
         picking_type = moves.mapped('picking_type_id')
         picking_type.ensure_one()
+        src_loc = moves.mapped('location_id')
+        dest_loc = moves.mapped('location_dest_id')
 
         group = Group.get_group(group_identifier=group_key,
                                 create=True)
         picking = self.search([
             ('picking_type_id', '=', picking_type.id),
+            ('location_id', '=', src_loc.id),
+            ('location_dest_id', '=', dest_loc.id),
             ('group_id', '=', group.id),
             ('state', '=', 'assigned'),
         ])
         if not picking or len(picking) > 1:
             picking = self.create({
                 'picking_type_id': picking_type.id,
-                'location_id': picking_type.default_location_src_id.id,
-                'location_dest_id': picking_type.default_location_dest_id.id,
+                'location_id': src_loc.id,
+                'location_dest_id': dest_loc.id,
                 'group_id': group.id
             })
 
@@ -1223,7 +1227,7 @@ class StockPicking(models.Model):
             'group_id': group.id,
             'picking_id': picking.id
         })
-        move_lines.write({'picking_id': picking.id})
+        moves.mapped('move_line_ids').write({'picking_id': picking.id})
 
         return picking
 

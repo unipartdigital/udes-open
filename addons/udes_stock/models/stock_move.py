@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from odoo import api, models, _
+from odoo.exceptions import UserError
 
 import logging
 
@@ -213,7 +214,6 @@ class StockMove(models.Model):
                 group of stock.move.lines
             attach the stock.moves and stock.move.lines to the new picking.
         """
-        MoveLine = self.env['stock.move.line']
         Picking = self.env['stock.picking']
 
         picking_type = self.mapped('picking_type_id')
@@ -227,6 +227,17 @@ class StockMove(models.Model):
 
         for key, ml_group in mls_by_key.items():
             touched_moves = ml_group.mapped('move_id')
+
+            if len(touched_moves.mapped('location_id')) > 1 or \
+                    len(touched_moves.mapped('location_dest_id')) > 1:
+                raise UserError(_('Please contact an Administrator.\n'
+                                  'Move Line grouping has generated a group of'
+                                  'moves that has more than one source or '
+                                  'destination location. Aborting. key: "%s", '
+                                  'location_ids: "%s", location_dest_ids: "%s"'
+                                  '') % (key, touched_moves.mapped('location_id'),
+                                         touched_moves.mapped('location_dest_id')))
+
             group_moves = self.env['stock.move']
             for move in touched_moves:
                 move_mls = ml_group.filtered(lambda l: l.move_id == move)
@@ -238,7 +249,7 @@ class StockMove(models.Model):
                 else:
                     group_moves |= move
 
-            Picking._new_picking_for_group(key, group_moves, ml_group)
+            Picking._new_picking_for_group(key, group_moves)
 
         empty_picks = pickings.filtered(lambda p: len(p.move_lines) == 0)
         if empty_picks:
