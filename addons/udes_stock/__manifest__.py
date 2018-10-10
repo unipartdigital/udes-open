@@ -13,6 +13,7 @@
         'package_hierarchy',
         'print',
         'udes_security',
+        'edi',  # include EDI patches on basemodel. At time of writing, no other EDI functionality is used.
     ],
     'category': 'Warehouse',
     'sequence': 11,

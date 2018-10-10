@@ -9,6 +9,7 @@ from . import res_groups
 from . import res_users
 from . import stock_inventory
 from . import stock_location
+from . import stock_location_path
 from . import stock_move
 from . import stock_move_line
 from . import stock_picking

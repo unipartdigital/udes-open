@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from odoo import models, _
+from odoo import api, models, _
 from odoo.exceptions import UserError
 
 import logging
@@ -149,6 +149,62 @@ class StockMove(models.Model):
             self.filtered(lambda m: m.picking_type_id == picking_type). \
                 post_reservation_split()
 
+    def _action_done(self):
+        done_moves = super(StockMove, self)._action_done()
+        done_moves.push_from_drop()
+        return done_moves
+
+    def push_from_drop(self):
+        Move = self.env['stock.move']
+        MoveLine = self.env['stock.move.line']
+        Push = self.env['stock.location.path']
+
+        done_moves = self.filtered(lambda m: m.state == 'done')
+
+        # load all the move lines, grouped by location
+        move_lines_by_location = done_moves.mapped('move_line_ids').groupby('location_dest_id')
+
+        # Build mapping of push rule -> move lines to push
+        move_lines_by_push = {}
+        for location, loc_mls in move_lines_by_location:
+            # Get the push rule that moves from the location.
+            push_step = Push.get_path_from_location(location)
+            if not push_step:
+                continue
+            if push_step not in move_lines_by_push:
+                move_lines_by_push[push_step] = MoveLine.browse()
+            move_lines_by_push[push_step] |= loc_mls
+
+        created_moves = Move.browse()
+        for push, move_lines in move_lines_by_push.items():
+            created_moves |= self._create_moves_for_push(push, move_lines)
+
+        created_moves._action_confirm()
+        created_moves._action_assign()
+
+    @api.model
+    def _create_moves_for_push(self, push, move_lines):
+        """Create moves for a push rule to cover the quantity in move_lines"""
+        Move = self.env['stock.move']
+
+        # Group mls by move so we can preserve move information.
+        mls_by_move = move_lines.groupby('move_id')
+        created_moves = Move.browse()
+        base_vals = {
+            'picking_type_id': push.picking_type_id.id,
+            'location_id': push.location_from_id.id,
+            'location_dest_id': push.location_dest_id.id,
+            'picking_id': None,
+        }
+        for move, mls in mls_by_move:
+            move_vals = base_vals.copy()
+            move_vals.update({
+                'product_uom_qty': sum(mls.mapped('qty_done')),
+                'move_orig_ids': [(6, 0, [move.id,])]
+            })
+            created_moves |= move.copy(move_vals)
+        return created_moves
+
     def post_reservation_split(self):
         """
         group the move lines by the splitting criteria
@@ -158,7 +214,6 @@ class StockMove(models.Model):
                 group of stock.move.lines
             attach the stock.moves and stock.move.lines to the new picking.
         """
-        MoveLine = self.env['stock.move.line']
         Picking = self.env['stock.picking']
 
         picking_type = self.mapped('picking_type_id')
@@ -172,6 +227,17 @@ class StockMove(models.Model):
 
         for key, ml_group in mls_by_key.items():
             touched_moves = ml_group.mapped('move_id')
+
+            if len(touched_moves.mapped('location_id')) > 1 or \
+                    len(touched_moves.mapped('location_dest_id')) > 1:
+                raise UserError(_('Please contact an Administrator.\n'
+                                  'Move Line grouping has generated a group of'
+                                  'moves that has more than one source or '
+                                  'destination location. Aborting. key: "%s", '
+                                  'location_ids: "%s", location_dest_ids: "%s"'
+                                  '') % (key, touched_moves.mapped('location_id'),
+                                         touched_moves.mapped('location_dest_id')))
+
             group_moves = self.env['stock.move']
             for move in touched_moves:
                 move_mls = ml_group.filtered(lambda l: l.move_id == move)
@@ -183,7 +249,7 @@ class StockMove(models.Model):
                 else:
                     group_moves |= move
 
-            Picking._new_picking_for_group(key, group_moves, ml_group)
+            Picking._new_picking_for_group(key, group_moves)
 
         empty_picks = pickings.filtered(lambda p: len(p.move_lines) == 0)
         if empty_picks:
