@@ -174,8 +174,7 @@ class StockMove(models.Model):
 
             if len(touched_moves.mapped('location_id')) > 1 or \
                     len(touched_moves.mapped('location_dest_id')) > 1:
-                raise UserError(_('Please contact an Administrator.\n'
-                                  'Move Line grouping has generated a group of'
+                raise UserError(_('Move Line grouping has generated a group of'
                                   'moves that has more than one source or '
                                   'destination location. Aborting. key: "%s", '
                                   'location_ids: "%s", location_dest_ids: "%s"'
