@@ -111,6 +111,13 @@ class StockPickingType(models.Model):
         help='Indicate the policy for suggesting drop locations.'
     )
 
+    u_drop_location_preprocess = fields.Boolean(
+        string='Add destination location on pick assignement',
+        default=False,
+        help='Flag to indicate if picking assignment should select '
+             'destination locations'
+    )
+
     u_auto_batch_pallet = fields.Boolean(
         string='Auto batch pallet',
         default=False,
