@@ -1385,3 +1385,54 @@ class StockPicking(models.Model):
         products = mls.mapped('product_id')
 
         return self._get_suggested_location_by_products(mls, products)
+
+    @allow_preprocess
+    def _get_suggested_location_by_height_speed(self, move_line_ids):
+        """Get location based on product height and turn over speed categories
+        """
+        Location = self.env['stock.location']
+
+        height_category = move_line_ids.mapped(
+            'product_id.u_height_category_id'
+        )
+        speed_category = move_line_ids.mapped('product_id.u_speed_category_id')
+        default_location = move_line_ids.mapped('location_dest_id')
+
+        if not len(height_category) == 1 or not len(speed_category) == 1:
+            raise UserError(
+                _('Move lines with more than category for height(%s) or '
+                  'speed(%s) provided') % (
+                      height_category.mapped('name'),
+                      speed_category.mapped('name'),
+                  )
+            )
+        default_location.ensure_one()
+
+        # Get empty locations where height and speed match product
+        candidate_locations = Location.search([
+            ('location_id', 'child_of', default_location.id),
+            ('u_blocked', '=', False),
+            ('barcode', '!=', False),
+            ('u_height_category_id', '=', height_category.id),
+            ('u_speed_category_id', '=', speed_category.id),
+            # TODO(MTC): This should probably be a bit more inteligent perhaps
+            # get them all then do a filter for checking if theres space
+            ('quant_ids', '=', False),
+        ])
+
+        return self._location_not_in_other_move_lines(candidate_locations)
+
+    def _location_not_in_other_move_lines(self, candidate_locations):
+        MoveLines = self.env['stock.move.line']
+
+        for _indexes, valid_locations in candidate_locations.batched(size=1000):
+            # remove locations which are already used in move lines
+            valid_locations -= MoveLines.search([
+                ('picking_id.state', '=', 'assigned'),
+                ('location_dest_id', 'in', valid_locations.ids),
+            ]).mapped('location_dest_id')
+
+            if valid_locations:
+                return valid_locations
+
+        return self.env['stock.location']
