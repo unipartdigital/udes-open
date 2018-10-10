@@ -1292,9 +1292,18 @@ class StockPicking(models.Model):
 
         for picking in self:
             policy = picking.picking_type_id.u_drop_location_policy
-
             if policy:
-                func = getattr(self, '_get_suggested_location_' + policy, None)
+                if move_line_ids and \
+                        picking.picking_type_id.u_drop_location_preprocess and \
+                        not move_line_ids.any_destination_locations_default():
+                    # The policy has been preprocessed this assumes the
+                    # the polciy is able to provide a sensible value (this is
+                    # not the case for every policy)
+                    # Use the preselected value
+                    func = self._get_suggested_location_exactly_match_move_line
+                else:
+                    func = getattr(self, '_get_suggested_location_' + policy,
+                                   None)
 
                 if func:
                     result = func(move_line_ids)
