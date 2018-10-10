@@ -735,6 +735,8 @@ class TestGoodsInUpdatePickingPallet(common.BaseUDES):
                          'Stock picking is not in state done after validation.')
 
 
+# NB(ale): more tests for drop off location validation in test_move_line.py
+
 class TestUpdatePickingMarksMoveLinesAsDone(common.BaseUDES):
 
     @classmethod

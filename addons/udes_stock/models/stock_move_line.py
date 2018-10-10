@@ -661,6 +661,8 @@ class StockMoveLine(models.Model):
 
         # HERE(ale): iterating picking_id even if it's a many2one
         # because the constraint can be triggered anywhere
+
+        # TODO(ale): consider using `picking::groupby` once available
         for picking in self.mapped('picking_id'):
             if not picking.is_valid_location_dest_id(location=location):
                 raise ValidationError(
