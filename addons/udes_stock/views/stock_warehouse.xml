@@ -8,7 +8,7 @@
             <field name="arch" type="xml">
                 <xpath expr="//page[1]" position="after">
                     <page string="UDES Configuration" groups='base.group_no_one'>
-                        <group name="picking_type" string="Picking Types Configuration">
+                        <group name="picking_type" string="Picking types which handle damages">
                             <field name="u_handle_damages_picking_type_ids"
                                    widget="many2many_tags"
                                    placeholder="Picking Types"
