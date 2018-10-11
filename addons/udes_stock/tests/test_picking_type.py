@@ -2,7 +2,7 @@
 
 from . import common
 
-from odoo.exceptions import ValidationError
+from odoo.exceptions import ValidationError, UserError
 
 
 class TestPickingType(common.BaseUDES):
@@ -17,6 +17,26 @@ class TestPickingType(common.BaseUDES):
             {'product': cls.apple, 'qty': 4},
             {'product': cls.banana, 'qty': 3},
         ]
+
+        cls.tall_category = cls.create_category(name='Tall')
+        cls.short_category = cls.create_category(name='Short')
+        cls.fast_category = cls.create_category(name='Fast')
+        cls.slow_category = cls.create_category(name='Slow')
+
+        cls.short_slow = {
+            "u_height_category_id": cls.short_category.id,
+            "u_speed_category_id": cls.slow_category.id,
+        }
+
+        cls.tall_fast = {
+            "u_height_category_id": cls.tall_category.id,
+            "u_speed_category_id": cls.fast_category.id,
+        }
+
+        cls.apple.write(cls.short_slow)
+        cls.banana.write(cls.tall_fast)
+        cls.test_location_01.write(cls.short_slow)
+        cls.test_location_02.write(cls.tall_fast)
 
     def setUp(self):
         super(TestPickingType, self).setUp()
@@ -209,3 +229,278 @@ class TestPickingType(common.BaseUDES):
 
         msg = 'Cannot determine the suggested location: missing move lines'
         self.assertEqual(err.exception.name, msg)
+
+    def test07_get_suggested_locations_by_products_locations_blocked(self):
+        """Locations which are blocked should not appear in suggestions"""
+        self.picking_type_putaway.u_drop_location_policy = 'by_products'
+
+        self.create_quant(
+            self.apple.id,
+            self.test_location_01.id,
+            4,
+            package_id=self.package_two.id
+        )
+        self.create_quant(self.apple.id, self.test_location_02.id, 4)
+
+        self.create_quant(
+            self.apple.id,
+            self.picking_type_putaway.default_location_src_id.id,
+            4,
+            package_id=self.package_one.id,
+        )
+        picking = self.create_picking(
+            self.picking_type_putaway,
+            products_info=self.pack_4apples_info,
+            confirm=True,
+            assign=True,
+        )
+
+        self.test_locations.write({
+            'u_blocked': True,
+            'u_blocked_reason': 'Blocked for testing',
+        })
+
+        locations = picking.get_suggested_locations(picking.move_line_ids)
+        self.assertNotIn(self.test_locations, locations)
+
+    def test08_get_suggested_locations_by_height_speed(self):
+        """Checks that only locations which match height and speed of product
+           are suggested
+        """
+        self.picking_type_putaway.u_drop_location_policy = 'by_height_speed'
+
+        self.create_quant(
+            self.apple.id,
+            self.picking_type_putaway.default_location_src_id.id,
+            4,
+            package_id=self.package_one.id,
+        )
+        picking = self.create_picking(
+            self.picking_type_putaway,
+            products_info=self.pack_4apples_info,
+            confirm=True,
+            assign=True,
+        )
+
+        locations = picking.get_suggested_locations(picking.move_line_ids)
+        self.assertEqual(self.test_location_01, locations)
+
+    def test09_get_suggested_locations_by_height_speed_missing_speed(self):
+        """Checks that only locations which match height and speed of product
+           are suggested
+        """
+        self.picking_type_putaway.u_drop_location_policy = 'by_height_speed'
+
+        self.create_quant(
+            self.apple.id,
+            self.picking_type_putaway.default_location_src_id.id,
+            4,
+            package_id=self.package_one.id,
+        )
+
+        self.test_location_01.u_speed_category_id = self.fast_category.id
+
+        picking = self.create_picking(
+            self.picking_type_putaway,
+            products_info=self.pack_4apples_info,
+            confirm=True,
+            assign=True,
+        )
+
+        locations = picking.get_suggested_locations(picking.move_line_ids)
+        self.assertFalse(locations)
+
+    def test10_get_suggested_locations_by_height_speed_missing_height(self):
+        """Checks that only locations which match height and speed of product
+           are suggested
+        """
+        self.picking_type_putaway.u_drop_location_policy = 'by_height_speed'
+
+        self.create_quant(
+            self.apple.id,
+            self.picking_type_putaway.default_location_src_id.id,
+            4,
+            package_id=self.package_one.id,
+        )
+
+        self.test_location_01.u_height_category_id = self.tall_category
+
+        picking = self.create_picking(
+            self.picking_type_putaway,
+            products_info=self.pack_4apples_info,
+            confirm=True,
+            assign=True,
+        )
+
+        locations = picking.get_suggested_locations(picking.move_line_ids)
+        self.assertFalse(locations)
+
+    def test11_get_suggested_locations_by_height_speed_blocked(self):
+        """Checks blocked locations are not returned"""
+        self.picking_type_putaway.u_drop_location_policy = 'by_height_speed'
+        self.create_quant(
+            self.apple.id,
+            self.picking_type_putaway.default_location_src_id.id,
+            4,
+            package_id=self.package_one.id,
+        )
+
+        self.test_location_01.write({
+            'u_blocked': True,
+            'u_blocked_reason': 'For testing',
+        })
+
+        picking = self.create_picking(
+            self.picking_type_putaway,
+            products_info=self.pack_4apples_info,
+            confirm=True,
+            assign=True,
+        )
+
+        locations = picking.get_suggested_locations(picking.move_line_ids)
+        self.assertFalse(locations)
+
+    def test12_get_suggested_locations_by_height_speed_full(self):
+        """Check full locations are not suggested"""
+
+        self.picking_type_putaway.u_drop_location_policy = 'by_height_speed'
+
+        self.create_quant(
+            self.apple.id,
+            self.picking_type_putaway.default_location_src_id.id,
+            4,
+            package_id=self.package_one.id,
+        )
+
+        self.create_quant(self.apple.id, self.test_location_01.id, 4)
+
+        picking = self.create_picking(
+            self.picking_type_putaway,
+            products_info=self.pack_4apples_info,
+            confirm=True,
+            assign=True,
+        )
+
+        locations = picking.get_suggested_locations(picking.move_line_ids)
+        self.assertFalse(locations)
+
+    def test13_get_suggested_locations_by_height_speed_in_other_picking(self):
+        """Check locations which are already assigned to a move line are not
+           suggested
+        """
+
+        self.picking_type_putaway.write({
+            'u_drop_location_policy': 'by_height_speed',
+            'u_drop_location_preprocess': True,
+        })
+
+        self.test_location_02.write(self.short_slow)
+
+        self.create_quant(
+            self.apple.id,
+            self.picking_type_putaway.default_location_src_id.id,
+            4,
+            package_id=self.package_one.id,
+        )
+
+        self.create_quant(
+            self.apple.id,
+            self.picking_type_putaway.default_location_src_id.id,
+            4,
+            package_id=self.package_two.id,
+        )
+
+        picking1 = self.create_picking(
+            self.picking_type_putaway,
+            products_info=self.pack_4apples_info,
+            confirm=True,
+            assign=True,
+        )
+
+        picking2 = self.create_picking(
+            self.picking_type_putaway,
+            products_info=self.pack_4apples_info,
+            confirm=True,
+            assign=True,
+        )
+
+        locations1 = picking1.get_suggested_locations(picking1.move_line_ids)
+        locations2 = picking2.get_suggested_locations(picking2.move_line_ids)
+        self.assertNotEqual(locations1, locations2)
+        self.assertIn(locations1, self.test_locations)
+        self.assertIn(locations2, self.test_locations)
+
+    def test14_get_suggested_locations_by_height_speed_multi_categories(self):
+        """Check get suggested throws an error when move lines containing
+           products with more than one category
+        """
+
+        self.picking_type_putaway.u_drop_location_policy = 'by_height_speed'
+
+        self.create_quant(
+            self.apple.id,
+            self.picking_type_putaway.default_location_src_id.id,
+            4,
+            package_id=self.package_one.id,
+        )
+
+        self.create_quant(
+            self.banana.id,
+            self.picking_type_putaway.default_location_src_id.id,
+            3,
+            package_id=self.package_one.id,
+        )
+
+        picking = self.create_picking(
+            self.picking_type_putaway,
+            products_info=self.pack_4apples_3bananas_info,
+            confirm=True,
+            assign=True,
+        )
+
+        with self.assertRaises(UserError) as err:
+            picking.get_suggested_locations(picking.move_line_ids)
+
+        products = self.apple | self.banana
+        msg = 'Move lines with more than category for height(%s) or ' \
+              'speed(%s) provided' % (
+                  products.mapped('u_height_category_id.name'),
+                  products.mapped('u_speed_category_id.name'),
+              )
+
+        self.assertEqual(err.exception.name, msg)
+
+    def test15_get_suggested_locations_by_height_speed_prost_process_loc(self):
+        """Check that if a location has not been set in preprocessing
+           it can be suggested when requested if a location has become
+           available
+        """
+        self.picking_type_putaway.write({
+            'u_drop_location_policy': 'by_height_speed',
+            'u_drop_location_preprocess': True,
+        })
+        self.create_quant(
+            self.apple.id,
+            self.picking_type_putaway.default_location_src_id.id,
+            4,
+            package_id=self.package_one.id,
+        )
+
+        self.test_location_01.u_speed_category_id = self.fast_category
+
+        picking = self.create_picking(
+            self.picking_type_putaway,
+            products_info=self.pack_4apples_info,
+            confirm=True,
+            assign=True,
+        )
+
+        self.assertEqual(
+            picking.move_line_ids.mapped('location_dest_id'),
+            picking.picking_type_id.default_location_dest_id,
+        )
+
+        self.test_location_01.u_speed_category_id = self.slow_category
+
+        locations = picking.get_suggested_locations(picking.move_line_ids)
+        self.assertEqual(locations, self.test_location_01)
