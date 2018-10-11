@@ -463,3 +463,8 @@ class BaseUDES(common.SavepointCase):
         vals = {}
         vals.update(kwargs)
         return Package.create(vals)
+
+    @classmethod
+    def create_category(cls, **kwargs):
+        ProductCategory = cls.env['product.category']
+        return ProductCategory.create(kwargs)
