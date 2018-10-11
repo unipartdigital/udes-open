@@ -91,6 +91,7 @@ class PickingBatchApi(UdesApi):
     @http.route('/api/stock-picking-batch/',
                 type='json', methods=['POST'], auth='user')
     def create_batch_for_user(self,
+                              picking_type_id,
                               picking_priorities=None,
                               max_locations=None):
         """
@@ -104,13 +105,15 @@ class PickingBatchApi(UdesApi):
         Raises a ValidationError in case a batch already exists for
         the current user.
 
+        @param picking_type_id - Id of the picking type for the pickings
+            which will be used to create the batch.
         @param picking_priorities - (optional) List of priorities to
             search for the pickings
         @param max_locations - (optional) Max number of locations to
             pick from (not used)
         """
         PickingBatch = request.env['stock.picking.batch']
-        batch = PickingBatch.create_batch(picking_priorities)
+        batch = PickingBatch.create_batch(picking_type_id, picking_priorities)
 
         return _get_single_batch_info(batch)
 

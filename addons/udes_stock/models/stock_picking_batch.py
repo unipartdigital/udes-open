@@ -102,7 +102,7 @@ class StockPickingBatch(models.Model):
                 for batch in self]
 
     @api.multi
-    def create_batch(self, picking_priorities, user_id=None):
+    def create_batch(self, picking_type_id, picking_priorities, user_id=None):
         """
         Creeate and return a batch for the specified user if pickings
         exist. Return None otherwise. Pickings are filtered based on
@@ -116,28 +116,24 @@ class StockPickingBatch(models.Model):
         user_id = self._check_user_id(user_id)
         self._check_batches(user_id)
 
-        return self._create_batch(user_id, picking_priorities)
+        return self._create_batch(user_id, picking_type_id, picking_priorities)
 
-    def _create_batch(self, user_id, picking_priorities=None):
+    def _create_batch(self, user_id, picking_type_id, picking_priorities=None):
         """
-        Create a batch for the specified user, by including only
-        those pickings with the specified picking priorities
-        (optional).
+        Create a batch for the specified user by including only
+        those pickings with the specified picking_type_id and picking
+        priorities (optional).
         In case no pickings exist, return None.
         """
         Picking = self.env['stock.picking']
         PickingBatch = self.env['stock.picking.batch']
-        Users = self.env['res.users']
-
-        warehouse = Users.get_user_warehouse()
-        picking_type_id = warehouse.pick_type_id
 
         search_domain = []
 
         if picking_priorities is not None:
             search_domain.append(('priority', 'in', picking_priorities))
 
-        search_domain.extend([('picking_type_id', '=', picking_type_id.id),
+        search_domain.extend([('picking_type_id', '=', picking_type_id),
                               ('state', '=', 'assigned'),
                               ('batch_id', '=', False)])
 
