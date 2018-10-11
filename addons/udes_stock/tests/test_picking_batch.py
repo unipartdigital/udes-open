@@ -24,7 +24,10 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
     def test01_check_user_id_raise_with_empty_id_string(self):
         """ Should error if passed an empty id """
-        batch = self.create_batch(user=self.outbound_user)
+        batch = self.create_batch(
+            user=self.outbound_user,
+            picking_type_id=self.picking_type_pick.id,
+        )
         batch = batch.sudo(self.outbound_user)
 
         with self.assertRaises(ValidationError) as err:
@@ -34,7 +37,10 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
     def test02_check_user_id_valid_id(self):
         """ Should return a non empty string """
-        batch = self.create_batch(user=self.outbound_user)
+        batch = self.create_batch(
+            user=self.outbound_user,
+            picking_type_id=self.picking_type_pick.id,
+        )
         batch = batch.sudo(self.outbound_user)
 
         checked_user_id = batch._check_user_id("42")
@@ -43,7 +49,9 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
     def test03_check_user_id_default_id(self):
         """ Should return the current user id if passed None """
-        batch = self.create_batch(user=self.outbound_user)
+        batch = self.create_batch(
+            user=self.outbound_user,
+            picking_type_id=self.picking_type_pick.id)
         batch = batch.sudo(self.outbound_user)
 
         user_id = batch._check_user_id(None)
@@ -93,7 +101,10 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         self.create_quant(self.apple.id, self.test_location_01.id, 4,
                           package_id=self.package_two.id)
 
-        batch01 = self.create_batch(user=self.outbound_user)
+        batch01 = self.create_batch(
+            user=self.outbound_user,
+            picking_type_id=self.picking_type_pick.id,
+        )
         self.create_picking(self.picking_type_pick,
                             products_info=self.pack_4apples_info,
                             confirm=True,
@@ -101,7 +112,10 @@ class TestGoodsInPickingBatch(common.BaseUDES):
                             batch_id=batch01.id)
         batch01.state = 'in_progress'
 
-        batch02 = self.create_batch(user=self.outbound_user)
+        batch02 = self.create_batch(
+            user=self.outbound_user,
+            picking_type_id=self.picking_type_pick.id,
+        )
         self.create_picking(self.picking_type_pick,
                             products_info=self.pack_4apples_info,
                             confirm=True,
@@ -165,7 +179,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
                                 assign=True,
                                 priority=str(idx))
 
-        batch = Batch.create_batch(["2"])
+        batch = Batch.create_batch(self.picking_type_pick.id, ["2"])
 
         self.assertIsNotNone(batch, "No batch created")
         self.assertEqual(len(batch.picking_ids), 1,
@@ -194,7 +208,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
                                       products_info=self.pack_4apples_info,
                                       confirm=True,
                                       assign=True)
-        batch = Batch.create_batch(None)
+        batch = Batch.create_batch(self.picking_type_pick.id, None)
         for ml in picking.move_line_ids:
             ml.qty_done = ml.product_qty
         # On drop off a backorder is created for the remaining 2 units,
@@ -217,7 +231,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
                                             confirm=True,
                                             assign=True)
 
-        new_batch = Batch.create_batch(None)
+        new_batch = Batch.create_batch(self.picking_type_pick.id, None)
 
         # check outcome
         self.assertIsNotNone(new_batch, "No batch created")
@@ -244,7 +258,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
                             products_info=self.pack_4apples_info,
                             confirm=True,
                             assign=True)
-        batch = Batch.create_batch(None)
+        batch = Batch.create_batch(self.picking_type_pick.id, None)
 
         # create a new picking to be included in the new batch
         other_pack = Package.get_package("test_other_package", create=True)
@@ -262,7 +276,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
         # method under test
         with self.assertRaises(ValidationError) as err:
-            Batch.create_batch(None)
+            Batch.create_batch(self.picking_type_pick.id, None)
 
         self.assertTrue(
             err.exception.name.startswith("The user already has pickings"))
@@ -278,7 +292,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
                                       products_info=self.pack_4apples_info,
                                       confirm=True,
                                       assign=True)
-        batch = Batch.create_batch(None)
+        batch = Batch.create_batch(self.picking_type_pick.id, None)
         picking.update_picking(force_validate=True,
                                location_dest_id=self.test_output_location_01.id)
 
@@ -298,7 +312,8 @@ class TestGoodsInPickingBatch(common.BaseUDES):
                                       confirm=True,
                                       assign=True)
 
-        return picking, Batch.create_batch(None)
+        return picking, Batch.create_batch(self.picking_type_pick.id, None)
+
 
     def test12_is_valid_location_dest_success(self):
         """ Returns True for a valid location """
@@ -486,7 +501,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
                                       products_info=products_info,
                                       confirm=True,
                                       assign=True)
-        batch = Batch.create_batch(None)
+        batch = Batch.create_batch(self.picking_type_pick.id, None)
 
         self.assertTrue(len(picking.move_line_ids) > 1,
                         'number of move_lines not expected')
@@ -550,7 +565,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
                                       products_info=products_info,
                                       confirm=True,
                                       assign=True)
-        batch = Batch.create_batch(None)
+        batch = Batch.create_batch(self.picking_type_pick.id, None)
         num_move_lines = len(picking.move_line_ids)
 
         self.assertTrue(num_move_lines > 1,
@@ -591,7 +606,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
                                       assign=True)
         Batch = self.env['stock.picking.batch']
         Batch = Batch.sudo(self.outbound_user)
-        batch = Batch.create_batch(None)
+        batch = Batch.create_batch(self.picking_type_pick.id, None)
 
         self.assertTrue(len(picking.move_line_ids) > 1,
                         'number of move_lines not expected')
@@ -632,7 +647,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
         Batch = self.env['stock.picking.batch']
         Batch = Batch.sudo(self.outbound_user)
-        batch = Batch.create_batch(None)
+        batch = Batch.create_batch(self.picking_type_pick.id, None)
 
         self.assertIn(picking, batch.picking_ids)
 
@@ -666,7 +681,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
         Batch = self.env['stock.picking.batch']
         Batch = Batch.sudo(self.outbound_user)
-        batch = Batch.create_batch(None)
+        batch = Batch.create_batch(self.picking_type_pick.id, None)
 
         self.assertIn(picking, batch.picking_ids)
 
@@ -708,7 +723,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
         Batch = self.env['stock.picking.batch']
         Batch = Batch.sudo(self.outbound_user)
-        batch = Batch.create_batch(None)
+        batch = Batch.create_batch(self.picking_type_pick.id, None)
 
         self.assertIn(picking, batch.picking_ids)
 
@@ -784,7 +799,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
         Batch = self.env['stock.picking.batch']
         Batch = Batch.sudo(self.outbound_user)
-        batch = Batch.create_batch(None)
+        batch = Batch.create_batch(self.picking_type_pick.id, None)
 
         self.assertIn(picking, batch.picking_ids)
 
@@ -846,7 +861,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         # check that now 2 units of the quant are reserved
         self.assertEqual(quant.reserved_quantity, 2)
 
-        batch = Batch.create_batch(None)
+        batch = Batch.create_batch(self.picking_type_pick.id, None)
 
         self.assertIn(picking, batch.picking_ids)
 
