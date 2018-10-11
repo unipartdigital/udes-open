@@ -544,7 +544,6 @@ class StockMoveLine(models.Model):
                 "product_uom_qty": self.product_uom_qty,
                 "qty_done": self.qty_done,
                 "write_date": self.write_date,
-                "product_packaging": self.product_packaging.name
                }
 
     def get_info(self):
@@ -600,6 +599,9 @@ class StockMoveLine(models.Model):
             task['pick_quantity'] = sum(self.mapped('product_qty'))
             quant = self.get_quants()
             task['quant_id'] = quant.get_info()[0]
+            task['product_packaging'] = self.move_id.\
+                                        sale_line_id.product_packaging.name
+
         else:
             package = self.mapped('package_id')
             package.ensure_one()
