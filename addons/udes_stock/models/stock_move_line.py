@@ -544,6 +544,7 @@ class StockMoveLine(models.Model):
                 "product_uom_qty": self.product_uom_qty,
                 "qty_done": self.qty_done,
                 "write_date": self.write_date,
+                "product_packaging": self.product_packaging.name
                }
 
     def get_info(self):
