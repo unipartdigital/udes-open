@@ -107,7 +107,7 @@ class StockWarehouse(models.Model):
             'pack_type_id': self.pack_type_id.id,
             'pick_type_id': self.pick_type_id.id,
             'int_type_id': self.int_type_id.id,
-            'put_type_id': self._get_put_type().id,
+            'put_type_id': self._get_a_type('Putaway').id,
             'u_missing_stock_location_id': self.u_missing_stock_location_id.id,
             'u_damaged_location_id': self.u_damaged_location_id.id,
             'u_temp_dangerous_location_id': self.u_temp_dangerous_location_id.id,
@@ -146,9 +146,12 @@ class StockWarehouse(models.Model):
 
         return picking_types
 
-    def _get_put_type(self):
+    def _get_a_type(self, picking_type_name):
         # Short term fix
-        put = self.get_picking_types().filtered(lambda pt: pt.name == 'Putaway')
+        put = self.get_picking_types().filtered(
+            lambda pt: pt.name == picking_type_name)
+
         if not put:
             put = self.int_type_id
+
         return put

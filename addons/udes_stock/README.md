@@ -457,7 +457,7 @@ HTTP Method: POST
 Old method(s): generate_wave_for_user
 ```
 Generate a new batch for the current user.
-
+* @param picking_type_id - Id of the picking type for the pickings which will be used to create the batch.
 * @param picking_priorities - (optional) List of priorities to search for the pickings
 * @param max_locations - (optional) Max number of locations to pick from (not used)
 
