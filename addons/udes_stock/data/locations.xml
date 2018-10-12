@@ -10,10 +10,34 @@
       <field name="active" eval="True"/>
     </record>
 
+    <!-- Construct "UPL/Input" view location -->
+    <record id="stock.stock_location_company" model="stock.location">
+      <field name="name">Input</field>
+      <field name="comment">Input zone</field>
+      <field name="usage">view</field>
+      <field name="active" eval="True"/>
+    </record>
+
+    <!-- Construct "UPL/Quarantine" view location -->
+    <record id="stock.stock_location_quarantine" model="stock.location">
+      <field name="name">Quarantine</field>
+      <field name="comment">Quarantine</field>
+      <field name="usage">view</field>
+      <field name="active" eval="True"/>
+    </record>    
+
     <!-- Construct "UPL/Input/Received" location -->
     <record id="location_input_received" model="stock.location">
       <field name="name">Received</field>
       <field name="comment">Goods received but not yet confirmed</field>
+      <field name="location_id" ref="stock.stock_location_company"/>
+      <field name="active" eval="True"/>
+    </record>
+
+    <!-- Construct "UPL/Input/Exceptions" location -->
+    <record id="location_input_exception" model="stock.location">
+      <field name="name">Exceptions</field>
+      <field name="comment">Goods received with exceptions</field>
       <field name="location_id" ref="stock.stock_location_company"/>
       <field name="active" eval="True"/>
     </record>
