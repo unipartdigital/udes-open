@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from . import common
-from odoo.exceptions import ValidationError
 
 
 class TestPickSplitting(common.BaseUDES):
@@ -12,7 +11,6 @@ class TestPickSplitting(common.BaseUDES):
         create picking: for all of both
         """
         super(TestPickSplitting, self).setUp()
-        Package = self.env['stock.quant.package']
 
         self.picking_type_pick.u_move_line_key_format = "{package_id.name}"
 
@@ -220,3 +218,26 @@ class TestPickSplitting(common.BaseUDES):
         self.assertEqual(ml2.product_id, self.elderberry)
 
         self.assertEqual(self.picking.state, 'cancel')
+
+    def test06_persist_locations(self):
+        """Reserve when the locations of the picking are not the defaults of
+        the picking type and check the non-defaults are maintained."""
+        Picking = self.env['stock.picking']
+
+        self.picking.write({
+            'location_id': self.test_location_01.id,
+            'location_dest_id': self.test_output_location_01.id
+        })
+
+        apple_pallet = self.create_package()
+        self.create_quant(self.apple.id, self.test_location_01.id,
+                          10, package_id=apple_pallet.id)
+        self.create_move(self.apple, 10, self.picking)
+
+        self.picking.action_assign()
+
+        apple_pick = Picking.get_pickings(package_name=apple_pallet.name)
+        self.assertNotEqual(self.picking, apple_pick)
+        self.assertEqual(apple_pick.state, 'assigned')
+        self.assertEqual(apple_pick.location_id.id, self.test_location_01.id)
+        self.assertEqual(apple_pick.location_dest_id.id, self.test_output_location_01.id)

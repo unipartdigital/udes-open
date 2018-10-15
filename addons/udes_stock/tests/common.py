@@ -383,7 +383,7 @@ class BaseUDES(common.SavepointCase):
             "warehouse_selectable": True,
             "warehouse_ids": [(6, 0, [picking_type_internal.warehouse_id.id])]
         }
-        route = Route.create(route_vals)
+        cls.route_in = Route.create(route_vals)
 
         # PUTAWAY
         sequence_putaway = Sequence.create({"name": "TestPutaway",
@@ -394,13 +394,13 @@ class BaseUDES(common.SavepointCase):
 
         location_path_vals = {
             "name": "TestPutaway",
-            "route_id": route.id,
+            "route_id": cls.route_in.id,
             "sequence": 20,
             "location_from_id": picking_type_in.default_location_dest_id.id,
             "location_dest_id": picking_type_internal.default_location_dest_id.id,
             "picking_type_id": picking_type_internal.id,
         }
-        path_in_putaway = Path.create(location_path_vals)
+        cls.push_putaway = Path.create(location_path_vals)
 
     @classmethod
     def create_simple_outbound_route(cls, picking_type_pick, picking_type_out):
