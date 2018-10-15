@@ -16,12 +16,9 @@ class PushedFlow(models.Model):
     def get_path_from_location(self, location):
         """Find a single stock.location.path for which the given location is
         a valid starting location."""
-        push_step = self.search(
+        push_steps = self.search(
             [('location_from_id', 'parent_of', [location.id, ]),
              ('u_push_on_drop', '=', True)])
-        # TODO: handle more than one? order by location parent_left to find
-        # closest parent to target loc.
-        if len(push_step) > 1:
-            raise UserError(_('More than one possible push rule found to '
-                              'push from %s') % location.display_name)
-        return push_step
+        if push_steps:
+            return push_steps.sorted(key=lambda p: p.location_from_id.parent_left, reverse=True)[0]
+        return self.browse()
