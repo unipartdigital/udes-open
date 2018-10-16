@@ -652,17 +652,14 @@ class StockMoveLine(models.Model):
         """
         location = self.mapped('location_dest_id')
 
-
         # On create we need to allow views to pass.
         # On other actions if this will be caught by odoo's code as you are not
         # allowed to place stock in a view.
         if set(location.mapped('usage')) == set(('view',)):
             return True
 
-        # HERE(ale): iterating picking_id even if it's a many2one
+        # iterating picking_id even if it's a many2one
         # because the constraint can be triggered anywhere
-
-        # TODO(ale): consider using `picking::groupby` once available
         for picking in self.mapped('picking_id'):
             if not picking.is_valid_location_dest_id(location=location):
                 raise ValidationError(
@@ -672,7 +669,16 @@ class StockMoveLine(models.Model):
                 )
 
             if picking.picking_type_id.u_drop_location_constraint == 'enforce':
-                mls = self.filtered(lambda ml: ml.picking_id == picking)
+
+                # Don't use move lines that are not available for suggesting
+                mls = self.filtered(
+                    lambda ml: ml.picking_id == picking and \
+                               ml.state in ('assigned', 'partially_available')
+                )
+
+                if not mls:
+                    continue
+
                 locations = picking.get_suggested_locations(mls)
 
                 # location should be one of the suggested locations, if any
