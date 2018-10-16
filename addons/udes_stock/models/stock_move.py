@@ -209,7 +209,11 @@ class StockMove(models.Model):
             move_vals = base_vals.copy()
             move_vals.update({
                 'product_uom_qty': sum(mls.mapped('qty_done')),
-                'move_orig_ids': [(6, 0, [move.id,])]
+                # FIXME: CWR: This is commented out because odoo does not limit
+                # TODO: reservation to the src location of a move if it has
+                # TODO: preceeding moves.
+                # TODO: Uncomment this, and unskip tests, when story/1934 is completed
+                # 'move_orig_ids': [(6, 0, [move.id,])]
             })
             created_moves |= move.copy(move_vals)
         return created_moves
