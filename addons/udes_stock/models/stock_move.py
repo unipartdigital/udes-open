@@ -144,10 +144,19 @@ class StockMove(models.Model):
         return bk_move
 
     def _action_assign(self):
+        """Extend _acction_assgin to merge/split moves and preprocess
+           location suggestions
+        """
+
         res = super(StockMove, self)._action_assign()
-        for picking_type in self.mapped('picking_type_id'):
-            self.filtered(lambda m: m.picking_type_id == picking_type). \
-                post_reservation_split()
+        for picking_type_id in self.mapped('picking_type_id'):
+            moves = self.filtered(
+                lambda m: m.picking_type_id == picking_type_id
+            )
+            moves.post_reservation_split()
+            if picking_type_id.u_drop_location_preprocess:
+                moves.mapped('picking_id').apply_drop_location_policy()
+        return res
 
     def post_reservation_split(self):
         """

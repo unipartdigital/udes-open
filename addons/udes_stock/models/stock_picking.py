@@ -29,6 +29,11 @@ def _update_move_lines_and_log_swap(move_lines, pack, other_pack):
     _logger.info(msg)
 
 
+def allow_preprocess(func):
+    func._allow_preprocess = True
+    return func
+
+
 class StockPicking(models.Model):
     _inherit = 'stock.picking'
 
@@ -1000,6 +1005,13 @@ class StockPicking(models.Model):
         """
             Override action_assign to reserve full packages if applicable
         """
+
+        # stock.picking.action_assign is usually only called when manually
+        # clicking "check availability" in Odoo UI or when explicitly called.
+        # When the next step in a route is being reserved
+        # stock.move._action_assign is called directly
+        #
+
         res = super(StockPicking, self).action_assign()
         if res is not True:
             raise ValidationError(
@@ -1248,6 +1260,37 @@ class StockPicking(models.Model):
 
         return picking
 
+    def check_policy_for_preprocessing(self, policy):
+        """"Check policy allows pre processing as not all polices
+            can be used in this way
+        """
+        func = getattr(self, '_get_suggested_location_' + policy, None)
+
+        if not hasattr(func, '_allow_preprocess'):
+            raise ValidationError(
+                _('This policy(%s) is not meant to be used in '
+                  'preprocessing') % policy
+            )
+
+    def apply_drop_location_policy(self):
+        """Apply suggested locations to move lines
+
+           raise ValidationError: if the policy set does not have
+                                  _allow_preprocess set
+        """
+        by_pack_or_single = lambda ml: ml.package_id.package_id \
+                                       or ml.package_id or ml.id
+
+        for pick in self:
+            self.check_policy_for_preprocessing(
+                pick.picking_type_id.u_drop_location_policy
+            )
+            # Group by pallet or package
+            for _pack, mls in pick.move_line_ids.groupby(by_pack_or_single):
+                locs = pick.get_suggested_locations(mls)
+                if locs:
+                    mls.write({'location_dest_id':  locs[0].id})
+
     def get_suggested_locations(self, move_line_ids):
         ''' Dispatch the configured suggestion location policy to
             retrieve the suggested locations
@@ -1256,9 +1299,18 @@ class StockPicking(models.Model):
 
         for picking in self:
             policy = picking.picking_type_id.u_drop_location_policy
-
             if policy:
-                func = getattr(self, '_get_suggested_location_' + policy, None)
+                if move_line_ids and \
+                        picking.picking_type_id.u_drop_location_preprocess and \
+                        not move_line_ids.any_destination_locations_default():
+                    # The policy has been preprocessed this assumes the
+                    # the polciy is able to provide a sensible value (this is
+                    # not the case for every policy)
+                    # Use the preselected value
+                    func = self._get_suggested_location_exactly_match_move_line
+                else:
+                    func = getattr(self, '_get_suggested_location_' + policy,
+                                   None)
 
                 if func:
                     result = func(move_line_ids)
@@ -1300,12 +1352,12 @@ class StockPicking(models.Model):
             raise ValidationError(
                 _('Products missing to suggest location for.'))
 
-        quants = Quant.search(
-            [('product_id', 'in', products.ids),
-             ('location_id', 'child_of', self.location_dest_id.ids)])
-
-        suggested_locations = quants.mapped('location_id') \
-            .filtered(lambda loc: not loc.u_blocked and loc.barcode)
+        suggested_locations = Quant.search([
+            ('product_id', 'in', products.ids),
+            ('location_id', 'child_of', self.location_dest_id.ids),
+            ('location_id.u_blocked', '=', False),
+            ('location_id.barcode', '!=', False),
+        ]).mapped('location_id')
 
         if not suggested_locations:
             # No drop locations currently used for this product;
@@ -1333,3 +1385,54 @@ class StockPicking(models.Model):
         products = mls.mapped('product_id')
 
         return self._get_suggested_location_by_products(mls, products)
+
+    @allow_preprocess
+    def _get_suggested_location_by_height_speed(self, move_line_ids):
+        """Get location based on product height and turn over speed categories
+        """
+        Location = self.env['stock.location']
+
+        height_category = move_line_ids.mapped(
+            'product_id.u_height_category_id'
+        )
+        speed_category = move_line_ids.mapped('product_id.u_speed_category_id')
+        default_location = move_line_ids.mapped('location_dest_id')
+
+        if not len(height_category) == 1 or not len(speed_category) == 1:
+            raise UserError(
+                _('Move lines with more than category for height(%s) or '
+                  'speed(%s) provided') % (
+                      height_category.mapped('name'),
+                      speed_category.mapped('name'),
+                  )
+            )
+        default_location.ensure_one()
+
+        # Get empty locations where height and speed match product
+        candidate_locations = Location.search([
+            ('location_id', 'child_of', default_location.id),
+            ('u_blocked', '=', False),
+            ('barcode', '!=', False),
+            ('u_height_category_id', '=', height_category.id),
+            ('u_speed_category_id', '=', speed_category.id),
+            # TODO(MTC): This should probably be a bit more inteligent perhaps
+            # get them all then do a filter for checking if theres space
+            ('quant_ids', '=', False),
+        ])
+
+        return self._location_not_in_other_move_lines(candidate_locations)
+
+    def _location_not_in_other_move_lines(self, candidate_locations):
+        MoveLines = self.env['stock.move.line']
+
+        for _indexes, valid_locations in candidate_locations.batched(size=1000):
+            # remove locations which are already used in move lines
+            valid_locations -= MoveLines.search([
+                ('picking_id.state', '=', 'assigned'),
+                ('location_dest_id', 'in', valid_locations.ids),
+            ]).mapped('location_dest_id')
+
+            if valid_locations:
+                return valid_locations
+
+        return self.env['stock.location']

@@ -30,6 +30,11 @@
                     </div>
                 </xpath>
 
+                <!-- Hide the Put Away strategy button (not removed as other modules may depend on it being here) -->
+                <xpath expr="//field[@name='putaway_strategy_id']" position="attributes">
+                    <attribute name="invisible">1</attribute>
+                </xpath>
+
                 <xpath expr="//field[@name='putaway_strategy_id']" position="after">
                     <field name="u_height_category_id" />
                     <field name="u_speed_category_id" />

@@ -105,10 +105,18 @@ class StockPickingType(models.Model):
         ('exactly_match_move_line', 'Exactly Match The Move Line Destination Location'),
         ('by_products', 'By Products'),
         ('by_packages', 'By Products in Packages'),
+        ('by_height_speed', 'By Height and Speed Catagory'),
     ],
         string='Suggest Locations Policy',
         default='exactly_match_move_line',
         help='Indicate the policy for suggesting drop locations.'
+    )
+
+    u_drop_location_preprocess = fields.Boolean(
+        string='Add destination location on pick assignement',
+        default=False,
+        help='Flag to indicate if picking assignment should select '
+             'destination locations'
     )
 
     u_auto_batch_pallet = fields.Boolean(
