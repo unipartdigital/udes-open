@@ -109,6 +109,14 @@ class BaseUDES(common.SavepointCase):
             'barcode': "LTESTOUT01",
             'location_id': cls.out_location.id})
 
+        cls.test_output_location_02 = Location.create({
+            'name': "Test output location 02",
+            'barcode': "LTESTOUT02",
+            'location_id': cls.out_location.id})
+
+        cls.test_output_locations = cls.test_output_location_01 + \
+            cls.test_output_location_02
+
     @classmethod
     def _setup_check_location(cls):
         Location = cls.env['stock.location']
