@@ -642,13 +642,19 @@ class StockMoveLine(models.Model):
     #
     ## Drop Location Constraint
     #
-
     @api.constrains('location_dest_id')
     def _validate_location_dest(self):
         """ Ensures that the location destination is a child of the
             default_location_dest_id of the picking.
         """
         location = self.mapped('location_dest_id')
+
+
+        # On create we need to allow views to pass.
+        # On other actions if this will be caught by odoo's code as you are not
+        # allowed to place stock in a view.
+        if set(location.mapped('usage')) == set(('view',)):
+            return True
 
         # HERE(ale): iterating picking_id even if it's a many2one
         # because the constraint can be triggered anywhere
