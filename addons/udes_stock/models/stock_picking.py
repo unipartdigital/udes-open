@@ -37,7 +37,10 @@ def allow_preprocess(func):
 class StockPicking(models.Model):
     _inherit = 'stock.picking'
 
+    _order = 'priority desc, scheduled_date asc, sequence asc, id asc'
+
     priority = fields.Selection(selection=common.PRIORITIES)
+    sequence = fields.Integer("Sequence", default=0)
 
     # compute previous and next pickings
     u_prev_picking_ids = fields.One2many(

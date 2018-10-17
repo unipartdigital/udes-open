@@ -56,6 +56,11 @@
                 <attribute name="attrs">{'required': [('picking_type_code', '=', 'incoming')]}</attribute>
             </xpath>              
 
+            <!-- Add sequence -->
+            <xpath expr="//field[@name='priority']" position="after">
+                <field name="sequence"/>
+            </xpath>
+
             <!--Hide unlock/lock button-->
             <xpath expr="//button[@name='action_toggle_is_locked']" position="attributes">
                 <attribute name="invisible">1</attribute>
@@ -87,6 +92,21 @@
                 <attribute name="decoration-muted">scrapped == True or state == 'cancel'</attribute>
                 <attribute name="decoration-bf">(ordered_qty == quantity_done) or (ordered_qty &lt; quantity_done)</attribute>
             </xpath>
+        </field>
+    </record>
+
+    <!-- Change default stock.vpicktree -->
+    <record id="view_tree_stock_picking" model="ir.ui.view">
+        <field name="name">udes_picking_tree</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.vpicktree"/>
+        <field name="arch" type="xml">
+
+            <!-- Add sequence widget -->
+            <xpath expr="//tree/field[1]" position="before">
+                <field name="sequence" widget="handle"/>
+            </xpath>
+
         </field>
     </record>
 
