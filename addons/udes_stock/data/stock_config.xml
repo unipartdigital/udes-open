@@ -11,6 +11,8 @@
     <record id="settings_stock_config" model="res.config.settings">
       <!-- Enable using packages -->
       <field name="group_stock_tracking_lot" eval="1"/>
+      <!-- Enable order-specific routes -->
+      <field name="group_route_so_lines" eval="1"/>
       <!-- Enable picking batches -->
       <field name="module_stock_picking_batch" eval="1"/>
 
