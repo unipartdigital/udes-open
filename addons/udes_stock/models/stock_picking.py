@@ -1439,3 +1439,8 @@ class StockPicking(models.Model):
                 return valid_locations
 
         return self.env['stock.location']
+
+    def action_refactor(self):
+        """Refactor all the moves in the pickings in self. May result in the
+        pickings in self being deleted."""
+        return self.mapped('move_lines').action_refactor()
