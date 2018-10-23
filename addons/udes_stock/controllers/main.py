@@ -4,6 +4,7 @@ from odoo import http
 from odoo.exceptions import ValidationError
 from odoo.tools.translate import _
 from odoo.addons.web import controllers
+from odoo.http import request
 
 
 class UdesApi(http.Controller):
@@ -28,3 +29,11 @@ class DataSet(controllers.main.DataSet):
                 _("Sequence is overridden by default sort ordering")
             )
         return result
+
+
+class Session(controllers.main.Session):
+    @http.route('/web/session/logout', type='http', auth="user")
+    def logout(self, *args, **kwargs):
+        PickingBatch = request.env['stock.picking.batch']
+        batches = PickingBatch.unassign_user_batches()
+        return super().logout(*args, **kwargs)

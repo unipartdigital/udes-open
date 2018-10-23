@@ -193,3 +193,10 @@ class PickingBatchApi(UdesApi):
                                                 package_name=package_name,
                                                 picking_type_id=picking_type_id)  # noqa
         return unpickable_item
+
+    @http.route('/api/stock-picking-batch/check-user-batches',
+                type='json', methods=['POST'], auth='user')
+    def check_user_batches(self):
+        PickingBatch = request.env['stock.picking.batch']
+        batches = PickingBatch.get_user_batches()
+        return batches if batches else False

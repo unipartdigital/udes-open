@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <template id="udes_stock.web" name="udes_stock.web" inherit_id="web.assets_backend">
+            <xpath expr="." position="inside">
+                <script type="text/javascript" src="/udes_stock/static/src/js/logout.js"></script>
+            </xpath>
+        </template>
+    </data>
+</odoo>
