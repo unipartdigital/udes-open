@@ -12,7 +12,11 @@ class TestPickSplitting(common.BaseUDES):
         """
         super(TestPickSplitting, self).setUp()
 
-        self.picking_type_pick.u_move_line_key_format = "{package_id.name}"
+        # group by package post assign
+        self.picking_type_pick.write({
+            'u_post_assign_action': 'group_by_move_line_key',
+            'u_move_line_key_format': "{package_id.name}",
+        })
 
         self.picking = self.create_picking(self.picking_type_pick)
 

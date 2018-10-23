@@ -35,6 +35,13 @@
                     <field name="u_confirm_serial_numbers" />
                     <field name="u_auto_batch_pallet" />
                     <field name="u_check_work_available" />
+                    <group string="Pick Refactoring" groups='base.group_no_one'>
+                        <field name="u_move_line_key_format" />
+                        <field name="u_move_key_format" />
+                        <field name="u_post_confirm_action" />
+                        <field name="u_post_assign_action" />
+                        <field name="u_post_validate_action" />
+                    </group>
                 </group>
             </xpath>
 
