@@ -3,14 +3,14 @@
 from . import common
 
 
-class TestPickSplitting(common.BaseUDES):
+class TestAssignSplitting(common.BaseUDES):
 
     def setUp(self):
         """
         Create stock: pallet with apples, pallet with bananas
         create picking: for all of both
         """
-        super(TestPickSplitting, self).setUp()
+        super(TestAssignSplitting, self).setUp()
 
         # group by package post assign
         self.picking_type_pick.write({
@@ -245,3 +245,54 @@ class TestPickSplitting(common.BaseUDES):
         self.assertEqual(apple_pick.state, 'assigned')
         self.assertEqual(apple_pick.location_id.id, self.test_location_01.id)
         self.assertEqual(apple_pick.location_dest_id.id, self.test_output_location_01.id)
+
+
+class TestValidateSplitting(common.BaseUDES):
+
+    def setUp(self):
+        """
+        Create stock: pallet with apples, pallet with bananas
+        create picking: for all of both
+        """
+        super(TestValidateSplitting, self).setUp()
+
+        # group by destination location post validation
+        self.picking_type_pick.write({
+            'u_post_validate_action': 'group_by_move_line_key',
+            'u_move_line_key_format': "{location_dest_id.name}",
+        })
+
+        self.picking = self.create_picking(self.picking_type_pick)
+
+    def test01_simple(self):
+        """Validate self.picking into two locations and check it splits
+        correctly."""
+        apple_pallet = self.create_package()
+        self.create_quant(self.apple.id, self.test_location_01.id,
+                          10, package_id=apple_pallet.id)
+        banana_pallet = self.create_package()
+        self.create_quant(self.banana.id, self.test_location_01.id,
+                          10, package_id=banana_pallet.id)
+
+        apple_move = self.create_move(self.apple, 10, self.picking)
+        banana_move = self.create_move(self.banana, 10, self.picking)
+        self.picking.action_assign()
+
+        apple_move_line = apple_move.move_line_ids
+        banana_move_line = banana_move.move_line_ids
+
+        apple_move_line.write({
+            'location_dest_id': self.test_output_location_01.id,
+            'qty_done': apple_move_line.product_uom_qty
+        })
+        banana_move_line.write({
+            'location_dest_id': self.test_output_location_02.id,
+            'qty_done': banana_move_line.product_uom_qty
+        })
+
+        self.picking.action_done()
+
+        # apple and banana moves are now in different pickings.
+        self.assertNotEqual(self.picking.id,
+                            apple_move.picking_id.id,
+                            banana_move.picking_id.id)
