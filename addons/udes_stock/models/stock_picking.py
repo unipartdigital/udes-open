@@ -1311,7 +1311,7 @@ class StockPicking(models.Model):
                         picking.picking_type_id.u_drop_location_preprocess and \
                         not move_line_ids.any_destination_locations_default():
                     # The policy has been preprocessed this assumes the
-                    # the polciy is able to provide a sensible value (this is
+                    # the policy is able to provide a sensible value (this is
                     # not the case for every policy)
                     # Use the preselected value
                     func = self._get_suggested_location_exactly_match_move_line

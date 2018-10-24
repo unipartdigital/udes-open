@@ -3,45 +3,79 @@
 from odoo import api, models, _
 from odoo.exceptions import ValidationError
 
+import logging
+
+_logger = logging.getLogger(__name__)
+
 
 class StockPickingBatch(models.Model):
     _inherit = 'stock.picking.batch'
 
+    def _get_task_grouping_criteria(self):
+        """
+        Return a function for sorting by package, product, and
+        location.
+        """
+        return lambda ml: (ml.package_id.id,
+                           ml.product_id.id,
+                           ml.location_id.id)
+
     def get_next_task(self, skipped_product_ids=None):
-        """ Gets the next not completed task of the batch to be done
+        """
+        Get the next not completed task of the batch to be done.
+        Expect a singleton.
+
+        Note that the criteria for sorting and grouping move lines
+        (for the sake of defining tasks) are given by the
+        _get_task_grouping_criteria method so it can be specialized
+        for different customers.
         """
         self.ensure_one()
 
-        mls = self.get_available_move_lines(
-            state='not_done',
-            skipped_product_ids=skipped_product_ids, sorted=True)
-        tasks_picked = len(self.get_available_move_lines().filtered(
-            lambda ml: ml.qty_done == ml.product_qty)) > 0
-        task = {'tasks_picked': tasks_picked,
+        available_mls = self.get_available_move_lines()
+
+        if skipped_product_ids is not None:
+            available_mls = available_mls.filtered(
+                lambda ml: ml.product_id.id not in skipped_product_ids)
+
+        num_tasks_picked = len(available_mls.filtered(
+            lambda ml: ml.qty_done == ml.product_qty))
+        task = {'tasks_picked': num_tasks_picked > 0,
                 'num_tasks_to_pick': 0,
                 'move_line_ids': []}
+        todo_mls = available_mls.get_lines_todo() \
+                                .sort_by_location_product()
 
-        if mls:
-            group_key = lambda ml: (ml.package_id.id,
-                                    ml.product_id.id,
-                                    ml.location_id.id)
-            grouped_mls = mls.groupby(group_key)
+        if todo_mls:
+            grouped_mls = todo_mls.groupby(self._get_task_grouping_criteria())
             _key, task_mls = next(grouped_mls)
-            next_ml = task_mls[0]
+            num_mls = len(task_mls)
+            pick_seq = task_mls[0].picking_id.sequence
+            _logger.debug(_("Batch '%s': creating a task for %s move line%s; "
+                            "the picking sequence of the first move line is %s"),
+                            self.name,
+                            num_mls,
+                            '' if num_mls == 1 else 's',
+                            pick_seq if pick_seq is not False else "not determined")
 
-            # NB(ale): this is how we add all the MLs state to the response
+            # NB: adding all the MLs state to the task; this is what
+            # ends up in the batch::next response!
+            # HERE: this will break in case we cannot guarantee that all
+            # the move lines of the task belong to the same picking
             task.update(task_mls._prepare_task_info())
 
-            user_scans = next_ml.picking_id.picking_type_id.u_user_scans
-
-            if user_scans == 'product':
+            if task_mls[0].picking_id.picking_type_id.u_user_scans == 'product':
+                # NB: adding 1 to consider the group removed by next()
                 task['num_tasks_to_pick'] = len(list(grouped_mls)) + 1
                 task['move_line_ids'] = task_mls.ids
             else:
-                # TODO: check pallets
-                task['num_tasks_to_pick'] = len(mls.mapped('package_id'))
-                task['move_line_ids'] = mls.filtered(
-                    lambda ml: ml.package_id == next_ml.package_id).ids
+                # TODO: check pallets of packages if necessary
+                task['num_tasks_to_pick'] = len(todo_mls.mapped('package_id'))
+                task['move_line_ids'] = todo_mls.filtered(
+                    lambda ml: ml.package_id == task_mls[0].package_id).ids
+        else:
+            _logger.debug(_("Batch '%s': no available move lines for creating "
+                            "a task"), self.name)
 
         return task
 
@@ -239,8 +273,8 @@ class StockPickingBatch(models.Model):
     def is_valid_location_dest_id(self, location_ref):
         """
         Whether the specified location (via ID, name or barcode)
-        is a valid putaway location for the all the relevant
-        pickings of the batch.
+        is a valid putaway location for the relevant pickings of
+        the batch.
         Expects a singleton instance.
 
         Returns a boolean indicating the validity check outcome.
@@ -267,10 +301,12 @@ class StockPickingBatch(models.Model):
                         package_name=None, picking_type_id=None, lot_name=None):
         """
         Given an unpickable product or package, find the related
-        move lines in the current wave, backorder them and refine
+        move lines in the current batch, backorder them and refine
         the backorder (by default it is canceled).
-        Then create a new picking of type picking_type_id for the unpickable stock.
-        If the picking was the last one of the wave, the wave is set as done.
+        Then create a new picking of type picking_type_id for the
+        unpickable stock.
+        If the picking was the last one of the batch, the batch is
+        set as done.
 
         An unpickable product requires at least the location_id and
         optionally the package_id and lot_name.
@@ -394,22 +430,14 @@ class StockPickingBatch(models.Model):
 
         return True
 
-    def get_available_move_lines(self, state=None, skipped_product_ids=None, sorted=False):
+    def get_available_move_lines(self):
         """ Get all the move lines from available pickings
         """
         self.ensure_one()
+        available_pickings = self.picking_ids.filtered(
+            lambda p: p.state == 'assigned')
 
-        available_pickings = self.picking_ids.filtered(lambda p: p.state == 'assigned')
-
-        mls = available_pickings.mapped('move_line_ids')
-
-        if skipped_product_ids:
-            mls = mls.filtered(lambda ml: ml.product_id.id not in skipped_product_ids)
-
-        if sorted:
-            mls = mls.sort_by_location_product(state=state)
-
-        return mls
+        return available_pickings.mapped('move_line_ids')
 
     @api.one
     def check_batches(self):
