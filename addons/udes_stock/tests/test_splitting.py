@@ -296,3 +296,58 @@ class TestValidateSplitting(common.BaseUDES):
         self.assertNotEqual(self.picking.id,
                             apple_move.picking_id.id,
                             banana_move.picking_id.id)
+
+
+class TestConfirmSplitting(common.BaseUDES):
+    def setUp(self):
+        """
+        Create stock: pallet with apples, pallet with bananas
+        create picking: for all of both
+        """
+        super(TestConfirmSplitting, self).setUp()
+
+        # group by package post assign
+        self.picking_type_pick.write({
+            'u_post_confirm_action': 'group_by_move_key',
+            'u_move_key_format': "{product_id.default_code}",
+        })
+
+        self.picking = self.create_picking(self.picking_type_pick)
+
+    def test01_simple(self):
+        """Reserve self.picking with one pallet of each product and check it
+           splits correctly when confirmed.
+        """
+        Picking = self.env['stock.picking']
+
+        previous_picks = Picking.search([])
+
+        apple_pallet = self.create_package()
+        self.create_quant(
+            self.apple.id,
+            self.test_location_01.id,
+            5,
+            package_id=apple_pallet.id)
+
+        banana_pallet = self.create_package()
+        self.create_quant(
+            self.banana.id,
+            self.test_location_02.id,
+            10,
+            package_id=banana_pallet.id)
+
+        apple_move = self.create_move(self.apple, 5, self.picking)
+        banana_move = self.create_move(self.banana, 10, self.picking)
+        self.picking.action_confirm()
+
+        new_picks = Picking.search([('state', '=', 'confirmed')])
+        new_picks -= previous_picks
+
+        apple_pick = new_picks.filtered(lambda p: p.product_id == self.apple)
+        banana_pick = new_picks.filtered(lambda p: p.product_id == self.banana)
+
+        self.assertNotEqual(self.picking, apple_pick)
+        self.assertNotEqual(apple_pick, banana_pick)
+        self.assertEqual(apple_pick.move_lines, apple_move)
+        self.assertEqual(banana_pick.move_lines, banana_move)
+        self.assertEqual(apple_pick.state, 'confirmed')
