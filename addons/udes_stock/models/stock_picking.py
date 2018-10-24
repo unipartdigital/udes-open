@@ -1259,7 +1259,10 @@ class StockPicking(models.Model):
             'group_id': group.id,
             'picking_id': picking.id
         })
-        moves.mapped('move_line_ids').write({'picking_id': picking.id})
+
+        mls = moves.mapped('move_line_ids')
+        if mls:
+            mls.write({'picking_id': picking.id})
 
         return picking
 
