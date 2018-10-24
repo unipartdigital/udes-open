@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- add picking to batch  -->
+    <record id="stock_picking_refactor_form" model="ir.ui.view">
+        <field name="name">stock.picking.refactor.form</field>
+        <field name="model">stock.picking.refactor.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Refactor Pickings">
+                <separator string="Are you sure?"/>
+                <footer>
+                    <button name="do_refactor" type="object" string="Do Refactor" class="btn-primary"/>
+                    <button string="Cancel" class="btn-default" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!--  add picking to batch action -->
+    <record id="stock_picking_refactor_action" model="ir.actions.act_window">
+        <field name="name">Refactor Pickings</field>
+        <field name="res_model">stock.picking.refactor.wizard</field>
+        <field name="view_type">form</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="stock_picking_refactor_form"/>
+        <field name="target">new</field>
+    </record>
+
+    <act_window id="stock_picking_refactor_action_stock_picking"
+        multi="True"
+        key2="client_action_multi" name="Refactor Pickings"
+        res_model="stock.picking.refactor.wizard" src_model="stock.picking"
+        view_mode="form" target="new" view_type="form"
+    />
+
+    <!-- add move to batch  -->
+    <record id="stock_move_refactor_form" model="ir.ui.view">
+        <field name="name">stock.move.refactor.form</field>
+        <field name="model">stock.move.refactor.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Refactor Moves">
+                <separator string="Are you sure?"/>
+                <footer>
+                    <button name="do_refactor" type="object" string="Do Refactor" class="btn-primary"/>
+                    <button string="Cancel" class="btn-default" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!--  add move to batch action -->
+    <record id="stock_move_refactor_action" model="ir.actions.act_window">
+        <field name="name">Refactor Moves</field>
+        <field name="res_model">stock.move.refactor.wizard</field>
+        <field name="view_type">form</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="stock_move_refactor_form"/>
+        <field name="target">new</field>
+    </record>
+
+    <act_window id="stock_move_refactor_action_stock_move"
+        multi="True"
+        key2="client_action_multi" name="Refactor Moves"
+        res_model="stock.move.refactor.wizard" src_model="stock.move"
+        view_mode="form" target="new" view_type="form"
+    />
+
+</odoo>

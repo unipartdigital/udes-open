@@ -174,10 +174,10 @@ class StockMove(models.Model):
            The output should contain a functionally similar set of moves.
         """
         Move = self.env['stock.move']
-        if stage not in STAGES.values():
+        if stage is not None and stage not in STAGES.values():
             raise UserError(_("Unknown stage for move refactor: %s") % stage)
 
-        moves = self
+        moves = self.filtered(lambda m: m.state not in ['draft', 'cancel'])
         if stage is not None:
             moves = moves.filtered(lambda m: STAGES[m.state] == stage)
 

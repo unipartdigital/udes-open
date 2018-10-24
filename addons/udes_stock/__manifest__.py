@@ -39,6 +39,7 @@
         'views/stock_warehouse.xml',
         'views/create_planned_transfer_asset.xml',
         'wizard/change_quant_location_view.xml',
+        'wizard/refactor_views.xml',
         'security/ir_module_category.xml',
         'security/udes_stock_security.xml',
     ],
