@@ -10,12 +10,10 @@ class StockMoveLine(models.Model):
         task = super(StockMoveLine, self)._prepare_task_info()
         picking = self.mapped('picking_id')
         picking.ensure_one()
-        user_scans = picking.picking_type_id.u_user_scans
-        if user_scans == 'product':
 
-            task.update({
-                'product_packaging': self.move_id.sale_line_id.\
-                                          product_packaging.name
-            })
+        if picking.picking_type_id.u_user_scans == 'product':
+            task.update(
+                {'product_packaging':
+                    self.mapped('move_id.sale_line_id.product_packaging.name')})
 
         return task
