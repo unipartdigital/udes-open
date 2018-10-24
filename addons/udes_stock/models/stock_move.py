@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from odoo import api, models, _
+from odoo import api, models, fields, _
 from odoo.exceptions import UserError
 
 import logging
@@ -19,6 +19,8 @@ STAGES = {
 
 class StockMove(models.Model):
     _inherit = "stock.move"
+
+    u_grouping_key = fields.Char('Key', compute='compute_grouping_key')
 
     def _unreserve_initial_demand(self, new_move):
         """ Override stock default function to keep the old move lines,
@@ -60,6 +62,25 @@ class StockMove(models.Model):
             res.append(move._prepare_info())
 
         return res
+
+    def compute_grouping_key(self):
+
+        # TODO MTC: This can be refactored and abstracted at some point with
+        # this with the equivalent for move_line_key
+        # we need to think of how we want to do it
+
+        for move in self:
+            move_vals = {
+                fname: getattr(move, fname)
+                for fname in move._fields.keys()
+            }
+
+            format_str = move.picking_id.picking_type_id.u_move_key_format
+
+            if format_str:
+                move.u_grouping_key = format_str.format(**move_vals)
+            else:
+                move.u_grouping_key = None
 
     def _make_mls_comparison_lambda(self, move_line):
         """ This makes the lambda for
@@ -312,13 +333,75 @@ class StockMove(models.Model):
             created_moves |= move.copy(move_vals)
         return created_moves
 
+    def group_by_key(self):
+
+        # TODO MTC: This can be refactored and abstracted at some point with
+        # this with the equivalent for move_line_key
+        # we need to think of how we want to do it
+
+        # force recompute on u_grouping_key so we have an up-to-date key:
+        self._fields['u_grouping_key'].compute_value(self)
+
+        if any(pt.u_move_key_format is False
+               for pt in self.mapped('picking_id.picking_type_id')):
+            raise UserError(_("Cannot group moves when their picking type"
+                              "has no grouping key set."))
+
+        return self.groupby(lambda ml: ml.u_grouping_key)
+
+    def refactor_action_group_by_move_key(self):
+        """
+        group the moves by the splitting criteria
+        for each resulting group of stock.moves:
+            create a new picking
+            attach the stock.moves to the new picking.
+        """
+        # TODO MTC: This can be refactored and abstracted at some point with
+        # this with the equivalent for move_line_key
+        # we need to think of how we want to do it
+
+        Picking = self.env['stock.picking']
+
+        picking_type = self.mapped('picking_type_id')
+        picking_type.ensure_one()
+
+        if not picking_type.u_move_key_format:
+            return
+
+        pickings = self.mapped('picking_id')
+
+        for key, move_group in self.group_by_key():
+
+            if len(move_group.mapped('location_id')) > 1 or \
+                    len(move_group.mapped('location_dest_id')) > 1:
+                raise UserError(
+                    _('Move grouping has generated a group of'
+                      'moves that has more than one source or '
+                      'destination location. Aborting. key: "%s", '
+                      'location_ids: "%s", location_dest_ids: "%s"'
+                      '') % (key, move_group.mapped('location_id'),
+                             move_group.mapped('location_dest_id')))
+
+            Picking._new_picking_for_group(key, move_group)
+
+        empty_picks = pickings.filtered(lambda p: len(p.move_lines) == 0)
+        if empty_picks:
+            _logger.info(_("Cancelling empty picks after splitting."))
+            # action_cancel does not cancel a picking with no moves.
+            empty_picks.write({
+                'state': 'cancel',
+                'is_locked': True
+            })
+
+        return self
+
     def refactor_action_group_by_move_line_key(self):
         """
         group the move lines by the splitting criteria
         for each resulting group of stock.move.lines:
             create a new picking
             split any stock.move records that are only partially covered by the
-                group of stock.move.lines
+                group of stock.moves
             attach the stock.moves and stock.move.lines to the new picking.
         """
         Move = self.env['stock.move']
