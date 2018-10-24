@@ -181,10 +181,12 @@ class StockMove(models.Model):
         if stage is not None:
             moves = moves.filtered(lambda m: STAGES[m.state] == stage)
 
+        if moves:
+            _logger.info("Refactoring moves at stage %s: %s", stage, moves.ids)
+
         post_refactor_moves = Move.browse()
         for picking_type, pt_moves in moves.groupby('picking_type_id'):
             for stage, moves in pt_moves.groupby(lambda m: STAGES[m.state]):
-                action = ''
                 if stage == 'confirm':
                     action = picking_type.u_post_confirm_action
                 elif stage == 'assign':
@@ -220,7 +222,7 @@ class StockMove(models.Model):
 
         if post_refactor_moves != res:
             raise UserError(_("Post confirm refactor has created or destroyed "
-                              "moves, which could break things if you have the"
+                              "moves, which could break things if you have the "
                               "MRP module installed"))
         return res
 
@@ -368,4 +370,4 @@ class StockMove(models.Model):
                 'is_locked': True
             })
 
-        return group_moves
+        return result_moves
