@@ -218,9 +218,8 @@ class StockMove(models.Model):
                     continue  # Don't refactor cancel or draft moves.
 
                 if action:
-                    func = getattr(moves, 'refactor_action_' + action, None)
-                    if func is not None:
-                        post_refactor_moves |= func()
+                    func = getattr(moves, 'refactor_action_' + action)
+                    post_refactor_moves |= func()
 
         return post_refactor_moves if post_refactor_moves else self
 
