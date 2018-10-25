@@ -194,7 +194,6 @@ class StockMove(models.Model):
            of the input moves, or anywhere in between.
            The output should contain a functionally similar set of moves.
         """
-        Move = self.env['stock.move']
         if stage is not None and stage not in STAGES.values():
             raise UserError(_("Unknown stage for move refactor: %s") % stage)
         moves = self
@@ -203,7 +202,6 @@ class StockMove(models.Model):
         if stage is not None:
             rf_moves = rf_moves.filtered(lambda m: STAGES[m.state] == stage)
 
-        post_refactor_moves = Move.browse()
         for picking_type, pt_moves in rf_moves.groupby('picking_type_id'):
             for stage, st_moves in pt_moves.groupby(lambda m: STAGES[m.state]):
                 if stage == 'confirm':
@@ -219,9 +217,10 @@ class StockMove(models.Model):
                     _logger.info("Refactoring %s at %s using %s: %s",
                                  picking_type.name, stage, action, st_moves.ids)
                     func = getattr(st_moves, 'refactor_action_' + action)
-                    post_refactor_moves |= func()
+                    moves -= st_moves
+                    moves |= func()
 
-        return post_refactor_moves if post_refactor_moves else self
+        return moves
 
     def _action_confirm(self, *args, **kwargs):
         """Extend _action_confirm to trigger refactor action.
