@@ -280,9 +280,11 @@ class StockMove(models.Model):
         post_refactor_done_moves = done_moves._action_refactor(stage='validate')
 
         post_refactor_done_moves.push_from_drop()
+
         return post_refactor_done_moves
 
     def push_from_drop(self):
+        # TODO: fix for orphan stock!!!!
         Move = self.env['stock.move']
         MoveLine = self.env['stock.move.line']
         Push = self.env['stock.location.path']
@@ -386,7 +388,12 @@ class StockMove(models.Model):
                       '') % (key, move_group.mapped('location_id'),
                              move_group.mapped('location_dest_id')))
 
-            Picking._new_picking_for_group(key, move_group)
+            group_pickings = move_group.mapped('picking_id')
+            origin = None
+            if len(group_pickings) == 1:
+                origin = group_pickings.origin
+
+            Picking._new_picking_for_group(key, move_group, origin=origin)
 
         empty_picks = pickings.filtered(lambda p: len(p.move_lines) == 0)
         if empty_picks:
@@ -434,8 +441,10 @@ class StockMove(models.Model):
                                   '') % (key, touched_moves.mapped('location_id'),
                                          touched_moves.mapped('location_dest_id')))
 
-            group_moves = self.env['stock.move']
+            group_moves = Move.browse()
+            group_pickings = Picking.browse()
             for move in touched_moves:
+                group_pickings |= move.picking_id
                 move_mls = ml_group.filtered(lambda l: l.move_id == move)
 
                 if move_mls != move.move_line_ids:
@@ -445,9 +454,13 @@ class StockMove(models.Model):
                 else:
                     group_moves |= move
 
-            Picking._new_picking_for_group(key, group_moves)
+            origin = None
+            if len(group_pickings) == 1:
+                origin = group_pickings.origin
+            Picking._new_picking_for_group(key, group_moves, origin=origin)
             result_moves |= group_moves
 
+        # NOTE: empty pick = no moves and no move_lines
         empty_picks = pickings.filtered(lambda p: len(p.move_lines) == 0)
         if empty_picks:
             _logger.info(_("Cancelling empty picks after splitting."))

@@ -1230,7 +1230,7 @@ class StockPicking(models.Model):
         return res
 
     @api.model
-    def _new_picking_for_group(self, group_key, moves):
+    def _new_picking_for_group(self, group_key, moves, origin=None):
         Group = self.env['procurement.group']
 
         picking_type = moves.mapped('picking_type_id')
@@ -1253,8 +1253,13 @@ class StockPicking(models.Model):
                 'picking_type_id': picking_type.id,
                 'location_id': src_loc.id,
                 'location_dest_id': dest_loc.id,
-                'group_id': group.id
+                'group_id': group.id,
+                'origin': origin,
             })
+        else:
+            # avoid misleading source document
+            if origin != picking.origin:
+                picking.origin = False
 
         moves.write({
             'group_id': group.id,
