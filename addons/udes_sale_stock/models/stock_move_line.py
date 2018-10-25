@@ -11,11 +11,15 @@ class StockMoveLine(models.Model):
         picking = self.mapped('picking_id')
         picking.ensure_one()
         user_scans = picking.picking_type_id.u_user_scans
-        if user_scans == 'product':
+        use_packaging = picking.picking_type_id.u_use_product_packaging
+        if user_scans == 'product' and use_packaging:
+            product_packaging = None
+            privacy = self.env.ref('udes_sale_stock.privacy_wrapping')
+            if privacy in self.mapped('move_id.sale_line_id.product_packaging'):
+                product_packaging = privacy.name
 
             task.update({
-                'product_packaging': self.move_id.sale_line_id.\
-                                          product_packaging.name
+                'product_packaging': product_packaging
             })
 
         return task

@@ -14,6 +14,8 @@
     'demo': [
     ],
     'data': [
+        'data/product_packaging.xml',
+        'views/stock_picking_type.xml',
     ],
     'qweb': [
     ],
