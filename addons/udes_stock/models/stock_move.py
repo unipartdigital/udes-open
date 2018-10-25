@@ -197,14 +197,15 @@ class StockMove(models.Model):
         Move = self.env['stock.move']
         if stage is not None and stage not in STAGES.values():
             raise UserError(_("Unknown stage for move refactor: %s") % stage)
+        moves = self
 
-        moves = self.filtered(lambda m: m.state not in ['draft', 'cancel'])
+        rf_moves = moves.filtered(lambda m: m.state not in ['draft', 'cancel'])
         if stage is not None:
-            moves = moves.filtered(lambda m: STAGES[m.state] == stage)
+            rf_moves = rf_moves.filtered(lambda m: STAGES[m.state] == stage)
 
         post_refactor_moves = Move.browse()
-        for picking_type, pt_moves in moves.groupby('picking_type_id'):
-            for stage, moves in pt_moves.groupby(lambda m: STAGES[m.state]):
+        for picking_type, pt_moves in rf_moves.groupby('picking_type_id'):
+            for stage, st_moves in pt_moves.groupby(lambda m: STAGES[m.state]):
                 if stage == 'confirm':
                     action = picking_type.u_post_confirm_action
                 elif stage == 'assign':
@@ -216,8 +217,8 @@ class StockMove(models.Model):
 
                 if action:
                     _logger.info("Refactoring %s at %s using %s: %s",
-                                 picking_type.name, stage, action, moves.ids)
-                    func = getattr(moves, 'refactor_action_' + action)
+                                 picking_type.name, stage, action, st_moves.ids)
+                    func = getattr(st_moves, 'refactor_action_' + action)
                     post_refactor_moves |= func()
 
         return post_refactor_moves if post_refactor_moves else self
