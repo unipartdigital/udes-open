@@ -424,3 +424,20 @@ class StockPickingBatch(models.Model):
         res = super(StockPickingBatch, self).write(vals)
         self.check_batches()
         return res
+
+    def get_user_batches(self):
+        """ Get all batches for user
+        """
+        # Search for in progress batches
+        batches = self.search([('user_id', '=', self.env.user.id),
+                               ('state', '=', 'in_progress')])
+        return batches
+
+    def unassign_user_batches(self):
+        """ Removes pickings from all batches assigned to the user and cancels the batch
+        """
+        # Get user batches
+        batches = self.get_user_batches()
+        
+        # Unassign batch_id from incomplete stock pickings
+        batches.mapped('picking_ids').filtered(lambda sp: sp.state == 'assigned').write({'batch_id': False})
