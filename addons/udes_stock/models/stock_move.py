@@ -198,7 +198,9 @@ class StockMove(models.Model):
             raise UserError(_("Unknown stage for move refactor: %s") % stage)
         moves = self
 
-        rf_moves = moves.filtered(lambda m: m.state not in ['draft', 'cancel'])
+        rf_moves = moves.filtered(
+            lambda m: m.picking_type_id and m.state not in ['draft', 'cancel']
+        )
         if stage is not None:
             rf_moves = rf_moves.filtered(lambda m: STAGES[m.state] == stage)
 
