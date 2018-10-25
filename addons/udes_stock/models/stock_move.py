@@ -158,11 +158,11 @@ class StockMove(models.Model):
                 'move_dest_ids': [(6, 0, self.move_dest_ids.ids)],
                 'ordered_qty': total_ordered_qty,
                 'product_uom_qty': total_initial_qty,
-                'state': 'assigned',
+                'state': self.state,
             })
             move_lines.write({
                 'move_id': bk_move.id,
-                'state': 'assigned',
+                'state': self.state,
                 'picking_id': None,
             })
             self.with_context(bypass_reservation_update=True).write({
