@@ -202,9 +202,6 @@ class StockMove(models.Model):
         if stage is not None:
             moves = moves.filtered(lambda m: STAGES[m.state] == stage)
 
-        if moves:
-            _logger.info("Refactoring moves at stage %s: %s", stage, moves.ids)
-
         post_refactor_moves = Move.browse()
         for picking_type, pt_moves in moves.groupby('picking_type_id'):
             for stage, moves in pt_moves.groupby(lambda m: STAGES[m.state]):
@@ -218,6 +215,8 @@ class StockMove(models.Model):
                     continue  # Don't refactor cancel or draft moves.
 
                 if action:
+                    _logger.info("Refactoring %s at %s using %s: %s",
+                                 picking_type.name, stage, action, moves.ids)
                     func = getattr(moves, 'refactor_action_' + action)
                     post_refactor_moves |= func()
 
