@@ -14,6 +14,7 @@
     'demo': [
     ],
     'data': [
+        'data/product_packaging.xml',
     ],
     'qweb': [
     ],
