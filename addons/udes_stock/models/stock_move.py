@@ -256,9 +256,9 @@ class StockMove(models.Model):
         """
         res = super(StockMove, self)._action_assign()
 
-        self.exists()._action_refactor(stage='assign')
+        assign_moves = self.exists()._action_refactor(stage='assign')
 
-        for picking_type, moves in self.groupby('picking_type_id'):
+        for picking_type, moves in assign_moves.groupby('picking_type_id'):
             # location suggestions
             if picking_type.u_drop_location_preprocess:
                 moves.mapped('picking_id').apply_drop_location_policy()
