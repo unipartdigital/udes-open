@@ -194,6 +194,7 @@ class StockMove(models.Model):
            of the input moves, or anywhere in between.
            The output should contain a functionally similar set of moves.
         """
+        PickingType = self.env['stock.picking.type']
         if stage is not None and stage not in STAGES.values():
             raise UserError(_("Unknown stage for move refactor: %s") % stage)
         moves = self
@@ -204,7 +205,8 @@ class StockMove(models.Model):
         if stage is not None:
             rf_moves = rf_moves.filtered(lambda m: STAGES[m.state] == stage)
 
-        for picking_type, pt_moves in rf_moves.groupby('picking_type_id'):
+        for pt_id, pt_moves in rf_moves.groupby(lambda m: m.picking_type_id.id):
+            picking_type = PickingType.browse(pt_id)
             for stage, st_moves in pt_moves.groupby(lambda m: STAGES[m.state]):
                 if stage == 'confirm':
                     action = picking_type.u_post_confirm_action
@@ -254,11 +256,14 @@ class StockMove(models.Model):
         don't return any extra moves that may have been created
         by refactoring.
         """
+        PickingType = self.env['stock.picking.type']
         res = super(StockMove, self)._action_assign()
 
         assign_moves = self.exists()._action_refactor(stage='assign')
 
-        for picking_type, moves in assign_moves.groupby('picking_type_id'):
+        apply_moves = assign_moves.filtered(lambda m: m.picking_type_id)
+        for pt_id, moves in apply_moves.groupby(lambda m: m.picking_type_id.id):
+            picking_type = PickingType.browse(pt_id)
             # location suggestions
             if picking_type.u_drop_location_preprocess:
                 moves.mapped('picking_id').apply_drop_location_policy()
@@ -282,16 +287,20 @@ class StockMove(models.Model):
         Move = self.env['stock.move']
         MoveLine = self.env['stock.move.line']
         Push = self.env['stock.location.path']
+        Location = self.env['stock.location']
 
         done_moves = self.filtered(lambda m: m.state == 'done')
 
         # load all the move lines, grouped by location
-        move_lines_by_location = done_moves.mapped('move_line_ids').groupby('location_dest_id')
+        move_lines_by_location_id = done_moves.mapped('move_line_ids').groupby(
+            lambda ml: ml.location_dest_id.id
+        )
 
         # Build mapping of push rule -> move lines to push
         move_lines_by_push = {}
-        for location, loc_mls in move_lines_by_location:
+        for location_id, loc_mls in move_lines_by_location_id:
             # Get the push rule that moves from the location.
+            location = Location.browse(location_id)
             push_step = Push.get_path_from_location(location)
             if not push_step:
                 continue
@@ -312,7 +321,7 @@ class StockMove(models.Model):
         Move = self.env['stock.move']
 
         # Group mls by move so we can preserve move information.
-        mls_by_move = move_lines.groupby('move_id')
+        mls_by_move_id = move_lines.groupby(lambda ml: ml.move_id.id)
         created_moves = Move.browse()
         base_vals = {
             'picking_type_id': push.picking_type_id.id,
@@ -320,7 +329,8 @@ class StockMove(models.Model):
             'location_dest_id': push.location_dest_id.id,
             'picking_id': None,
         }
-        for move, mls in mls_by_move:
+        for move_id, mls in mls_by_move_id:
+            move = Move.browse(move_id)
             move_vals = base_vals.copy()
             move_vals.update({
                 'product_uom_qty': sum(mls.mapped('qty_done')),
