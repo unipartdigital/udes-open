@@ -71,3 +71,51 @@ class Location(UdesApi):
         location = Location.get_location(location_id)
 
         return location.process_perpetual_inventory_request(pi_request)
+
+    @http.route('/api/stock-location/block/',
+                type='json', methods=['POST'], auth='user')
+    def block(self, reason,
+              location_id=None, location_name=None, location_barcode=None):
+        """
+            Blocks the specified location and creates a Stock
+            Investigation for it.
+
+            Raises a ValidationError if the specified location is
+            unknown or already blocked.
+
+            Returns True in case of success.
+
+            @param <ident>  location_id of the location to block
+            @param reason   Reason for the location being blocked
+        """
+        Location = request.env['stock.location']
+        Picking = request.env['stock.picking']
+        ResUsers = request.env['res.users']
+
+        identifier = location_id or location_name or location_barcode
+
+        if not identifier:
+            raise ValidationError(
+                _('You need to provide an id, name or barcode for the location.'))
+
+        location = Location.get_location(identifier)
+
+        # Raise if location is already blocked, as we can't raise
+        # SI in a blocked location
+        if location.u_blocked is True:
+            raise ValidationError(
+                _('Location is already blocked.'))
+
+        # Create a SI in this location
+        si_picking_type = ResUsers.get_user_warehouse().u_stock_investigation_picking_type
+        Picking.create({
+            'location_id': location.id,
+            'location_dest_id': si_picking_type.default_location_dest_id.id,
+            'picking_type_id': si_picking_type.id,
+        })
+
+        # Block the location (after creating SI, otherwise Picking.create fails)
+        location.u_blocked = True
+        location.u_blocked_reason = reason
+
+        return True
