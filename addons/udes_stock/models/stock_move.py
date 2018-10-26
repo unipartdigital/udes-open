@@ -221,8 +221,10 @@ class StockMove(models.Model):
                     _logger.info("Refactoring %s at %s using %s: %s",
                                  picking_type.name, stage, action, st_moves.ids)
                     func = getattr(st_moves, 'refactor_action_' + action)
-                    moves -= st_moves
-                    moves |= func()
+                    new_moves = func()
+                    if new_moves is not None:
+                        moves -= st_moves
+                        moves |= new_moves
 
         return moves
 
