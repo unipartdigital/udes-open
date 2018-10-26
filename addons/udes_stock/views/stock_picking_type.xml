@@ -35,6 +35,7 @@
                     <field name="u_confirm_serial_numbers" />
                     <field name="u_auto_batch_pallet" />
                     <field name="u_check_work_available" />
+                    <field name="u_use_product_packaging" />
                 </group>
                 <group string="Pick Refactoring" groups='base.group_no_one'>
                     <field name="u_move_line_key_format" />

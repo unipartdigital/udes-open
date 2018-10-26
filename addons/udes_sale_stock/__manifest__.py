@@ -15,7 +15,6 @@
     'demo': [
     ],
     'data': [
-        'views/stock_picking_type.xml',
     ],
     'qweb': [
     ],

@@ -138,6 +138,12 @@ class StockPickingType(models.Model):
              'picks of this type which are not in a batch'
     )
 
+    u_use_product_packaging = fields.Boolean(
+        string='Use Product Packaging',
+        default=False,
+        help='Flag to indicate if privacy wrapping information is relevant.',
+    )
+
     # Picking lifecycle actions
     u_move_line_key_format = fields.Char(
         'Move Line Grouping Key',
@@ -213,6 +219,7 @@ class StockPickingType(models.Model):
             - u_confirm_serial_numbers: string
             - u_auto_batch_pallet: boolean
             - u_check_work_available: boolean
+            - u_use_product_packaging: boolean
             - u_drop_location_constraint: string
             - u_drop_location_policy: string
         """
@@ -243,6 +250,7 @@ class StockPickingType(models.Model):
                 'u_drop_location_policy': self.u_drop_location_policy,
                 'u_auto_batch_pallet': self.u_auto_batch_pallet,
                 'u_check_work_available': self.u_check_work_available,
+                'u_use_product_packaging': self.u_use_product_packaging,
                 }
 
     def get_info(self):
