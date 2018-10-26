@@ -8,13 +8,13 @@
     'description': "Extension of sale_stock model for UDES",
     'depends': [
         'sale_stock',
+        'udes_stock',
     ],
     'category': 'Warehouse',
     'sequence': 12,
     'demo': [
     ],
     'data': [
-        'data/product_packaging.xml',
         'views/stock_picking_type.xml',
     ],
     'qweb': [

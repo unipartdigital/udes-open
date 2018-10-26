@@ -25,6 +25,7 @@
         'data/locations.xml',
         'data/picking_types.xml',
         'data/product_categories.xml',
+        'data/product_packaging.xml',
         'report/product_product_templates.xml',
         'report/report_stockpicking_operations.xml',
         'views/product_template.xml',
