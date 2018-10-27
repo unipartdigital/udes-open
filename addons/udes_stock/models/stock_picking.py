@@ -615,8 +615,8 @@ class StockPicking(models.Model):
         """ Creates a backorder pick from self (expects a singleton)
             and a subset of stock.move.lines are then moved into it.
             The move from which the move lines have been transferred
-            has the ordered_qty decrimented by the amount of the
-            transftered lines.
+            has the ordered_qty decremented by the amount of the
+            transferred lines.
         """
         Move = self.env['stock.move']
         # Based on back order creation in stock_move._action_done

@@ -140,7 +140,6 @@ class StockMove(models.Model):
         if not all(ml.move_id == self for ml in move_lines):
             raise ValueError(_("Cannot split move lines from a move they are"
                                "not part of."))
-
         if move_lines == self.move_line_ids and \
                 not self.move_orig_ids.filtered(
                     lambda x: x.state not in ('done', 'cancel')):
@@ -154,6 +153,9 @@ class StockMove(models.Model):
                 'picking_id': False,
                 'move_line_ids': [],
                 'move_orig_ids': [],
+                # move_dest_ids not copied by default
+                # WS-MPS: this might need to be refined like move_orig_ids
+                'move_dest_ids': [(6, 0, self.move_dest_ids.ids)],
                 'ordered_qty': total_ordered_qty,
                 'product_uom_qty': total_initial_qty,
                 'state': 'assigned',
