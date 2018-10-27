@@ -284,7 +284,6 @@ class StockMove(models.Model):
         return post_refactor_done_moves
 
     def push_from_drop(self):
-        # TODO: fix for orphan stock!!!!
         Move = self.env['stock.move']
         MoveLine = self.env['stock.move.line']
         Push = self.env['stock.location.path']
@@ -309,8 +308,8 @@ class StockMove(models.Model):
         for push, move_lines in move_lines_by_push.items():
             created_moves |= self._create_moves_for_push(push, move_lines)
 
-        created_moves._action_confirm()
-        created_moves._action_assign()
+        confirmed_moves = created_moves._action_confirm()
+        confirmed_moves._action_assign()
 
     @api.model
     def _create_moves_for_push(self, push, move_lines):
