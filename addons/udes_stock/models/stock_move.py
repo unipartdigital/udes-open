@@ -280,7 +280,6 @@ class StockMove(models.Model):
         post_refactor_done_moves = done_moves._action_refactor(stage='validate')
 
         post_refactor_done_moves.push_from_drop()
-
         return post_refactor_done_moves
 
     def push_from_drop(self):
@@ -333,7 +332,7 @@ class StockMove(models.Model):
                 # TODO: reservation to the src location of a move if it has
                 # TODO: preceeding moves.
                 # TODO: Uncomment this, and unskip tests, when story/1934 is completed
-                # 'move_orig_ids': [(6, 0, [move.id,])]
+                'move_orig_ids': [(6, 0, [move.id,])]
             })
             created_moves |= move.copy(move_vals)
         return created_moves
