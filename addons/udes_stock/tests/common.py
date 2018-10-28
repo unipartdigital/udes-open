@@ -414,6 +414,7 @@ class BaseUDES(common.SavepointCase):
     def create_simple_outbound_route(cls, picking_type_pick, picking_type_out):
         Route = cls.env['stock.location.route']
         Path = cls.env['stock.location.path']
+        Rule = cls.env['procurement.rule']
         Sequence = cls.env['ir.sequence']
         Location = cls.env['stock.location']
 
@@ -424,7 +425,7 @@ class BaseUDES(common.SavepointCase):
             "warehouse_selectable": True,
             "warehouse_ids": [(6, 0, [picking_type_out.warehouse_id.id])]
         }
-        route = Route.create(route_vals)
+        cls.route_out = Route.create(route_vals)
 
         # Goods out
         sequence_vals = {
@@ -447,13 +448,32 @@ class BaseUDES(common.SavepointCase):
 
         location_path_vals = {
             "name": "TestGoodsOut",
-            "route_id": route.id,
+            "route_id": cls.route_out.id,
             "sequence": 20,
             "location_from_id": picking_type_pick.default_location_dest_id.id,
             "location_dest_id": picking_type_out.default_location_dest_id.id,
             "picking_type_id": picking_type_out.id,
         }
         path_out_goodsout = Path.create(location_path_vals)
+
+        cls.rule_pick = Rule.create({
+            'name': "TestPick",
+            'route_id': cls.route_out.id,
+            'picking_type_id': picking_type_pick.id,
+            'location_id': picking_type_pick.default_location_dest_id.id,
+            'location_src_id': picking_type_pick.default_location_src_id.id,
+            'action': 'move',
+            'procure_method': 'make_to_stock',
+        })
+        cls.rule_out = Rule.create({
+            'name': "TestOut",
+            'route_id': cls.route_out.id,
+            'picking_type_id': picking_type_out.id,
+            'location_id': picking_type_out.default_location_dest_id.id,
+            'location_src_id': picking_type_out.default_location_src_id.id,
+            'action': 'move',
+            'procure_method': 'make_to_order',
+        })
 
     @classmethod
     def create_batch(cls, user=None, **kwargs):
