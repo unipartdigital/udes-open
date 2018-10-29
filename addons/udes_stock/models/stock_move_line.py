@@ -486,7 +486,7 @@ class StockMoveLine(models.Model):
                     })
             # updated ordered_qty otherwise odoo will use product_uom_qty
             # new_ml.ordered_qty = ordered_quantity_left_todo
-            # update self move line quantity todo
+            # update self move line quantity to do
             # - bypass_reservation_update:
             #   avoids to execute code specific for Odoo UI at stock.move.line.write()
             self.with_context(bypass_reservation_update=True).write(
@@ -497,6 +497,94 @@ class StockMoveLine(models.Model):
             res = new_ml
 
         return res
+
+    def _split_by_qty(self, qty):
+        """ Split current move line in self in two move lines, where the new one
+            has product_uom_qty (quantity to do) == qty
+
+            returns either self or the new move line
+        """
+        # TODO: refactor with _split() making qty optional, when it is not set
+        #       split by qty done
+        self.ensure_one()
+        res = self
+        if self.qty_done > 0:
+            raise ValidationError(
+                _("Trying to split a move line by quantity when the move line "
+                  "is alreay done")
+            )
+        if qty > 0 and float_compare(qty, self.product_uom_qty, precision_rounding=self.product_uom_id.rounding) < 0:
+            new_ml_qty_todo = qty
+            old_ml_qty_todo = float_round(
+                self.product_uom_qty - qty,
+                precision_rounding=self.product_uom_id.rounding,
+                rounding_method='UP')
+
+            new_ml_ordered_qty = qty
+            old_ml_ordered_qty = float_round(
+                self.ordered_qty - qty,
+                precision_rounding=self.product_uom_id.rounding,
+                rounding_method='UP')
+
+            if qty > self.ordered_qty:
+                new_ml_ordered_qty = 0
+                old_ml_ordered_qty = self.ordered_qty
+
+            # create new move line with the qty_done
+            new_ml = self.copy(
+                    default={'product_uom_qty': new_ml_qty_todo,
+                             'ordered_qty': new_ml_ordered_qty,
+                             'qty_done': 0.0,
+                    })
+            # updated ordered_qty otherwise odoo will use product_uom_qty
+            # new_ml.ordered_qty = ordered_quantity_left_todo
+            # update self move line quantity to do
+            # - bypass_reservation_update:
+            #   avoids to execute code specific for Odoo UI at stock.move.line.write()
+            self.with_context(bypass_reservation_update=True).write(
+                        {'product_uom_qty': old_ml_qty_todo,
+                         'ordered_qty': old_ml_ordered_qty,
+                         })
+            # self.ordered_qty = old_ml_ordered_qty
+            res = new_ml
+
+        return res
+
+    def move_lines_for_qty(self, quantity):
+        """ Return a subset of move lines from self where their sum of quantity
+            to do is equal to parameter quantity.
+            In case that a move line needs to be split, the new move line is
+            also returned (this happens when total quantity in the move lines is
+            greater than quantity parameter).
+            If there is not enough quantity to do in the mov lines,
+            also return the remaining quantity.
+        """
+        new_ml = None
+
+        # TODO: instead of sorting + filtered use a manual search to find
+        #       an equal otherwise a greater. If nothing found then use all
+        #       of them.
+
+        sorted_mls = self.sorted(
+            lambda ml: ml.product_qty, reverse=True)
+        greater_equal_mls = sorted_mls.filtered(
+            lambda ml: ml.product_qty >= quantity)
+        # last one will be at least equal
+        mls = greater_equal_mls[-1] if greater_equal_mls else sorted_mls
+        result = self.browse()
+        for ml in mls:
+            if ml.product_qty >= quantity:
+                extra_qty = ml.product_qty - quantity
+                if extra_qty > 0:
+                    new_ml = ml._split_by_qty(extra_qty)
+                quantity = 0
+            else:
+                quantity -= ml.product_qty
+            result |= ml
+            if quantity == 0:
+                break
+
+        return result, new_ml, quantity
 
     def _get_all_products_quantities(self):
         """This function computes the different product quantities for the given move_lines
