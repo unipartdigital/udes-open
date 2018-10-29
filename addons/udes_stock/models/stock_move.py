@@ -391,10 +391,10 @@ class StockMove(models.Model):
                       '') % (key, move_group.mapped('location_id'),
                              move_group.mapped('location_dest_id')))
 
-            group_pickings = move_group.mapped('picking_id')
+            origins = list(set(move_group.mapped('picking_id.origin')))
             origin = None
-            if len(group_pickings) == 1:
-                origin = group_pickings.origin
+            if len(origins) == 1:
+                origin = origins[0]
 
             Picking._new_picking_for_group(key, move_group, origin=origin)
 
@@ -457,13 +457,14 @@ class StockMove(models.Model):
                 else:
                     group_moves |= move
 
+            origins = list(set(group_pickings.mapped('origin')))
             origin = None
-            if len(group_pickings) == 1:
-                origin = group_pickings.origin
+            if len(origins) == 1:
+                origin = origins[0]
+
             Picking._new_picking_for_group(key, group_moves, origin=origin)
             result_moves |= group_moves
 
-        # NOTE: empty pick = no moves and no move_lines
         empty_picks = pickings.filtered(lambda p: len(p.move_lines) == 0)
         if empty_picks:
             _logger.info(_("Cancelling empty picks after splitting."))
