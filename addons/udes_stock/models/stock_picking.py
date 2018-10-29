@@ -1245,7 +1245,8 @@ class StockPicking(models.Model):
             ('location_id', '=', src_loc.id),
             ('location_dest_id', '=', dest_loc.id),
             ('group_id', '=', group.id),
-            ('state', '=', 'assigned'),
+            # NB: only workable pickings
+            ('state', 'in', ['assigned', 'confirmed', 'waiting']),
         ])
         if not picking or len(picking) > 1:
             picking = self.create({
