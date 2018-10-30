@@ -290,12 +290,16 @@ class TestValidateSplitting(common.BaseUDES):
             'qty_done': banana_move_line.product_uom_qty
         })
 
+        self.assertEqual(apple_move_line.picking_id.id, self.picking.id)
+        self.assertEqual(banana_move_line.picking_id.id, self.picking.id)
+
         self.picking.action_done()
 
         # apple and banana moves are now in different pickings.
-        self.assertNotEqual(self.picking.id,
-                            apple_move.picking_id.id,
-                            banana_move.picking_id.id)
+        self.assertEqual(
+            len(self.picking | apple_move.picking_id | banana_move.picking_id),
+            3
+        )
 
 
 class TestConfirmSplitting(common.BaseUDES):
@@ -346,8 +350,7 @@ class TestConfirmSplitting(common.BaseUDES):
         apple_pick = new_picks.filtered(lambda p: p.product_id == self.apple)
         banana_pick = new_picks.filtered(lambda p: p.product_id == self.banana)
 
-        self.assertNotEqual(self.picking, apple_pick)
-        self.assertNotEqual(apple_pick, banana_pick)
+        self.assertEqual(len(self.picking | apple_pick | banana_pick), 3)
         self.assertEqual(apple_pick.move_lines, apple_move)
         self.assertEqual(banana_pick.move_lines, banana_move)
         self.assertEqual(apple_pick.state, 'confirmed')
