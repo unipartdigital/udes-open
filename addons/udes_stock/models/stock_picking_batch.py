@@ -11,10 +11,20 @@ _logger = logging.getLogger(__name__)
 class StockPickingBatch(models.Model):
     _inherit = 'stock.picking.batch'
 
+    picking_type_ids = fields.Many2many(
+        'stock.picking.type', string="Operation Types",
+        compute='_compute_picking_type', store=True, index=True,
+    )
     scheduled_date = fields.Datetime(
         string="Scheduled Date", compute='_compute_scheduled_date',
         store=True, index=True,
     )
+
+    @api.multi
+    @api.depends('picking_ids', 'picking_ids.picking_type_id')
+    def _compute_picking_type(self):
+        for batch in self:
+            batch.picking_type_ids = batch.picking_ids.mapped('picking_type_id')
 
     @api.multi
     @api.depends('picking_ids', 'picking_ids.scheduled_date')

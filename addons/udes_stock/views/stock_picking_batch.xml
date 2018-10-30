@@ -10,6 +10,7 @@
 	     ref="stock_picking_batch.stock_picking_batch_form"/>
       <field name="arch" type="xml">
 	<xpath expr="//field[@name='user_id']" position="after">
+	  <field name="picking_type_ids" widget="many2many_tags"/>
 	  <field name="scheduled_date"/>
 	</xpath>
       </field>
@@ -23,6 +24,7 @@
 	     ref="stock_picking_batch.stock_picking_batch_tree"/>
       <field name="arch" type="xml">
 	<xpath expr="//field[@name='user_id']" position="after">
+	  <field name="picking_type_ids" widget="many2many_tags"/>
 	  <field name="scheduled_date"/>
 	</xpath>
       </field>
@@ -35,6 +37,9 @@
       <field name="inherit_id"
 	     ref="stock_picking_batch.stock_picking_batch_filter"/>
       <field name="arch" type="xml">
+	<xpath expr="//field[@name='user_id']" position="after">
+	  <field name="picking_type_ids"/>
+	</xpath>
 	<xpath expr="//group" position="inside">
 	  <filter name="by_scheduled_date" string="Scheduled Date"
 		  domain="[]" context="{'group_by':'scheduled_date'}"/>
