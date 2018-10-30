@@ -275,6 +275,8 @@ class StockMove(models.Model):
             # location suggestions
             if picking_type.u_drop_location_preprocess:
                 moves.mapped('picking_id').apply_drop_location_policy()
+
+        assign_moves.mapped('picking_id')._reserve_full_packages()
         return res
 
     def _action_done(self):
