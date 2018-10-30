@@ -301,6 +301,118 @@ class TestValidateSplitting(common.BaseUDES):
             3
         )
 
+    def test02_maintain_origin_single_pick(self):
+        """ Check that when a move is split the picking's origin is copied to
+        the new pick
+        """
+        apple_pallet = self.create_package()
+        self.create_quant(self.apple.id, self.test_location_01.id,
+                          10, package_id=apple_pallet.id)
+        banana_pallet = self.create_package()
+        self.create_quant(self.banana.id, self.test_location_01.id,
+                          10, package_id=banana_pallet.id)
+
+        apple_move = self.create_move(self.apple, 10, self.picking)
+        banana_move = self.create_move(self.banana, 10, self.picking)
+        self.picking.action_assign()
+
+        apple_move_line = apple_move.move_line_ids
+        banana_move_line = banana_move.move_line_ids
+
+        apple_move_line.write({
+            'location_dest_id': self.test_output_location_01.id,
+            'qty_done': apple_move_line.product_uom_qty
+        })
+        banana_move_line.write({
+            'location_dest_id': self.test_output_location_02.id,
+            'qty_done': banana_move_line.product_uom_qty
+        })
+
+        self.picking.write({'origin': "Test origin 123"})
+
+        self.picking.action_done()
+
+        # apple and banana moves are now in different pickings.
+        self.assertEqual(
+            len(self.picking | apple_move.picking_id | banana_move.picking_id),
+            3
+        )
+
+        self.assertEqual(self.picking.origin, apple_move.picking_id.origin)
+        self.assertEqual(self.picking.origin, banana_move.picking_id.origin)
+
+    def test02_maintain_origin_two_picks(self):
+        """ Check that when a move is split the picking's origin is copied to
+        the new pick
+        """
+
+        # Setup pick 1
+        apple_pallet = self.create_package()
+        self.create_quant(self.apple.id, self.test_location_01.id,
+                          10, package_id=apple_pallet.id)
+        banana_pallet = self.create_package()
+        self.create_quant(self.banana.id, self.test_location_01.id,
+                          10, package_id=banana_pallet.id)
+
+        apple_move = self.create_move(self.apple, 10, self.picking)
+        banana_move = self.create_move(self.banana, 10, self.picking)
+        self.picking.action_assign()
+
+        apple_move_line = apple_move.move_line_ids
+        banana_move_line = banana_move.move_line_ids
+
+        apple_move_line.write({
+            'location_dest_id': self.test_output_location_01.id,
+            'qty_done': apple_move_line.product_uom_qty
+        })
+        banana_move_line.write({
+            'location_dest_id': self.test_output_location_02.id,
+            'qty_done': banana_move_line.product_uom_qty
+        })
+
+        # Setup pick 2
+        self.picking_2 = self.create_picking(self.picking_type_pick)
+
+        cherry_pallet = self.create_package()
+        self.create_quant(self.cherry.id, self.test_location_01.id,
+                          10, package_id=cherry_pallet.id)
+        damson_pallet = self.create_package()
+        self.create_quant(self.damson.id, self.test_location_01.id,
+                          10, package_id=damson_pallet.id)
+
+        cherry_move = self.create_move(self.cherry, 10, self.picking_2)
+        damson_move = self.create_move(self.damson, 10, self.picking_2)
+        self.picking_2.action_assign()
+
+        cherry_move_line = cherry_move.move_line_ids
+        damson_move_line = damson_move.move_line_ids
+
+        cherry_move_line.write({
+            'location_dest_id': self.test_output_location_01.id,
+            'qty_done': cherry_move_line.product_uom_qty
+        })
+        damson_move_line.write({
+            'location_dest_id': self.test_output_location_02.id,
+            'qty_done': damson_move_line.product_uom_qty
+        })
+
+        # Validate both picks at the same time
+        both_picks = (self.picking | self.picking_2)
+        both_picks.write({'origin': "Test origin 123"})
+        both_picks.action_done()
+
+        # apple and banana moves are now in different pickings.
+        self.assertEqual(
+            len(self.picking | apple_move.picking_id | banana_move.picking_id),
+            3,
+        )
+
+        self.assertEqual(apple_move.picking_id.id, cherry_move.picking_id.id)
+        self.assertEqual(banana_move.picking_id.id, damson_move.picking_id.id)
+
+        self.assertEqual(self.picking.origin, apple_move.picking_id.origin)
+        self.assertEqual(self.picking.origin, banana_move.picking_id.origin)
+
 
 class TestConfirmSplitting(common.BaseUDES):
     def setUp(self):
