@@ -555,23 +555,10 @@ class StockMoveLine(models.Model):
 
         return res
 
-    def sort_by_location_product(self, state=None):
-        """ Sort the move lines
+    def sort_by_location_product(self):
+        """ Return the move lines sorted by location and product
         """
-        MoveLine = self.env['stock.move.line']
-
-        mls = self
-
-        if state is None:
-            pass
-        elif state == 'done':
-            mls = mls.get_lines_done()
-        elif state == 'not_done':
-            mls = mls.get_lines_todo()
-        else:
-            raise AssertionError('State not valid to sort tasks')
-
-        return mls.sorted(key=lambda x: (x.location_id.name, x.product_id.id))
+        return self.sorted(key=lambda ml: (ml.location_id.name, ml.product_id.id))
 
     def get_quants(self):
         """ Returns the quants related to move lines in self
@@ -587,7 +574,10 @@ class StockMoveLine(models.Model):
         return quants
 
     def _prepare_task_info(self):
-        """ Prepares info of a task
+        """
+        Prepares info of a task.
+        Assumes that all the move lines of the record set are related
+        to the same picking.
         """
         picking = self.mapped('picking_id')
         picking.ensure_one()
@@ -595,21 +585,23 @@ class StockMoveLine(models.Model):
             'picking_id': picking.id,
         }
         user_scans = picking.picking_type_id.u_user_scans
+
         if user_scans == 'product':
             task['pick_quantity'] = sum(self.mapped('product_qty'))
             quant = self.get_quants()
             task['quant_id'] = quant.get_info()[0]
-
         else:
             package = self.mapped('package_id')
             package.ensure_one()
             info = package.get_info(extended=True)
+
             if not info:
                 raise ValidationError(
                     _('Expecting package information for next task to pick,'
                       ' but move line does not contain it. Contact team'
                       'leader and check picking %s') % picking.name
                 )
+
             task['package_id'] = info[0]
 
         return task
@@ -639,9 +631,8 @@ class StockMoveLine(models.Model):
                 for k, g in
                 groupby(sorted(self, key=by_key), key=by_key)}
 
-    #
     ## Drop Location Constraint
-    #
+
     @api.constrains('location_dest_id')
     @api.onchange('location_dest_id')
     def _validate_location_dest(self):
