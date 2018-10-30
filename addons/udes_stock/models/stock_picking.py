@@ -190,8 +190,9 @@ class StockPicking(models.Model):
         Check if picking batch is now complete
         """
         self.assert_not_pending()
+        mls = self.mapped('move_line_ids')
         res = super(StockPicking, self).action_done()
-        self.check_batch()
+        mls.mapped('picking_id').check_batch()
         return res
 
     def action_cancel(self):
@@ -1003,25 +1004,6 @@ class StockPicking(models.Model):
                           and not p.group_id):
             pick._create_own_procurement_group()
         return super(StockPicking, self).action_confirm()
-
-    def action_assign(self):
-        """
-            Override action_assign to reserve full packages if applicable
-        """
-
-        # stock.picking.action_assign is usually only called when manually
-        # clicking "check availability" in Odoo UI or when explicitly called.
-        # When the next step in a route is being reserved
-        # stock.move._action_assign is called directly
-        #
-
-        res = super(StockPicking, self).action_assign()
-        if res is not True:
-            raise ValidationError(
-                _('Unexpected result from action assign.')
-            )
-        self._reserve_full_packages()
-        return True
 
     def _check_entire_pack(self):
         """

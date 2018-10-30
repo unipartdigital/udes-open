@@ -12,6 +12,7 @@ class TestHandlePartials(common.BaseUDES):
         picking and check the state of the goods out is what we need for the test.
         """
         super(TestHandlePartials, self).setUp()
+        self.picking_type_out.write({'u_post_assign_action': None})
         Group = self.env['procurement.group']
         # create stock: 10 apple, 20 bananas, different packs.
         self.create_quant(self.apple.id, self.test_location_01.id, 10,

@@ -100,6 +100,8 @@
       <field name="u_requires_transport" eval="True"/>
       <field name="show_operations" eval="1"/>
       <field name="active">True</field>
+      <field name="u_post_assign_action">group_by_move_line_key</field>
+      <field name="u_move_line_key_format">{package_id.name}</field>
     </record>
 
     <!-- Update "Internal Transfer" picking type -->
@@ -131,6 +133,8 @@
       <field name="u_user_scans">pallet</field>
       <field name="show_operations" eval="1"/>
       <field name="active">False</field>
+      <field name="u_post_assign_action">group_by_move_line_key</field>
+      <field name="u_move_line_key_format">{package_id.name}</field>
     </record>
 
     <record id="picking_type_pick" model="stock.picking.type">
