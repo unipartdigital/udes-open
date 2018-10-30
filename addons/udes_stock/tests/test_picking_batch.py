@@ -885,3 +885,53 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         self.assertEqual(len(inv_picking), 1)
         self.assertEqual(len(inv_picking.move_line_ids), 1)
         self.assertEqual(inv_picking.move_line_ids[0].product_qty, 3)
+
+
+class TestBatchGetNextTask(common.BaseUDES):
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestBatchGetNextTask, cls).setUpClass()
+        cls.pack_2prods_info = [{'product': cls.apple, 'qty': 4},
+                                {'product': cls.banana, 'qty': 4}]
+
+    def test01_picking_ordering_is_persisted_in_task(self):
+        """ Ensure that get_next_task respects the ordering criteria """
+        Package = self.env['stock.quant.package']
+        package_a = Package.get_package("1", create=True)
+        package_b = Package.get_package("2", create=True)
+
+        self.create_quant(self.apple.id, self.test_location_01.id, 4,
+                          package_id=package_a.id)
+        self.create_quant(self.banana.id, self.test_location_02.id, 4,
+                          package_id=package_b.id)
+        picking = self.create_picking(self.picking_type_pick,
+                                      products_info=self.pack_2prods_info,
+                                      confirm=True,
+                                      assign=True)
+        batch = self.create_batch(user=self.outbound_user,
+                                  picking_type_id=self.picking_type_pick.id)
+        picking.batch_id = batch.id
+
+        criteria = lambda ml: (int(ml.package_id.name))
+        task = batch.get_next_task(task_grouping_criteria=criteria)
+
+        # We should get the move line related to package named '1'
+        self.assertEqual(task['package_id']['name'], '1')
+
+        task = batch.get_next_task(task_grouping_criteria=criteria)
+
+        # Calling get_next_task again should give the same task
+        self.assertEqual(task['package_id']['name'], '1')
+
+        package_a.write({'name': '10'})
+        task = batch.get_next_task(task_grouping_criteria=criteria)
+
+        # As package_a is now named '10', the criteria should give the '2'
+        self.assertEqual(task['package_id']['name'], '2')
+
+        package_b.write({'name': '12341234'})
+        task = batch.get_next_task(task_grouping_criteria=criteria)
+
+        # In the same way, we should now get '10'
+        self.assertEqual(task['package_id']['name'], '10')
