@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from odoo import api, models, _
+from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
 
 import logging
@@ -10,6 +10,20 @@ _logger = logging.getLogger(__name__)
 
 class StockPickingBatch(models.Model):
     _inherit = 'stock.picking.batch'
+
+    scheduled_date = fields.Datetime(
+        string="Scheduled Date", compute='_compute_scheduled_date',
+        store=True, index=True,
+    )
+
+    @api.multi
+    @api.depends('picking_ids', 'picking_ids.scheduled_date')
+    def _compute_scheduled_date(self):
+        for batch in self:
+            batch.scheduled_date = min(
+                batch.picking_ids.mapped('scheduled_date') or
+                [fields.Datetime.now()]
+            )
 
     def _get_task_grouping_criteria(self):
         """
