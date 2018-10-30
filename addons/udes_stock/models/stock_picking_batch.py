@@ -44,7 +44,8 @@ class StockPickingBatch(models.Model):
                            ml.product_id.id,
                            ml.location_id.id)
 
-    def get_next_task(self, skipped_product_ids=None):
+    def get_next_task(self, skipped_product_ids=None,
+                            task_grouping_criteria=None):
         """
         Get the next not completed task of the batch to be done.
         Expect a singleton.
@@ -52,7 +53,9 @@ class StockPickingBatch(models.Model):
         Note that the criteria for sorting and grouping move lines
         (for the sake of defining tasks) are given by the
         _get_task_grouping_criteria method so it can be specialized
-        for different customers.
+        for different customers. Also note that the
+        task_grouping_criteria argument is added to the signature to
+        enable dependency injection for the sake of testing.
         """
         self.ensure_one()
 
@@ -71,7 +74,10 @@ class StockPickingBatch(models.Model):
                                 .sort_by_location_product()
 
         if todo_mls:
-            grouped_mls = todo_mls.groupby(self._get_task_grouping_criteria())
+            if task_grouping_criteria is None:
+                task_grouping_criteria = self._get_task_grouping_criteria()
+
+            grouped_mls = todo_mls.groupby(task_grouping_criteria)
             _key, task_mls = next(grouped_mls)
             num_mls = len(task_mls)
             pick_seq = task_mls[0].picking_id.sequence
@@ -490,6 +496,6 @@ class StockPickingBatch(models.Model):
         """
         # Get user batches
         batches = self.get_user_batches()
-        
+
         # Unassign batch_id from incomplete stock pickings
         batches.mapped('picking_ids').filtered(lambda sp: sp.state == 'assigned').write({'batch_id': False})
