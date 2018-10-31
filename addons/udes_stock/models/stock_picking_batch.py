@@ -327,8 +327,14 @@ class StockPickingBatch(models.Model):
         return all([pick.is_valid_location_dest_id(location=location)
                     for pick in all_done_pickings])
 
-    def unpickable_item(self, reason, product_id=None, location_id=None,
-                        package_name=None, picking_type_id=None, lot_name=None):
+    def unpickable_item(self,
+                        reason,
+                        product_id=None,
+                        location_id=None,
+                        package_name=None,
+                        picking_type_id=None,
+                        lot_name=None,
+                        raise_stock_investigation=True):
         """
         Given an unpickable product or package, find the related
         move lines in the current batch, backorder them and refine
@@ -364,6 +370,7 @@ class StockPickingBatch(models.Model):
 
             move_lines = move_lines.filtered(lambda ml: ml.product_id == product and
                                              ml.location_id == location)
+
             msg = _('Unpickable product %s at location %s') % (product.name, location.name)
 
             if lot_name:
@@ -372,6 +379,7 @@ class StockPickingBatch(models.Model):
 
             if package:
                 move_lines = move_lines.filtered(lambda ml: ml.package_id == package)
+
                 msg += _(' in package %s') % package.name
             elif move_lines.mapped('package_id'):
                 raise ValidationError(
@@ -400,11 +408,11 @@ class StockPickingBatch(models.Model):
         picking = move_lines.mapped('picking_id')
         picking.message_post(body=msg)
 
-        if picking_type_id is None:
-            picking_type_id = ResUsers.get_user_warehouse().int_type_id.id
-
         if picking.batch_id != self:
             raise ValidationError(_('Move line is not part of the batch.'))
+
+        if picking_type_id is None:
+            picking_type_id = ResUsers.get_user_warehouse().int_type_id.id
 
         if picking.state in ['cancel', 'done']:
             raise ValidationError(_('Cannot mark a move line as unpickable '
@@ -418,37 +426,41 @@ class StockPickingBatch(models.Model):
             original_picking_id = picking.id
             picking = picking._backorder_movelines(move_lines)
 
-        # By default the pick is unreserved
-        picking._refine_picking(reason)
+        if raise_stock_investigation:
+            # By default the pick is unreserved
+            picking._refine_picking(reason)
 
-        group = Group.get_group(group_identifier=reason,
-                                create=True)
+            group = Group.get_group(group_identifier=reason,
+                                    create=True)
 
-        # create new "investigation pick"
-        Picking.with_context(allow_partial=allow_partial)\
-               .create_picking(quant_ids=quants.mapped('id'),
-                               location_id=location.id,
-                               picking_type_id=picking_type_id,
-                               group_id=group.id)
+            # create new "investigation pick"
+            Picking.with_context(allow_partial=allow_partial)\
+                .create_picking(quant_ids=quants.mapped('id'),
+                                location_id=location.id,
+                                picking_type_id=picking_type_id,
+                                group_id=group.id)
 
-        # Try to re-assing the picking after, by creating the
-        # investigation, we've reserved the problematic stock
-        picking.action_assign()
+            # Try to re-assing the picking after, by creating the
+            # investigation, we've reserved the problematic stock
+            picking.action_assign()
 
-        if picking.state != 'assigned':
-            # Remove the picking from the batch as it cannot be
-            # processed for lack of stock; we do so to be able
-            # to terminate the batch and let the user create a
-            # new batch for himself
+            if picking.state != 'assigned':
+                # Remove the picking from the batch as it cannot be
+                # processed for lack of stock; we do so to be able
+                # to terminate the batch and let the user create a
+                # new batch for himself
+                picking.batch_id = False
+            elif original_picking_id is not None:
+                # A backorder has been created, but the stock is
+                # available; get rid of the backorder after linking the
+                # move lines to the original picking, so it can be
+                # directly processed
+                picking.move_line_ids.write({'picking_id': original_picking_id})
+                picking.move_lines.write({'picking_id': original_picking_id})
+                picking.unlink()
+
+        else:
             picking.batch_id = False
-        elif original_picking_id is not None:
-            # A backorder has been created, but the stock is
-            # available; get rid of the backorder after linking the
-            # move lines to the original picking, so it can be
-            # directly processed
-            picking.move_line_ids.write({'picking_id': original_picking_id})
-            picking.move_lines.write({'picking_id': original_picking_id})
-            picking.unlink()
 
         # If the batch does not contain any remaining picking to do,
         # it can be set as done

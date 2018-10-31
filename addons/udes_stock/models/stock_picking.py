@@ -1297,17 +1297,21 @@ class StockPicking(models.Model):
                 if move_line_ids and \
                         picking.picking_type_id.u_drop_location_preprocess and \
                         not move_line_ids.any_destination_locations_default():
-                    # The policy has been preprocessed this assumes the
-                    # the policy is able to provide a sensible value (this is
-                    # not the case for every policy)
-                    # Use the preselected value
-                    func = self._get_suggested_location_exactly_match_move_line
-                else:
-                    func = getattr(self, '_get_suggested_location_' + policy,
-                                   None)
+                        # The policy has been preprocessed this assumes the
+                        # the policy is able to provide a sensible value (this is
+                        # not the case for every policy)
+                        # Use the preselected value
+                        result = self._get_suggested_location_exactly_match_move_line(move_line_ids)
 
-                if func:
-                    result = func(move_line_ids)
+                        # Just to prevent running it twice
+                        if not result and policy == 'exactly_match_move_line':
+                            return result
+
+                # If the pre-selected value is blocked
+                if not result:
+                    func = getattr(self, '_get_suggested_location_' + policy, None)
+                    if func:
+                        result = func(move_line_ids)
 
         return result
 
@@ -1328,7 +1332,12 @@ class StockPicking(models.Model):
         self._check_picking_move_lines_suggest_location(move_line_ids)
         location = move_line_ids.mapped('location_dest_id')
 
-        return location.ensure_one()
+        location.ensure_one()
+
+        if location.u_blocked:
+            return self.env['stock.location']
+
+        return location
 
     def _get_suggested_location_by_products(self, move_line_ids, products=None):
         Quant = self.env['stock.quant']

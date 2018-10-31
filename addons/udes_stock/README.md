@@ -413,6 +413,22 @@ Returns `true` in case the request is successfully processed.
 The JSON schema for the `pi_request` object can be found
 [here](schemas/stock-location-pi-count.json).
 
+### Stock Location Block
+```
+URI: /api/stock-location/block/
+Method: POST
+```
+
+@param reason - (String) indicates the reason for blocking the location
+@param location_id - (Int - optional) the location id
+@param location_name - (String - optional) this is a string that entirely matches the name
+@param location_barcode - (String - optional) this is a string that entirely matches the barcode
+
+Marks the specified location as 'blocked'.
+Returns an error in case the location is not properly specified (i.e. in case
+none of the optional args are given) or if the location is already blocked.
+Returns `true` in case of success.
+
 ## Packages
 
 ```
@@ -499,14 +515,26 @@ HTTP Method: POST
 Old method(s): unpickable_item
 ```
 * @param id - id of the batch to mark as having an unpickable move line
-* @param reason - string describing the reason that this move line is unpickable
+* @param reason - string (enum - see values below) describing the reason that this move line is unpickable
 * @param product_id - (optional) id of the product that is unpickable
 * @param location_id - (optional) id of the loction of the unpickable product
 * @param package_name - string (optional) name of the unpickable package or package name where the product should have been picked
 * @param lot_name - string (optional) serial number of the unpickable product
 
-For the given batch_id and info of unpickable task will generate a stock investigation picking for the related stock move lines.
-This will create a backorder if necessary.
+For the given batch id (`id` of the URL path) and request payload, the backend
+will generate a stock investigation picking for the related stock move lines if
+required by the specified reason. In turn, this will create a backorder if
+necessary (refer to implementation).
+
+Values of the `reason` enumeration type:
+ - `part missing`
+ - `damaged part`
+ - `details on package incorrect`
+ - `no suggested location`
+ - `package does not fit`
+ - `location cannot be used`
+
+Returns `true` in case of success.
 
 ### Get next task to pick
 ```
