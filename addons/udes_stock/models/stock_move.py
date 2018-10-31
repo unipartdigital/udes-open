@@ -165,6 +165,11 @@ class StockMove(models.Model):
                 'picking_id': None,
             })
 
+            self.with_context(bypass_reservation_update=True).write({
+                'ordered_qty': self.ordered_qty - total_ordered_qty,
+                'product_uom_qty': self.product_uom_qty - total_initial_qty,
+            })
+
             # When not complete, splitting a move may change its state,
             # so recompute
             incomplete_moves = (self | bk_move).filtered(
@@ -173,11 +178,6 @@ class StockMove(models.Model):
             incomplete_moves._recompute_state()
 
             move_lines.write({'state': bk_move.state})
-
-            self.with_context(bypass_reservation_update=True).write({
-                'ordered_qty': self.ordered_qty - total_ordered_qty,
-                'product_uom_qty': self.product_uom_qty - total_initial_qty,
-            })
 
             if self.move_orig_ids:
                 (bk_move | self).update_orig_ids(self.move_orig_ids)
