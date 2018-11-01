@@ -1399,7 +1399,7 @@ class StockPicking(models.Model):
             'product_id.u_height_category_id'
         )
         speed_category = move_line_ids.mapped('product_id.u_speed_category_id')
-        default_location = move_line_ids.mapped('location_dest_id')
+        default_location = move_line_ids.mapped('picking_id.location_dest_id')
 
         if not len(height_category) == 1 or not len(speed_category) == 1:
             raise UserError(
@@ -1422,7 +1422,6 @@ class StockPicking(models.Model):
             # get them all then do a filter for checking if theres space
             ('quant_ids', '=', False),
         ])
-
         return self._location_not_in_other_move_lines(candidate_locations)
 
     def _location_not_in_other_move_lines(self, candidate_locations):
