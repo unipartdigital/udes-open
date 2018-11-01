@@ -827,7 +827,8 @@ class StockPicking(models.Model):
         if self.batch_id.id is False:
             batch = PickingBatch.create({'user_id': user.id})
             self.batch_id = batch.id
-            batch.write({'state': 'in_progress'})
+            batch.write({'state': 'in_progress',
+                         'u_ephemeral': True})
 
     def _get_package_search_domain(self, package):
         """ Generate the domain for searching pickings of a package

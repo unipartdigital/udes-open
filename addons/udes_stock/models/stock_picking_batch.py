@@ -19,6 +19,8 @@ class StockPickingBatch(models.Model):
         string="Scheduled Date", compute='_compute_scheduled_date',
         store=True, index=True,
     )
+    u_ephemeral = fields.Boolean(string="Ephemeral",
+                                  help="Ephemeral batches are unassigned if the user logs out")
 
     @api.multi
     @api.depends('picking_ids', 'picking_ids.picking_type_id')
@@ -509,5 +511,11 @@ class StockPickingBatch(models.Model):
         # Get user batches
         batches = self.get_user_batches()
 
+        # Unassign user from batch
+        batches.write({'user_id': False})
+
         # Unassign batch_id from incomplete stock pickings
-        batches.mapped('picking_ids').filtered(lambda sp: sp.state == 'assigned').write({'batch_id': False})
+        batches.filtered(lambda b: b.u_ephemeral)\
+            .mapped('picking_ids')\
+            .filtered(lambda sp: sp.state not in ('done', 'cancel'))\
+            .write({'batch_id': False})

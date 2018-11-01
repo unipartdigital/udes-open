@@ -12,6 +12,7 @@
 	<xpath expr="//field[@name='user_id']" position="after">
 	  <field name="picking_type_ids" widget="many2many_tags"/>
 	  <field name="scheduled_date"/>
+	  <field name="u_ephemeral"/>
 	</xpath>
       </field>
     </record>
@@ -26,6 +27,7 @@
 	<xpath expr="//field[@name='user_id']" position="after">
 	  <field name="picking_type_ids" widget="many2many_tags"/>
 	  <field name="scheduled_date"/>
+      <field name="u_ephemeral"/>
 	</xpath>
       </field>
     </record>
