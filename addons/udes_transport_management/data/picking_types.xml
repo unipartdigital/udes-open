@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<odoo>
+  <data>
+
+    <!-- Update "Goods Out" picking type -->
+    <record id="stock.picking_type_out" model="stock.picking.type">
+      <field name="u_requires_transport" eval="True"/>
+    </record>
+
+  </data>
+</odoo>

@@ -15,6 +15,7 @@
         'udes_stock',
     ],
     'data': [
+        'data/picking_types.xml',
         'security/ir.model.access.csv',
         'views/stock_picking_views.xml',
         'views/stock_picking_type.xml',
