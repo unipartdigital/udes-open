@@ -262,8 +262,7 @@ class StockPickingBatch(models.Model):
         Validate the move lines of the batch (expects a singleton)
         by moving them to the specified location.
 
-        In case continue_batch is flagged, mark the batch as
-        'done' if appropriate.
+        In case continue_batch is flagged, unassign the batch
         """
         self.ensure_one()
 
@@ -294,11 +293,8 @@ class StockPickingBatch(models.Model):
                 # at this point pick_todo should contain only mls done
                 pick_todo.update_picking(validate=True)
 
-        incomplete_picks = self.picking_ids.filtered(
-            lambda x: x.state not in ['done', 'cancel'])
-
         if not continue_batch:
-            incomplete_picks.write({'batch_id': False})
+            self.unassign()
 
         return self
 
@@ -506,16 +502,20 @@ class StockPickingBatch(models.Model):
         return batches
 
     def unassign_user_batches(self):
-        """ Removes pickings from all batches assigned to the user and cancels the batch
+        """ Get batches for user and unassign them
         """
         # Get user batches
-        batches = self.get_user_batches()
+        self.get_user_batches().unassign()
 
+    def unassign(self):
+        """ Unassign user from batches, in case of an ephemeral batch then
+        also unassign incomplete pickings from the batch
+        """
         # Unassign user from batch
-        batches.write({'user_id': False})
+        self.write({'user_id': False})
 
-        # Unassign batch_id from incomplete stock pickings
-        batches.filtered(lambda b: b.u_ephemeral)\
+        # Unassign batch_id from incomplete stock pickings on ephemeral batches
+        self.filtered(lambda b: b.u_ephemeral)\
             .mapped('picking_ids')\
             .filtered(lambda sp: sp.state not in ('done', 'cancel'))\
             .write({'batch_id': False})
