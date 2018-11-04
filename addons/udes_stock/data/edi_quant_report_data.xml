@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<odoo>
+  <data>
+
+    <!-- EDI stock level report record type -->
+    <record id="edi_quant_report_record_type" model="edi.record.type">
+      <field name="name">UDES Stock Level Report</field>
+      <field name="model_id" ref="model_udes_stock_edi_quant_report_record"/>
+      <field name="sequence">10</field>
+    </record>
+
+    <!-- EDI stock level report document type -->
+    <record id="edi_quant_report_document_type" model="edi.document.type">
+      <field name="name">UDES Stock Level Report</field>
+      <field name="model_id" ref="model_udes_stock_edi_quant_report_document"/>
+      <field name="sequence" eval="100"/>
+      <field name="sequence_id" ref="edi_stock.quant_report_sequence_default"/>
+      <field name="rec_type_ids"
+	     eval="[(6, False, [ref('edi_quant_report_record_type')])]"/>
+      <field name="location_ids"
+	     eval="[(6, False, [ref('stock.stock_location_stock')])]"/>
+    </record>
+
+  </data>
+</odoo>

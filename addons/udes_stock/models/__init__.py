@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from . import edi_quant_report
 from . import ir_attachment
 from . import procurement
 from . import product_category

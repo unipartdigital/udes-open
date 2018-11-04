@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<odoo>
+  <data>
+
+    <!-- UDES EDI record menu -->
+    <menuitem id="edi_record_menu" name="UDES"
+	      parent="edi.record_menu" sequence="500"/>
+
+  </data>
+</odoo>

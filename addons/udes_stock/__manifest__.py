@@ -14,13 +14,16 @@
         'package_hierarchy',
         'print',
         'udes_security',
-        'edi',  # include EDI patches on basemodel. At time of writing, no other EDI functionality is used.
+        'edi',
+        'edi_stock',
     ],
     'category': 'Warehouse',
     'sequence': 11,
     'demo': [
     ],
     'data': [
+        'security/ir.model.access.csv',
+        'data/edi_quant_report_data.xml',
         'data/stock_config.xml',
         'data/locations.xml',
         'data/picking_types.xml',
@@ -28,6 +31,8 @@
         'data/product_packaging.xml',
         'report/product_product_templates.xml',
         'report/report_stockpicking_operations.xml',
+        'views/edi_menu_views.xml',
+        'views/edi_quant_report_views.xml',
         'views/product_template.xml',
         'views/res_groups_views.xml',
         'views/res_users_views.xml',

@@ -1,0 +1,94 @@
+<?xml version="1.0"?>
+<odoo>
+  <data>
+
+    <!-- EDI stock level report record form view -->
+    <record id="edi_quant_report_record_form" model="ir.ui.view">
+      <field name="name">udes_stock.edi.quant.report.record.form</field>
+      <field name="model">udes_stock.edi.quant.report.record</field>
+      <field name="inherit_id" ref="edi_stock.quant_report_record_form"/>
+      <field name="mode">primary</field>
+      <field name="arch" type="xml">
+	<xpath expr="//field[@name='product_id']" position="after">
+	  <field name="location_id"/>
+	  <field name="package_id"/>
+	</xpath>
+      </field>
+    </record>
+
+    <!-- EDI stock level report record tree view -->
+    <record id="edi_quant_report_record_tree" model="ir.ui.view">
+      <field name="name">udes_stock.edi.quant.report.record.tree</field>
+      <field name="model">udes_stock.edi.quant.report.record</field>
+      <field name="inherit_id" ref="edi_stock.quant_report_record_tree"/>
+      <field name="mode">primary</field>
+      <field name="arch" type="xml">
+	<xpath expr="//field[@name='product_id']" position="after">
+	  <field name="location_id"/>
+	  <field name="package_id"/>
+	</xpath>
+      </field>
+    </record>
+
+    <!-- EDI stock level report record search filter -->
+    <record id="edi_quant_report_record_search" model="ir.ui.view">
+      <field name="name">udes_stock.edi.quant.report.record.search</field>
+      <field name="model">udes_stock.edi.quant.report.record</field>
+      <field name="inherit_id" ref="edi_stock.quant_report_record_search"/>
+      <field name="mode">primary</field>
+      <field name="arch" type="xml">
+	<xpath expr="//field[@name='product_id']" position="after">
+	  <field name="location_id"/>
+	  <field name="package_id"/>
+	</xpath>
+	<xpath expr="//filter[@name='by_product_id']" position="after">
+	  <filter string="Location" name="by_location_id"
+		  domain="[]" context="{'group_by':'location_id'}"/>
+	  <filter string="Package" name="by_package_id"
+		  domain="[]" context="{'group_by':'package_id'}"/>
+	</xpath>
+      </field>
+    </record>
+
+    <!-- EDI stock level report record action window -->
+    <record id="edi_quant_report_record_action" model="ir.actions.act_window">
+      <field name="name">Stock Level Reports</field>
+      <field name="type">ir.actions.act_window</field>
+      <field name="res_model">udes_stock.edi.quant.report.record</field>
+      <field name="view_type">form</field>
+      <field name="view_id" ref="edi_quant_report_record_tree"/>
+      <field name="search_view_id" ref="edi_quant_report_record_search"/>
+      <field name="context">{'create': False}</field>
+    </record>
+
+    <!-- EDI stock level report record menu item -->
+    <menuitem id="edi_quant_report_record_menu"
+	      action="edi_quant_report_record_action"
+	      parent="edi_record_menu" sequence="10"/>
+
+    <!-- EDI stock level report records field -->
+    <record id="edi_quant_report_document_form" model="ir.ui.view">
+      <field name="name">udes_stock.edi.quant.report.document.form</field>
+      <field name="model">edi.document</field>
+      <field name="inherit_id" ref="edi.document_form"/>
+      <field name="arch" type="xml">
+	<xpath expr="//page[@name='quant_report']" position="after">
+	  <page name="udes_stock_edi_quant_report" string="Stock Levels"
+		attrs="{'invisible':['!',('rec_type_names','ilike',
+		       '/udes_stock.edi.quant.report.record/')]}">
+	    <field name="u_quant_report_ids" readonly="1">
+	      <tree>
+		<field name="name"/>
+		<field name="product_id"/>
+		<field name="location_id"/>
+		<field name="package_id"/>
+		<field name="qty"/>
+	      </tree>
+	    </field>
+	  </page>
+	</xpath>
+      </field>
+    </record>
+
+  </data>
+</odoo>
