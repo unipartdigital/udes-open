@@ -25,14 +25,14 @@ RUN unzip -q -d /opt /opt/odoo-blocked-locations.zip ; \
           /opt/server-auth-HEAD/password_security \
           /opt/odoo/addons/
 
-# Prerequisite module installation (without tests)
-#
-RUN odoo-wrapper --without-demo=all -i \
-    blocked_locations,package_hierarchy,print,edi,password_security
-
 # Add modules
 #
 ADD addons /opt/odoo-addons
+
+# Module installation (without tests)
+#
+RUN odoo-wrapper --without-demo=all -i \
+    udes_stock,udes_mrp,udes_purchase,udes_report,udes_transport_management,udes_security
 
 # Module tests
 #
