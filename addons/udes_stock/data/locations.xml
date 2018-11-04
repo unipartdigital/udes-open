@@ -2,6 +2,14 @@
 <odoo>
   <data>
 
+    <!-- Construct "UPL/Stock" view location -->
+    <record id="stock.stock_location_stock" model="stock.location">
+      <field name="name">Stock</field>
+      <field name="comment">Stock zone</field>
+      <field name="usage">view</field>
+      <field name="active" eval="True"/>
+    </record>
+
     <!-- Construct "UPL/Stock investigation" location -->
     <record id="location_stock_investigation" model="stock.location">
       <field name="name">Stock Investigation</field>
@@ -38,6 +46,14 @@
       <field name="name">Exceptions</field>
       <field name="comment">Goods received with exceptions</field>
       <field name="location_id" ref="stock.stock_location_company"/>
+      <field name="active" eval="True"/>
+    </record>
+
+    <!-- Construct "UPL/Output" view location -->
+    <record id="stock.stock_location_output" model="stock.location">
+      <field name="name">Output</field>
+      <field name="comment">Output zone</field>
+      <field name="usage">view</field>
       <field name="active" eval="True"/>
     </record>
 

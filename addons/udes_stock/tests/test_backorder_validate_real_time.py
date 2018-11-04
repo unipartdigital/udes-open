@@ -284,6 +284,7 @@ class TestRealTimeUpdate(common.BaseUDES):
         Package = self.env['stock.quant.package']
         Picking = self.env['stock.picking']
 
+        self.stock_location.usage = 'internal'
         self.picking_type_in.u_target_storage_format = 'product'
         self.picking_type_putaway.u_target_storage_format = 'product'
 
@@ -622,6 +623,7 @@ class TestRealTimeUpdate(common.BaseUDES):
         Package = self.env['stock.quant.package']
         Picking = self.env['stock.picking']
 
+        self.stock_location.usage = 'internal'
         self.picking_type_in.u_target_storage_format = 'product'
         self.picking_type_putaway.u_target_storage_format = 'product'
 
