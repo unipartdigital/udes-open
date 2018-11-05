@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <template id="stock.report_delivery_document">
+
+        <t t-call="web.html_container">
+
+            <t t-call="udes_stock.external_layout">
+
+                <t t-set="o" t-value="o.with_context({'lang':o.partner_id.lang})" />
+
+                    <t t-if="o.state != 'done'">
+                        <h1>
+                            DRAFT
+                        </h1>
+                    </t>
+
+                    <h2>
+                        Delivery Slip
+                    </h2>
+
+                    <!-- To avoid to break sale_stock -->
+                    <div name="customer_address" />
+
+                    <table class="table table-condensed">
+                        <thead>
+                            <tr>
+                                <th><strong>Trailer number</strong></th>
+                                <th><strong>Trailer unit ID</strong></th>
+                                <th><strong>Vehicle registration</strong></th>
+                                <th><strong>Driver name</strong></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <span t-field="o.u_vehicle_sequence"/>
+                                </td>
+                                <td>
+                                    <span t-field="o.u_vehicle_description"/>
+                                </td>
+                                <td>
+                                    <span t-field="o.u_license_plate"/>
+                                </td>
+                                <td>
+                                    <span t-field="o.u_driver_name"/>
+                                </td>
+                            </tr>
+
+                            <t t-if="o.partner_id">
+                                <tr>
+                                    <th colspan="2" style="padding-top: 40px" />
+                                    <th colspan="2" style="padding-top: 40px"><strong>Customer address</strong></th>
+                                </tr>
+                                <tr>
+                                    <td colspan="2" />
+                                    <td colspan="2">
+                                        <span t-field="o.partner_id"
+                                           t-options='{"widget": "contact", "fields": ["address", "name", "phone"], "no_marker": True}'/>
+                                    </td>
+                                </tr>
+                            </t>
+
+                            <tr>
+                                <th colspan="2" style="padding-top: 40px" t-if="o.origin">
+                                    <strong>Order Reference</strong>
+                                </th>
+                                <th colspan="2" style="padding-top: 40px" name="td_sched_date_h">
+                                    <strong>Date</strong>
+                                </th>
+                            </tr>
+                            <tr>
+                                <td colspan="2">
+                                    <t t-foreach="set(o.mapped('u_first_picking_ids.origin'))" t-as="origin">
+                                        <strong><span t-esc="origin"/></strong>
+                                    </t>
+                                </td>
+                                <td colspan="2" name="td_sched_date">
+                                   <t t-if="o.state == 'done'">
+                                        <span t-field="o.date_done"/>
+                                   </t>
+                                   <t t-if="o.state != 'done'">
+                                        <span t-field="o.scheduled_date"/>
+                                   </t>
+                                </td>
+                            </tr>
+                            <tr>
+                                  <th style="padding-top: 40px"><strong>Pallet</strong></th>
+                                  <th style="padding-top: 40px"><strong>Product</strong></th>
+                                  <th style="padding-top: 40px"><strong>Ordered Quantity</strong></th>
+                                  <th style="padding-top: 40px"><strong>Sent Quantity</strong></th>
+                            </tr>
+                            <tr t-if="not o.move_line_ids" t-foreach="o.move_lines" t-as="move">
+                                <td></td>
+                                <td><span t-field="move.product_id"/></td>
+                                <td><span t-field="move.product_uom_qty"/></td>
+                                <td><span t-field="move.quantity_done"/></td>
+                            </tr>
+                            <tr t-if="o.move_line_ids" t-foreach="o.move_line_ids" t-as="move_line">
+                                <td>
+                                    <t t-if="move_line.package_id">
+                                        <span t-field="move_line.package_id"/>
+                                    </t>
+                                </td>
+                                <td>
+                                    <span t-field="move_line.product_id"/>
+                                    <p t-if="o.picking_type_code == 'outgoing'">
+                                        <span t-field="move_line.product_id.sudo().description_pickingout"/>
+                                    </p>
+                                    <p t-if="o.picking_type_code == 'incoming'">
+                                        <span t-field="move_line.product_id.sudo().description_pickingin"/>
+                                    </p>
+                                </td>
+                                <td><span t-esc="round(move_line.ordered_qty)"/></td>
+                                <td><span t-field="move_line.qty_done"/></td>
+                            </tr>
+                        </tbody>
+                    </table>
+            </t>
+        </t>
+    </template>
+</odoo>
