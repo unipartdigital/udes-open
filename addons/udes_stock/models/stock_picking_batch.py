@@ -42,7 +42,8 @@ class StockPickingBatch(models.Model):
         Return a function for sorting by package, product, and
         location.
         """
-        return lambda ml: (ml.package_id.id,
+        return lambda ml: (ml.picking_id.id,
+                           ml.package_id.id,
                            ml.product_id.id,
                            ml.location_id.id)
 
