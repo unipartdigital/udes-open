@@ -30,8 +30,7 @@
         multi="True"
         key2="client_action_multi" name="Refactor Pickings"
         res_model="stock.picking.refactor.wizard" src_model="stock.picking"
-        view_mode="form" target="new" view_type="form"
-    />
+        view_mode="form" target="new" view_type="form"/>
 
     <!-- Trigger refactor on batches -->
     <record id="stock_picking_batch_refactor_form" model="ir.ui.view">
@@ -62,8 +61,7 @@
         multi="True"
         key2="client_action_multi" name="Refactor Batches"
         res_model="stock.picking.batch.refactor.wizard" src_model="stock.picking.batch"
-        view_mode="form" target="new" view_type="form"
-    />
+        view_mode="form" target="new" view_type="form"/>
 
     <!-- Trigger refactor on moves -->
     <record id="stock_move_refactor_form" model="ir.ui.view">
@@ -94,7 +92,6 @@
         multi="True"
         key2="client_action_multi" name="Refactor Moves"
         res_model="stock.move.refactor.wizard" src_model="stock.move"
-        view_mode="form" target="new" view_type="form"
-    />
+        view_mode="form" target="new" view_type="form"/>
 
 </odoo>
