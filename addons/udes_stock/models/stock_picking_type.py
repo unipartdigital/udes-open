@@ -29,6 +29,12 @@ class StockPickingType(models.Model):
         help='If True, suggest quantity on mobile if there is an expected quantity.',
     )
 
+    u_under_receive = fields.Boolean(
+        string='Under Receive',
+        default=False,
+        help='If True, allow less items than the expected quantity in a move line.',
+    )
+
     u_over_receive = fields.Boolean(
         string='Over Receive',
         default=True,
@@ -211,6 +217,7 @@ class StockPickingType(models.Model):
             - u_skip_allowed: boolean
             - u_split_on_drop_off_picked: boolean
             - u_suggest_qty: boolean
+            - u_under_receive: boolean
             - u_over_receive: boolean
             - u_validate_real_time: boolean
             - u_target_storage_format: string
@@ -237,6 +244,7 @@ class StockPickingType(models.Model):
                 'u_skip_allowed': self.u_skip_allowed,
                 'u_split_on_drop_off_picked': self.u_split_on_drop_off_picked,
                 'u_suggest_qty': self.u_suggest_qty,
+                'u_under_receive': self.u_under_receive,
                 'u_over_receive': self.u_over_receive,
                 'u_validate_real_time': self.u_validate_real_time,
                 'u_target_storage_format': self.u_target_storage_format,
