@@ -23,6 +23,7 @@
                     <field name="u_skip_allowed" />
                     <field name="u_split_on_drop_off_picked" />
                     <field name="u_suggest_qty" />
+                    <field name="u_under_receive"/>
                     <field name="u_over_receive" />
                     <field name="u_display_summary" />
                     <field name="u_validate_real_time" />
