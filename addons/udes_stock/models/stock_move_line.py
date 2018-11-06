@@ -767,11 +767,9 @@ class StockMoveLine(models.Model):
                           "locations"))
 
     def any_destination_locations_default(self):
-        """Checks if all location_dest_id's are default_location_dest_id of
-           the picking_type_id.
+        """Checks if all location_dest_id's are the picks default
+           location_dest_id of the picking.
         """
-        default_dest = self.mapped(
-            'picking_id.picking_type_id.default_location_dest_id'
-        )
+        default_dest = self.mapped('picking_id.location_dest_id')
         default_dest.ensure_one()
         return any(ml.location_dest_id == default_dest for ml in self)
