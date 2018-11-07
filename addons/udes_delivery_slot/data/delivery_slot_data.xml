@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<odoo>
+  <data>
+
+    <!-- Construct a default, all day, delivery slot -->
+    <record id="default_delivery_slot" model="udes.delivery.slot">
+      <field name="name">All Day</field>
+      <field name="identifier">1</field>
+      <field name="start_time">0.0</field>
+      <field name="end_time">24.0</field>
+    </record>
+
+  </data>
+</odoo>
