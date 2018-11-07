@@ -8,6 +8,7 @@ from odoo.tools.float_utils import float_round
 
 
 def float_to_time(float_hour):
+    """Taken from the 'resource' module to avoid extra dependency"""
     if float_hour == 24.0:
         return datetime.time.max
     return datetime.time(int(math.modf(float_hour)[1]),
@@ -23,7 +24,7 @@ class DeliveryTimeSlot(models.Model):
     _name = 'udes.delivery.slot'
 
     name = fields.Char("Name")
-    identifier = fields.Char("Slot Identifier", required=True, index=True)
+    ref = fields.Char("Slot Reference", required=True, index=True)
     start_time = fields.Float("Delivery Window Start", required=True,
                          help='Holds a time, as a float number of hours')
     end_time = fields.Float("Delivery Window End", required=True,
