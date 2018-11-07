@@ -92,6 +92,11 @@
                 <attribute name="decoration-muted">scrapped == True or state == 'cancel'</attribute>
                 <attribute name="decoration-bf">(ordered_qty == quantity_done) or (ordered_qty &lt; quantity_done)</attribute>
             </xpath>
+
+            <!-- Add move_line_id to context for new packages name -->
+            <xpath expr="//field[@name='result_package_id']" position="attributes">
+                <attribute name="context">{'move_line_ids': [id]}</attribute>
+            </xpath>
         </field>
     </record>
 

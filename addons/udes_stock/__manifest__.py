@@ -38,6 +38,7 @@
         'views/res_users_views.xml',
         'views/stock_inventory.xml',
         'views/stock_location.xml',
+        'views/stock_move_line_views.xml',
         'views/stock_picking.xml',
         'views/stock_picking_batch.xml',
         'views/stock_picking_type.xml',
