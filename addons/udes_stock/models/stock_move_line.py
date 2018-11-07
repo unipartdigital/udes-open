@@ -26,6 +26,11 @@ class StockMoveLine(models.Model):
         """
         return self.filtered(lambda ml: ml.qty_done == ml.product_uom_qty)
 
+    def _get_new_package(self):
+        """ This can be overridden per customer to decide specific package names
+            depending on the picking type."""
+        return self.env['stock.quant.package'].create({}).name
+
     def _prepare_result_packages(self, package, result_package, products_info):
         """ Compute result_package and result_parent based on the
             u_target_Storage_format of the picking type + the input
@@ -35,7 +40,7 @@ class StockMoveLine(models.Model):
 
         parent_package = None
 
-        # atm mark_as_done is only called per picking
+        # atm mark_as_done is only called per move lines in one picking
         picking = self.mapped('picking_id')
         picking.ensure_one()
         target_storage_format = picking.picking_type_id.u_target_storage_format
@@ -50,7 +55,7 @@ class StockMoveLine(models.Model):
                 if not package:
                     if products_info:
                         # Products are being packed
-                        result_package = Package.create({}).name
+                        result_package = self._get_new_package()
                     elif not all([ml.result_package_id for ml in self]):
                         # Setting result_parent_package expects to have
                         # result_package for all the move lines
@@ -76,7 +81,7 @@ class StockMoveLine(models.Model):
                 # Mark_as_done products without package or result_package
                 # Create result_package when packing products without
                 # result_package being set
-                result_package = Package.create({}).name
+                result_package = self._get_new_package()
 
         elif target_storage_format == 'product':
             # Error when trying to mark_as_done a full package or setting result package
