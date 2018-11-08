@@ -23,30 +23,7 @@
                     <div name="customer_address" />
 
                     <table class="table table-condensed">
-                        <thead>
-                            <tr>
-                                <th><strong>Trailer number</strong></th>
-                                <th><strong>Trailer unit ID</strong></th>
-                                <th><strong>Vehicle registration</strong></th>
-                                <th><strong>Driver name</strong></th>
-                            </tr>
-                        </thead>
                         <tbody>
-                            <tr>
-                                <td>
-                                    <span t-field="o.u_vehicle_sequence"/>
-                                </td>
-                                <td>
-                                    <span t-field="o.u_vehicle_description"/>
-                                </td>
-                                <td>
-                                    <span t-field="o.u_license_plate"/>
-                                </td>
-                                <td>
-                                    <span t-field="o.u_driver_name"/>
-                                </td>
-                            </tr>
-
                             <t t-if="o.partner_id">
                                 <tr>
                                     <th colspan="2" style="padding-top: 40px" />

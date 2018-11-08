@@ -1,0 +1,68 @@
+<?xml version="1.0"?>
+<odoo>
+  <data>
+
+    <!-- Form view -->
+    <record id="stock_picking_print_strategy_form" model="ir.ui.view">
+      <field name="name">stock.picking.print.strategy.form</field>
+      <field name="model">udes_stock.stock.picking.print.strategy</field>
+      <field name="inherit_id" ref="print.print_strategy_form"/>
+      <field name="mode">primary</field>
+      <field name="arch" type="xml">
+        <xpath expr="//group[@name='basic']" position="inside">
+          <field name="picking_type_id"/>
+        </xpath>
+      </field>
+    </record>
+
+    <!-- Tree view -->
+    <record id="stock_picking_print_strategy_tree" model="ir.ui.view">
+      <field name="name">stock.picking.print.strategy.tree</field>
+      <field name="model">udes_stock.stock.picking.print.strategy</field>
+      <field name="inherit_id" ref="print.print_strategy_tree"/>
+      <field name="mode">primary</field>
+      <field name="arch" type="xml">
+        <xpath expr="//tree" position="inside">
+          <field name="picking_type_id"/>
+        </xpath>
+      </field>
+    </record>
+
+    <!-- Search filter -->
+    <record id="stock_picking_print_strategy_search" model="ir.ui.view">
+      <field name="name">stock.picking.print.strategy.search</field>
+      <field name="model">udes_stock.stock.picking.print.strategy</field>
+      <field name="inherit_id" ref="print.print_strategy_search"/>
+      <field name="mode">primary</field>
+      <field name="arch" type="xml">
+        <xpath expr="//search" position="inside">
+          <field name="picking_type_id"/>
+        </xpath>
+      </field>
+    </record>
+
+    <!-- Action window (automated print strategy) -->
+    <record id="stock_picking_print_strategy_action" model="ir.actions.act_window">
+      <field name="name">Stock Picking</field>
+      <field name="type">ir.actions.act_window</field>
+      <field name="res_model">udes_stock.stock.picking.print.strategy</field>
+      <field name="view_type">form</field>
+      <field name="view_id" ref="stock_picking_print_strategy_tree"/>
+      <field name="search_view_id" ref="stock_picking_print_strategy_search"/>
+      <field name="help" type="html">
+        <p class="oe_view_nocontent_create">
+          Click to create an Automated Printing strategy.
+        </p>
+        <p>
+          Automated Printing strategies for stock pickings are executed after picking is done.
+        </p>
+      </field>
+    </record>
+
+    <!-- Menu items -->
+    <menuitem id="stock_picking_print_strategy_menu"
+              action="stock_picking_print_strategy_action"
+              parent="print.automated_printing_menu" sequence="20"/>
+
+  </data>
+</odoo>
