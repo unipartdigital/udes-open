@@ -773,3 +773,24 @@ class StockMoveLine(models.Model):
         default_dest = self.mapped('picking_id.location_dest_id')
         default_dest.ensure_one()
         return any(ml.location_dest_id == default_dest for ml in self)
+
+    def new_package_name(self):
+        """ Given a move line compute the next package name according to
+            the policy assigned to the its picking picking type.
+            If no policy is assigned the default policy is applied.
+        """
+        picking_type = self.mapped('picking_id.picking_type_id')
+        picking_type.ensure_one()
+        policy = picking_type.u_new_package_policy
+        name = None
+        if policy:
+            func = getattr(self, 'new_package_name_' + policy)
+            name = func()
+        # Always return a name
+        if not name:
+            name = self.new_package_name_default()
+
+        return name
+
+    def new_package_name_default(self):
+        return self.env['stock.quant.package'].new_package_name()

@@ -182,6 +182,14 @@ class StockPickingType(models.Model):
         help='Choose the action to be taken after validating a picking.'
     )
 
+    u_new_package_policy = fields.Selection(
+        selection=[
+            ('default', 'Default Package Name'),
+        ],
+        string='Package Name Policy',
+        help='Choose the package name policy to be applied for the picking type'
+    )
+
     def do_refactor_action(self, action, moves):
         """Resolve and call the method to be executed on the moves.
 
@@ -229,6 +237,7 @@ class StockPickingType(models.Model):
             - u_use_product_packaging: boolean
             - u_drop_location_constraint: string
             - u_drop_location_policy: string
+            - u_new_package_policy: string
         """
         self.ensure_one()
 
@@ -256,6 +265,7 @@ class StockPickingType(models.Model):
                 'u_confirm_serial_numbers': self.u_confirm_serial_numbers,
                 'u_drop_location_constraint': self.u_drop_location_constraint,
                 'u_drop_location_policy': self.u_drop_location_policy,
+                'u_new_package_policy': self.u_new_package_policy,
                 'u_auto_batch_pallet': self.u_auto_batch_pallet,
                 'u_check_work_available': self.u_check_work_available,
                 'u_use_product_packaging': self.u_use_product_packaging,
