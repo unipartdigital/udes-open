@@ -1,11 +1,29 @@
 # -*- coding: utf-8 -*-
 
-from odoo import api, models, _
+from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
 
 
 class StockQuantPackage(models.Model):
     _inherit = "stock.quant.package"
+
+    def new_package_name(self):
+        Sequence = self.env['ir.sequence']
+        return Sequence.next_by_code('stock.quant.package') or _('Unknown Pack')
+
+    def _default_package_name(self):
+        MoveLine = self.env['stock.move.line']
+
+        move_line_ids = self.env.context.get('move_line_ids')
+        if move_line_ids:
+            move_lines = MoveLine.browse(move_line_ids)
+            name = move_lines.new_package_name()
+        else:
+            name = self.new_package_name()
+
+        return name
+
+    name = fields.Char(default=_default_package_name)
 
     def _prepare_info(self, extended=False, **kwargs):
         """
