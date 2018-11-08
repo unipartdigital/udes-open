@@ -39,6 +39,7 @@ class StockMoveLine(models.Model):
         picking = self.mapped('picking_id')
         picking.ensure_one()
         target_storage_format = picking.picking_type_id.u_target_storage_format
+        Package = Package.with_context(move_line_ids=self.ids)
 
         if target_storage_format == 'pallet_packages':
             if result_package:
