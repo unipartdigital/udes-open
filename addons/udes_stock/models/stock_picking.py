@@ -813,16 +813,24 @@ class StockPicking(models.Model):
 
     def batch_to_user(self, user):
         """ Throws error if picking is batched to another user
-         creates batch and adds picking to it otherwise """
+            or if user already has a batch
+            creates batch and adds picking to it otherwise
+        """
 
         PickingBatch = self.env['stock.picking.batch']
 
-        if self.batch_id and (self.batch_id.user_id != user):
-            if not self.batch_id.user_id:
-                raise ValidationError(_('Picking %s is already in an unassigned batch') % self.name)
+        if self.batch_id:
+            if self.batch_id.user_id == user:
+                return True
             else:
-                raise ValidationError(_('Picking %s is in a batch owned by another user: %s')
-                                      % (self.name, self.batch_id.user_id.name))
+                if not self.batch_id.user_id:
+                    raise ValidationError(_('Picking %s is already in an unassigned batch') % self.name)
+                else:
+                    raise ValidationError(_('Picking %s is in a batch owned by another user: %s')
+                                          % (self.name, self.batch_id.user_id.name))
+
+        if PickingBatch.get_user_batches():
+            raise ValidationError(_('User %s already has an in progress batch') % user.name)
 
         if self.batch_id.id is False:
             batch = PickingBatch.create({'user_id': user.id})
