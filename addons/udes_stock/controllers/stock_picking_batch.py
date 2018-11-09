@@ -186,8 +186,10 @@ class PickingBatchApi(UdesApi):
         """
         ResUsers = request.env['res.users']
 
+        # Do no raise stock investigation when package does not fit,
+        # just remove it from the batch
         raise_stock_investigation = (reason not in (
-            "location cannot be used"
+            "package does not fit"
         ))
 
         batch = _get_batch(request.env, ident)
