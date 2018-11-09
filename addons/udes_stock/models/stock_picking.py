@@ -1444,3 +1444,11 @@ class StockPicking(models.Model):
         """Refactor all the moves in the pickings in self. May result in the
         pickings in self being deleted."""
         return self.mapped('move_lines').action_refactor()
+
+    def _put_in_pack(self):
+        mls = self.mapped('move_line_ids').filtered(
+            lambda o: o.qty_done > 0 and not o.result_package_id)
+        if mls:
+            self = self.with_context(move_line_ids=mls.ids)
+
+        return super(StockPicking, self)._put_in_pack()
