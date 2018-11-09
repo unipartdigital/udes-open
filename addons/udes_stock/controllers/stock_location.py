@@ -115,7 +115,9 @@ class Location(UdesApi):
         })
 
         # Block the location (after creating SI, otherwise Picking.create fails)
-        location.u_blocked = True
-        location.u_blocked_reason = reason
+        location.sudo().write({
+            'u_blocked': True,
+            'u_blocked_reason': reason,
+        })
 
         return True
