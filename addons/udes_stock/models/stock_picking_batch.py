@@ -212,7 +212,8 @@ class StockPickingBatch(models.Model):
 
         batch = PickingBatch.create({'user_id': user_id})
         picking.batch_id = batch.id
-        batch.write({'state': 'in_progress'})
+        batch.write({'state': 'in_progress',
+                     'u_ephemeral': True})
 
         return batch
 
