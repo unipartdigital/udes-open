@@ -894,6 +894,11 @@ class StockPicking(models.Model):
 
         return res
 
+    def get_result_packages_names(self):
+        """ Return a list of the names of the parent packages
+        """
+        return list(set(self.mapped('move_line_ids.result_package_id.name')))
+
     @api.model
     def get_priorities(self):
         """ Return a list of dicts containing the priorities of the

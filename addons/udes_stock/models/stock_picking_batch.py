@@ -157,7 +157,8 @@ class StockPickingBatch(models.Model):
                 lambda x: x.state in allowed_picking_states)
 
         return {'id': self.id,
-                'picking_ids': pickings.get_info()}
+                'picking_ids': pickings.get_info(),
+                'result_package_names': pickings.get_result_packages_names()}
 
     def get_info(self, allowed_picking_states):
         """
