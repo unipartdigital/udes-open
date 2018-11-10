@@ -2,6 +2,7 @@
 
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
+from .common import PRIORITIES
 
 import logging
 
@@ -22,6 +23,12 @@ class StockPickingBatch(models.Model):
     u_ephemeral = fields.Boolean(string="Ephemeral",
                                   help="Ephemeral batches are unassigned if the user logs out")
 
+    priority = fields.Selection(
+        selection=PRIORITIES, string="Priority", store=True, index=True,
+        readonly=True, compute='_compute_priority',
+        help="Priority of a batch is the maximum priority of its pickings."
+    )
+
     @api.multi
     @api.depends('picking_ids', 'picking_ids.picking_type_id')
     def _compute_picking_type(self):
@@ -36,6 +43,17 @@ class StockPickingBatch(models.Model):
                 batch.picking_ids.mapped('scheduled_date') or
                 [fields.Datetime.now()]
             )
+
+    @api.multi
+    @api.depends('picking_ids.priority')
+    def _compute_priority(self):
+        for batch in self:
+            new_priority = False
+            if batch.mapped('picking_ids'):
+                priorities = batch.mapped('picking_ids.priority')
+                new_priority = max(priorities)
+            if new_priority != batch.priority:
+                batch.priority = new_priority
 
     def _get_task_grouping_criteria(self):
         """
@@ -205,9 +223,8 @@ class StockPickingBatch(models.Model):
                               ('state', '=', 'assigned'),
                               ('batch_id', '=', False)])
 
-        picking = Picking.search(search_domain,
-                                 order='priority desc, scheduled_date, id',
-                                 limit=1)
+        # Note: order should be determined by stock.picking._order
+        picking = Picking.search(search_domain, limit=1)
 
         if not picking:
             return None

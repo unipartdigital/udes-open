@@ -13,6 +13,7 @@
           <field name="picking_type_ids" widget="many2many_tags"/>
           <field name="scheduled_date"/>
           <field name="u_ephemeral"/>
+          <field name="priority"/>
         </xpath>
         <xpath expr="//button[@name='action_cancel']" position="replace" />
       </field>
@@ -29,6 +30,7 @@
           <field name="picking_type_ids" widget="many2many_tags"/>
           <field name="scheduled_date"/>
           <field name="u_ephemeral"/>
+          <field name="priority"/>
         </xpath>
       </field>
     </record>
@@ -42,10 +44,13 @@
       <field name="arch" type="xml">
         <xpath expr="//field[@name='user_id']" position="after">
           <field name="picking_type_ids"/>
+          <field name="priority"/>
         </xpath>
         <xpath expr="//group" position="inside">
           <filter name="by_scheduled_date" string="Scheduled Date"
             domain="[]" context="{'group_by':'scheduled_date'}"/>
+          <filter name="by_priority" string="Priority"
+            domain="[]" context="{'group_by':'priority'}"/>
         </xpath>
       </field>
     </record>
