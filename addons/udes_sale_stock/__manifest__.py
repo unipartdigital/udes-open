@@ -15,6 +15,7 @@
     'demo': [
     ],
     'data': [
+        'views/sale_order_views.xml'
     ],
     'qweb': [
     ],

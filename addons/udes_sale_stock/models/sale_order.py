@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from odoo import api, fields, models
-
+from odoo.addons.udes_stock.models import common
 
 class SaleOrder(models.Model):
     _inherit = "sale.order"
@@ -15,11 +15,24 @@ class SaleOrder(models.Model):
     picking_ids = fields.One2many('stock.picking', inverse_name=None,
                                   compute="_compute_picking_ids_by_line")
 
+    priority = fields.Selection(
+        selection=common.PRIORITIES, inverse='_set_priority',
+        default='1', string='Priority', index=True,
+        states={'done': [('readonly', True)], 'cancel': [('readonly', True)]}
+    )
+
     @api.depends('order_line.move_ids.picking_id')
     def _compute_picking_ids_by_line(self):
         for order in self:
             order.picking_ids = order.mapped(
                 'order_line.move_ids.picking_id')
+
+    @api.multi
+    def _set_priority(self):
+        for order in self:
+            order.mapped('order_line.move_ids').write({
+                'priority': order.priority
+            })
 
     def check_delivered(self):
         """ Update sale orders state based on the states of their related
