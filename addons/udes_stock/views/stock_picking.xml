@@ -112,6 +112,11 @@
                 <field name="sequence" widget="handle"/>
             </xpath>
 
+            <!-- Show priority -->
+            <xpath expr="//field[@name='priority']" position="attributes">
+                <attribute name="invisible">0</attribute>
+            </xpath>
+
         </field>
     </record>
 
@@ -127,6 +132,13 @@
             </xpath>
             <xpath expr="//field[@name='product_id']" position="after">
                 <field name="u_result_package_id"/>
+            </xpath>
+            <xpath expr="//field[@name='product_id']" position="after">
+                <field name="priority"/>
+            </xpath>
+            <xpath expr="//group" position="inside">
+              <filter name="by_priority" string="Priority"
+                  domain="[]" context="{'group_by':'priority'}"/>
             </xpath>
         </field>
     </record>
