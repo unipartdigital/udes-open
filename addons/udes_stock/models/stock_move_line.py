@@ -720,17 +720,33 @@ class StockMoveLine(models.Model):
                 for k, g in
                 groupby(sorted(self, key=by_key), key=by_key)}
 
+    def write(self, values):
+        """Extend write to catch preprocessed location update as constrains
+        happens after write creating a check which can never fail
+        """
+        if 'location_dest_id' in values and self.mapped(
+                'picking_id.picking_type_id.u_drop_location_preprocess'):
+
+            location = self.env['stock.location'].browse(
+                values['location_dest_id']
+            )
+            self._validate_location_dest(location=location)
+
+        return super(StockMoveLine, self).write(values)
+
     ## Drop Location Constraint
 
     @api.constrains('location_dest_id')
     @api.onchange('location_dest_id')
-    def _validate_location_dest(self):
+    def _validate_location_dest(self, location=None):
         """ Ensures that the location destination is a child of the
             default_location_dest_id of the picking and that is
             one of the suggested locations if the drop off policy
             is enforce.
         """
-        location = self.mapped('location_dest_id')
+
+        if location is None:
+            location = self.mapped('location_dest_id')
 
         # On create we need to allow views to pass.
         # On other actions if this will be caught by odoo's code as you are not
@@ -741,6 +757,7 @@ class StockMoveLine(models.Model):
         # iterating picking_id even if it's a many2one
         # because the constraint can be triggered anywhere
         for picking in self.mapped('picking_id'):
+
             if not picking.is_valid_location_dest_id(location=location):
                 raise ValidationError(
                     _("The location '%s' is not a child of the picking "
