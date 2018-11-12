@@ -1,6 +1,7 @@
 """Picking print strategy tests"""
 
 from odoo.addons.print.tests import common
+from unittest.mock import patch, Mock, ANY, call
 
 class TestPrintStrategy(common.ActionPrintCase):
     """Printing action tests for stock picking print strategy"""
@@ -91,6 +92,7 @@ class TestPrintStrategy(common.ActionPrintCase):
         cls.picking_type_pick = picking_type_pick
         cls.picking_in = picking_in
         cls.picking_pick = picking_pick
+        cls.package = package
 
     @property
     def default_report(self):
@@ -101,8 +103,13 @@ class TestPrintStrategy(common.ActionPrintCase):
         """Return the default picking type"""
         return self.picking_type_in
 
-    def action_context(self, obj):
-        return super().action_context(self.picking_in)
+    def action_context(self, obj, print_records=None):
+
+        context = super().action_context(self.picking_in)
+
+        if print_records is not None:
+            context.update({'print_records': print_records})
+        return context
 
     def benign_context(self, obj):
         return super().action_context(self.picking_pick)
@@ -114,3 +121,15 @@ class TestPrintStrategy(common.ActionPrintCase):
         return super().create_strategy(name, report, printer,
                                        safety=safety, model=model,
                                        picking_type_id=picking_type.id)
+
+    def test08_print_records_context(self):
+        """Test including print_records as part of the context object"""
+        action = self.create_action('print records context')
+        self.create_strategy('Print Records Context', self.env.ref('stock.action_report_quant_package_barcode'), None)
+        # nothing to be printed when the action is run against a report that has the incorrect model for the records
+        action.with_context(**self.benign_context(action)).run()
+        self.mock_subprocess.Popen.assert_not_called()
+        # a single document to be printed when run in the right context with records of the correct model 
+        printer = self.default_printer
+        action.with_context(**self.action_context(printer, self.package)).run()
+        self.assertPrintedLpr('-T', ANY)

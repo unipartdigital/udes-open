@@ -7,7 +7,6 @@ from odoo.tools.float_utils import float_compare, float_round
 from copy import deepcopy
 from collections import Counter, defaultdict
 
-
 class StockMoveLine(models.Model):
     _inherit = 'stock.move.line'
 
@@ -112,6 +111,7 @@ class StockMoveLine(models.Model):
         move_lines = self
         values = {}
         loc_dest_instance = None
+        picking = None
 
         if location_dest is not None:
             # NB: checking if the dest loc is valid; better erroring
@@ -184,6 +184,14 @@ class StockMoveLine(models.Model):
         # it might be useful when extending the method
         if parent_package:
             mls_done.write({'u_result_parent_package_id': parent_package.id})
+
+        if result_package and picking is not None:
+            # Print the package label
+            self.env.ref('udes_stock.picking_update_package').with_context(
+                active_model=picking._name,
+                active_ids=picking.ids,
+                print_records=result_package
+            ).run()
 
         return mls_done
 
