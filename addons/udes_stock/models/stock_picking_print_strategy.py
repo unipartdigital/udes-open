@@ -23,3 +23,15 @@ class PrintStrategy(models.Model):
         return self.search([
             ('picking_type_id', '=', picking.picking_type_id.id),
         ])
+
+    @api.multi
+    def records(self, picking, context):
+        '''Return records to print for `report`.'''
+        picking.ensure_one()
+        print_records = context.get('print_records')
+
+        if print_records is not None:
+            return print_records
+        elif self.model == picking._name:
+            return picking
+        return None
