@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<odoo>
+    <data>
+
+        <!-- Print on Picking Done event -->
+        <record id="udes_stock.picking_done" model="ir.actions.server">
+            <field name="name">Picking Done</field>
+            <field name="model_id" ref="model_stock_picking"/>
+            <field name="state">print</field>
+            <field name="type">ir.actions.server</field>
+            <field name="strategy_id" ref="model_udes_stock_stock_picking_print_strategy"/>
+        </record>
+
+        <!-- Example print: uncomment to enable -->
+        <!-- Print Delivery Report for Goods In using Default Printer -->
+        <!-- no printer specified => use Default Printer -->
+        <!--
+        <record id="udes_stock.print_goods_in"
+                model="udes_stock.stock.picking.print.strategy">
+            <field name="name">Print Goods In</field>
+            <field name="picking_type_id" eval="ref('stock.picking_type_in')"/>
+            <field name="report_id" ref="stock.action_report_picking"/>
+            <field name="safety">udes_stock.print</field>
+        </record>
+        -->
+
+    </data>
+</odoo>

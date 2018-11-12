@@ -192,7 +192,12 @@ class StockPicking(models.Model):
         self.assert_not_pending()
         mls = self.mapped('move_line_ids')
         res = super(StockPicking, self).action_done()
-        mls.mapped('picking_id').check_batch()
+        obj = mls.mapped('picking_id')
+        obj.check_batch()
+        self.env.ref('udes_stock.picking_done').with_context(
+            active_model=obj._name,
+            active_ids=obj.ids,
+        ).run()
         return res
 
     def action_cancel(self):
