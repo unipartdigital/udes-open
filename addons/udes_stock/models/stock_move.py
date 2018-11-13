@@ -402,12 +402,8 @@ class StockMove(models.Model):
 
         empty_picks = pickings.filtered(lambda p: len(p.move_lines) == 0)
         if empty_picks:
-            _logger.info(_("Cancelling empty picks after splitting."))
-            # action_cancel does not cancel a picking with no moves.
-            empty_picks.write({
-                'state': 'cancel',
-                'is_locked': True
-            })
+            _logger.info(_("Deleting empty picks after splitting."))
+            empty_picks.unlink()
 
         return self
 
@@ -469,11 +465,7 @@ class StockMove(models.Model):
 
         empty_picks = pickings.filtered(lambda p: len(p.move_lines) == 0)
         if empty_picks:
-            _logger.info(_("Cancelling empty picks after splitting."))
-            # action_cancel does not cancel a picking with no moves.
-            empty_picks.write({
-                'state': 'cancel',
-                'is_locked': True
-            })
+            _logger.info(_("Deleting empty picks after splitting."))
+            empty_picks.unlink()
 
         return result_moves
