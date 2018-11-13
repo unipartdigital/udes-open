@@ -1353,7 +1353,7 @@ class StockPicking(models.Model):
 
         location.ensure_one()
 
-        if location.u_blocked:
+        if location.u_blocked or location.usage == 'view':
             return self.env['stock.location']
 
         return location
