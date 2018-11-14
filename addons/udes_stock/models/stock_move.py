@@ -165,7 +165,8 @@ class StockMove(models.Model):
                 'picking_id': None,
             })
 
-            self.with_context(bypass_reservation_update=True).write({
+            self.with_context(bypass_reservation_update=True,
+                              do_not_propagate=True).write({
                 'ordered_qty': self.ordered_qty - total_ordered_qty,
                 'product_uom_qty': self.product_uom_qty - total_initial_qty,
             })
