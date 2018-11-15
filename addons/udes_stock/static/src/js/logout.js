@@ -17,7 +17,7 @@ odoo.define('udes.stock.logout', function (require) {
         if (data != false) {
           // Ask user to confirm logout
           Dialog.confirm(self, _("You still have work assigned - are you sure you wish to logout?"),{
-            confirm_callback: function () { logout(); },
+            confirm_callback: logout,
             cancel_callback: function () {},
             title: _('Confirm logout'),
           });
