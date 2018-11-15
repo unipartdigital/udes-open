@@ -80,12 +80,21 @@ class StockPickingType(models.Model):
         default=False,
         help="Flag to indicate reservations should be rounded up to entire packages."
     )
-    u_confirm_serial_numbers = fields.Selection([
+    u_confirm_tracking = fields.Selection([
         ('no', 'No'),
         ('yes', 'Yes'),
         ('first_last', 'First/Last'),
     ],
-        string='Confirm Serial Numbers',
+        required=True,
+        default='yes',
+        string='Confirm Tracked Products',
+        help='Confirm tracked products: yes; no; first and last serial number.',
+    )
+
+    u_confirm_expiry_date = fields.Boolean(
+        string='Confirm Expiry Date',
+        default=False,
+        help='Request expiry date for tracked products.'
     )
 
     u_handle_partials = fields.Boolean(
@@ -262,7 +271,8 @@ class StockPickingType(models.Model):
                 'u_reserve_as_packages': self.u_reserve_as_packages,
                 'u_handle_partials': self.u_handle_partials,
                 'u_create_procurement_group': self.u_create_procurement_group,
-                'u_confirm_serial_numbers': self.u_confirm_serial_numbers,
+                'u_confirm_tracking': self.u_confirm_tracking,
+                'u_confirm_expiry_date': self.u_confirm_expiry_date,
                 'u_drop_location_constraint': self.u_drop_location_constraint,
                 'u_drop_location_policy': self.u_drop_location_policy,
                 'u_new_package_policy': self.u_new_package_policy,
