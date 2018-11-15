@@ -10,22 +10,29 @@ odoo.define('udes.stock.logout', function (require) {
   };
 
   logout_override = function () {
-    test = ajax.jsonpRpc("/api/stock-picking-batch/check-user-batches/", 'call').then(function (data) {
-      if (data.error) {
+    var errMsg = _("Failed to retrieve picking batches");
+
+    ajax.jsonpRpc("/api/stock-picking-batch/check-user-batches/", "call"
+    ).then(function (data) {
+      if (data == null) {
+        error(errMsg);
+      } else if (data.error) {
         error(data.error);
+      } else if (data === true) {
+        // Ask user to confirm logout
+        var confirmMsg =  _("You still have work assigned - are you sure you "
+                            + "wish to logout?");
+        Dialog.confirm(self, confirmMsg, {
+          confirm_callback: logout,
+          cancel_callback: function () {},
+          title: _('Confirm logout'),
+        });
       } else {
-        if (data != false) {
-          // Ask user to confirm logout
-          Dialog.confirm(self, _("You still have work assigned - are you sure you wish to logout?"),{
-            confirm_callback: logout,
-            cancel_callback: function () {},
-            title: _('Confirm logout'),
-          });
-        } else {
-          // No batches, logout.
-          logout();
-        }
+        // No batches, logout.
+        logout();
       }
+    }).fail(function (err) {
+      error(errMsg + ": " + err.data.message);
     });
   };
 
