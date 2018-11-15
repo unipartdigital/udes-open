@@ -10,7 +10,7 @@ odoo.define('udes.stock.logout', function (require) {
   };
 
   logout_override = function () {
-    test = ajax.jsonRpc("/api/stock-picking-batch/check-user-batches/", 'call').then(function (data) {
+    test = ajax.jsonpRpc("/api/stock-picking-batch/check-user-batches/", 'call').then(function (data) {
       if (data.error) {
         error(data.error);
       } else {
