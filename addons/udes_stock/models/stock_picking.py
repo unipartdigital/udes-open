@@ -979,10 +979,11 @@ class StockPicking(models.Model):
         if not dest_locations:
             raise ValidationError(_("The specified location is unknown."))
 
-        valid_locations = self._get_child_dest_locations()
-        invalid_locations = dest_locations - valid_locations
+        valid_locations = self._get_child_dest_locations(
+            [('id', 'in', dest_locations.ids)]
+        )
 
-        return len(invalid_locations) == 0
+        return valid_locations.exists()
 
     @api.multi
     def open_stock_picking_form_view(self):
