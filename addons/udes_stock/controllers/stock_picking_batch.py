@@ -205,8 +205,12 @@ class PickingBatchApi(UdesApi):
         return unpickable_item
 
     @http.route('/api/stock-picking-batch/check-user-batches',
-                type='json', methods=['POST'], auth='user')
+                type='json', methods=['GET'], auth='user')
     def check_user_batches(self):
+        """
+        Whether the user has any assigned batch.
+        """
         PickingBatch = request.env['stock.picking.batch']
         batches = PickingBatch.get_user_batches()
-        return batches if batches else False
+
+        return True if batches else False

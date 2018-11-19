@@ -547,6 +547,14 @@ Old method(s): none
 
 Returns the information of the next task to pick: picking_id and quant_id or package_id.
 
+### Check whether the user has any assigned batch
+```
+URI: /api/stock-picking-batch/check-user-batches
+HTTP Method: GET
+```
+Returns `true` if the user has any assigned batch, `false` otherwise.
+Does not check whether the user has multiple batches assigned.
+
 ## Stock Picking Priorities
 ```
 URI: /api/stock-picking-priorities/
