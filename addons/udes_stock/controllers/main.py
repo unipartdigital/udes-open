@@ -35,5 +35,5 @@ class Session(controllers.main.Session):
     @http.route('/web/session/logout', type='http', auth="user")
     def logout(self, *args, **kwargs):
         PickingBatch = request.env['stock.picking.batch']
-        batches = PickingBatch.unassign_user_batches()
+        _batches = PickingBatch.unassign_user_batches()
         return super().logout(*args, **kwargs)
