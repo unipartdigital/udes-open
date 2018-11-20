@@ -144,9 +144,6 @@ class StockPickingBatch(models.Model):
         """
         Search for a picking batch in progress for the specified user.
         If no user is specified, the current user is considered.
-        If no batch is found, but pickings exist, create a new batch.
-
-        If a batch is determined, return it, otherwise return None.
 
         Raise a ValidationError in case it cannot perform a search
         or if multiple batches are found for the specified user.
