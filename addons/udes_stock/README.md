@@ -465,7 +465,10 @@ URI: /api/stock-picking-batch
 HTTP Method: GET
 Old method(s): get_users_wave
 ```
-Search for a picking batch in progress for the current user. It returns the id of the batch and the list of pickings.
+Search for a picking batch in progress for the current user.
+It returns the `id` and `name` of the batch, the metadata of the included
+pickings in 'assigned' state (), and the list of result package names.
+Returns an error in case the user has multiple batches asssigned.
 
 ### Create picking batch
 ```
