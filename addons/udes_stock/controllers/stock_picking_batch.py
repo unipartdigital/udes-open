@@ -89,6 +89,45 @@ class PickingBatchApi(UdesApi):
 
         return batch.get_next_task(skipped_product_ids=skipped_product_ids)
 
+    @http.route('/api/stock-picking-batch/assign/',
+                type='json', methods=['POST'], auth='user')
+    def assign_batch_to_user(self, picking_type_id):
+        """
+        Assign a batch of the specified picking type to the current
+        user (see API specs).
+        """
+        PickingBatch = request.env['stock.picking.batch']
+        batch = PickingBatch.assign_batch(picking_type_id)
+
+        if batch:
+            assert batch.state == 'in_progress', \
+                   "Assigned batches should be 'in_progress'"
+
+            return _get_single_batch_info(batch,
+                                          allowed_picking_states=['assigned'])
+        else:
+            return {}
+
+    @http.route('/api/stock-picking-batch/<ident>/unassign',
+                type='json', methods=['POST'], auth='user')
+    def unassign_batch(self, ident):
+        """
+        Unassign the specified batch (see API specs).
+
+        Raise a ValidationError in case:
+         - the specified batch does not exist;
+         - the specified batch is not `in_progress`;
+         - the specified batch is not assigned to the current user.
+        """
+        batch = _get_batch(request.env, ident)
+
+        if batch.state != 'in_progress':
+            raise ValidationError(_("The specified batch is not assigned."))
+        elif batch.user_id != request.env.user.id:
+            raise ValidationError(_("The specified batch is not assigned to you."))
+
+        return batch.unassign()
+
     @http.route('/api/stock-picking-batch/',
                 type='json', methods=['POST'], auth='user')
     def create_batch_for_user(self,

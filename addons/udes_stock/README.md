@@ -470,6 +470,49 @@ It returns the `id` and `name` of the batch, the metadata of the included
 pickings in 'assigned' state (), and the list of result package names.
 Returns an error in case the user has multiple batches asssigned.
 
+### Assign picking batch
+```
+URI: /api/stock-picking-batch/assign/
+HTTP Method: POST
+```
+Assign a `ready` batch of the specified picking type to the current user.
+By "assign" we mean that the batch `user_id` will be set to the user ID and the
+batch state will be moved to `in_progress`.
+
+Request:
+
+A JSON object containing a single `picking_type_id` numeric entry, indicating
+the picking type of the batch that should be assigned.
+
+Response:
+
+In case the backend succeeds to assign a batch to the current user, the response
+will contain a JSON object with the same format as the above `get` endpoint,
+that will represent the assigned batch.
+Otherwise it will include an empty JSON object.
+
+### Unassign picking batch
+```
+URI: /api/stock-picking-batch/:id/unassign/
+HTTP Method: POST
+```
+Clears the `user_id` field of the batch (specified by ID) and set the batch
+status to `ready`. The specified batch is expected to be in the `in_progress`
+state and assigned to the current user.
+In case of "ephemeral" batch, all the included pickings will be unliked (i.e.
+their `batch_id` fields will be cleared).
+
+Request:
+
+The request shall not contain any payload; the batch `id` must be given in the
+URI.
+
+Response:
+
+Returns true on success otherwise an error indicating the failure (e.g. the
+batch was not in the `in_progress` state; the batch was not assigned to the
+current user).
+
 ### Create picking batch
 ```
 URI: /api/stock-picking-batch
