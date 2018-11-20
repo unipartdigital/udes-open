@@ -51,12 +51,13 @@ class PickingBatchApi(UdesApi):
     def get_users_batch(self):
         """
         Search for a picking batch in progress for the current user.
-        If no batch is found, but pickings exist, create a new batch.
+        In case one is found, return a JSON object with:
+         - the ID and the name of the batch ('id', 'name' strings);
+         - the list of pickings in assigned state ('picking_ids'
+           array of stock.picking objects);
+         - the result packages ('result_package_names' array).
 
-        If a batch is determined, return a JSON object with the ID of
-        the batch ('id' string) and the list of pickings ('picking_ids'
-        array of stock.picking objects), otherwise return an empty
-        object.
+        In case the user has no batch, return an empty object.
 
         Raises a ValidationError in case multiple batches are found
         for the current user.
@@ -186,7 +187,7 @@ class PickingBatchApi(UdesApi):
         """
         ResUsers = request.env['res.users']
 
-        # Do no raise stock investigation when package does not fit,
+        # Do not raise stock investigation when package does not fit,
         # just remove it from the batch
         raise_stock_investigation = (reason not in (
             "package does not fit"
