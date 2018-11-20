@@ -196,7 +196,7 @@ class StockPickingType(models.Model):
             ('default', 'Default Package Name'),
         ],
         string='Package Name Policy',
-        help='Choose the package name policy to be applied for the picking type'
+        help='Choose the package name policy to be applied for the picking type.'
     )
 
     def do_refactor_action(self, action, moves):
