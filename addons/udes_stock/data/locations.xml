@@ -26,7 +26,7 @@
     </record>
 
     <!-- Construct "UPL/Quarantine" view location -->
-    <record id="stock.stock_location_quarantine" model="stock.location">
+    <record id="stock_location_quarantine" model="stock.location">
       <field name="name">Quarantine</field>
       <field name="comment">Quarantine</field>
       <field name="usage">view</field>
