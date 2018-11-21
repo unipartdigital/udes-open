@@ -17,8 +17,8 @@
         </xpath>
         <xpath expr="//button[@name='action_cancel']" position="replace" />
         <xpath expr="//button[@name='cancel_picking']" position="replace">
-          <button name="cancel_picking" string="Cancel Batch" confirm="Cancelling the batch will cancel all its pickings. Are you sure you wish to cancel this Batch Picking?" type="object" states="in_progress"/>
-        </xpath> 
+          <button name="cancel_picking" string="Cancel Batch" confirm="Cancelling the batch will cancel all its pickings. Are you sure you wish to cancel this Batch Picking?" type="object" states="ready,waiting,in_progress"/>
+        </xpath>
       </field>
     </record>
 

@@ -192,11 +192,12 @@ class StockPicking(models.Model):
         self.assert_not_pending()
         mls = self.mapped('move_line_ids')
         res = super(StockPicking, self).action_done()
-        obj = mls.mapped('picking_id')
-        obj.check_batch()
+        picks = mls.mapped('picking_id')
+        picks.with_context(orig_batches=False)._trigger_batch_state_recompute()
+
         self.env.ref('udes_stock.picking_done').with_context(
-            active_model=obj._name,
-            active_ids=obj.ids,
+            active_model=picks._name,
+            active_ids=picks.ids,
         ).run()
         return res
 
@@ -205,23 +206,15 @@ class StockPicking(models.Model):
         Check if picking batch is now complete
         """
         res = super(StockPicking, self).action_cancel()
-        self.check_batch()
         return res
-
-    @api.one
-    def check_batch(self):
-        """ If picking state changes, check if batch is now complete
-        """
-        if self.batch_id:
-            self.batch_id.check_batches()
 
     def write(self, vals):
         """ If writing picking, check if previous batch is now complete
         """
         batches = self.mapped(lambda p: p.batch_id)
-        res = super(StockPicking, self).write(vals)
-        batches.check_batches()
-        return res
+        context_vals = {'orig_batches': batches} if batches else {}
+        return super(StockPicking, self.with_context(**context_vals)) \
+            .write(vals)
 
     def button_validate(self):
         """ Ensure we don't incorrectly validate pending pickings."""
@@ -652,6 +645,7 @@ class StockPicking(models.Model):
         })
         new_moves.write({'picking_id': bk_picking.id})
         new_moves.mapped('move_line_ids').write({'picking_id': bk_picking.id})
+
         return bk_picking
 
     def _real_time_update(self, mls):
@@ -837,11 +831,11 @@ class StockPicking(models.Model):
         if PickingBatch.get_user_batches():
             raise ValidationError(_('User %s already has an in progress batch') % user.name)
 
-        if self.batch_id.id is False:
+        if self.batch_id is False:
             batch = PickingBatch.create({'user_id': user.id})
             self.batch_id = batch.id
-            batch.write({'state': 'in_progress',
-                         'u_ephemeral': True})
+            batch.write({'u_ephemeral': True})
+            batch.confirm_picking()
 
     def _get_package_search_domain(self, package):
         """ Generate the domain for searching pickings of a package
@@ -1317,15 +1311,15 @@ class StockPicking(models.Model):
                 if move_line_ids and \
                         picking.picking_type_id.u_drop_location_preprocess and \
                         not move_line_ids.any_destination_locations_default():
-                        # The policy has been preprocessed this assumes the
-                        # the policy is able to provide a sensible value (this is
-                        # not the case for every policy)
-                        # Use the preselected value
-                        result = self._get_suggested_location_exactly_match_move_line(move_line_ids)
+                    # The policy has been preprocessed this assumes the
+                    # the policy is able to provide a sensible value (this is
+                    # not the case for every policy)
+                    # Use the preselected value
+                    result = self._get_suggested_location_exactly_match_move_line(move_line_ids)
 
-                        # Just to prevent running it twice
-                        if not result and policy == 'exactly_match_move_line':
-                            return result
+                    # Just to prevent running it twice
+                    if not result and policy == 'exactly_match_move_line':
+                        return result
 
                 # If the pre-selected value is blocked
                 if not result:
@@ -1471,3 +1465,17 @@ class StockPicking(models.Model):
             self = self.with_context(move_line_ids=mls.ids)
 
         return super(StockPicking, self)._put_in_pack()
+
+    @api.constrains('state', 'batch_id')
+    def _trigger_batch_state_recompute(self):
+        """Batch state is dependant on picking state and batch_id"""
+        batch = self.env.context.get('orig_batches')
+
+        if batch is False:
+            # We only want to run this when told
+            # not when there isnt a batch
+            batch = self.mapped('batch_id')
+
+        if batch:
+            batch._compute_state()
+        return True
