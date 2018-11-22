@@ -372,6 +372,38 @@ class StockPickingBatch(models.Model):
         return [batch._prepare_info(allowed_picking_states)
                 for batch in self]
 
+    def _select_batch_to_assign(self, batches):
+        """
+        Orders the batches by name and returns the first one.
+        """
+        assert batches, "Expects a non-empty batches recordset"
+        return batches.sorted(key=lambda b: b.name)[0]
+
+    @api.model
+    def assign_batch(self, picking_type_id, selection_criteria=None):
+        """
+        Determine all the batches in state 'ready' with pickings
+        of the specified picking types then return the one determined
+        by the selection criteria method (that should be overriden
+        by the relevant customer modules).
+
+        Note that the transition from state 'ready' to 'in_progress'
+        is handled by computation of state function.
+        """
+        # TODO(ale): use `ready` once the new state changes are merged
+        batches = self.search([('state', 'in', ['draft', 'in_progress'])]) \
+                      .filtered(lambda b: all([pt.id == picking_type_id
+                                               for pt in b.picking_type_ids]))
+
+        if batches:
+            batch = self._select_batch_to_assign(batches)
+            batch.user_id = self.env.user
+
+            # TODO(ale): remove once new state changes are ready
+            batch.state = 'in_progress'
+
+            return batch
+
     @api.multi
     def create_batch(self, picking_type_id, picking_priorities, user_id=None):
         """
