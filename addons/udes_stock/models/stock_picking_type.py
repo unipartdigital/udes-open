@@ -289,3 +289,6 @@ class StockPickingType(models.Model):
                     _('Cannot find picking type with id %s') %
                     picking_type_id)
         return picking_type
+
+    def get_action_picking_tree_draft(self):
+        return self._get_action('udes_stock.action_picking_tree_draft')

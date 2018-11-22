@@ -150,6 +150,19 @@
         <field name="inherit_id" ref="stock.stock_picking_type_kanban"/>
         <field name="arch" type="xml">
 
+            <!-- Add Draft count -->
+            <xpath expr="//div[@t-if='record.count_picking_waiting.raw_value > 0']" position="before">
+                <div t-if="record.count_picking_draft.raw_value > 0" class="row">
+                    <div class="col-xs-9">
+                        <!-- When clicked, trigger the action defined below -->
+                        <a name="get_action_picking_tree_draft" type="object">Draft</a>
+                    </div>
+                    <div class="col-xs-3">
+                        <field name="count_picking_draft"/>
+                    </div>
+                </div>
+            </xpath>
+
             <!-- Change the Late count to Red -->
             <xpath expr="//div[@t-if='record.count_picking_late.raw_value > 0']" position="attributes">
                 <attribute name="style">color:red;font-weight:bold</attribute>
@@ -171,5 +184,30 @@
         </field>
     </record>
 
+    <!-- Define the action for clicking on the Drafts item at the dashboard. -->
+    <record id="action_picking_tree_draft" model="ir.actions.act_window">
+        <field name="name">Draft Transfers</field>
+        <field name="res_model">stock.picking</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="view_type">form</field>
+        <field name="view_mode">tree,kanban,form,calendar</field>
+        <field name="domain"></field>
+        <field name="context">{
+            'search_default_picking_type_id': [active_id],
+            'default_picking_type_id': active_id,
+            'contact_display': 'partner_address',
+            'search_default_draft': 1,
+        }
+        </field>
+        <field name="search_view_id" ref="stock.view_picking_internal_search"/>
+        <field name="help" type="html">
+            <p class="oe_view_nocontent_create">
+                Click here to create a new transfer.
+            </p>
+            <p>
+                You can either do it immediately or mark it as Todo for future processing. Use your scanner to validate the transferred quantity quicker.
+            </p>
+        </field>
+    </record>
 
 </odoo>
