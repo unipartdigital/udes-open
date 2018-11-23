@@ -193,7 +193,7 @@ class StockPicking(models.Model):
         mls = self.mapped('move_line_ids')
         res = super(StockPicking, self).action_done()
         picks = mls.mapped('picking_id')
-        picks.with_context(orig_batches=False)._trigger_batch_state_recompute()
+        self._trigger_batch_state_recompute(picks=picks)
 
         self.env.ref('udes_stock.picking_done').with_context(
             active_model=picks._name,
@@ -1467,14 +1467,16 @@ class StockPicking(models.Model):
         return super(StockPicking, self)._put_in_pack()
 
     @api.constrains('state', 'batch_id')
-    def _trigger_batch_state_recompute(self):
+    def _trigger_batch_state_recompute(self, picks=None):
         """Batch state is dependant on picking state and batch_id"""
-        batch = self.env.context.get('orig_batches')
 
-        if batch is False:
+        if picks is not None:
             # We only want to run this when told
             # not when there isnt a batch
-            batch = self.mapped('batch_id')
+            batch = picks.mapped('batch_id')
+        else:
+            batch = self.env.context.get('orig_batches')
+
 
         if batch:
             batch._compute_state()
