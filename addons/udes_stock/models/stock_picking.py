@@ -225,8 +225,22 @@ class StockPicking(models.Model):
 
     def button_validate(self):
         """ Ensure we don't incorrectly validate pending pickings."""
+        self.ensure_one()
+
         self.assert_not_pending()
+        self.update_lot_names()
+
         return super(StockPicking, self).button_validate()
+
+    def update_lot_names(self):
+        """ Create lot names for move lines where user is not required to provide them """
+        picking_type = self.picking_type_id
+        if (picking_type.use_create_lots or picking_type.use_existing_lots) and picking_type.u_confirm_tracking == 'no':
+            lines_to_check = self.move_line_ids.filtered(lambda ml: ml.product_id.tracking != 'none')
+            for line in lines_to_check:
+                product = line.product_id
+                if not line.lot_name and not line.lot_id:
+                    line.lot_name = line._generate_lot_name(product)
 
     def assert_valid_state(self):
         """ Checks if the transfer is in a valid state, i.e., not done or cancel

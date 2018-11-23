@@ -301,7 +301,6 @@ class StockMoveLine(models.Model):
 
         return move_lines
 
-
     def _assert_result_package(self, result_package):
         """ Checks that result_package is the expected result package
             for the move lines in self. i.e., result_package has to
@@ -320,6 +319,23 @@ class StockMoveLine(models.Model):
                           ' but you are using another one (%s)' %
                           (ml_result_package.name, result_package.name)))
 
+    def generate_lot_name(self, lot_names, product):
+        """ If required, create a lot and return it's name in a list """
+        confirm_tracking = self.mapped('picking_id.picking_type_id').u_confirm_tracking
+        if confirm_tracking == 'no':
+            if len(lot_names) == 0:
+                return [self._generate_lot_name(product)]
+        elif confirm_tracking == 'first_last':
+            raise ValidationError(_('Not implemented'))
+        else:
+            return lot_names
+
+    def _generate_lot_name(self, product):
+        """ Create a lot and return the name of it """
+        Lots = self.env['stock.production.lot']
+        lot = Lots.create({'product_id': product.id})
+        return lot.name
+
     def _update_products_info(self, product, products_info, info):
         """ For each (key, value) in info it merges to the corresponding
             product info if it already exists.
@@ -334,10 +350,16 @@ class StockMoveLine(models.Model):
         """
         tracking = product.tracking
         if tracking != 'none':
-            if 'lot_names' not in info:
+
+            # Auto generate lot name if name is missing and required
+            lot_names = info['lot_names'] if 'lot_names' in info else []
+            lot_names = self.generate_lot_name(lot_names, product)
+
+            if len(lot_names) == 0:
                 raise ValidationError(
                         _('Missing tracking info for product %s tracked by %s')
                           % (product.name, tracking))
+            info['lot_names'] = lot_names
             if tracking == 'serial' and \
                     len(info['lot_names']) != info['qty']:
                 raise ValidationError(
@@ -456,9 +478,11 @@ class StockMoveLine(models.Model):
                     _('Cannot mark as done move line %s of picking %s without '
                       'quantity done') % (self.id, self.picking_id.name))
 
-        self.write(values)
         if split:
+            self.qty_done = values['qty_done']
             self._split()
+
+        self.write(values)
 
         return self
 
