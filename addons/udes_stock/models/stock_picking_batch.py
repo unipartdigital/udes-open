@@ -88,10 +88,10 @@ class StockPickingBatch(models.Model):
     @api.constrains('user_id')
     def _compute_state(self):
         """ Compute the state of a batch post confirm
-            waiting    : Aleast some picks are not ready
-            ready      : All picks are in ready state (assigned)
-            in_progess : All picks are ready and a user has been assigned
-            done       : All picks are complete (in state done or cancel)
+            waiting     : At least some picks are not ready
+            ready       : All picks are in ready state (assigned)
+            in_progress : All picks are ready and a user has been assigned
+            done        : All picks are complete (in state done or cancel)
 
             the other two states are draft and cancel are manual
             to tranistions from or to the respective state.
@@ -99,49 +99,100 @@ class StockPickingBatch(models.Model):
         for batch in self:
 
             if batch.state in ['draft', 'done', 'cancel']:
-                # Can't do anything with them don't bother trying.
+                # Can not do anything with them don't bother trying
                 continue
 
             ready_picks, other_picks = \
                 self._calculate_pick_groups(batch.picking_ids)
 
-            # Based on groups compute batch state
-            if batch.state == 'in_progress':
+            if not batch.picking_ids or not (ready_picks or other_picks):
+                # This accounts for all pickings being complete, canceled or
+                # all pickings get removed for some reason.
+                # The last two can happen in any state
+                batch.state = 'done'
 
-                if not ready_picks and not other_picks:
-                    # All picks are complete so we're done
-                    batch.state = 'done'
-
-                elif other_picks:
-                    # We shouldn't have these check if we can make them ready
-                    # otherwise remove them
-                    batch._remove_unready_picks()
-
-                elif ready_picks and not other_picks and not batch.user_id:
-                    # User is removed lets go back to being ready
-                    batch.state = 'ready'
-
+            # Attempt transitions based on state
             elif batch.state == 'waiting':
-
-                if ready_picks and not other_picks:
-                    # All picks are ready or complete
-                    if batch.user_id:
-                        batch.state = 'in_progress'
-                    else:
-                        batch.state = 'ready'
+                batch._from_waiting_transitions(other_picks)
 
             elif batch.state == 'ready':
+                batch._from_ready_transitions(other_picks)
 
-                if ready_picks and not other_picks:
-                    if batch.user_id:
-                        batch.state = 'in_progress'
-                else:
-                    batch.state = 'waiting'
+            elif batch.state == 'in_progress':
+                batch._from_in_progress_transitions(ready_picks, other_picks)
 
             else:
                 # How did we get here?
                 # Let do nothing to be safe!
                 continue
+
+    def _from_in_progress_transitions(self, ready_picks=None, other_picks=None):
+        """ Transition from in_progress to another state"""
+        self.ensure_one()
+
+        # Make sure we have the pick groups
+        if ready_picks is None or other_picks is None:
+            ready_picks, other_picks = \
+                self._calculate_pick_groups(self.picking_ids)
+
+        # This transitions should be handled already in _compute_state
+        # but as a guard against it being called else where by someone
+        # lets add it in here as well
+        if not ready_picks and not other_picks:
+            # All picks are complete so we're done
+            self.state = 'done'
+            return True
+
+        elif ready_picks and not other_picks and not self.user_id:
+            # User is removed lets go back to being ready
+            self.state = 'ready'
+            return True
+
+        # None really a transition but a bit of batch pick managemnet
+        # which has to be delt with
+        elif other_picks:
+            # We shouldn't have these check if we can make them ready
+            # otherwise remove them
+            return self._remove_unready_picks()
+
+    def _from_waiting_transitions(self, other_picks=None):
+        """ Transition from waiting to another state"""
+        self.ensure_one()
+
+        # Make sure we have the pick groups
+        if other_picks is None:
+            _, other_picks = self._calculate_pick_groups(self.picking_ids)
+
+        # the check that there is picks should be done already in
+        # _compute_state but as a guard against it being called else
+        # where by someone lets add it in here as well
+        if self.picking_ids and other_picks:
+            # Not all picks are ready don't transition
+            return False
+
+        if self.user_id:
+            self.state = 'in_progress'
+        else:
+            self.state = 'ready'
+        return True
+
+    def _from_ready_transitions(self, other_picks=None):
+        """ Transition from ready to another state"""
+        self.ensure_one()
+
+        # Make sure we have the pick groups
+        if other_picks is None:
+            _, other_picks = self._calculate_pick_groups(self.picking_ids)
+
+        if other_picks:
+            self.state = 'waiting'
+            return True
+
+        elif self.user_id:
+            self.state = 'in_progress'
+            return True
+
+        return False
 
     def _calculate_pick_groups(self, picks):
         """Collect picks into groups based on state - complete picks are ignored
@@ -167,8 +218,6 @@ class StockPickingBatch(models.Model):
 
         return ready_picks, other_picks
 
-
-
     @api.multi
     def _remove_unready_picks(self, picks=None):
         if picks is None:
@@ -186,7 +235,7 @@ class StockPickingBatch(models.Model):
                 confirmed_not_ready.action_assign()
 
             not_ready.filtered(not_ready_lam).write({'batch_id': False})
-            self._compute_state()
+            return self._compute_state()
 
     def _get_task_grouping_criteria(self):
         """

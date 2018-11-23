@@ -1469,14 +1469,13 @@ class StockPicking(models.Model):
     @api.constrains('state', 'batch_id')
     def _trigger_batch_state_recompute(self, picks=None):
         """Batch state is dependant on picking state and batch_id"""
-
         if picks is not None:
             # We only want to run this when told
             # not when there isnt a batch
             batch = picks.mapped('batch_id')
         else:
-            batch = self.env.context.get('orig_batches')
-
+            batch = self.env.context.get('orig_batches') or \
+                self.mapped('batch_id')
 
         if batch:
             batch._compute_state()
