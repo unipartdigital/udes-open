@@ -40,22 +40,25 @@ class StockPickingBatch(models.Model):
 
     @api.multi
     def confirm_picking(self):
-        """Over write method to use our waiting state and recompute state
-           incase this should be ready or in_progress
+        """Overwrite method confirm picking to raise error if not in draft and
+           rollback to draft on error in action_assign.
         """
+        if any(batch.state != 'draft' for batch in self):
+            raise ValidationError(_(
+                'Batch (%s) is not in state draft can not perform '
+                'confirm_picking') % ','.join(
+                    b.name for b in self if b.state != 'draft')
+            )
+
         pickings_todo = self.mapped('picking_ids')
         self.write({'state': 'waiting'})  # Get it out of draft
-        res = pickings_todo.action_assign()
-        self._compute_state()
-        return res
-
-    @api.multi
-    def done(self):
-        """Extend done to recompute state"""
-        res = super(StockPickingBatch, self).done()
-        if res:
-            # If done is successful recompute state
-            self._compute_state()
+        try:
+            res = pickings_todo.action_assign()
+        except:
+            # On an error rollback to draft
+            self.write({'state': 'draft'})
+            # Then reraise the error
+            raise
         return res
 
     @api.multi
