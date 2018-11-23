@@ -96,55 +96,78 @@ class StockPickingBatch(models.Model):
             the other two states are draft and cancel are manual
             to tranistions from or to the respective state.
         """
-        Picking = self.env['stock.picking']
-
         for batch in self:
 
             if batch.state in ['draft', 'done', 'cancel']:
                 # Can't do anything with them don't bother trying.
                 continue
 
-            if not batch.picking_ids:
-                batch.state = 'done'
-                continue
-
-            ready_picks = Picking.browse()
-            other_picks = Picking.browse()
-            complete_picks = Picking.browse()
-
-            # Collect picks into groups
-            for pick in batch.picking_ids:
-
-                if pick.state == 'assigned':
-                    ready_picks |= pick
-
-                elif pick.state in ['done', 'cancel']:
-                    complete_picks |= pick
-
-                else:
-                    other_picks |= pick
+            ready_picks, other_picks = \
+                self._calculate_pick_groups(batch.picking_ids)
 
             # Based on groups compute batch state
-            if complete_picks and not (ready_picks or other_picks):
-                batch.state = 'done'
+            if batch.state == 'in_progress':
 
-            elif ready_picks and not other_picks:
-                # All picks are ready or complete
-                if batch.user_id:
-                    batch.state = 'in_progress'
-                else:
+                if not ready_picks and not other_picks:
+                    # All picks are complete so we're done
+                    batch.state = 'done'
+
+                elif other_picks:
+                    # We shouldn't have these check if we can make them ready
+                    # otherwise remove them
+                    batch._remove_unready_picks()
+
+                elif ready_picks and not other_picks and not batch.user_id:
+                    # User is removed lets go back to being ready
                     batch.state = 'ready'
 
-            # By process of elimnation we should have "other" picks
-            elif other_picks:
-                if batch.state == 'in_progress':
-                    batch._remove_unready_picks()
+            elif batch.state == 'waiting':
+
+                if ready_picks and not other_picks:
+                    # All picks are ready or complete
+                    if batch.user_id:
+                        batch.state = 'in_progress'
+                    else:
+                        batch.state = 'ready'
+
+            elif batch.state == 'ready':
+
+                if ready_picks and not other_picks:
+                    if batch.user_id:
+                        batch.state = 'in_progress'
                 else:
                     batch.state = 'waiting'
+
             else:
                 # How did we get here?
                 # Let do nothing to be safe!
                 continue
+
+    def _calculate_pick_groups(self, picks):
+        """Collect picks into groups based on state - complete picks are ignored
+           Groups are
+                ready    : pick.state is assigned
+                other    : pick.state is in any other state than the ones above
+        """
+        Picking = self.env['stock.picking']
+
+        ready_picks = Picking.browse()
+        other_picks = Picking.browse()
+
+        for pick in picks:
+
+            if pick.state == 'assigned':
+                ready_picks |= pick
+
+            elif pick.state in ['done', 'cancel']:
+                continue
+
+            else:
+                other_picks |= pick
+
+        return ready_picks, other_picks
+
+
 
     @api.multi
     def _remove_unready_picks(self, picks=None):
