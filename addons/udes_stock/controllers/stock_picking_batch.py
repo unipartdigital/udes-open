@@ -132,8 +132,7 @@ class PickingBatchApi(UdesApi):
                 type='json', methods=['POST'], auth='user')
     def create_batch_for_user(self,
                               picking_type_id,
-                              picking_priorities=None,
-                              max_locations=None):
+                              picking_priorities=None):
         """
         Create a batch for the user if pickings are available.
 
@@ -149,8 +148,6 @@ class PickingBatchApi(UdesApi):
             which will be used to create the batch.
         @param picking_priorities - (optional) List of priorities to
             search for the pickings
-        @param max_locations - (optional) Max number of locations to
-            pick from (not used)
         """
         PickingBatch = request.env['stock.picking.batch']
         batch = PickingBatch.create_batch(picking_type_id, picking_priorities)
