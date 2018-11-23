@@ -478,9 +478,13 @@ class BaseUDES(common.SavepointCase):
     @classmethod
     def create_batch(cls, user=None, **kwargs):
         Batch = cls.env['stock.picking.batch']
-        if not user:
-            user = cls.env.user.id
-        vals = {"user_id": user.id}
+
+        vals = {}
+        if user is not False:
+            if user is None:
+                user = cls.env.user
+            vals = {"user_id": user.id}
+
         vals.update(kwargs)
         return Batch.create(vals)
 
