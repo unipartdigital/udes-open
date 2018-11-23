@@ -211,6 +211,9 @@ class StockPicking(models.Model):
     def write(self, vals):
         """ If writing picking, check if previous batch is now complete
         """
+        # This will be used to trigger recompute of the batch state
+        # we can't relate on the state after as batch_id might be
+        # removed in the write
         batches = self.mapped(lambda p: p.batch_id)
         context_vals = {'orig_batches': batches} if batches else {}
         return super(StockPicking, self.with_context(**context_vals)) \
