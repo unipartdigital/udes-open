@@ -97,7 +97,7 @@ class StockPickingBatch(models.Model):
             done        : All picks are complete (in state done or cancel)
 
             the other two states are draft and cancel are manual
-            to tranistions from or to the respective state.
+            to transitions from or to the respective state.
         """
         for batch in self:
 
