@@ -13,6 +13,8 @@ class StockPickingType(models.Model):
 
     show_operations = fields.Boolean(default=True)
 
+    # Pick workflow options
+
     u_allow_swapping_packages = fields.Boolean('Allow swapping packages')
 
     u_skip_allowed = fields.Boolean(
@@ -65,6 +67,7 @@ class StockPickingType(models.Model):
     ],
         string='Target Storage Format',
     )
+
     u_user_scans = fields.Selection([
         ('pallet', 'Pallets'),
         ('package', 'Packages'),
@@ -80,6 +83,7 @@ class StockPickingType(models.Model):
         default=False,
         help="Flag to indicate reservations should be rounded up to entire packages."
     )
+
     u_confirm_serial_numbers = fields.Selection([
         ('no', 'No'),
         ('yes', 'Yes'),
@@ -100,6 +104,49 @@ class StockPickingType(models.Model):
         help='Flag to indicate that a procurement group should be created on '
              'confirmation of the picking if one does not already exist.',
     )
+
+    u_auto_batch_pallet = fields.Boolean(
+        string='Auto batch pallet',
+        default=False,
+        help='Flag to indicate whether picking type will automatically '
+             'create batches when the user scans the pallet'
+    )
+
+    u_check_work_available = fields.Boolean(
+        string='Check for more work',
+        default=False,
+        help='Flag to indicate whether to display the remaining picking '
+             'operations to be done, that can be either batched or unassigned.'
+    )
+
+    u_use_product_packaging = fields.Boolean(
+        string='Use Product Packaging',
+        default=False,
+        help='Flag to indicate if privacy wrapping information is relevant.',
+    )
+
+    u_assing_batch_to_user = fields.Boolean(
+        string='Assign batch to user',
+        default=False,
+        help='Flag to indicate whether to assign a "ready" batch to the '
+             'user, if he does not have one already assigned.',
+    )
+
+    u_create_batch_for_user = fields.Boolean(
+        string='Create batch for user',
+        default=True,
+        help='Flag to indicate whether to create a new batch and assign it to '
+             'the user, if he does not have one already assigned.',
+    )
+
+    u_check_picking_priorities = fields.Boolean(
+        string='Check picking priorities',
+        default=True,
+        help='Flag to indicate whether to check picking priorities while '
+             'processing the picking.',
+    )
+
+    # Drop location options
 
     u_drop_location_constraint = fields.Selection([
         ('dont_scan', 'Do not scan'),
@@ -130,27 +177,8 @@ class StockPickingType(models.Model):
              'destination locations'
     )
 
-    u_auto_batch_pallet = fields.Boolean(
-        string='Auto batch pallet',
-        default=False,
-        help='Flag to indicate whether picking type will automatically '
-             'create batches when the user scans the pallet'
-    )
-
-    u_check_work_available = fields.Boolean(
-        string='Check for more work',
-        default=False,
-        help='Flag to indicate with if picking type should display if there is'
-             'picks of this type which are not in a batch'
-    )
-
-    u_use_product_packaging = fields.Boolean(
-        string='Use Product Packaging',
-        default=False,
-        help='Flag to indicate if privacy wrapping information is relevant.',
-    )
-
     # Picking lifecycle actions
+
     u_move_line_key_format = fields.Char(
         'Move Line Grouping Key',
         help="""A field name on stock.move.line that can be to group
@@ -235,6 +263,9 @@ class StockPickingType(models.Model):
             - u_auto_batch_pallet: boolean
             - u_check_work_available: boolean
             - u_use_product_packaging: boolean
+            - u_assing_batch_to_user: boolean
+            - u_create_batch_for_user: boolean
+            - u_check_picking_priorities: boolean
             - u_drop_location_constraint: string
             - u_drop_location_policy: string
             - u_new_package_policy: string
@@ -269,6 +300,9 @@ class StockPickingType(models.Model):
                 'u_auto_batch_pallet': self.u_auto_batch_pallet,
                 'u_check_work_available': self.u_check_work_available,
                 'u_use_product_packaging': self.u_use_product_packaging,
+                'u_assing_batch_to_user': self.u_assing_batch_to_user,
+                'u_create_batch_for_user': self.u_create_batch_for_user,
+                'u_check_picking_priorities': self.u_check_picking_priorities,
                 }
 
     def get_info(self):

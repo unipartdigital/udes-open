@@ -493,7 +493,7 @@ Request:
 A JSON object containing a single `picking_type_id` numeric entry, indicating
 the picking type of the batch that should be assigned.
 
-Response:
+Response (same as /api/stock-picking-batch GET):
 
 In case the backend succeeds to assign a batch to the current user, the response
 will contain a JSON object with the same format as the above `get` endpoint,
@@ -509,7 +509,8 @@ Old method(s): generate_wave_for_user
 Create a new batch and assign it to the requester user.
 The batch will be in the `in_progress` state and will have its `ephemeral`
 field flagged. As a consequence of that, the batch pickings will be unlinked
-when the user logs out.
+when the user logs out or when the `unassign` endpoint is invoked against such
+batch.
 
 Request:
 
