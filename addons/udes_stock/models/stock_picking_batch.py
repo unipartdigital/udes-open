@@ -391,17 +391,13 @@ class StockPickingBatch(models.Model):
         Note that the transition from state 'ready' to 'in_progress'
         is handled by computation of state function.
         """
-        # TODO(ale): use `ready` once the new state changes are merged
-        batches = self.search([('state', 'in', ['draft', 'in_progress'])]) \
+        batches = self.search([('state', '=', 'ready')]) \
                       .filtered(lambda b: all([pt.id == picking_type_id
                                                for pt in b.picking_type_ids]))
 
         if batches:
             batch = self._select_batch_to_assign(batches)
             batch.user_id = self.env.user
-
-            # TODO(ale): remove once new state changes are ready
-            batch.state = 'in_progress'
 
             return batch
 

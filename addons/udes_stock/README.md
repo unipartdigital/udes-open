@@ -548,7 +548,6 @@ Returns true on success otherwise an error indicating the failure (e.g. the
 batch was not in the `in_progress` state; the batch was not assigned to the
 current user).
 
-
 ### Update picking batch
 ```
 URI: /api/stock-picking-batch/:id
