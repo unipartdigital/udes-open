@@ -123,7 +123,7 @@ class PickingBatchApi(UdesApi):
 
         if batch.state != 'in_progress':
             raise ValidationError(_("The specified batch is not assigned."))
-        elif batch.user_id != request.env.user.id:
+        elif batch.user_id.id != request.env.user.id:
             raise ValidationError(_("The specified batch is not assigned to you."))
 
         return batch.unassign()

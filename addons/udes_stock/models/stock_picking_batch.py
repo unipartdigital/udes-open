@@ -54,7 +54,10 @@ class StockPickingBatch(models.Model):
         self.write({'state': 'waiting'})  # Get it out of draft
 
         try:
-            return pickings_todo.action_assign()
+            p = pickings_todo.action_assign()
+            self._compute_state()
+
+            return p
         except:
             self.write({'state': 'draft'})
             raise
@@ -601,7 +604,7 @@ class StockPickingBatch(models.Model):
                                 picking_type_id=picking_type_id,
                                 group_id=group.id)
 
-            # Try to re-assing the picking after, by creating the
+            # Try to re-assign the picking after, by creating the
             # investigation, we've reserved the problematic stock
             picking.action_assign()
 

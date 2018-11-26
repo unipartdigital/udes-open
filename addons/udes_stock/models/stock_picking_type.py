@@ -133,7 +133,7 @@ class StockPickingType(models.Model):
         help='Flag to indicate if privacy wrapping information is relevant.',
     )
 
-    u_assing_batch_to_user = fields.Boolean(
+    u_assign_batch_to_user = fields.Boolean(
         string='Assign batch to user',
         default=False,
         help='Flag to indicate whether to assign a "ready" batch to the '
@@ -270,7 +270,7 @@ class StockPickingType(models.Model):
             - u_auto_batch_pallet: boolean
             - u_check_work_available: boolean
             - u_use_product_packaging: boolean
-            - u_assing_batch_to_user: boolean
+            - u_assign_batch_to_user: boolean
             - u_create_batch_for_user: boolean
             - u_check_picking_priorities: boolean
             - u_drop_location_constraint: string
@@ -308,7 +308,7 @@ class StockPickingType(models.Model):
                 'u_auto_batch_pallet': self.u_auto_batch_pallet,
                 'u_check_work_available': self.u_check_work_available,
                 'u_use_product_packaging': self.u_use_product_packaging,
-                'u_assing_batch_to_user': self.u_assing_batch_to_user,
+                'u_assign_batch_to_user': self.u_assign_batch_to_user,
                 'u_create_batch_for_user': self.u_create_batch_for_user,
                 'u_check_picking_priorities': self.u_check_picking_priorities,
                 }
