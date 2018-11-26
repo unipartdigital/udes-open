@@ -53,13 +53,11 @@ class StockPicking(models.Model):
         compute='_compute_related_picking_ids',
         help='Next pickings',
     )
-
     u_first_picking_ids = fields.One2many(
         'stock.picking', string='First Pickings',
         compute='_compute_first_picking_ids',
         help='First pickings in the chain'
     )
-
     u_created_back_orders = fields.One2many(
         'stock.picking', string='Created Back Orders',
         compute='_compute_related_picking_ids',
@@ -93,8 +91,7 @@ class StockPicking(models.Model):
 
     u_has_discrepancies = fields.Boolean(
         string='Has discrepancies', compute='_compute_picking_quantities',
-        readonly=True, help='Flag to indicate if the picking still has discrepancies.',
-        )
+        readonly=True, help='Flag to indicate if the picking still has discrepancies.')
 
     u_num_pallets = fields.Integer(
         'Total Pallets count', compute='_compute_picking_packages', store=False,
