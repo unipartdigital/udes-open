@@ -235,8 +235,11 @@ class StockPickingBatch(models.Model):
             confirmed_not_ready = not_ready.filtered(
                 lambda pick: pick.state == 'confirmed')
             if confirmed_not_ready:
+                # Attempt to make confirmed picks ready
                 confirmed_not_ready.action_assign()
 
+            # Filter again as we are possibly calling action_assign which
+            # could make some of the previous not ready picks to now be ready
             not_ready.filtered(not_ready_lam).write({'batch_id': False})
             return self._compute_state()
 
@@ -471,7 +474,7 @@ class StockPickingBatch(models.Model):
                     pick_todo = pick._backorder_movelines(pick_mls)
 
                 # at this point pick_todo should contain only mls done
-                pick.update_picking(validate=True)
+                pick_todo.update_picking(validate=True)
         if not continue_batch:
             self.unassign()
 
