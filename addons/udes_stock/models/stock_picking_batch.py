@@ -474,7 +474,7 @@ class StockPickingBatch(models.Model):
                     pick_todo = pick._backorder_movelines(pick_mls)
 
                 # at this point pick_todo should contain only mls done
-                pick.update_picking(validate=True)
+                pick_todo.update_picking(validate=True)
         if not continue_batch:
             self.unassign()
 
