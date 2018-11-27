@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_stock_move_line_operation_tree" model="ir.ui.view">
+        <field name="name">udes_product_expiry.stock.move.line.operations.tree</field>
+        <field name="inherit_id" ref="stock.view_stock_move_line_operation_tree"/>
+        <field name="model">stock.move.line</field>
+        <field name="arch" type="xml">
+
+            <!-- Add u_expiry_date -->
+            <xpath expr="//field[@name='lot_name']" position="after">
+                <field name="u_expiry_date"/>
+            </xpath>
+
+        </field>
+    </record>
+
+    <record id="view_move_line_form" model="ir.ui.view">
+        <field name="name">udes_product_expiry.stock.move.line.form</field>
+        <field name="inherit_id" ref="stock.view_move_line_form"/>
+        <field name="model">stock.move.line</field>
+        <field name="arch" type="xml">
+
+            <!-- Add u_expiry_date -->
+            <xpath expr="//field[@name='lot_name']" position="after">
+                <field name="u_expiry_date"/>
+            </xpath>
+
+        </field>
+    </record>
+</odoo>
