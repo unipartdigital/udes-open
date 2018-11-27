@@ -19,6 +19,9 @@
         <xpath expr="//button[@name='cancel_picking']" position="replace">
           <button name="cancel_picking" string="Cancel Batch" confirm="Cancelling the batch will cancel all its pickings. Are you sure you wish to cancel this Batch Picking?" type="object" states="ready,waiting,in_progress"/>
         </xpath>
+        <xpath expr="//field[@name='state']" position="replace">
+          <field name="state" widget="statusbar" statusbar_visible="waiting,ready,in_progress,done"/>
+        </xpath>
       </field>
     </record>
 
