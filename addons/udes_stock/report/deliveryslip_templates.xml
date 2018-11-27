@@ -84,15 +84,27 @@
                                    </t>
                                 </td>
                             </tr>
+                        </tbody>
+                    </table>
+
+                    <table class="table table-condensed">  
+                        <t t-set="has_serial_number" t-value="o.move_line_ids.mapped('lot_id')" groups="stock.group_production_lot"/>
+                        <thead>  
                             <tr>
                                   <th style="padding-top: 40px"><strong>Pallet</strong></th>
                                   <th style="padding-top: 40px"><strong>Product</strong></th>
+                                  <th name="lot_serial" t-if="has_serial_number">
+                                        Lot/Serial Number
+                                  </th>
                                   <th style="padding-top: 40px"><strong>Ordered Quantity</strong></th>
                                   <th style="padding-top: 40px"><strong>Sent Quantity</strong></th>
                             </tr>
+                        </thead>
+                        <tbody>    
                             <tr t-if="not o.move_line_ids" t-foreach="o.move_lines" t-as="move">
                                 <td></td>
                                 <td><span t-field="move.product_id"/></td>
+                                <td t-if="has_serial_number"></td>
                                 <td><span t-field="move.product_uom_qty"/></td>
                                 <td><span t-field="move.quantity_done"/></td>
                             </tr>
@@ -111,6 +123,25 @@
                                         <span t-field="move_line.product_id.sudo().description_pickingin"/>
                                     </p>
                                 </td>
+                                <t t-if="has_serial_number">
+                                   <td>
+                                        <table width="100%">
+                                            <tr>
+                                                <td>
+                                                     <span t-field="move_line.lot_id"/>
+                                                     <t t-if="not move_line.lot_id">
+                                                         <span t-field="move_line.lot_name"/>
+                                                     </t>
+                                                 </td>
+                                                 <td name="lot_qty">
+                                                     <t t-if="move_line.product_qty"> 
+                                                        <span t-field="move_line.product_qty"/>
+                                                    </t>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                  </td>
+                                </t>
                                 <td><span t-esc="round(move_line.ordered_qty)"/></td>
                                 <td><span t-field="move_line.qty_done"/></td>
                             </tr>
