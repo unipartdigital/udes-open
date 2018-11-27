@@ -130,12 +130,15 @@ class StockPickingBatch(models.Model):
         """ Transition from waiting to another state"""
         self.ensure_one()
 
-        if self.user_id:
+        if other_picks:
+            # Not all picks are ready; leave state as 'waiting'
+            pass
+        elif self.user_id:
             self.state = 'in_progress'
         else:
             self.state = 'ready'
 
-    def _from_ready_transitions(self, other_picks=None):
+    def _from_ready_transitions(self, other_picks):
         """ Transition from ready to another state"""
         self.ensure_one()
 
