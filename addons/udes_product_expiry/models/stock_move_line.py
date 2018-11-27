@@ -7,6 +7,19 @@ class StockMoveLine(models.Model):
 
     u_expiry_date = fields.Date('Expiry date')
 
+    def _action_done(self):
+        """ Extend action done to update expiry date of lots if needed """
+        super()._action_done()
+        self.exists().update_lot_dates()
+
+    def update_lot_dates(self):
+        """ Update lot removal date according to move line expiry date """
+        key = lambda ml: ml.picking_id.picking_type_id.u_confirm_expiry_date \
+                         and ml.product_id.tracking != 'none'
+        for ml in self.filtered(key):
+            if ml.u_expiry_date and not ml.lot_id.removal_date:
+                ml.lot_id.removal_date = ml.u_expiry_date
+
     def _prepare_line_product_info(self, ml_values, products_info):
         """ Update move line product info with expiry dates so that they are written """
         product = self.product_id
