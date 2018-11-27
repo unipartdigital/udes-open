@@ -30,9 +30,13 @@ class StockPickingBatch(models.Model):
         help="Priority of a batch is the maximum priority of its pickings."
     )
     state = fields.Selection(
-        selection_add=[
+        selection = [
+            ('draft', 'Draft'),
             ('waiting', 'Waiting'),
             ('ready', 'Ready'),
+            ('in_progress', 'Running'),
+            ('done', 'Done'),
+            ('cancel', 'Cancelled')
         ],
         compute='_compute_state',
         store=True,
