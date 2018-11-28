@@ -104,6 +104,11 @@ class StockPickingBatch(models.Model):
             the other two states are draft and cancel are manual
             to transitions from or to the respective state.
         """
+        if self.env.context.get('lock_batch_state'):
+            # If state is locked so don't do anything
+            print('locked')
+            return False
+
         for batch in self:
             if batch.state in ['draft', 'done', 'cancel']:
                 # Can not do anything with them don't bother trying
@@ -119,7 +124,8 @@ class StockPickingBatch(models.Model):
                 elif batch.state == 'ready':
                     batch._from_ready_transitions(other_picks)
                 elif batch.state == 'in_progress':
-                    batch._from_in_progress_transitions(ready_picks, other_picks)
+                    batch._from_in_progress_transitions(ready_picks,
+                                                        other_picks)
                 else:
                     _logger.error(_("Ignoring unexpected batch state: %s")
                                   % batch.state)
@@ -561,7 +567,7 @@ class StockPickingBatch(models.Model):
             allow_partial = True
         elif package:
             if not location:
-                location=package.location_id
+                location = package.location_id
 
             move_lines = move_lines.filtered(lambda ml: ml.package_id == package)
             quants = package._get_contained_quants()
@@ -599,29 +605,18 @@ class StockPickingBatch(models.Model):
 
         if raise_stock_investigation:
             # By default the pick is unreserved
-            picking._refine_picking(reason)
+            picking.with_context(
+                lock_batch_state=True,
+                allow_partial=allow_partial,
+            ).raise_stock_inv(
+                reason=reason,
+                quants=quants,
+                location=location,
+            )
+            self._compute_state()
 
-            group = Group.get_group(group_identifier=reason,
-                                    create=True)
-
-            # create new "investigation pick"
-            Picking.with_context(allow_partial=allow_partial)\
-                .create_picking(quant_ids=quants.mapped('id'),
-                                location_id=location.id,
-                                picking_type_id=picking_type_id,
-                                group_id=group.id)
-
-            # Try to re-assign the picking after, by creating the
-            # investigation, we've reserved the problematic stock
-            picking.action_assign()
-
-            if picking.state != 'assigned':
-                # Remove the picking from the batch as it cannot be
-                # processed for lack of stock; we do so to be able
-                # to terminate the batch and let the user create a
-                # new batch for himself
-                picking.batch_id = False
-            elif original_picking_id is not None:
+            if picking.state == 'assigned' and \
+                    original_picking_id is not None:
                 # A backorder has been created, but the stock is
                 # available; get rid of the backorder after linking the
                 # move lines to the original picking, so it can be
@@ -632,14 +627,6 @@ class StockPickingBatch(models.Model):
 
         else:
             picking.batch_id = False
-
-        # If the batch does not contain any remaining picking to do,
-        # it can be set as done
-        remaining_pickings = self.picking_ids.filtered(
-            lambda x: x.state in ['assigned'])
-
-        if not remaining_pickings.exists():
-            self.state = 'done'
 
         return True
 
