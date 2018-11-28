@@ -188,7 +188,8 @@ class StockPicking(models.Model):
         """
         self.assert_not_pending()
         mls = self.mapped('move_line_ids')
-        res = super(StockPicking, self).action_done()
+        res = super(StockPicking,
+                    self.with_context(lock_batch_state=True)).action_done()
         picks = mls.mapped('picking_id')
         self._trigger_batch_state_recompute(picks=picks)
 
@@ -1496,3 +1497,28 @@ class StockPicking(models.Model):
         if batch:
             batch._compute_state()
         return True
+
+    def raise_stock_inv(self, reason, quants, location):
+        """Unreserve stock create stock investigation for reserve_stock and
+           attempt to reserve new stock
+        """
+        Picking = self.env['stock.picking']
+        Group = self.env['procurement.group']
+        wh = self.env.user.get_user_warehouse()
+        stock_inv_pick_type = wh.u_stock_investigation_picking_type or \
+            wh.int_type_id
+
+        self._refine_picking(reason)
+        group = Group.get_group(group_identifier=reason, create=True)
+
+        # create new "investigation pick"
+        Picking.create_picking(
+            quant_ids=quants.ids,
+            location_id=location.id,
+            picking_type_id=stock_inv_pick_type.id,
+            group_id=group.id,
+        )
+
+        # Try to re-assign the picking after, by creating the
+        # investigation, we've reserved the problematic stock
+        self.action_assign()
