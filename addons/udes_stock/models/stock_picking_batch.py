@@ -194,6 +194,7 @@ class StockPickingBatch(models.Model):
 
     @api.multi
     def _remove_unready_picks(self, picks=None):
+
         if picks is None:
             picks = self.mapped('picking_ids')
 
@@ -473,6 +474,7 @@ class StockPickingBatch(models.Model):
 
                 # at this point pick_todo should contain only mls done
                 pick_todo.update_picking(validate=True)
+
         if not continue_batch:
             self.unassign()
 
@@ -504,6 +506,56 @@ class StockPickingBatch(models.Model):
 
         return all([pick.is_valid_location_dest_id(location=location)
                     for pick in all_done_pickings])
+
+    def unpickable_item_2(self, reason, move_lines, raise_stock_inv):
+        """
+        Given an unpickable move lines in the current batch, backorder them and refine the backorder (by default it is canceled).
+        Then stock investigation for the unpickable stock.
+        """
+        Package = self.env['stock.quant.package']
+
+        if not move_lines:
+            raise ValidationError(
+                _('Cannot find move lines todo for unpickable item '
+                  'in this batch.'))
+
+        # at this point we should have only one picking_id
+        picking = move_lines.mapped('picking_id')
+        picking.ensure_one()
+
+        location = move_lines.mapped('location_dest_id')
+        location.ensure_one()
+        # picking.message_post(body=msg)
+
+        if picking.move_line_ids - move_lines:
+            original_picking = picking
+            picking = picking._backorder_movelines(move_lines)
+
+        if raise_stock_inv:
+            # By default the pick is unreserved
+            packs = move_lines.mapped(
+                lambda ml: ml.result_package_id or ml.package_id
+            )
+
+            if packs:
+                allow_partial = False
+                quants = packs._get_contained_quants()
+            else:
+                allow_partial = True
+                quants = move_lines.get_quants()
+
+            picking.with_context(
+                lock_batch_state=True,
+                allow_partial=allow_partial,
+            ).raise_stock_inv(
+                reason=reason,
+                quants=quants,
+                location=location,
+            )
+
+            self._compute_state()
+
+        return True
 
     def unpickable_item(self,
                         reason,
@@ -539,6 +591,7 @@ class StockPickingBatch(models.Model):
         package = Package.get_package(package_name) if package_name else None
         allow_partial = False
         move_lines = self.get_available_move_lines()
+
 
         if product:
             if not location:
