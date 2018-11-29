@@ -188,6 +188,7 @@ class StockPicking(models.Model):
         """
         self.assert_not_pending()
         mls = self.mapped('move_line_ids')
+        # Prevent recomputing the batch stat
         res = super(StockPicking,
                     self.with_context(lock_batch_state=True)).action_done()
         picks = mls.mapped('picking_id')

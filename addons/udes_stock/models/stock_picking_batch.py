@@ -105,9 +105,8 @@ class StockPickingBatch(models.Model):
             to transitions from or to the respective state.
         """
         if self.env.context.get('lock_batch_state'):
-            # If state is locked so don't do anything
-            print('locked')
-            return False
+            # State is locked so don't do anything
+            return
 
         for batch in self:
             if batch.state in ['draft', 'done', 'cancel']:
@@ -528,8 +527,6 @@ class StockPickingBatch(models.Model):
         self.ensure_one()
 
         ResUsers = self.env['res.users']
-        Picking = self.env['stock.picking']
-        Group = self.env['procurement.group']
         Package = self.env['stock.quant.package']
         Location = self.env['stock.location']
         Product = self.env['product.product']
@@ -615,8 +612,8 @@ class StockPickingBatch(models.Model):
             )
             self._compute_state()
 
-            if picking.state == 'assigned' and \
-                    original_picking_id is not None:
+            if picking.state == 'assigned' \
+                    and original_picking_id is not None:
                 # A backorder has been created, but the stock is
                 # available; get rid of the backorder after linking the
                 # move lines to the original picking, so it can be
@@ -624,7 +621,6 @@ class StockPickingBatch(models.Model):
                 picking.move_line_ids.write({'picking_id': original_picking_id})
                 picking.move_lines.write({'picking_id': original_picking_id})
                 picking.unlink()
-
         else:
             picking.batch_id = False
 
