@@ -377,6 +377,7 @@ class StockPickingBatch(models.Model):
         priorities (optional).
         In case no pickings exist, return None.
         """
+        Users = self.env['res.users']
         Picking = self.env['stock.picking']
         PickingBatch = self.env['stock.picking.batch']
 
@@ -385,9 +386,12 @@ class StockPickingBatch(models.Model):
         if picking_priorities is not None:
             search_domain.append(('priority', 'in', picking_priorities))
 
+        categories = Users.get_user_location_categories()
         search_domain.extend([('picking_type_id', '=', picking_type_id),
                               ('state', '=', 'assigned'),
-                              ('batch_id', '=', False)])
+                              ('batch_id', '=', False),
+                              ('move_line_ids.location_id.u_location_category_id', '=', categories.id)
+                              ])
 
         # Note: order should be determined by stock.picking._order
         picking = Picking.search(search_domain, limit=1)

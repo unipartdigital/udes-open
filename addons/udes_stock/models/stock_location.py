@@ -88,6 +88,15 @@ class StockLocation(models.Model):
         help="Product category speed to match with location speed.",
     )
 
+    # TODO: domain?
+    # TODO: recursive?
+    u_location_category_id = fields.Many2one(
+        comodel_name='stock.location.category',
+        index=True,
+        string='Location Category',
+        # help="Category of the location.",
+    )
+
     def _prepare_info(self, extended=False, load_quants=False):
         """
             Prepares the following info of the location in self:
@@ -115,6 +124,7 @@ class StockLocation(models.Model):
         if extended:
             info['u_blocked'] = self.u_blocked
             info['u_blocked_reason'] = self.u_blocked_reason
+            info['u_location_category_id'] = self.u_location_category_id.name
 
         return info
 

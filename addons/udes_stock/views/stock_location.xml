@@ -48,6 +48,7 @@
                 <xpath expr="//field[@name='putaway_strategy_id']" position="after">
                     <field name="u_height_category_id" />
                     <field name="u_speed_category_id" />
+                    <field name="u_location_category_id" />
                 </xpath>
 
             </field>
