@@ -119,12 +119,28 @@ class StockPickingBatch(models.Model):
             if batch.picking_ids and (ready_picks or other_picks):
                 # State-specific transitions
                 if batch.state == 'waiting':
-                    batch._from_waiting_transitions(other_picks)
+                    if other_picks:
+                        # Not all picks are ready
+                        pass
+                    elif self.user_id:
+                        self.state = 'in_progress'
+                    else:
+                        self.state = 'ready'
                 elif batch.state == 'ready':
-                    batch._from_ready_transitions(other_picks)
+                    if other_picks:
+                        self.state = 'waiting'
+                    elif self.user_id:
+                        self.state = 'in_progress'
                 elif batch.state == 'in_progress':
-                    batch._from_in_progress_transitions(ready_picks,
-                                                        other_picks)
+                    if ready_picks and not other_picks and not self.user_id:
+                        # User is removed
+                        self.state = 'ready'
+                    elif other_picks:
+                        # Not really a transition but a bit of batch pick managemnet
+                        # which has to be delt with
+                        # We shouldn't have these check if we can make them ready
+                        # otherwise remove them
+                        self._remove_unready_picks()
                 else:
                     _logger.error(_("Ignoring unexpected batch state: %s")
                                   % batch.state)
@@ -134,41 +150,6 @@ class StockPickingBatch(models.Model):
                 # get removed for some reason.
                 # The last two can happen in any state
                 batch.state = 'done'
-
-    def _from_waiting_transitions(self, other_picks):
-        """ Transition from waiting to another state"""
-        self.ensure_one()
-
-        if other_picks:
-            # Not all picks are ready; leave state as 'waiting'
-            pass
-        elif self.user_id:
-            self.state = 'in_progress'
-        else:
-            self.state = 'ready'
-
-    def _from_ready_transitions(self, other_picks):
-        """ Transition from ready to another state"""
-        self.ensure_one()
-
-        if other_picks:
-            self.state = 'waiting'
-        elif self.user_id:
-            self.state = 'in_progress'
-
-    def _from_in_progress_transitions(self, ready_picks, other_picks):
-        """ Transition from in_progress to another state"""
-        self.ensure_one()
-
-        if ready_picks and not other_picks and not self.user_id:
-            # User is removed lets go back to being ready
-            self.state = 'ready'
-        elif other_picks:
-            # Not really a transition but a bit of batch pick managemnet
-            # which has to be delt with
-            # We shouldn't have these check if we can make them ready
-            # otherwise remove them
-            self._remove_unready_picks()
 
     def _calculate_pick_groups(self, picks):
         """Collect picks into groups based on state - complete picks are ignored
