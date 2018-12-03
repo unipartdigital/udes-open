@@ -351,8 +351,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         move_line = picking.move_line_ids[0]
         reason = 'missing item'
         batch.unpickable_item(package_name=move_line.package_id.name,
-                              reason=reason,
-                              picking_type_id=None)
+                              reason=reason)
         internal_picking = self.package_one.find_move_lines().picking_id
 
         self.assertEqual(picking.state, 'confirmed',
@@ -382,8 +381,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         with self.assertRaisesRegex(ValidationError, expected_error,
                                     msg='Incorrect error thrown'):
             batch.unpickable_item(package_name=package_name,
-                                  reason=reason,
-                                  picking_type_id=None)
+                                  reason=reason)
 
     def test17_unpickable_item_wrong_batch(self):
         """
@@ -407,8 +405,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         with self.assertRaisesRegex(ValidationError, expected_error,
                                     msg='Incorrect error thrown'):
             batch.unpickable_item(package_name=move_line.package_id.name,
-                                  reason=reason,
-                                  picking_type_id=None)
+                                  reason=reason)
 
     def test18_unpickable_item_invalid_state_cancel(self):
         """
@@ -429,8 +426,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         with self.assertRaisesRegex(ValidationError, expected_error,
                                     msg='Incorrect error thrown'):
             batch.unpickable_item(package_name=move_line.package_id.name,
-                                  reason=reason,
-                                  picking_type_id=None)
+                                  reason=reason)
 
     def test19_unpickable_item_invalid_state_done(self):
         """
@@ -450,8 +446,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         with self.assertRaisesRegex(ValidationError, expected_error,
                                     msg='Incorrect error thrown'):
             batch.unpickable_item(package_name=move_line.package_id.name,
-                                  reason=reason,
-                                  picking_type_id=None)
+                                  reason=reason)
 
     def test20_unpickable_item_multiple_move_lines_different_packages(self):
         """
@@ -484,8 +479,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         reason = 'missing item'
 
         batch.unpickable_item(package_name=unpickable_package.name,
-                              reason=reason,
-                              picking_type_id=None)
+                              reason=reason)
 
         new_picking = unpickable_package.find_move_lines().picking_id
 
@@ -548,8 +542,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         reason = 'missing item'
 
         batch.unpickable_item(package_name=unpickable_package.name,
-                              reason=reason,
-                              picking_type_id=None)
+                              reason=reason)
 
         self.assertEqual(num_move_lines, len(picking.move_line_ids),
                          'Number of move lines changed')
@@ -589,8 +582,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         reason = 'missing item'
 
         batch.unpickable_item(package_name=unpickable_package.name,
-                              reason=reason,
-                              picking_type_id=None)
+                              reason=reason)
 
         new_picking = unpickable_package.find_move_lines().mapped('picking_id')
         self.assertEqual(picking.state, 'confirmed',
@@ -632,8 +624,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         with self.assertRaisesRegex(ValidationError, expected_error,
                                     msg='Incorrect error thrown'):
             batch.unpickable_item(product_id=move_line.product_id.id,
-                                  reason=reason,
-                                  picking_type_id=None)
+                                  reason=reason)
 
     def test24_unpickable_item_product_ok(self):
         """
@@ -663,8 +654,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
         batch.unpickable_item(product_id=move_line.product_id.id,
                               location_id=move_line.location_id.id,
-                              reason=reason,
-                              picking_type_id=None)
+                              reason=reason)
         # after unickable all the quant should be reserved
         self.assertEqual(quant.reserved_quantity, 4)
         # picking state should be confirmed
@@ -705,8 +695,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
         batch.unpickable_item(product_id=move_line.product_id.id,
                               location_id=move_line.location_id.id,
-                              reason=reason,
-                              picking_type_id=None)
+                              reason=reason)
         # after unickable all the quant should be reserved
         self.assertEqual(quant_apple.reserved_quantity, 4)
         # picking state should be assigned
@@ -781,8 +770,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
         batch.unpickable_item(product_id=move_line.product_id.id,
                               location_id=move_line.location_id.id,
-                              reason=reason,
-                              picking_type_id=None)
+                              reason=reason)
 
         # after unpickable all the unpickable apple quant should be reserved
         self.assertTrue(reserved_quant_apple.reserved_quantity == 4,
@@ -843,8 +831,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
         batch.unpickable_item(product_id=move_line.product_id.id,
                               location_id=move_line.location_id.id,
-                              reason=reason,
-                              picking_type_id=self.picking_type_internal.id)
+                              reason=reason)
         # after unickable all the quant should be reserved
         self.assertEqual(quant.reserved_quantity, 4)
         # picking state should be confirmed
