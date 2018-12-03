@@ -121,12 +121,14 @@ class PickingBatchApi(UdesApi):
         """
         batch = _get_batch(request.env, ident)
 
-        if batch.state != 'in_progress':
-            raise ValidationError(_("The specified batch is not assigned."))
-        elif batch.user_id.id != request.env.user.id:
-            raise ValidationError(_("The specified batch is not assigned to you."))
+        if batch.state == 'in_progress':
+            if batch.user_id.id != request.env.user.id:
+                raise ValidationError(
+                    _("The specified batch is not assigned to you."))
 
-        return batch.unassign()
+            batch.unassign()
+
+        return _get_single_batch_info(batch)
 
     @http.route('/api/stock-picking-batch/',
                 type='json', methods=['POST'], auth='user')
