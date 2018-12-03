@@ -531,9 +531,8 @@ JSON object.
 URI: /api/stock-picking-batch/:id/unassign/
 HTTP Method: POST
 ```
-Clears the `user_id` field of the batch (specified by ID) and set the batch
-status to `ready`. The specified batch is expected to be in the `in_progress`
-state and assigned to the current user.
+Clears the `user_id` field of the batch (specified by ID).
+In case the batch is `in_progress`, its state will be set back to `ready`.
 In case of "ephemeral" batch, all the included pickings will be unliked (i.e.
 their `batch_id` fields will be cleared).
 
