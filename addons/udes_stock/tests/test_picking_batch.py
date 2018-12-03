@@ -939,6 +939,12 @@ class TestBatchState(common.BaseUDES):
             confirm=True,
         )
 
+        cls.compute_patch = patch.object(
+            cls.batch01.__class__, '_compute_state',
+            autospec=True
+        )
+
+
     @classmethod
     def draft_to_ready(cls):
         """
@@ -956,13 +962,15 @@ class TestBatchState(common.BaseUDES):
         cls.batch01.user_id = cls.outbound_user.id
 
     @classmethod
-    def complete_pick(cls, picking):
+    def complete_pick(cls, picking, call_done=True):
         for move in picking.move_lines:
             move.write({
                 'quantity_done': move.product_uom_qty,
                 'location_dest_id': cls.test_output_location_01.id,
             })
-        picking.action_done()
+
+        if call_done:
+            picking.action_done()
 
     def test00_empty_simple_flow(self):
         """Create and try to go through the stages"""
@@ -1064,21 +1072,19 @@ class TestBatchState(common.BaseUDES):
         """ Checking that we are going into _compute_state as expected
             i.e. with the right object
         """
+        self.assertEqual(self.batch01.state, 'draft')
 
-        # patch the compute state function so that we have a mock version
-        compute_patch = patch.object(
-            self.batch01.__class__, '_compute_state',
-            autospec=True
-        )
-        # use context manager to perform confirm_picking with the mocked_compute
-        with compute_patch as mocked_compute:
-            self.assertEqual(self.batch01.state, 'draft')
+        # mock compute_state method to allow checking of called value and
+        # the batch it was called on.
+        with self.compute_patch as mocked_compute:
             self.batch01.confirm_picking()
-            self.assertEqual(
-                mocked_compute.call_count, 1,
-                "The function that computes state wasn't invoked"
-            )
-            self.assertEqual(self.batch01.state, 'waiting')
+
+        mocked_compute.assert_called_with(self.batch01)
+        self.assertEqual(
+            mocked_compute.call_count, 1,
+            "The function that computes state wasn't invoked"
+        )
+        self.assertEqual(self.batch01.state, 'waiting')
 
         self.create_quant(self.apple.id, self.test_location_01.id, 4,
                           package_id=self.package_one.id)
@@ -1087,7 +1093,7 @@ class TestBatchState(common.BaseUDES):
         # check that it is called as expected (once by the correct object)
         # finally forcibly compute the state as the mocked_version while called
         # by the picking doesn't behave correctly
-        with compute_patch as mocked_compute:
+        with self.compute_patch as mocked_compute:
             self.picking01.action_assign()
             mocked_compute.assert_called_with(self.batch01)
             self.assertEqual(
@@ -1102,147 +1108,128 @@ class TestBatchState(common.BaseUDES):
         self.assertEqual(self.batch01.state, 'in_progress')
 
         # complete picks and check state done, forcibly compute_state
-        for move in self.picking01.move_lines:
-            move.write({
-                'quantity_done': move.product_uom_qty,
-                'location_dest_id': self.test_output_location_01.id,
-            })
-        with compute_patch as mocked_compute:
+        self.complete_pick(self.picking01, call_done=False)
+        with self.compute_patch as mocked_compute:
             self.picking01.action_done()
-            mocked_compute.assert_called_with(self.batch01)
-            self.assertEqual(
-                mocked_compute.call_count, 2,
-                "The function that computes state wasn't invoked"
-            )
+
+        mocked_compute.assert_called_with(self.batch01)
+        self.assertEqual(
+            mocked_compute.call_count, 2,
+            "The function that computes state wasn't invoked"
+        )
+
         self.batch01._compute_state()
         self.assertEqual(self.batch01.state, 'done')
 
-
     def test09_check_computing_cancel(self):
         """ Test done with cancel to check computation"""
-        compute_patch = patch.object(
-            self.batch01.__class__, '_compute_state',
-            autospec=True
-        )
-
         self.draft_to_ready()
         self.assign_user()
 
-          # Cancel the pick and confirm we reach state done, compute state
-        with compute_patch as mocked_compute:
+        # Cancel the pick and confirm we reach state done, compute state
+        with self.compute_patch as mocked_compute:
             self.picking01.action_cancel()
-            mocked_compute.assert_called_with(self.batch01)
-            self.assertEqual(
-                mocked_compute.call_count, 2,
-                "The function that computes state wasn't invoked"
-            )
+
+        mocked_compute.assert_called_with(self.batch01)
+        self.assertEqual(
+            mocked_compute.call_count, 2,
+            "The function that computes state wasn't invoked"
+        )
+
         self.batch01._compute_state()
         self.assertEqual(self.batch01.state, 'done')
 
     def test10_check_computing_cancel(self):
         """ Test done with cancel to check computation"""
-        compute_patch = patch.object(
-            self.batch01.__class__, '_compute_state',
-            autospec=True
-        )
-
         self.draft_to_ready()
         self.assign_user()
 
         # set batch_id to False and check state 'done', forcibly recompute state
         # and return to previous state
-        with compute_patch as mocked_compute:
+        with self.compute_patch as mocked_compute:
             self.picking01.batch_id = False
-            mocked_compute.assert_called_with(self.batch01)
-            self.assertEqual(
-                mocked_compute.call_count, 1,
-                "The function that computes state wasn't invoked"
-            )
+
+        mocked_compute.assert_called_with(self.batch01)
+        self.assertEqual(
+            mocked_compute.call_count, 1,
+            "The function that computes state wasn't invoked"
+        )
         self.batch01._compute_state()
         self.assertEqual(self.batch01.state, 'done')
 
     def test11_computing_ready_picking_to_batch(self):
         """ Test done with ready picking to check computation"""
-        compute_patch = patch.object(
-            self.batch01.__class__, '_compute_state',
-            autospec=True
-        )
         self.create_quant(self.apple.id, self.test_location_01.id, 4,
-                            package_id=self.package_one.id)
-        # assign picking before adding to batch, check compute state function called
-        # but no change happens
-        with compute_patch as mocked_compute:
+                          package_id=self.package_one.id)
+        # assign picking before adding to batch, check compute state function
+        # called when no pick.state change occurs
+        with self.compute_patch as mocked_compute:
             self.picking01.action_assign()
-            mocked_compute.assert_called_with(self.batch01)
-            self.assertEqual(
-                mocked_compute.call_count, 1,
-                "The function that computes state wasn't invoked"
-            )
+
+        mocked_compute.assert_called_with(self.batch01)
+        self.assertEqual(
+            mocked_compute.call_count, 1,
+            "The function that computes state wasn't invoked"
+        )
         self.batch01._compute_state()
         self.assertEqual(self.batch01.state, 'draft')
 
         # confirm picking and check compute_state is run
-        with compute_patch as mocked_compute:
+        with self.compute_patch as mocked_compute:
             self.batch01.confirm_picking()
-            mocked_compute.assert_called_with(self.batch01)
-            self.assertEqual(
-                mocked_compute.call_count, 1,
-                "The function that computes state wasn't invoked"
-            )
+
+        mocked_compute.assert_called_with(self.batch01)
+        self.assertEqual(
+            mocked_compute.call_count, 1,
+            "The function that computes state wasn't invoked"
+        )
         self.batch01._compute_state()
         self.assertEqual(self.batch01.state, 'ready')
 
     def test12_computing_partial_assignment(self):
         """ Test done with partially complete pickings to check computation"""
-        compute_patch = patch.object(
-            self.batch01.__class__, '_compute_state',
-            autospec=True
-        )
         self.draft_to_ready()
         self.assign_user()
 
         # Create second quant and assign picking, confirm 'in_progress' state
         self.create_quant(self.apple.id, self.test_location_01.id, 4,
                           package_id=self.package_two.id)
-        with compute_patch as mocked_compute:
+
+        with self.compute_patch as mocked_compute:
             self.picking02.action_assign()
             self.picking02.batch_id = self.batch01
-            mocked_compute.assert_called_with(self.batch01)
-            self.assertEqual(
-                mocked_compute.call_count, 1,
-                "The function that computes state wasn't invoked"
-            )
+
+        mocked_compute.assert_called_with(self.batch01)
+        self.assertEqual(
+            mocked_compute.call_count, 1,
+            "The function that computes state wasn't invoked"
+        )
         self.batch01._compute_state()
         self.assertEqual(self.batch01.state, 'in_progress')
 
         # complete pick1 and check state 'in_progress', forcibly compute_state
-        for move in self.picking01.move_lines:
-            move.write({
-                'quantity_done': move.product_uom_qty,
-                'location_dest_id': self.test_output_location_01.id,
-            })
-        with compute_patch as mocked_compute:
+        self.complete_pick(self.picking01, call_done=False)
+        with self.compute_patch as mocked_compute:
             self.picking01.action_done()
-            mocked_compute.assert_called_with(self.batch01)
-            self.assertEqual(
-                mocked_compute.call_count, 2,
-                "The function that computes state wasn't invoked"
-            )
+
+        mocked_compute.assert_called_with(self.batch01)
+        self.assertEqual(
+            mocked_compute.call_count, 2,
+            "The function that computes state wasn't invoked"
+        )
+
         self.batch01._compute_state()
         self.assertEqual(self.batch01.state, 'in_progress')
 
         # complete pick2 and check state 'done', forcibly compute_state
-        for move in self.picking02.move_lines:
-            move.write({
-                'quantity_done': move.product_uom_qty,
-                'location_dest_id': self.test_output_location_01.id,
-            })
-        with compute_patch as mocked_compute:
+        self.complete_pick(self.picking02, call_done=False)
+        with self.compute_patch as mocked_compute:
             self.picking02.action_done()
-            mocked_compute.assert_called_with(self.batch01)
-            self.assertEqual(
-                mocked_compute.call_count, 2,
-                "The function that computes state wasn't invoked"
-            )
+
+        mocked_compute.assert_called_with(self.batch01)
+        self.assertEqual(
+            mocked_compute.call_count, 2,
+            "The function that computes state wasn't invoked"
+        )
         self.batch01._compute_state()
         self.assertEqual(self.batch01.state, 'done')
