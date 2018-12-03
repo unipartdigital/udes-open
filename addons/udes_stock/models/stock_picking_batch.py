@@ -490,14 +490,13 @@ class StockPickingBatch(models.Model):
                         product_id=None,
                         location_id=None,
                         package_name=None,
-                        picking_type_id=None,
                         lot_name=None,
                         raise_stock_investigation=True):
         """
         Given an unpickable product or package, find the related
         move lines in the current batch, backorder them and refine
         the backorder (by default it is canceled).
-        Then create a new picking of type picking_type_id for the
+        Then create a new stock investigation picking for the
         unpickable stock.
         If the picking was the last one of the batch, the batch is
         set as done.
@@ -507,7 +506,6 @@ class StockPickingBatch(models.Model):
         """
         self.ensure_one()
 
-        ResUsers = self.env['res.users']
         Package = self.env['stock.quant.package']
         Location = self.env['stock.location']
         Product = self.env['product.product']
@@ -565,9 +563,6 @@ class StockPickingBatch(models.Model):
 
         if picking.batch_id != self:
             raise ValidationError(_('Move line is not part of the batch.'))
-
-        if picking_type_id is None:
-            picking_type_id = ResUsers.get_user_warehouse().int_type_id.id
 
         if picking.state in ['cancel', 'done']:
             raise ValidationError(_('Cannot mark a move line as unpickable '

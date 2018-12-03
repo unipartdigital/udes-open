@@ -223,8 +223,6 @@ class PickingBatchApi(UdesApi):
         Creates a Stock Investigation for the specified move_line_id for the
         given batch.  If necessary a backorder will be created.
         """
-        ResUsers = request.env['res.users']
-
         # Do not raise stock investigation when package does not fit,
         # just remove it from the batch
         raise_stock_investigation = (reason not in (
@@ -232,16 +230,13 @@ class PickingBatchApi(UdesApi):
         ))
 
         batch = _get_batch(request.env, ident)
-        picking_type_id = ResUsers.get_user_warehouse().u_stock_investigation_picking_type.id  # noqa
-        unpickable_item = batch.unpickable_item(
+        return batch.unpickable_item(
             reason=reason,
             product_id=product_id,
             location_id=location_id,
             package_name=package_name,
-            picking_type_id=picking_type_id,
             raise_stock_investigation=raise_stock_investigation
         )
-        return unpickable_item
 
     @http.route('/api/stock-picking-batch/check-user-batches',
                 type='json', methods=['GET'], auth='user')
