@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="no_customers" model="ir.rule">
+            <field name="name">no_customers</field>
+            <field name="model_id" search="[('model','=','res.partner')]" model="ir.model"/>
+            <field name="global" eval="True"/>
+            <field name="domain_force">[('customer', '=', user.u_view_customers)]</field>
+        </record>
+
+        <!-- <record model="ir.rule" id="no_sale_order_lines">
+            <field name="name">no_sale_order_lines</field>
+            <field name="model_id" search="[('model','=','sale.order.line')]" model="ir.model"/>
+            <field name="global" eval="False"/>
+            <field name="perm_read" eval="1" />
+            <field name="domain_force">[(0, '=', 1)]</field>
+            <field name="groups" eval="[(4,ref('udes_stock.group_inbound_user'))]"/>
+        </record> -->
+    </data>
+</odoo>

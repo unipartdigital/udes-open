@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+udes_access_sale_order,udes_access_sale_order,model_sale_order,udes_stock.group_inbound_user,0,0,0,0
+udes_access_sale_order_line,udes_access_sale_order_line,model_sale_order_line,udes_stock.group_inbound_user,0,0,0,0
