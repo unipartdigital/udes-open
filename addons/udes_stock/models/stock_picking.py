@@ -12,7 +12,6 @@ import logging
 _logger = logging.getLogger(__name__)
 
 
-
 def _update_move_lines_and_log_swap(move_lines, pack, other_pack):
     """ Set the package ids of the specified move lines to the one
         of the other package and signal the package swap by posting
@@ -96,6 +95,29 @@ class StockPicking(models.Model):
     u_num_pallets = fields.Integer(
         'Total Pallets count', compute='_compute_picking_packages', store=False,
         help='Total number of different pallets in the picking')
+
+    u_location_category_id = fields.Many2one(
+        comodel_name='stock.location.category',
+        compute='_compute_location_category',
+        string='Location Category',
+        help="Used to know which pickers have the right equipment to pick it. "
+             "In case multiple location categories are found in the picking it "
+             "will be empty.",
+        readonly=True,
+        store=True,
+    )
+
+    @api.depends('move_line_ids',
+                 'move_line_ids.location_id',
+                 'move_line_ids.location_id.u_location_category_id')
+    @api.one
+    def _compute_location_category(self):
+        """ Compute location category from move lines"""
+        if self.move_line_ids:
+            categories = self.move_line_ids.mapped(
+                'location_id.u_location_category_id')
+            self.u_location_category_id = \
+                categories if len(categories) == 1 else False
 
     @api.depends('move_lines',
                  'move_lines.quantity_done',

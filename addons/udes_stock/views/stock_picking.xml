@@ -61,9 +61,10 @@
                 <attribute name="attrs">{'required': [('picking_type_code', '=', 'incoming')]}</attribute>
             </xpath>              
 
-            <!-- Add sequence -->
+            <!-- Add sequence and Location Category -->
             <xpath expr="//field[@name='priority']" position="after">
                 <field name="sequence"/>
+                <field name="u_location_category_id"/>
             </xpath>
 
             <!--Hide unlock/lock button-->
@@ -102,6 +103,7 @@
             <xpath expr="//field[@name='result_package_id']" position="attributes">
                 <attribute name="context">{'move_line_ids': [id]}</attribute>
             </xpath>
+
         </field>
     </record>
 
@@ -115,11 +117,15 @@
             <!-- Add sequence widget -->
             <xpath expr="//tree/field[1]" position="before">
                 <field name="sequence" widget="handle"/>
+
             </xpath>
 
             <!-- Show priority -->
             <xpath expr="//field[@name='priority']" position="attributes">
                 <attribute name="invisible">0</attribute>
+            </xpath>
+            <xpath expr="//field[@name='priority']" position="after">
+                <field name="u_location_category_id"/>
             </xpath>
 
         </field>
@@ -139,11 +145,16 @@
                 <field name="u_result_package_id"/>
             </xpath>
             <xpath expr="//field[@name='product_id']" position="after">
+                <field name="u_location_category_id"/>
+            </xpath>
+            <xpath expr="//field[@name='product_id']" position="after">
                 <field name="priority"/>
             </xpath>
             <xpath expr="//group" position="inside">
               <filter name="by_priority" string="Priority"
                   domain="[]" context="{'group_by':'priority'}"/>
+              <filter name="by_location_category" string="Location Category"
+                  domain="[]" context="{'group_by':'u_location_category_id'}"/>
             </xpath>
         </field>
     </record>
