@@ -48,8 +48,27 @@
                 <xpath expr="//field[@name='putaway_strategy_id']" position="after">
                     <field name="u_height_category_id" />
                     <field name="u_speed_category_id" />
+                    <field name="u_location_category_id" />
                 </xpath>
 
+            </field>
+        </record>
+
+        <record id="view_location_search" model="ir.ui.view">
+            <field name="name">udes_stock.stock.location.search</field>
+            <field name="model">stock.location</field>
+            <field name="inherit_id" ref="stock.view_location_search"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='location_id']" position="after">
+                    <field name="u_location_category_id"/>
+                </xpath>
+                <xpath expr="//filter[@name='inactive']" position="after">
+                    <group expand="0" string="Group By">
+                        <filter string="Location Category" name="by_location_category_id"
+                                domain="[]"
+                                context="{'group_by':'u_location_category_id'}"/>
+                    </group>
+                </xpath>
             </field>
         </record>
     </data>
