@@ -114,7 +114,7 @@ class StockPickingBatch(models.Model):
                 continue
 
             ready_picks, other_picks = \
-                self._calculate_pick_groups(batch.picking_ids)
+                batch._calculate_pick_groups(batch.picking_ids)
 
             if batch.picking_ids and (ready_picks or other_picks):
                 # State-specific transitions
@@ -122,25 +122,25 @@ class StockPickingBatch(models.Model):
                     if other_picks:
                         # Not all picks are ready
                         pass
-                    elif self.user_id:
-                        self.state = 'in_progress'
+                    elif batch.user_id:
+                        batch.state = 'in_progress'
                     else:
-                        self.state = 'ready'
+                        batch.state = 'ready'
                 elif batch.state == 'ready':
                     if other_picks:
-                        self.state = 'waiting'
-                    elif self.user_id:
-                        self.state = 'in_progress'
+                        batch.state = 'waiting'
+                    elif batch.user_id:
+                        batch.state = 'in_progress'
                 elif batch.state == 'in_progress':
-                    if ready_picks and not other_picks and not self.user_id:
+                    if ready_picks and not other_picks and not batch.user_id:
                         # User is removed
-                        self.state = 'ready'
+                        batch.state = 'ready'
                     elif other_picks:
                         # Not really a transition but a bit of batch pick managemnet
                         # which has to be delt with
                         # We shouldn't have these check if we can make them ready
                         # otherwise remove them
-                        self._remove_unready_picks()
+                        batch._remove_unready_picks()
                 else:
                     _logger.error(_("Ignoring unexpected batch state: %s")
                                   % batch.state)
