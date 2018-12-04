@@ -839,7 +839,6 @@ class TestGoodsInPickingBatch(common.BaseUDES):
                          'picking was not confirmed')
         # Check no backorder has been created
         self.assertEqual(len(picking.u_created_back_orders), 0)
-
         # check that the investigation has reserved 3 only
         inv_picking = Picking.search([('picking_type_id', '=', self.picking_type_internal.id)])
         self.assertEqual(len(inv_picking), 1)
@@ -895,6 +894,124 @@ class TestBatchGetNextTask(common.BaseUDES):
 
         # In the same way, we should now get '10'
         self.assertEqual(task['package_id']['name'], '10')
+
+
+class TestBatchAddRemoveWork(common.BaseUDES):
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestBatchAddRemoveWork, cls).setUpClass()
+
+        Batch = cls.env['stock.picking.batch']
+        Batch = Batch.sudo(cls.outbound_user)
+
+        cls.pack_info = [{'product': cls.apple, 'qty': 4}]
+        cls.multipack_info = [{'product': cls.apple, 'qty': 2},
+                              {'product': cls.banana, 'qty': 4}]
+
+        cls.create_quant(cls.apple.id, cls.test_location_01.id, 12)
+        cls.create_quant(cls.banana.id, cls.test_location_02.id, 8)
+
+        cls.picking = cls.create_picking(cls.picking_type_pick,
+                                         products_info=cls.pack_info,
+                                         confirm=True,
+                                         assign=True,
+                                         name='pickingone')
+        cls.picking2 = cls.create_picking(cls.picking_type_pick,
+                                          products_info=cls.pack_info,
+                                          confirm=True,
+                                          assign=True,
+                                          name='pickingtwo')
+        cls.picking3 = cls.create_picking(cls.picking_type_in,
+                                          products_info=cls.multipack_info,
+                                          confirm=True,
+                                          assign=True,
+                                          name='pickingthree')
+        cls.picking4 = cls.create_picking(cls.picking_type_pick,
+                                          products_info=cls.multipack_info,
+                                          confirm=True,
+                                          assign=True,
+                                          name='pickingfour')
+
+        cls.batch = Batch.create_batch(cls.picking_type_pick.id,
+                                       [cls.picking.priority])
+
+    @classmethod
+    def complete_pick(cls, picking):
+        for move in picking.move_lines:
+            move.write({
+                'quantity_done': move.product_uom_qty,
+                'location_dest_id': cls.test_output_location_01.id,
+            })
+
+    def test01_test_add_extra_pickings(self):
+        """ Ensure that add extra picking adds pickings correctly"""
+
+        batch = self.batch
+
+        # We only have one picking at the moment
+        self.assertEqual(len(batch.picking_ids), 1)
+        self.assertEqual(batch.picking_ids[0].name, 'pickingone')
+
+        # Add extra pickings
+        batch.add_extra_pickings(self.picking_type_pick.id)
+
+        # Check that we now have two pickings including "pickingtwo"
+        self.assertEqual(len(batch.picking_ids), 2)
+        self.assertIn('pickingtwo', batch.mapped('picking_ids.name'))
+
+        # Add extra pickings
+        batch.add_extra_pickings(self.picking_type_pick.id)
+
+        # Check that we now have three pickings including "pickingfour"
+        self.assertEqual(len(batch.picking_ids), 3)
+        self.assertIn('pickingfour', batch.mapped('picking_ids.name'))
+
+        # Should be no more work now, check error is raised
+        with self.assertRaises(ValidationError) as err:
+            batch.add_extra_pickings(self.picking_type_pick.id)
+
+    def test02_test_remove_unfinished_work(self):
+        """ Ensure that remove unfinished work removes picks
+        and backorders moves correctly """
+
+        picking = self.picking
+        picking2 = self.picking2
+        picking4 = self.picking4
+        batch = self.batch
+
+        pickings = picking2 + picking4
+        pickings.write({'batch_id': batch.id})
+
+        # We have three pickings in this batch now
+        self.assertEqual(len(batch.picking_ids), 3)
+
+        # Complete pick2
+        self.complete_pick(picking2)
+
+        # semi complete pick3
+        picking4.move_lines[0].write({
+                'quantity_done': 2,
+                'location_dest_id': self.test_output_location_01.id,
+            })
+
+        # Record which move lines were complete and which weren't
+        done_moves = picking4.move_lines[0]+picking2.move_lines[0]
+        incomplete_moves = picking.move_lines[0]+picking4.move_lines[1]
+
+        # Remove unfinished work
+        batch.remove_unfinished_work()
+
+        # Pickings with incomplete work are removed, complete pickings remain
+        self.assertFalse(picking.batch_id)
+        self.assertEqual(picking2.batch_id, batch)
+        self.assertFalse(picking4.batch_id)
+
+        # Ensure both done moves remain in batch
+        self.assertEqual(done_moves.mapped('picking_id.batch_id'), batch)
+
+        # Ensure incomplete moves are in pickings that are not in batches
+        self.assertFalse(incomplete_moves.mapped('picking_id.batch_id'))
 
 
 class TestBatchState(common.BaseUDES):

@@ -624,6 +624,31 @@ HTTP Method: GET
 Returns `true` if the user has any assigned batch, `false` otherwise.
 Does not check whether the user has multiple batches assigned.
 
+### Add available pickings to batch
+```
+URI: /api/stock-picking-batch/:id/add-extra-pickings
+HTTP Method: POST
+Old method(s): none
+```
+* @param id - Id of the batch to remove pickings from.
+* @param picking_type_id - Id of the picking type for the pickings which will be used to create the batch.
+
+Works only for ephemeral batches, otherwise raises an error.
+Seeks the next available picking of picking_type_id and adds it to the batch
+Returns the information of the batch that work was added to.
+
+### Remove unfinished work from batch
+```
+URI: /api/stock-picking-batch/:id/remove-unfinished-work
+HTTP Method: POST
+Old method(s): none
+```
+* @param id - Id of the batch to remove pickings from.
+
+Works only for ephemeral batches, otherwise raises an error.
+Removes pickings that were not started from the batch, backorders incomplete move lines from other pickings
+Returns the information of the batch that work was removed from.
+
 ## Stock Picking Priorities
 ```
 URI: /api/stock-picking-priorities/

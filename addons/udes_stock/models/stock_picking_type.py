@@ -226,6 +226,14 @@ class StockPickingType(models.Model):
         help='Choose the package name policy to be applied for the picking type.'
     )
 
+    u_continue_picking = fields.Boolean(
+        string='Allow continue picking',
+        default=False,
+        help='Flag to indicate whether the user can request more work be added'
+             'to current batch rather than going to drop off once current '
+             'picking is done in the case that they have more capacity.'
+    )
+
     def do_refactor_action(self, action, moves):
         """Resolve and call the method to be executed on the moves.
 
@@ -268,6 +276,7 @@ class StockPickingType(models.Model):
             - u_user_scans: string
             - u_reserve_as_packages: boolean
             - u_auto_batch_pallet: boolean
+            - u_continue_picking: boolean
             - u_check_work_available: boolean
             - u_use_product_packaging: boolean
             - u_assign_batch_to_user: boolean
@@ -306,6 +315,7 @@ class StockPickingType(models.Model):
                 'u_drop_location_policy': self.u_drop_location_policy,
                 'u_new_package_policy': self.u_new_package_policy,
                 'u_auto_batch_pallet': self.u_auto_batch_pallet,
+                'u_continue_picking': self.u_continue_picking,
                 'u_check_work_available': self.u_check_work_available,
                 'u_use_product_packaging': self.u_use_product_packaging,
                 'u_assign_batch_to_user': self.u_assign_batch_to_user,

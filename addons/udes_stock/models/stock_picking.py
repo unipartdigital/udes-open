@@ -1523,3 +1523,23 @@ class StockPicking(models.Model):
         # Try to re-assign the picking after, by creating the
         # investigation, we've reserved the problematic stock
         self.action_assign()
+
+    def search_for_pickings(self, picking_type_id, picking_priorities, limit=1):
+        """ Search for next available picking based on picking type and priorities """
+
+        search_domain = []
+
+        if picking_priorities is not None:
+            search_domain.append(('priority', 'in', picking_priorities))
+
+        search_domain.extend([('picking_type_id', '=', picking_type_id),
+                              ('state', '=', 'assigned'),
+                              ('batch_id', '=', False)])
+
+        # Note: order should be determined by stock.picking._order
+        picking = self.search(search_domain, limit=limit)
+
+        if not picking:
+            return None
+
+        return picking

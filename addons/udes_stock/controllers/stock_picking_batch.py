@@ -248,3 +248,33 @@ class PickingBatchApi(UdesApi):
         batches = PickingBatch.get_user_batches()
 
         return True if batches else False
+
+    @http.route('/api/stock-picking-batch/<ident>/add-extra-pickings',
+                type='json', methods=['POST'], auth='user')
+    def add_extra_pickings(self, ident, picking_type_id):
+        """
+        If pickings are available and the user has single in batch
+        in progress - add the next available picking to this batch
+
+        Raises a ValidationError if no pickings are available
+
+        @param picking_type_id - Id of the picking type for the pickings
+            which will be used to create the batch.
+        """
+        batch = _get_batch(request.env, ident)
+        batch.add_extra_pickings(picking_type_id)
+
+        return _get_single_batch_info(batch)
+
+    @http.route('/api/stock-picking-batch/<ident>/remove-unfinished-work',
+                type='json', methods=['POST'], auth='user')
+    def remove_unfinished_work(self, ident):
+        """
+        Remove pickings from batch if they are not started
+
+        Backorder half-finished pickings
+        """
+        batch = _get_batch(request.env, ident)
+        updated_batch = batch.remove_unfinished_work()
+
+        return _get_single_batch_info(updated_batch)

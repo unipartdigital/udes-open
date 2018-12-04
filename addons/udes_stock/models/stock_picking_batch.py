@@ -377,34 +377,41 @@ class StockPickingBatch(models.Model):
         priorities (optional).
         In case no pickings exist, return None.
         """
-        Picking = self.env['stock.picking']
         PickingBatch = self.env['stock.picking.batch']
+        Picking = self.env['stock.picking']
 
-        search_domain = []
-
-        if picking_priorities is not None:
-            search_domain.append(('priority', 'in', picking_priorities))
-
-        search_domain.extend([('picking_type_id', '=', picking_type_id),
-                              ('state', '=', 'assigned'),
-                              ('batch_id', '=', False)])
-
-        # Note: order should be determined by stock.picking._order
-        picking = Picking.search(search_domain, limit=1)
+        picking = Picking.search_for_pickings(picking_type_id, picking_priorities)
 
         if not picking:
             return None
 
         batch = PickingBatch.create({'user_id': user_id})
-        picking.batch_id = batch.id
+        picking.write({'batch_id': batch.id})
         batch.write({'u_ephemeral': True})
         batch.confirm_picking()
 
         return batch
 
+    def add_extra_pickings(self, picking_type_id):
+        """ Get the next available picking and add it to the current users batch """
+        Picking = self.env['stock.picking']
+
+        picking_priorities = self.get_batch_priority_group()
+        pickings = Picking.search_for_pickings(picking_type_id, picking_priorities)
+
+        if not pickings:
+            raise ValidationError(_("No more work to do."))
+
+        if not self.u_ephemeral:
+            raise ValidationError(_("Can only add work to ephemeral batches"))
+
+        pickings.write({'batch_id': self.id})
+        return True
+
     def _check_user_batch_in_progress(self, user_id=None):
         """Check if a user has a batch in progress"""
         batches = self.get_user_batches(user_id=user_id)
+
         if batches:
             incomplete_picks = batches.picking_ids.filtered(
                 lambda pick: pick.state in ['draft', 'waiting', 'confirmed']
@@ -639,3 +646,47 @@ class StockPickingBatch(models.Model):
             .mapped('picking_ids')\
             .filtered(lambda sp: sp.state not in ('done', 'cancel'))\
             .write({'batch_id': False})
+
+    def remove_unfinished_work(self):
+        """
+        Remove pickings from batch if they are not started
+        Backorder half-finished pickings
+        """
+        Picking = self.env['stock.picking']
+
+        if not self.u_ephemeral:
+            raise ValidationError(_("Can only remove work from ephemeral batches"))
+
+        pickings_to_remove = Picking.browse()
+        pickings_to_add = Picking.browse()
+
+        for picking in self.picking_ids:
+            started_lines = picking.mapped('move_line_ids').filtered(lambda x: x.qty_done > 0)
+            if started_lines:
+                # backorder incomplete moves
+                if picking._requires_backorder(started_lines):
+                    pickings_to_add |= picking.with_context(
+                        lock_batch_state=True)._backorder_movelines(started_lines)
+                    pickings_to_remove |= picking
+            else:
+                pickings_to_remove |= picking
+
+        pickings_to_remove.with_context(lock_batch_state=True).write({'batch_id': False})
+        pickings_to_add.write({'batch_id': self.id})
+
+    def get_batch_priority_group(self):
+        """ Get priority group for this batch based on the pickings' priorities
+        Returns list of IDs
+        """
+        Picking = self.env['stock.picking']
+
+        if not self.picking_ids:
+            raise ValidationError(_("Batch without pickings cannot have a priority group"))
+
+        picking_priority = self.picking_ids[0].priority
+        priority_groups = Picking.get_priorities()
+        for priority_group in priority_groups:
+            priority_ids = [priority['id'] for priority in priority_group['priorities']]
+            if picking_priority in priority_ids:
+                return priority_ids
+        return None

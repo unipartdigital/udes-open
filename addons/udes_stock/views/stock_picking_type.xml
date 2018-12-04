@@ -37,6 +37,7 @@
                     <field name="u_confirm_tracking" />
                     <field name="u_confirm_expiry_date" />
                     <field name="u_auto_batch_pallet" />
+                    <field name="u_continue_picking" />
                     <field name="u_check_work_available" />
                     <field name="u_use_product_packaging" />
                     <field name="u_assign_batch_to_user" />
