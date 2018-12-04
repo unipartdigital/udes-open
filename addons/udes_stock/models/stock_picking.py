@@ -189,10 +189,12 @@ class StockPicking(models.Model):
         self.assert_not_pending()
         mls = self.mapped('move_line_ids')
         # Prevent recomputing the batch stat
+        batches = mls.mapped('picking_id.batch_id')
         res = super(StockPicking,
                     self.with_context(lock_batch_state=True)).action_done()
         picks = mls.mapped('picking_id')
-        self._trigger_batch_state_recompute(picks=picks)
+        batches += picks.mapped('batch_id')
+        self._trigger_batch_state_recompute(batches=batches)
 
         self.env.ref('udes_stock.picking_done').with_context(
             active_model=picks._name,
@@ -1485,18 +1487,14 @@ class StockPicking(models.Model):
         return super(StockPicking, self)._put_in_pack()
 
     @api.constrains('state', 'batch_id')
-    def _trigger_batch_state_recompute(self, picks=None):
+    def _trigger_batch_state_recompute(self, batches=None):
         """Batch state is dependant on picking state and batch_id"""
-        if picks is not None:
-            # We only want to run this when told
-            # not when there isnt a batch
-            batch = picks.mapped('batch_id')
-        else:
-            batch = self.env.context.get('orig_batches') or \
+        if batches is None:
+            batches = self.env.context.get('orig_batches') or \
                 self.mapped('batch_id')
 
-        if batch:
-            batch._compute_state()
+        if batches:
+            batches._compute_state()
         return True
 
     def raise_stock_inv(self, reason, quants, location):
