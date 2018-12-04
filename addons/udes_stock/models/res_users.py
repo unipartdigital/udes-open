@@ -49,6 +49,26 @@ class ResUser(models.Model):
         """
         user = self.search([('id', '=', self.env.uid)])
         if not user:
-            raise ValidationError(_('Cannot find user to get location categories.'))
+            raise ValidationError(
+                _('Cannot find user to get location categories.'))
 
         return user.u_location_category_ids
+
+    def set_user_location_categories(self, category_ids):
+        """ Set the location categories of the user
+        """
+        LocationCategory = self.env['stock.location.category']
+        user = self.search([('id', '=', self.env.uid)])
+        if not user:
+            raise ValidationError(
+                _('Cannot find user to set location categories.'))
+
+        categories = LocationCategory.browse(category_ids).exists()
+        miss_ids = set(category_ids) - set(categories.ids)
+        if len(miss_ids) > 0:
+            raise ValidationError(
+                _('Cannot find some location categories ids: %s') % miss_ids)
+
+        user.sudo().u_location_category_ids = categories
+
+        return True
