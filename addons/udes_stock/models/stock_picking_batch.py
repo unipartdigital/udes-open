@@ -42,6 +42,27 @@ class StockPickingBatch(models.Model):
         store=True,
     )
 
+    u_location_category_id = fields.Many2one(
+        comodel_name='stock.location.category',
+        compute='_compute_location_category',
+        string='Location Category',
+        help="Used to know which pickers have the right equipment to pick it. "
+             "In case multiple location categories are found in the picking it "
+             "will be empty.",
+        readonly=True,
+        store=True,
+    )
+
+    @api.depends('picking_ids',
+                 'picking_ids.u_location_category_id')
+    @api.one
+    def _compute_location_category(self):
+        """ Compute location category from picking_ids"""
+        if self.picking_ids:
+            categories = self.picking_ids.mapped('u_location_category_id')
+            self.u_location_category_id = \
+                categories if len(categories) == 1 else False
+
     @api.multi
     def confirm_picking(self):
         """Overwrite method confirm picking to raise error if not in draft and

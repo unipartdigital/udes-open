@@ -14,6 +14,7 @@
           <field name="scheduled_date"/>
           <field name="u_ephemeral"/>
           <field name="priority"/>
+          <field name="u_location_category_id"/>
         </xpath>
         <xpath expr="//button[@name='action_cancel']" position="replace" />
         <xpath expr="//button[@name='cancel_picking']" position="replace">
@@ -37,6 +38,7 @@
           <field name="scheduled_date"/>
           <field name="u_ephemeral"/>
           <field name="priority"/>
+          <field name="u_location_category_id"/>
         </xpath>
       </field>
     </record>
@@ -51,12 +53,15 @@
         <xpath expr="//field[@name='user_id']" position="after">
           <field name="picking_type_ids"/>
           <field name="priority"/>
+          <field name="u_location_category_id"/>
         </xpath>
         <xpath expr="//group" position="inside">
           <filter name="by_scheduled_date" string="Scheduled Date"
             domain="[]" context="{'group_by':'scheduled_date'}"/>
           <filter name="by_priority" string="Priority"
             domain="[]" context="{'group_by':'priority'}"/>
+          <filter name="by_location_category" string="Location Category"
+              domain="[]" context="{'group_by':'u_location_category_id'}"/>
         </xpath>
       </field>
     </record>
