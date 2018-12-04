@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<odoo>
+    <data>
+        <record id="location_category_search_view" model="ir.ui.view">
+            <field name="name">stock.location.category.search</field>
+            <field name="model">stock.location.category</field>
+            <field name="arch" type="xml">
+                <search string="Product Categories">
+                    <field name="name" string="Location Categories"/>
+                    <field name="parent_id"/>
+                    <group expand="0" string="Group By">
+                        <filter string="Parent" name="by_parent_id" domain="[]"
+                                context="{'group_by':'parent_id'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+        <record id="location_category_list_view" model="ir.ui.view">
+            <field name="name">stock.location.category.list</field>
+            <field name="model">stock.location.category</field>
+            <field name="priority">1</field>
+            <field name="arch" type="xml">
+                <tree string="Location Categories">
+                    <field name="display_name"/>
+                </tree>
+            </field>
+        </record>
+        <record id="location_category_action" model="ir.actions.act_window">
+            <field name="name">Location Categories</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">stock.location.category</field>
+            <field name="view_type">form</field>
+            <field name="search_view_id" ref="location_category_search_view"/>
+            <field name="view_id" ref="location_category_list_view"/>
+        </record>
+    </data>
+    <menuitem id="menu_location_category" name="Location Categories"
+              parent="stock.menu_warehouse_config"
+              action="location_category_action" sequence="2"/>
+</odoo>

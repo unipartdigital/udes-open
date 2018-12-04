@@ -1,3 +1,4 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_udes_stock_edi_quant_report_record,access_udes_stock_edi_quant_report_record,model_udes_stock_edi_quant_report_record,base.group_user,1,0,0,0
 access_udes_stock_stock_picking_print_strategy,access_udes_stock_stock_picking_print_strategy,model_udes_stock_stock_picking_print_strategy,base.group_user,1,0,0,0
+access_stock_location_category,access_stock_location_category,model_stock_location_category,base.group_user,1,0,0,0
