@@ -8,13 +8,18 @@
             <field name="domain_force">[('customer', '=', user.u_view_customers)]</field>
         </record>
 
-        <!-- <record model="ir.rule" id="no_sale_order_lines">
-            <field name="name">no_sale_order_lines</field>
-            <field name="model_id" search="[('model','=','sale.order.line')]" model="ir.model"/>
-            <field name="global" eval="False"/>
-            <field name="perm_read" eval="1" />
-            <field name="domain_force">[(0, '=', 1)]</field>
-            <field name="groups" eval="[(4,ref('udes_stock.group_inbound_user'))]"/>
-        </record> -->
+        <record id="udes_stock.group_inbound_user" model="res.groups">
+            <field name="name">Inbound User</field>
+            <field name="u_view_customers" eval="False"/>
+        </record>
+        <record id="udes_stock.group_stock_user" model="res.groups">
+            <field name="name">Stock User</field>
+            <field name="u_view_customers" eval="False"/>
+        </record>
+        <record id="udes_stock.group_outbound_user" model="res.groups">
+            <field name="name">Outbound User</field>
+            <field name="u_view_customers" eval="True"/>
+        </record>
+
     </data>
 </odoo>
