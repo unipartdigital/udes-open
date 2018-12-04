@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<odoo>
+
+    <record id="view_groups_form_inherit_udes_sale_stock" model="ir.ui.view">
+        <field name="name">res.groups.form.inherit</field>
+        <field name="model">res.groups</field>
+        <field name="inherit_id" ref="udes_stock.view_groups_form_inherit"/>
+        <field name="arch" type="xml">
+
+            <xpath expr="//notebook" position="inside">
+                <sheet string="Can view">
+                    <group>
+                        <field name="u_view_customers"/>
+                    </group>
+                </sheet>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>
