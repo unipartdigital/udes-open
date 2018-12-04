@@ -128,7 +128,7 @@ class PickingBatchApi(UdesApi):
 
             batch.unassign()
 
-        return _get_single_batch_info(batch)
+        return True
 
     @http.route('/api/stock-picking-batch/',
                 type='json', methods=['POST'], auth='user')
