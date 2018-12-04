@@ -23,6 +23,12 @@ class ResUser(models.Model):
         readonly=True,
     )
 
+    u_location_category_ids = fields.Many2many(
+        comodel_name='stock.location.category',
+        index=True,
+        string='Location Category',
+    )
+
     def get_user_warehouse(self):
         """ Get the warehouse of the user by chain of the company
         """
@@ -37,3 +43,12 @@ class ResUser(models.Model):
             raise ValidationError(_('Found multiple warehouses for user'))
 
         return warehouse
+
+    def get_user_location_categories(self):
+        """ Get the location categories of the user
+        """
+        user = self.search([('id', '=', self.env.uid)])
+        if not user:
+            raise ValidationError(_('Cannot find user to get location categories.'))
+
+        return user.u_location_category_ids
