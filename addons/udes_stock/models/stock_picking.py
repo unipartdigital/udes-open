@@ -193,7 +193,9 @@ class StockPicking(models.Model):
         res = super(StockPicking,
                     self.with_context(lock_batch_state=True)).action_done()
         picks = mls.mapped('picking_id')
-        batches += picks.mapped('batch_id')
+        # batches of the following stage should also be recomputed
+        picks |= mls.mapped('picking_id.u_next_picking_ids')
+        batches |= picks.mapped('batch_id')
         self._trigger_batch_state_recompute(batches=batches)
 
         self.env.ref('udes_stock.picking_done').with_context(
