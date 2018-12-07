@@ -20,14 +20,51 @@ class StockPickingBatch(models.Model):
         string="Scheduled Date", compute='_compute_scheduled_date',
         store=True, index=True,
     )
-    u_ephemeral = fields.Boolean(string="Ephemeral",
-                                  help="Ephemeral batches are unassigned if the user logs out")
-
+    u_ephemeral = fields.Boolean(
+        string="Ephemeral",
+        help="Ephemeral batches are unassigned if the user logs out"
+    )
     priority = fields.Selection(
         selection=PRIORITIES, string="Priority", store=True, index=True,
         readonly=True, compute='_compute_priority',
         help="Priority of a batch is the maximum priority of its pickings."
     )
+    state = fields.Selection(
+        selection = [
+            ('draft', 'Draft'),
+            ('waiting', 'Waiting'),
+            ('ready', 'Ready'),
+            ('in_progress', 'Running'),
+            ('done', 'Done'),
+            ('cancel', 'Cancelled')
+        ],
+        compute='_compute_state',
+        store=True,
+    )
+
+    @api.multi
+    def confirm_picking(self):
+        """Overwrite method confirm picking to raise error if not in draft and
+           rollback to draft on error in action_assign.
+        """
+        if any(batch.state != 'draft' for batch in self):
+            raise ValidationError(_(
+                'Batch (%s) is not in state draft can not perform '
+                'confirm_picking') % ','.join(
+                    b.name for b in self if b.state != 'draft')
+            )
+
+        pickings_todo = self.mapped('picking_ids')
+        self.write({'state': 'waiting'})  # Get it out of draft
+
+        try:
+            p = pickings_todo.action_assign()
+            self._compute_state()
+
+            return p
+        except:
+            self.write({'state': 'draft'})
+            raise
 
     @api.multi
     @api.depends('picking_ids', 'picking_ids.picking_type_id')
@@ -54,6 +91,109 @@ class StockPickingBatch(models.Model):
                 new_priority = max(priorities)
             if new_priority != batch.priority:
                 batch.priority = new_priority
+
+    @api.multi
+    @api.constrains('user_id')
+    def _compute_state(self):
+        """ Compute the state of a batch post confirm
+            waiting     : At least some picks are not ready
+            ready       : All picks are in ready state (assigned)
+            in_progress : All picks are ready and a user has been assigned
+            done        : All picks are complete (in state done or cancel)
+
+            the other two states are draft and cancel are manual
+            to transitions from or to the respective state.
+        """
+        if self.env.context.get('lock_batch_state'):
+            # State is locked so don't do anything
+            return
+
+        for batch in self:
+            if batch.state in ['draft', 'done', 'cancel']:
+                # Can not do anything with them don't bother trying
+                continue
+
+            ready_picks, other_picks = \
+                batch._calculate_pick_groups(batch.picking_ids)
+
+            if batch.picking_ids and (ready_picks or other_picks):
+                # State-specific transitions
+                if batch.state == 'waiting':
+                    if other_picks:
+                        # Not all picks are ready
+                        pass
+                    elif batch.user_id:
+                        batch.state = 'in_progress'
+                    else:
+                        batch.state = 'ready'
+                elif batch.state == 'ready':
+                    if other_picks:
+                        batch.state = 'waiting'
+                    elif batch.user_id:
+                        batch.state = 'in_progress'
+                elif batch.state == 'in_progress':
+                    if ready_picks and not other_picks and not batch.user_id:
+                        # User is removed
+                        batch.state = 'ready'
+                    elif other_picks:
+                        # Not really a transition but a bit of batch pick managemnet
+                        # which has to be delt with
+                        # We shouldn't have these check if we can make them ready
+                        # otherwise remove them
+                        batch._remove_unready_picks()
+                else:
+                    _logger.error(_("Ignoring unexpected batch state: %s")
+                                  % batch.state)
+            else:
+                # Valid for all states; this accounts for all
+                # pickings being complete, canceled or all pickings
+                # get removed for some reason.
+                # The last two can happen in any state
+                batch.state = 'done'
+
+    def _calculate_pick_groups(self, picks):
+        """Collect picks into groups based on state - complete picks are ignored
+           Groups are
+                ready    : pick.state is assigned
+                other    : pick.state is in any other state than the ones above
+        """
+        Picking = self.env['stock.picking']
+
+        ready_picks = Picking.browse()
+        other_picks = Picking.browse()
+
+        for pick in picks:
+            if pick.state == 'assigned':
+                ready_picks |= pick
+            elif pick.state in ['done', 'cancel']:
+                continue
+            else:
+                other_picks |= pick
+
+        return ready_picks, other_picks
+
+    @api.multi
+    def _remove_unready_picks(self, picks=None):
+        if picks is None:
+            picks = self.mapped('picking_ids')
+
+        # first lets double check there are not ready
+        not_ready_lam = lambda pick: pick.state in \
+            ['draft', 'waiting', 'confirmed']
+        not_ready = picks.filtered(not_ready_lam)
+
+        if not_ready:
+            confirmed_not_ready = not_ready.filtered(
+                lambda pick: pick.state == 'confirmed')
+
+            if confirmed_not_ready:
+                # Attempt to make confirmed picks ready
+                confirmed_not_ready.action_assign()
+
+            # Filter again as we are possibly calling action_assign which
+            # could make some of the previous not ready picks to now be ready
+            not_ready.filtered(not_ready_lam).write({'batch_id': False})
+            self._compute_state()
 
     def _get_task_grouping_criteria(self):
         """
@@ -144,9 +284,6 @@ class StockPickingBatch(models.Model):
         """
         Search for a picking batch in progress for the specified user.
         If no user is specified, the current user is considered.
-        If no batch is found, but pickings exist, create a new batch.
-
-        If a batch is determined, return it, otherwise return None.
 
         Raise a ValidationError in case it cannot perform a search
         or if multiple batches are found for the specified user.
@@ -176,6 +313,7 @@ class StockPickingBatch(models.Model):
                 lambda x: x.state in allowed_picking_states)
 
         return {'id': self.id,
+                'name': self.name,
                 'picking_ids': pickings.get_info(),
                 'result_package_names': pickings.get_result_packages_names()}
 
@@ -186,6 +324,34 @@ class StockPickingBatch(models.Model):
         """
         return [batch._prepare_info(allowed_picking_states)
                 for batch in self]
+
+    def _select_batch_to_assign(self, batches):
+        """
+        Orders the batches by name and returns the first one.
+        """
+        assert batches, "Expects a non-empty batches recordset"
+        return batches.sorted(key=lambda b: b.name)[0]
+
+    @api.model
+    def assign_batch(self, picking_type_id, selection_criteria=None):
+        """
+        Determine all the batches in state 'ready' with pickings
+        of the specified picking types then return the one determined
+        by the selection criteria method (that should be overriden
+        by the relevant customer modules).
+
+        Note that the transition from state 'ready' to 'in_progress'
+        is handled by computation of state function.
+        """
+        batches = self.search([('state', '=', 'ready')]) \
+                      .filtered(lambda b: all([pt.id == picking_type_id
+                                               for pt in b.picking_type_ids]))
+
+        if batches:
+            batch = self._select_batch_to_assign(batches)
+            batch.user_id = self.env.user
+
+            return batch
 
     @api.multi
     def create_batch(self, picking_type_id, picking_priorities, user_id=None):
@@ -200,7 +366,7 @@ class StockPickingBatch(models.Model):
         otherwise such batches will be marked as done.
         """
         user_id = self._check_user_id(user_id)
-        self._check_batches(user_id)
+        self._check_user_batch_in_progress(user_id)
 
         return self._create_batch(user_id, picking_type_id, picking_priorities)
 
@@ -231,51 +397,24 @@ class StockPickingBatch(models.Model):
 
         batch = PickingBatch.create({'user_id': user_id})
         picking.batch_id = batch.id
-        batch.write({'state': 'in_progress',
-                     'u_ephemeral': True})
+        batch.write({'u_ephemeral': True})
+        batch.confirm_picking()
 
         return batch
 
-    def _check_batches(self, user_id, batches=None, raise_error=True):
-        """
-        Checks if batches are complete, and marks as done.
-
-        If no batch is provided, searches all batches in progress
-        for the specified user.
-
-        Optionally raises a ValidationError if any non-draft picking
-        is incomplete.
-        """
-        Picking = self.env['stock.picking']
-        PickingBatch = self.env['stock.picking.batch']
-
-        if not batches:
-            batches = PickingBatch.search([('user_id', '=', user_id),
-                                           ('state', '=', 'in_progress')])
-
+    def _check_user_batch_in_progress(self, user_id=None):
+        """Check if a user has a batch in progress"""
+        batches = self.get_user_batches(user_id=user_id)
         if batches:
-            not_ready_picks = Picking.browse()
-            incomplete_picks = Picking.browse()
-
-            for pick in batches.mapped('picking_ids'):
-                if pick.state in ['draft', 'waiting', 'confirmed']:
-                    not_ready_picks += pick
-                elif pick.state not in ['done', 'cancel']:
-                    incomplete_picks += pick
-
-            if not_ready_picks:
-                not_ready_picks.write({'batch_id': None})
-
-            if incomplete_picks and raise_error:
-                picks_txt = ','.join([x.name for x in incomplete_picks])
-                raise ValidationError(
-                    _("The user already has pickings that need completing - "
-                      "please complete those before requesting "
-                      "more:\n {}".format(picks_txt)))
-
-            # all the picks in the waves are finished
-            if not incomplete_picks:
-                batches.done()
+            incomplete_picks = batches.picking_ids.filtered(
+                lambda pick: pick.state in ['draft', 'waiting', 'confirmed']
+            )
+            picks_txt = ','.join([x.name for x in incomplete_picks])
+            raise ValidationError(
+                _("The user already has pickings that need completing - "
+                  "please complete those before requesting "
+                  "more:\n {}").format(picks_txt)
+            )
 
     def drop_off_picked(self, continue_batch, location_barcode):
         """
@@ -308,11 +447,12 @@ class StockPickingBatch(models.Model):
             for pick in pickings:
                 pick_todo = pick
                 pick_mls = completed_move_lines.filtered(lambda x: x.picking_id == pick)
+
                 if pick._requires_backorder(pick_mls):
                     pick_todo = pick._backorder_movelines(pick_mls)
+
                 # at this point pick_todo should contain only mls done
                 pick_todo.update_picking(validate=True)
-
         if not continue_batch:
             self.unassign()
 
@@ -350,14 +490,13 @@ class StockPickingBatch(models.Model):
                         product_id=None,
                         location_id=None,
                         package_name=None,
-                        picking_type_id=None,
                         lot_name=None,
                         raise_stock_investigation=True):
         """
         Given an unpickable product or package, find the related
         move lines in the current batch, backorder them and refine
         the backorder (by default it is canceled).
-        Then create a new picking of type picking_type_id for the
+        Then create a new stock investigation picking for the
         unpickable stock.
         If the picking was the last one of the batch, the batch is
         set as done.
@@ -367,9 +506,6 @@ class StockPickingBatch(models.Model):
         """
         self.ensure_one()
 
-        ResUsers = self.env['res.users']
-        Picking = self.env['stock.picking']
-        Group = self.env['procurement.group']
         Package = self.env['stock.quant.package']
         Location = self.env['stock.location']
         Product = self.env['product.product']
@@ -397,7 +533,6 @@ class StockPickingBatch(models.Model):
 
             if package:
                 move_lines = move_lines.filtered(lambda ml: ml.package_id == package)
-
                 msg += _(' in package %s') % package.name
             elif move_lines.mapped('package_id'):
                 raise ValidationError(
@@ -408,7 +543,7 @@ class StockPickingBatch(models.Model):
             allow_partial = True
         elif package:
             if not location:
-                location=package.location_id
+                location = package.location_id
 
             move_lines = move_lines.filtered(lambda ml: ml.package_id == package)
             quants = package._get_contained_quants()
@@ -429,9 +564,6 @@ class StockPickingBatch(models.Model):
         if picking.batch_id != self:
             raise ValidationError(_('Move line is not part of the batch.'))
 
-        if picking_type_id is None:
-            picking_type_id = ResUsers.get_user_warehouse().int_type_id.id
-
         if picking.state in ['cancel', 'done']:
             raise ValidationError(_('Cannot mark a move line as unpickable '
                                     'when it is part of a completed Picking.'))
@@ -446,29 +578,18 @@ class StockPickingBatch(models.Model):
 
         if raise_stock_investigation:
             # By default the pick is unreserved
-            picking._refine_picking(reason)
+            picking.with_context(
+                lock_batch_state=True,
+                allow_partial=allow_partial,
+            ).raise_stock_inv(
+                reason=reason,
+                quants=quants,
+                location=location,
+            )
+            self._compute_state()
 
-            group = Group.get_group(group_identifier=reason,
-                                    create=True)
-
-            # create new "investigation pick"
-            Picking.with_context(allow_partial=allow_partial)\
-                .create_picking(quant_ids=quants.mapped('id'),
-                                location_id=location.id,
-                                picking_type_id=picking_type_id,
-                                group_id=group.id)
-
-            # Try to re-assing the picking after, by creating the
-            # investigation, we've reserved the problematic stock
-            picking.action_assign()
-
-            if picking.state != 'assigned':
-                # Remove the picking from the batch as it cannot be
-                # processed for lack of stock; we do so to be able
-                # to terminate the batch and let the user create a
-                # new batch for himself
-                picking.batch_id = False
-            elif original_picking_id is not None:
+            if picking.state == 'assigned' \
+                    and original_picking_id is not None:
                 # A backorder has been created, but the stock is
                 # available; get rid of the backorder after linking the
                 # move lines to the original picking, so it can be
@@ -476,17 +597,8 @@ class StockPickingBatch(models.Model):
                 picking.move_line_ids.write({'picking_id': original_picking_id})
                 picking.move_lines.write({'picking_id': original_picking_id})
                 picking.unlink()
-
         else:
             picking.batch_id = False
-
-        # If the batch does not contain any remaining picking to do,
-        # it can be set as done
-        remaining_pickings = self.picking_ids.filtered(
-            lambda x: x.state in ['assigned'])
-
-        if not remaining_pickings.exists():
-            self.state = 'done'
 
         return True
 
@@ -499,25 +611,13 @@ class StockPickingBatch(models.Model):
 
         return available_pickings.mapped('move_line_ids')
 
-    @api.one
-    def check_batches(self):
-        """ If picking IDs are updated on an in progress batch, check if it is now complete
-        """
-        if self.state == 'in_progress':
-            self._check_batches(None, batches=self, raise_error=False)
-
-    def write(self, vals):
-        """ If writing batch, check if now complete
-        """
-        res = super(StockPickingBatch, self).write(vals)
-        self.check_batches()
-        return res
-
-    def get_user_batches(self):
+    def get_user_batches(self, user_id=None):
         """ Get all batches for user
         """
+        if user_id is None:
+            user_id = self.env.user.id
         # Search for in progress batches
-        batches = self.search([('user_id', '=', self.env.user.id),
+        batches = self.search([('user_id', '=', user_id),
                                ('state', '=', 'in_progress')])
         return batches
 

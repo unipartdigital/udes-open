@@ -465,7 +465,40 @@ URI: /api/stock-picking-batch
 HTTP Method: GET
 Old method(s): get_users_wave
 ```
-Search for a picking batch in progress for the current user. It returns the id of the batch and the list of pickings.
+Search for a picking batch that is `in_progress` and assigned to the requester
+user.
+
+Response:
+
+It returns a JSON object with:
+ - the `id` and `name` of the batch;
+ - `picking_ids`: an array  metadata of the `assigned` pickings of the batch
+ - `result_package_names`: an array with the result packages
+
+In case no batch is determined, an empty object is returned.
+Returns an error if the user has multiple batches asssigned, regardless of the
+picking type.
+
+### Assign picking batch
+```
+URI: /api/stock-picking-batch/assign/
+HTTP Method: POST
+```
+Assign a `ready` batch of the specified picking type to the current user.
+By "assign" we mean that the batch `user_id` will be set to the user ID and the
+batch state will be moved to `in_progress`.
+
+Request:
+
+A JSON object containing a single `picking_type_id` numeric entry, indicating
+the picking type of the batch that should be assigned.
+
+Response (same as /api/stock-picking-batch GET):
+
+In case the backend succeeds to assign a batch to the current user, the response
+will contain a JSON object with the same format as the above `get` endpoint,
+that will represent the assigned batch.
+Otherwise it will include an empty JSON object.
 
 ### Create picking batch
 ```
@@ -473,10 +506,46 @@ URI: /api/stock-picking-batch
 HTTP Method: POST
 Old method(s): generate_wave_for_user
 ```
-Generate a new batch for the current user.
+Create a new batch and assign it to the requester user.
+The batch will be in the `in_progress` state and will have its `ephemeral`
+field flagged. As a consequence of that, the batch pickings will be unlinked
+when the user logs out or when the `unassign` endpoint is invoked against such
+batch.
+
+Request:
+
+A JSON object containing:
+
 * @param picking_type_id - Id of the picking type for the pickings which will be used to create the batch.
 * @param picking_priorities - (optional) List of priorities to search for the pickings
-* @param max_locations - (optional) Max number of locations to pick from (not used)
+
+Response (same as /api/stock-picking-batch GET):
+
+In case the backend succeeds to create a batch for the requester user, the
+response will contain a JSON object with the same format as the above `get`
+endpoint that will represent the new batch. Otherwise it will include an empty
+JSON object.
+
+### Unassign picking batch
+```
+URI: /api/stock-picking-batch/:id/unassign/
+HTTP Method: POST
+```
+Clears the `user_id` field of the batch (specified by ID).
+In case the batch is `in_progress`, its state will be set back to `ready`.
+In case of "ephemeral" batch, all the included pickings will be unliked (i.e.
+their `batch_id` fields will be cleared).
+
+Request:
+
+The request shall not contain any payload; the batch `id` must be given in the
+URI.
+
+Response:
+
+Returns true on success otherwise an error indicating the failure (e.g. the
+batch was not in the `in_progress` state; the batch was not assigned to the
+current user).
 
 ### Update picking batch
 ```

@@ -354,7 +354,7 @@ class StockLocation(models.Model):
         """
             Process the inventory adjustments for the location
             specified in the request.
-            Assings the next inventory field of the new inventory
+            Assigns the next inventory field of the new inventory
             to the specified next adjusted inventory instance.
 
             Raises a ValidationError in case the location does not

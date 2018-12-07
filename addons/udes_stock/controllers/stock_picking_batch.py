@@ -51,12 +51,13 @@ class PickingBatchApi(UdesApi):
     def get_users_batch(self):
         """
         Search for a picking batch in progress for the current user.
-        If no batch is found, but pickings exist, create a new batch.
+        In case one is found, return a JSON object with:
+         - the ID and the name of the batch ('id', 'name' strings);
+         - the list of pickings in assigned state ('picking_ids'
+           array of stock.picking objects);
+         - the result packages ('result_package_names' array).
 
-        If a batch is determined, return a JSON object with the ID of
-        the batch ('id' string) and the list of pickings ('picking_ids'
-        array of stock.picking objects), otherwise return an empty
-        object.
+        In case the user has no batch, return an empty object.
 
         Raises a ValidationError in case multiple batches are found
         for the current user.
@@ -88,12 +89,52 @@ class PickingBatchApi(UdesApi):
 
         return batch.get_next_task(skipped_product_ids=skipped_product_ids)
 
+    @http.route('/api/stock-picking-batch/assign/',
+                type='json', methods=['POST'], auth='user')
+    def assign_batch_to_user(self, picking_type_id):
+        """
+        Assign a batch of the specified picking type to the current
+        user (see API specs).
+        """
+        PickingBatch = request.env['stock.picking.batch']
+        batch = PickingBatch.assign_batch(picking_type_id)
+
+        if batch:
+            assert batch.state == 'in_progress', \
+                   "Assigned batches should be 'in_progress'"
+
+            return _get_single_batch_info(batch,
+                                          allowed_picking_states=['assigned'])
+        else:
+            return {}
+
+    @http.route('/api/stock-picking-batch/<ident>/unassign',
+                type='json', methods=['POST'], auth='user')
+    def unassign_batch(self, ident):
+        """
+        Unassign the specified batch (see API specs).
+
+        Raise a ValidationError in case:
+         - the specified batch does not exist;
+         - the specified batch is not `in_progress`;
+         - the specified batch is not assigned to the current user.
+        """
+        batch = _get_batch(request.env, ident)
+
+        if batch.state == 'in_progress':
+            if batch.user_id.id != request.env.user.id:
+                raise ValidationError(
+                    _("The specified batch is not assigned to you."))
+
+            batch.unassign()
+
+        return True
+
     @http.route('/api/stock-picking-batch/',
                 type='json', methods=['POST'], auth='user')
     def create_batch_for_user(self,
                               picking_type_id,
-                              picking_priorities=None,
-                              max_locations=None):
+                              picking_priorities=None):
         """
         Create a batch for the user if pickings are available.
 
@@ -109,8 +150,6 @@ class PickingBatchApi(UdesApi):
             which will be used to create the batch.
         @param picking_priorities - (optional) List of priorities to
             search for the pickings
-        @param max_locations - (optional) Max number of locations to
-            pick from (not used)
         """
         PickingBatch = request.env['stock.picking.batch']
         batch = PickingBatch.create_batch(picking_type_id, picking_priorities)
@@ -184,25 +223,20 @@ class PickingBatchApi(UdesApi):
         Creates a Stock Investigation for the specified move_line_id for the
         given batch.  If necessary a backorder will be created.
         """
-        ResUsers = request.env['res.users']
-
-        # Do no raise stock investigation when package does not fit,
+        # Do not raise stock investigation when package does not fit,
         # just remove it from the batch
         raise_stock_investigation = (reason not in (
             "package does not fit"
         ))
 
         batch = _get_batch(request.env, ident)
-        picking_type_id = ResUsers.get_user_warehouse().u_stock_investigation_picking_type.id  # noqa
-        unpickable_item = batch.unpickable_item(
+        return batch.unpickable_item(
             reason=reason,
             product_id=product_id,
             location_id=location_id,
             package_name=package_name,
-            picking_type_id=picking_type_id,
             raise_stock_investigation=raise_stock_investigation
         )
-        return unpickable_item
 
     @http.route('/api/stock-picking-batch/check-user-batches',
                 type='json', methods=['GET'], auth='user')

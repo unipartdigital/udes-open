@@ -17,8 +17,11 @@
         </xpath>
         <xpath expr="//button[@name='action_cancel']" position="replace" />
         <xpath expr="//button[@name='cancel_picking']" position="replace">
-          <button name="cancel_picking" string="Cancel Batch" confirm="Cancelling the batch will cancel all its pickings. Are you sure you wish to cancel this Batch Picking?" type="object" states="in_progress"/>
-        </xpath> 
+          <button name="cancel_picking" string="Cancel Batch" confirm="Cancelling the batch will cancel all its pickings. Are you sure you wish to cancel this Batch Picking?" type="object" states="ready,waiting,in_progress"/>
+        </xpath>
+        <xpath expr="//field[@name='state']" position="replace">
+          <field name="state" widget="statusbar" statusbar_visible="waiting,ready,in_progress,done"/>
+        </xpath>
       </field>
     </record>
 
@@ -58,5 +61,19 @@
       </field>
     </record>
 
+    <!-- Stock picking batch filter -->
+    <record id="stock_picking_batch_filter" model="ir.ui.view">
+        <field name="name">udes_stock.stock.picking.batch.filter</field>
+        <field name="model">stock.picking.batch</field>
+      <field name="inherit_id"
+             ref="stock_picking_batch.stock_picking_batch_filter"/>
+      <field name="arch" type="xml">
+        <xpath expr="//filter[@name='in_progress']" position="after">
+          <filter name="ready" string="Ready"
+                  domain="[('state','=', 'ready')]"
+                  help="Batch Pickings Ready"/>
+        </xpath>
+      </field>
+    </record>
   </data>
 </odoo>

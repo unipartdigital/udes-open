@@ -80,14 +80,19 @@ class PickingApi(UdesApi):
                     {"id": 2, "name": "Location 2", "barcode": "L00000200"}
                 ]}
         """
+        # TODO(micky): update the API as we don't need the picking...
         MoveLine = request.env['stock.move.line']
-        Picking = request.env['stock.picking']
 
         if move_line_ids is None:
             raise ValidationError(_("Must specify the 'move_line_ids' entry"))
 
+        locations = None
         mls = MoveLine.browse(move_line_ids)
-        picking = Picking.browse(int(identifier))
-        locations = picking.get_suggested_locations(mls)
+
+        for pick in mls.mapped('picking_id'):
+            pick_mls = mls.filtered(lambda ml: ml.picking_id == pick)
+            pick_loc = pick.get_suggested_locations(pick_mls)
+            locations = pick_loc if locations is None \
+                        else locations & pick_loc
 
         return locations.get_info()

@@ -39,6 +39,9 @@
                     <field name="u_auto_batch_pallet" />
                     <field name="u_check_work_available" />
                     <field name="u_use_product_packaging" />
+                    <field name="u_assign_batch_to_user" />
+                    <field name="u_create_batch_for_user" />
+                    <field name="u_check_picking_priorities" />
                 </group>
                 <group string="Pick Refactoring" groups='base.group_no_one'>
                     <field name="u_move_line_key_format" />

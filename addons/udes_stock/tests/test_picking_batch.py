@@ -3,7 +3,7 @@
 from . import common
 
 from odoo.exceptions import ValidationError
-
+from unittest.mock import patch
 
 class TestGoodsInPickingBatch(common.BaseUDES):
 
@@ -351,8 +351,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         move_line = picking.move_line_ids[0]
         reason = 'missing item'
         batch.unpickable_item(package_name=move_line.package_id.name,
-                              reason=reason,
-                              picking_type_id=None)
+                              reason=reason)
         internal_picking = self.package_one.find_move_lines().picking_id
 
         self.assertEqual(picking.state, 'confirmed',
@@ -365,34 +364,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         self.assertEqual(internal_picking.state, 'assigned',
                          'internal picking creation has not completed')
 
-    def test16_unpickable_item_single_move_line_success_specified_type(self):
-        """
-        Tests that the picking is confirmed and the specified picking type
-        is created for the unpickable stock. The picking remains confirmed
-        because there isn't more stock available.
-        """
-        picking, batch = self._create_valid_batch()
-        move_line = picking.move_line_ids[0]
-        reason = 'missing item'
-
-        # It doesn't actually matter what the picking type is for this test.
-        # The important thing is that the new picking is of type picking_type
-        picking_type = self.picking_type_pick
-        batch.unpickable_item(package_name=move_line.package_id.name,
-                              reason=reason,
-                              picking_type_id=picking_type.id)
-        internal_picking = self.package_one.find_move_lines().picking_id
-
-        self.assertEqual(picking.state, 'confirmed',
-                         'picking was not confirmed')
-        self.assertEqual(batch.state, 'done',
-                         'batch state was not completed')
-        self.assertEqual(internal_picking.picking_type_id, picking_type,
-                         'internal picking type not set by unpickable_item')
-        self.assertEqual(internal_picking.state, 'assigned',
-                         'internal picking creation has not completed')
-
-    def test17_unpickable_item_package_not_found(self):
+    def test16_unpickable_item_package_not_found(self):
         """
         Tests that a ValidationError is raised if the package cannot be
         found in the system
@@ -409,10 +381,9 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         with self.assertRaisesRegex(ValidationError, expected_error,
                                     msg='Incorrect error thrown'):
             batch.unpickable_item(package_name=package_name,
-                                  reason=reason,
-                                  picking_type_id=None)
+                                  reason=reason)
 
-    def test18_unpickable_item_wrong_batch(self):
+    def test17_unpickable_item_wrong_batch(self):
         """
         Tests that a ValidationError is raised if the package is not on
         the Batch that we requested.
@@ -434,10 +405,9 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         with self.assertRaisesRegex(ValidationError, expected_error,
                                     msg='Incorrect error thrown'):
             batch.unpickable_item(package_name=move_line.package_id.name,
-                                  reason=reason,
-                                  picking_type_id=None)
+                                  reason=reason)
 
-    def test19_unpickable_item_invalid_state_cancel(self):
+    def test18_unpickable_item_invalid_state_cancel(self):
         """
         Tests that a ValidationError is raised if the package move lines
         cannot be found in the wave because the picking is on a state of
@@ -456,10 +426,9 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         with self.assertRaisesRegex(ValidationError, expected_error,
                                     msg='Incorrect error thrown'):
             batch.unpickable_item(package_name=move_line.package_id.name,
-                                  reason=reason,
-                                  picking_type_id=None)
+                                  reason=reason)
 
-    def test20_unpickable_item_invalid_state_done(self):
+    def test19_unpickable_item_invalid_state_done(self):
         """
         Tests that a ValidationError is raised if the package move lines
         cannot be found in the wave because the picking is on a state of
@@ -477,10 +446,9 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         with self.assertRaisesRegex(ValidationError, expected_error,
                                     msg='Incorrect error thrown'):
             batch.unpickable_item(package_name=move_line.package_id.name,
-                                  reason=reason,
-                                  picking_type_id=None)
+                                  reason=reason)
 
-    def test21_unpickable_item_multiple_move_lines_different_packages(self):
+    def test20_unpickable_item_multiple_move_lines_different_packages(self):
         """
         Tests that a backorder is created and confirmed if there are multiple
         move lines on the picking. The original picking should continue to
@@ -511,8 +479,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         reason = 'missing item'
 
         batch.unpickable_item(package_name=unpickable_package.name,
-                              reason=reason,
-                              picking_type_id=None)
+                              reason=reason)
 
         new_picking = unpickable_package.find_move_lines().picking_id
 
@@ -540,7 +507,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         # Check one backorder has been created
         self.assertEqual(len(picking.u_created_back_orders), 1)
 
-    def test22_unpickable_item_multiple_move_lines_different_packages_available(self):
+    def test21_unpickable_item_multiple_move_lines_different_packages_available(self):
         """
         Tests that when the unpickable item is available, a new move line
         is added to the picking.
@@ -575,8 +542,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         reason = 'missing item'
 
         batch.unpickable_item(package_name=unpickable_package.name,
-                              reason=reason,
-                              picking_type_id=None)
+                              reason=reason)
 
         self.assertEqual(num_move_lines, len(picking.move_line_ids),
                          'Number of move lines changed')
@@ -586,7 +552,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         # Check no backorder has been created
         self.assertEqual(len(picking.u_created_back_orders), 0)
 
-    def test23_unpickable_item_multiple_move_lines_same_package(self):
+    def test22_unpickable_item_multiple_move_lines_same_package(self):
         """
         Tests that if there are multiple move lines on the same package
         that the picking remains in state confirmed and a new picking
@@ -616,8 +582,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         reason = 'missing item'
 
         batch.unpickable_item(package_name=unpickable_package.name,
-                              reason=reason,
-                              picking_type_id=None)
+                              reason=reason)
 
         new_picking = unpickable_package.find_move_lines().mapped('picking_id')
         self.assertEqual(picking.state, 'confirmed',
@@ -630,7 +595,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         self.assertEqual(new_picking.group_id.name, reason,
                          'reason was not assigned correctly')
 
-    def test24_unpickable_item_product_validation_error_missing_location(self):
+    def test23_unpickable_item_product_validation_error_missing_location(self):
         """
         Tests that calling unpickable item for a product without location
         raises an error.
@@ -659,10 +624,9 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         with self.assertRaisesRegex(ValidationError, expected_error,
                                     msg='Incorrect error thrown'):
             batch.unpickable_item(product_id=move_line.product_id.id,
-                                  reason=reason,
-                                  picking_type_id=None)
+                                  reason=reason)
 
-    def test25_unpickable_item_product_ok(self):
+    def test24_unpickable_item_product_ok(self):
         """
         Tests that calling unpickable item for a product with location
         ends up with all the quant reserved for the stock investigation
@@ -690,8 +654,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
         batch.unpickable_item(product_id=move_line.product_id.id,
                               location_id=move_line.location_id.id,
-                              reason=reason,
-                              picking_type_id=None)
+                              reason=reason)
         # after unickable all the quant should be reserved
         self.assertEqual(quant.reserved_quantity, 4)
         # picking state should be confirmed
@@ -700,7 +663,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         # Check no backorder has been created
         self.assertEqual(len(picking.u_created_back_orders), 0)
 
-    def test26_unpickable_item_product_ok_multiple_lines(self):
+    def test25_unpickable_item_product_ok_multiple_lines(self):
         """
         Tests that calling unpickable item for a product with location
         ends up with all the quant reserved for the stock investigation.
@@ -732,8 +695,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
         batch.unpickable_item(product_id=move_line.product_id.id,
                               location_id=move_line.location_id.id,
-                              reason=reason,
-                              picking_type_id=None)
+                              reason=reason)
         # after unickable all the quant should be reserved
         self.assertEqual(quant_apple.reserved_quantity, 4)
         # picking state should be assigned
@@ -745,7 +707,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         # Check backorder state
         self.assertEqual(picking.u_created_back_orders.state, 'confirmed')
 
-    def test27_unpickable_item_product_ok_multiple_lines(self):
+    def test26_unpickable_item_product_ok_multiple_lines(self):
         """
         Tests that calling unpickable item for a product with location
         ends up with all the quant reserved for the stock investigation.
@@ -808,8 +770,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
         batch.unpickable_item(product_id=move_line.product_id.id,
                               location_id=move_line.location_id.id,
-                              reason=reason,
-                              picking_type_id=None)
+                              reason=reason)
 
         # after unpickable all the unpickable apple quant should be reserved
         self.assertTrue(reserved_quant_apple.reserved_quantity == 4,
@@ -828,7 +789,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         # no backorder has been created
         self.assertEqual(len(picking.u_created_back_orders), 0)
 
-    def test28_unpickable_item_product_ok_two_picks(self):
+    def test27_unpickable_item_product_ok_two_picks(self):
         """
         Tests that calling unpickable item for a product with location
         ends up with all the quant reserved for the stock investigation
@@ -870,8 +831,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
         batch.unpickable_item(product_id=move_line.product_id.id,
                               location_id=move_line.location_id.id,
-                              reason=reason,
-                              picking_type_id=self.picking_type_internal.id)
+                              reason=reason)
         # after unickable all the quant should be reserved
         self.assertEqual(quant.reserved_quantity, 4)
         # picking state should be confirmed
@@ -935,3 +895,328 @@ class TestBatchGetNextTask(common.BaseUDES):
 
         # In the same way, we should now get '10'
         self.assertEqual(task['package_id']['name'], '10')
+
+
+class TestBatchState(common.BaseUDES):
+    @classmethod
+    def setUpClass(cls):
+        super(TestBatchState, cls).setUpClass()
+
+        Package = cls.env['stock.quant.package']
+        cls.package_one = Package.get_package("test_package_one", create=True)
+        cls.package_two = Package.get_package("test_package_two", create=True)
+
+        cls.pack_4apples_info = [{'product': cls.apple, 'qty': 4}]
+
+        cls.batch01 = cls.create_batch(
+            user=False,
+            picking_type_id=cls.picking_type_pick.id,
+        )
+
+        cls.picking01 = cls.create_picking(
+            cls.picking_type_pick,
+            products_info=cls.pack_4apples_info,
+            confirm=True,
+            batch_id=cls.batch01.id,
+        )
+
+        cls.picking02 = cls.create_picking(
+            cls.picking_type_pick,
+            products_info=cls.pack_4apples_info,
+            confirm=True,
+        )
+
+        cls.compute_patch = patch.object(
+            cls.batch01.__class__, '_compute_state',
+            autospec=True
+        )
+
+
+    @classmethod
+    def draft_to_ready(cls):
+        """
+            Setup method for moving 'draft' to 'ready'.
+            Note, this assumes picking01 to still have batch01 as batch.
+        """
+        cls.batch01.confirm_picking()
+        cls.create_quant(cls.apple.id, cls.test_location_01.id, 4,
+                        package_id=cls.package_one.id)
+        cls.picking01.action_assign()
+
+    @classmethod
+    def assign_user(cls):
+        """Method to attach outbound user to batch"""
+        cls.batch01.user_id = cls.outbound_user.id
+
+    @classmethod
+    def complete_pick(cls, picking, call_done=True):
+        for move in picking.move_lines:
+            move.write({
+                'quantity_done': move.product_uom_qty,
+                'location_dest_id': cls.test_output_location_01.id,
+            })
+
+        if call_done:
+            picking.action_done()
+
+    def test00_empty_simple_flow(self):
+        """Create and try to go through the stages"""
+
+        self.assertEqual(self.batch01.state, 'draft')
+        self.assertEqual(self.batch01.picking_ids.state, 'confirmed')
+
+        # Move from draft to ready, check batch state ready
+        self.draft_to_ready()
+        self.assertEqual(self.picking01.state, 'assigned')
+        self.assertEqual(self.batch01.state, 'ready')
+
+        # Attach user to ready batch, check that it becomes in progress
+        self.assign_user()
+        self.assertEqual(self.batch01.state, 'in_progress')
+
+        # Perform moves and action_done, confirm batch and pickings 'done'
+        self.complete_pick(self.picking01)
+        self.assertEqual(self.picking01.state, 'done')
+        self.assertEqual(self.batch01.state, 'done')
+
+    def test01_ready_to_waiting(self):
+        """Get to ready then check that we can move back to waiting"""
+        self.draft_to_ready()
+        # Add another picking to go back!
+        self.picking02.batch_id = self.batch01.id
+        self.assertEqual(self.batch01.state, 'waiting')
+
+        # Remove picking to go back to ready...
+        self.picking02.batch_id = False
+        self.assertEqual(self.batch01.state, 'ready')
+
+    def test02_waiting_to_in_progess(self):
+        """ Assign user to check we get in_progress, then move back"""
+        self.draft_to_ready()
+        self.assign_user()
+        self.assertEqual(self.batch01.state, 'in_progress')
+        # Check that removing user moves back to ready
+        self.batch01.user_id = False
+        self.assertEqual(self.batch01.state, 'ready')
+
+    def test03_cancel_pick_to_done(self):
+        """ Cancel pick and confirm state 'done'"""
+        self.draft_to_ready()
+        self.assign_user()
+        # Cancel the pick and confirm we reach state done
+        self.picking01.action_cancel()
+        self.assertEqual(self.batch01.state, 'done')
+
+    def test04_potential_assignment(self):
+        """ Add picking which is not ready leads to removal from batch"""
+        self.draft_to_ready()
+        self.assign_user()
+        self.picking02.batch_id = self.batch01
+        self.assertNotIn(self.picking02, self.batch01.picking_ids)
+
+    def test05_remove_batch_id(self):
+        """ Remove batch_id from picking and confirm state 'done'"""
+        self.draft_to_ready()
+        self.assign_user()
+        self.picking01.batch_id = False
+        self.assertEqual(self.batch01.state, 'done')
+
+    def test06_ready_picking_to_batch(self):
+        """ Add picking in state 'assigned' to 'draft' batch, goes to 'ready'
+            on confirm_picking.
+        """
+        self.create_quant(self.apple.id, self.test_location_01.id, 4,
+                          package_id=self.package_one.id)
+        self.picking01.action_assign()
+        self.batch01.confirm_picking()
+        self.assertEqual(self.batch01.state, 'ready')
+
+    def test07_partial_completion(self):
+        """ Check state remains in_progress when batch pickings partially
+            completed.
+        """
+        self.draft_to_ready()
+        self.assign_user()
+        self.assertEqual(self.batch01.state, 'in_progress')
+
+        # Create second quant and assign picking, confirm 'in_progress' state
+        self.create_quant(self.apple.id, self.test_location_01.id, 4,
+                          package_id=self.package_two.id)
+        self.picking02.action_assign()
+        self.picking02.batch_id = self.batch01
+        self.assertEqual(self.batch01.state, 'in_progress')
+
+        # Move and complete picking01, confirm batch remains 'in_progress'
+        self.complete_pick(self.picking01)
+        self.assertEqual(self.picking01.state, 'done')
+        self.assertEqual(self.batch01.state, 'in_progress')
+
+        # Move and complete picking02, confirm batch 'done' state
+        self.complete_pick(self.picking02)
+        self.assertEqual(self.batch01.state, 'done')
+
+    def test08_check_computing_simple(self):
+        """ Checking that we are going into _compute_state as expected
+            i.e. with the right object
+        """
+        self.assertEqual(self.batch01.state, 'draft')
+
+        # mock compute_state method to allow checking of called value and
+        # the batch it was called on.
+        with self.compute_patch as mocked_compute:
+            self.batch01.confirm_picking()
+
+        mocked_compute.assert_called_with(self.batch01)
+        self.assertEqual(
+            mocked_compute.call_count, 1,
+            "The function that computes state wasn't invoked"
+        )
+        self.assertEqual(self.batch01.state, 'waiting')
+
+        self.create_quant(self.apple.id, self.test_location_01.id, 4,
+                          package_id=self.package_one.id)
+
+        # use context manager to perform action_assign with the mocked_compute
+        # check that it is called as expected (once by the correct object)
+        # finally forcibly compute the state as the mocked_version while called
+        # by the picking doesn't behave correctly
+        with self.compute_patch as mocked_compute:
+            self.picking01.action_assign()
+            mocked_compute.assert_called_with(self.batch01)
+            self.assertEqual(
+                mocked_compute.call_count, 1,
+                "The function that computes state wasn't invoked"
+            )
+        self.batch01._compute_state()
+        self.assertEqual(self.batch01.state, 'ready')
+        # put in state 'in_progress', can't be tested with patch as decorator
+        # constraint won't hit the mocked version of _compute_state
+        self.assign_user()
+        self.assertEqual(self.batch01.state, 'in_progress')
+
+        # complete picks and check state done, forcibly compute_state
+        self.complete_pick(self.picking01, call_done=False)
+        with self.compute_patch as mocked_compute:
+            self.picking01.action_done()
+
+        mocked_compute.assert_called_with(self.batch01)
+        self.assertEqual(
+            mocked_compute.call_count, 2,
+            "The function that computes state wasn't invoked"
+        )
+
+        self.batch01._compute_state()
+        self.assertEqual(self.batch01.state, 'done')
+
+    def test09_check_computing_cancel(self):
+        """ Test done with cancel to check computation"""
+        self.draft_to_ready()
+        self.assign_user()
+
+        # Cancel the pick and confirm we reach state done, compute state
+        with self.compute_patch as mocked_compute:
+            self.picking01.action_cancel()
+
+        mocked_compute.assert_called_with(self.batch01)
+        self.assertEqual(
+            mocked_compute.call_count, 2,
+            "The function that computes state wasn't invoked"
+        )
+
+        self.batch01._compute_state()
+        self.assertEqual(self.batch01.state, 'done')
+
+    def test10_check_computing_cancel(self):
+        """ Test done with cancel to check computation"""
+        self.draft_to_ready()
+        self.assign_user()
+
+        # set batch_id to False and check state 'done', forcibly recompute state
+        # and return to previous state
+        with self.compute_patch as mocked_compute:
+            self.picking01.batch_id = False
+
+        mocked_compute.assert_called_with(self.batch01)
+        self.assertEqual(
+            mocked_compute.call_count, 1,
+            "The function that computes state wasn't invoked"
+        )
+        self.batch01._compute_state()
+        self.assertEqual(self.batch01.state, 'done')
+
+    def test11_computing_ready_picking_to_batch(self):
+        """ Test done with ready picking to check computation"""
+        self.create_quant(self.apple.id, self.test_location_01.id, 4,
+                          package_id=self.package_one.id)
+        # assign picking before adding to batch, check compute state function
+        # called when no pick.state change occurs
+        with self.compute_patch as mocked_compute:
+            self.picking01.action_assign()
+
+        mocked_compute.assert_called_with(self.batch01)
+        self.assertEqual(
+            mocked_compute.call_count, 1,
+            "The function that computes state wasn't invoked"
+        )
+        self.batch01._compute_state()
+        self.assertEqual(self.batch01.state, 'draft')
+
+        # confirm picking and check compute_state is run
+        with self.compute_patch as mocked_compute:
+            self.batch01.confirm_picking()
+
+        mocked_compute.assert_called_with(self.batch01)
+        self.assertEqual(
+            mocked_compute.call_count, 1,
+            "The function that computes state wasn't invoked"
+        )
+        self.batch01._compute_state()
+        self.assertEqual(self.batch01.state, 'ready')
+
+    def test12_computing_partial_assignment(self):
+        """ Test done with partially complete pickings to check computation"""
+        self.draft_to_ready()
+        self.assign_user()
+
+        # Create second quant and assign picking, confirm 'in_progress' state
+        self.create_quant(self.apple.id, self.test_location_01.id, 4,
+                          package_id=self.package_two.id)
+
+        with self.compute_patch as mocked_compute:
+            self.picking02.action_assign()
+            self.picking02.batch_id = self.batch01
+
+        mocked_compute.assert_called_with(self.batch01)
+        self.assertEqual(
+            mocked_compute.call_count, 1,
+            "The function that computes state wasn't invoked"
+        )
+        self.batch01._compute_state()
+        self.assertEqual(self.batch01.state, 'in_progress')
+
+        # complete pick1 and check state 'in_progress', forcibly compute_state
+        self.complete_pick(self.picking01, call_done=False)
+        with self.compute_patch as mocked_compute:
+            self.picking01.action_done()
+
+        mocked_compute.assert_called_with(self.batch01)
+        self.assertEqual(
+            mocked_compute.call_count, 2,
+            "The function that computes state wasn't invoked"
+        )
+
+        self.batch01._compute_state()
+        self.assertEqual(self.batch01.state, 'in_progress')
+
+        # complete pick2 and check state 'done', forcibly compute_state
+        self.complete_pick(self.picking02, call_done=False)
+        with self.compute_patch as mocked_compute:
+            self.picking02.action_done()
+
+        mocked_compute.assert_called_with(self.batch01)
+        self.assertEqual(
+            mocked_compute.call_count, 2,
+            "The function that computes state wasn't invoked"
+        )
+        self.batch01._compute_state()
+        self.assertEqual(self.batch01.state, 'done')
