@@ -185,7 +185,15 @@ class StockMoveLine(models.Model):
         if parent_package:
             mls_done.write({'u_result_parent_package_id': parent_package.id})
 
-        if result_package and picking is not None:
+        if product_ids and picking is not None:
+            # Print the product label
+            self.env.ref('udes_stock.picking_update_product').with_context(
+                active_model=picking._name,
+                active_ids=picking.ids,
+                print_records=move_lines.mapped('product_id')
+            ).run()
+
+        if result_package and picking is not None:     
             # Print the package label
             self.env.ref('udes_stock.picking_update_package').with_context(
                 active_model=picking._name,

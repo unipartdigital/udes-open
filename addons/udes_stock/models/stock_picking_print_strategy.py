@@ -30,7 +30,7 @@ class PrintStrategy(models.Model):
         picking.ensure_one()
         print_records = context.get('print_records')
 
-        if print_records is not None:
+        if print_records is not None and self.model == print_records._name:
             return print_records
         elif self.model == picking._name:
             return picking
