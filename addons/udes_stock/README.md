@@ -584,6 +584,39 @@ Update current user's picking batch.
 * @param location_barcode - (optional) Barcode of the location where the picked stock is dropped off
 * @param continue_batch - (optional) Determines if the batch should continue or finish the batch (not used)
 
+### Get move lines to drop off, given a scanned item
+```
+URI: /api/stock-picking-batch/:id/drop
+HTTP Method: GET
+```
+Determines what move lines from the batch the user should drop off, given an
+item that the user is currently interested in dropping off. That is done by
+using the configured criterion for the picking type of the batch being
+processed.
+
+Request:
+
+The `id` of the batch that is being dropped off should be specified in the URL.
+The payload should include a JSON object with a single `identity` entry that will
+indicate the scanend item (e.g. a product, package, order). Such `identity`
+should be expected by the drop off criterion of the picking type.
+
+Response:
+
+Returns a JSON object including:
+ - a `last` boolean, indicating, if flagged, that there are no further move
+   lines to be dropped off in addition to the ones included in the response;
+ - a `move_line_ids` array of numbers, each being the ID of a move line that
+   should be dropped off; such array will be empty in case there are no move
+   lines related to the scanned item;
+ - a `summary` string, to be presented to the user; such string will be empty
+   in case there are no move lines related to the scanned item.
+
+Returns an error in case there's no drop off criterion configured for the
+picking type of the batch.
+
+Assumes that all the pickings of the batch have the same picking type.
+
 ### Validate drop off location of picking batch
 ```
 URI: /api/stock-picking-batch/:id/is-valid-dest-location/
