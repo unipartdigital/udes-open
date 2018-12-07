@@ -154,6 +154,14 @@ class StockPickingType(models.Model):
              'processing the picking.',
     )
 
+    u_use_location_categories = fields.Boolean(
+        string='Use Location Categories',
+        default=False,
+        help='Flag to indicate whether to ask the user to select location '
+             'categories when starting the pick process. Location categories '
+             'are used to decide which pickings are suitable to the users.',
+    )
+
     # Drop location options
 
     u_drop_location_constraint = fields.Selection([
@@ -282,6 +290,7 @@ class StockPickingType(models.Model):
             - u_assign_batch_to_user: boolean
             - u_create_batch_for_user: boolean
             - u_check_picking_priorities: boolean
+            - u_use_location_categories: boolean
             - u_drop_location_constraint: string
             - u_drop_location_policy: string
             - u_new_package_policy: string
@@ -321,6 +330,7 @@ class StockPickingType(models.Model):
                 'u_assign_batch_to_user': self.u_assign_batch_to_user,
                 'u_create_batch_for_user': self.u_create_batch_for_user,
                 'u_check_picking_priorities': self.u_check_picking_priorities,
+                'u_use_location_categories': self.u_use_location_categories,
                 }
 
     def get_info(self):
