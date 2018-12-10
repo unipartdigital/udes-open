@@ -68,6 +68,17 @@ class PickingBatchApi(UdesApi):
         return _get_single_batch_info(batch,
                                       allowed_picking_states=['assigned'])
 
+    @http.route('/api/stock-picking-batch/check-user-batches',
+                type='json', methods=['GET'], auth='user')
+    def check_user_batches(self):
+        """
+        Whether the user has any assigned batch.
+        """
+        PickingBatch = request.env['stock.picking.batch']
+        batches = PickingBatch.get_user_batches()
+
+        return True if batches else False
+
     @http.route('/api/stock-picking-batch/<ident>/next',
                 type='json', methods=['GET'], auth='user')
     def get_next_task(self, ident, skipped_product_ids=None):
@@ -237,17 +248,6 @@ class PickingBatchApi(UdesApi):
             package_name=package_name,
             raise_stock_investigation=raise_stock_investigation
         )
-
-    @http.route('/api/stock-picking-batch/check-user-batches',
-                type='json', methods=['GET'], auth='user')
-    def check_user_batches(self):
-        """
-        Whether the user has any assigned batch.
-        """
-        PickingBatch = request.env['stock.picking.batch']
-        batches = PickingBatch.get_user_batches()
-
-        return True if batches else False
 
     @http.route('/api/stock-picking-batch/<ident>/add-extra-pickings',
                 type='json', methods=['POST'], auth='user')
