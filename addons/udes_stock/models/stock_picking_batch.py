@@ -529,11 +529,11 @@ class StockPickingBatch(models.Model):
                     'move_line_ids': [],
                     'summary': ""}
 
-        picking_type = self.picking_ids[0].picking_type_id
+        picking_type = self.picking_type_ids
 
-        if not all([p.picking_type_id == picking_type for p in self.picking_id]):
+        if len(picking_type) > 1:
             raise ValidationError(
-                _("The batch unexpectdely has pickings of different types"))
+                _("The batch unexpectedly has pickings of different types"))
 
         criterion = picking_type.u_drop_criterion
         func = getattr(self, '_get_next_drop_off_' + criterion, None)
