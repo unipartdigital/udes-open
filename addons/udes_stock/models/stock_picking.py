@@ -1547,12 +1547,26 @@ class StockPicking(models.Model):
         self.action_assign()
 
     def search_for_pickings(self, picking_type_id, picking_priorities, limit=1):
-        """ Search for next available picking based on picking type and priorities """
+        """ Search for next available picking based on
+            picking type and priorities
+        """
+        Users = self.env['res.users']
+        PickingType = self.env['stock.picking.type']
 
         search_domain = []
 
         if picking_priorities is not None:
             search_domain.append(('priority', 'in', picking_priorities))
+
+        # filter pickings by location categories if they are enabled for the
+        # given picking type
+        picking_type = PickingType.browse(picking_type_id)
+        if picking_type.u_use_location_categories:
+            categories = Users.get_user_location_categories()
+            if categories:
+                search_domain.append(
+                    ('u_location_category_id',
+                     'child_of', categories.ids))
 
         search_domain.extend([('picking_type_id', '=', picking_type_id),
                               ('state', '=', 'assigned'),
