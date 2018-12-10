@@ -462,9 +462,7 @@ class StockPickingBatch(models.Model):
         if location_barcode:
             dest_loc = Location.get_location(location_barcode)
 
-        completed_move_lines = self.picking_ids.mapped('move_line_ids').filtered(
-            lambda x: x.qty_done > 0
-                      and x.picking_id.state not in ['cancel', 'done'])
+        completed_move_lines = self._get_move_lines_to_drop_off()
 
         if dest_loc and completed_move_lines:
             completed_move_lines.write({'location_dest_id': dest_loc.id})
@@ -553,11 +551,10 @@ class StockPickingBatch(models.Model):
 
     def _get_move_lines_to_drop_off(self):
         self.ensure_one()
-        # TODO(ale): implement this; factor out code from drop_off_picked()...
         return self.picking_ids \
                    .mapped('move_line_ids') \
                    .filtered(lambda ml:
-                        ml.qty_done == 0
+                        ml.qty_done > 0
                         and ml.picking_id.state not in ['cancel', 'done'])
 
     def _get_next_drop_off_all(self, item_identity, mls_to_drop):
