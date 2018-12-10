@@ -576,8 +576,7 @@ class StockPickingBatch(models.Model):
 
     def _get_drop_off_instructions_by_products(self):
         # TODO(ale): check this
-        raise ValidationError(
-            _("Please scan the product that you want to drop off now"))
+        return _("Please scan the product that you want to drop off now")
 
     def _get_next_drop_off_by_orders(self, item_identity, mls_to_drop):
         # TODO(ale): implement this
@@ -586,8 +585,7 @@ class StockPickingBatch(models.Model):
 
     def _get_drop_off_instructions_by_orders(self):
         # TODO(ale): check this
-        raise ValidationError(
-            _("Please enter the order of the item that you want to drop off now"))
+        return _("Please enter the order of the item that you want to drop off now")
 
     def is_valid_location_dest_id(self, location_ref):
         """
