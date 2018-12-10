@@ -429,6 +429,31 @@ Returns an error in case the location is not properly specified (i.e. in case
 none of the optional args are given) or if the location is already blocked.
 Returns `true` in case of success.
 
+### Get Location Categories
+```
+URI: /api/stock-location-category
+HTTP Method: GET
+```
+
+Returns the list of all location categories in the system with a flag to show if that category is assigned to the user:
+
+```
+[
+    {'id': 3, 'name': 'High / Super', 'complete_name': 'High',   'by_user': true },
+    {'id': 2, 'name': 'High',         'complete_name': 'High',   'by_user': true },
+    {'id': 1, 'name': 'Ground',       'complete_name': 'Ground', 'by_user': false},
+]
+```
+
+### Set Users Location Categories
+```
+URI: /api/stock-location-category/get-user-categories
+HTTP Method: POST
+```
+* @param category_ids - (list of int) Ids of the location categories to assign to the user.
+
+Returns true if location categories of the user have been updated.
+
 ## Packages
 
 ```
