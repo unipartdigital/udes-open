@@ -557,32 +557,44 @@ class StockPickingBatch(models.Model):
                         ml.qty_done > 0
                         and ml.picking_id.state not in ['cancel', 'done'])
 
-    def _get_next_drop_off_all(self, item_identity, mls_to_drop):
-        # TODO(ale): check this behaviour
+    def _get_next_drop_off_all(self, _item_identity, mls_to_drop):
         raise ValidationError(
             _("This drop off criterion should not be invoked"))
 
     def _get_drop_off_instructions_all(self):
-        # TODO(ale): check this behaviour
         raise ValidationError(
             _("No need for instructions for this drop off criterion"))
 
     def _get_next_drop_off_by_products(self, item_identity, mls_to_drop):
-        # TODO(ale): implement this
-        return mls_to_drop, "Prepare this (by PRODUCTS!!!) :)"
+        mls = mls_to_drop.filtered(
+            lambda ml: ml.product_id.barcode == item_identity)
+        product = mls.mapped('product_id')
+        product_speed = ""
+        if product.u_speed_category_id:
+            product_speed = " ({})".format(product.u_speed_category_id.name)
+        summary = "<br>{} x {}{}".format(product.display_name,
+                                                 sum(mls.mapped('qty_done')),
+                                                 product_speed)
+        return mls, summary
 
     def _get_drop_off_instructions_by_products(self):
-        # TODO(ale): check this
-        return _("Please scan the product that you want to drop off now")
+        return _("Please scan the product that you want to drop off")
 
     def _get_next_drop_off_by_orders(self, item_identity, mls_to_drop):
-        # TODO(ale): implement this
-        # TODO(ale): by 'orders', not 'sale orders', so this can go here, right?
-        return mls_to_drop, "Prepare this (by ORDERS!!!) :)"
+        mls = mls_to_drop.filtered(
+            lambda ml: ml.picking_id.origin == item_identity)
+        summary = ""
+        for product, prod_mls in mls.groupby(lambda ml: ml.product_id):
+            product_speed = ""
+            if product.u_speed_category_id:
+                product_speed = " ({})".format(product.u_speed_category_id.name)
+            summary += "<br>{} x {}{}".format(product.display_name,
+                                              sum(prod_mls.mapped('qty_done')),
+                                              product_speed)
+        return mls, summary
 
     def _get_drop_off_instructions_by_orders(self):
-        # TODO(ale): check this
-        return _("Please enter the order of the item that you want to drop off now")
+        return _("Please enter the order of the items that you want to drop off")
 
     def is_valid_location_dest_id(self, location_ref):
         """
