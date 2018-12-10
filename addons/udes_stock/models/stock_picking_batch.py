@@ -481,10 +481,113 @@ class StockPickingBatch(models.Model):
 
                 # at this point pick_todo should contain only mls done
                 pick_todo.update_picking(validate=True)
+
         if not continue_batch:
             self.unassign()
 
         return self
+
+    @api.model
+    def get_drop_off_instructions(self, criterion):
+        """
+        Returns a string indicating instructions about what the
+        user has to scan before requesting the move lines for
+        drop off.
+
+        Raises an error if the instruction method for the
+        specified criterion does not exist.
+        """
+        func = getattr(self, '_get_drop_off_instructions_' + criterion, None)
+
+        if not func:
+            raise ValidationError(
+                _("An unexpected drop off criterion is currently configured")
+                + ": '%s'" % criterion if criterion else "")
+
+        return func()
+
+    def get_next_drop_off(self, item_identity):
+        """
+        Based on the criteria specified for the batch picking type,
+        determines what move lines should be dropped (refer to the
+        batch::drop API specs for the format of the returned value).
+
+        Expects an `in_progress` singleton.
+
+        Raises an error in case:
+         - not all pickings of the batch have the same picking type;
+         - unknown or invalid (e.g. 'all') drop off criterion.
+        """
+        self.ensure_one()
+        assert self.state == 'in_progress', \
+               "Batch must be in progress to be dropped off"
+
+        all_mls_to_drop = self._get_move_lines_to_drop_off()
+
+        if not len(all_mls_to_drop):
+            return {'last': True,
+                    'move_line_ids': [],
+                    'summary': ""}
+
+        picking_type = self.picking_ids[0].picking_type_id
+
+        if not all([p.picking_type_id == picking_type for p in self.picking_id]):
+            raise ValidationError(
+                _("The batch unexpectdely has pickings of different types"))
+
+        criterion = picking_type.u_drop_criterion
+        func = getattr(self, '_get_next_drop_off_' + criterion, None)
+
+        if not func:
+            raise ValidationError(
+                _("An unexpected drop off criterion is currently configured")
+                + ": '%s'" % criterion if criterion else "")
+
+        mls_to_drop, summary = func(item_identity, all_mls_to_drop)
+        # TODO(ale): consider debug-logging the number of remaining lines
+        last = len(all_mls_to_drop - mls_to_drop) > 0
+
+        return {'last': last,
+                'move_line_ids': mls_to_drop.mapped('id'),
+                'summary': summary}
+
+    def _get_move_lines_to_drop_off(self):
+        self.ensure_one()
+        # TODO(ale): implement this; factor out code from drop_off_picked()...
+        return self.picking_ids \
+                   .mapped('move_line_ids') \
+                   .filtered(lambda ml:
+                        ml.qty_done == 0
+                        and ml.picking_id.state not in ['cancel', 'done'])
+
+    def _get_next_drop_off_all(self, item_identity, mls_to_drop):
+        # TODO(ale): check this behaviour
+        raise ValidationError(
+            _("This drop off criterion should not be invoked"))
+
+    def _get_drop_off_instructions_all(self):
+        # TODO(ale): check this behaviour
+        raise ValidationError(
+            _("No need for instructions for this drop off criterion"))
+
+    def _get_next_drop_off_by_products(self, item_identity, mls_to_drop):
+        # TODO(ale): implement this
+        return mls_to_drop, "Prepare this (by PRODUCTS!!!) :)"
+
+    def _get_drop_off_instructions_by_products(self):
+        # TODO(ale): check this
+        raise ValidationError(
+            _("Please scan the product that you want to drop off now"))
+
+    def _get_next_drop_off_by_orders(self, item_identity, mls_to_drop):
+        # TODO(ale): implement this
+        # TODO(ale): by 'orders', not 'sale orders', so this can go here, right?
+        return mls_to_drop, "Prepare this (by ORDERS!!!) :)"
+
+    def _get_drop_off_instructions_by_orders(self):
+        # TODO(ale): check this
+        raise ValidationError(
+            _("Please enter the order of the item that you want to drop off now"))
 
     def is_valid_location_dest_id(self, location_ref):
         """

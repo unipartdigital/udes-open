@@ -186,6 +186,26 @@ class PickingBatchApi(UdesApi):
 
         return _get_single_batch_info(updated_batch)
 
+    @http.route('/api/stock-picking-batch/<ident>/drop',
+                type='json', methods=['GET'], auth='user')
+    def get_next_drop_off(self, ident, identity):
+        """
+        Determines what move lines from the batch the user should
+        drop off, based on the picked item specified by its
+        `identity`. Returns an object containing the move lines
+        and other metadata for guiding the user during the drop off
+        workflow (refer to the API specs for more details).
+
+        Raises a ValidationError in case the specified batch does
+        not exist or if it's not in progress.
+        """
+        batch = _get_batch(request.env, ident)
+
+        if batch.state != 'in_progress':
+            raise ValidationError(_("The specified batch is not in progress."))
+
+        return batch.get_next_drop_off(identity)
+
     @http.route('/api/stock-picking-batch/<ident>/is-valid-dest-location',
                 type='json', methods=['GET'], auth='user')
     def validate_drop_off_location(self, ident,
