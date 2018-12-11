@@ -27,7 +27,7 @@ class ResUser(models.Model):
         """ Get the warehouse of the user by chain of the company
         """
         Warehouse = self.env['stock.warehouse']
-        user = self.search([('id', '=', self.env.uid)])
+        user = self.sudo().search([('id', '=', self.env.uid)])
         if not user:
             raise ValidationError(_('Cannot find user to get warehouse.'))
         warehouse = Warehouse.search([('company_id', '=', user.company_id.id)])

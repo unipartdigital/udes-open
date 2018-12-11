@@ -848,11 +848,11 @@ class StockPicking(models.Model):
                     raise ValidationError(_('Picking %s is in a batch owned by another user: %s')
                                           % (self.name, self.batch_id.user_id.name))
 
-        if PickingBatch.get_user_batches():
+        if PickingBatch.sudo().get_user_batches():
             raise ValidationError(_('User %s already has an in progress batch') % user.name)
 
         if not self.batch_id:
-            batch = PickingBatch.create({
+            batch = PickingBatch.sudo().create({
                 'user_id': user.id,
                 'u_ephemeral': True,
             })
