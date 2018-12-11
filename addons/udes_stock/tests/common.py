@@ -79,6 +79,7 @@ class BaseUDES(common.SavepointCase):
     def _setup_locations(cls):
 
         Location = cls.env['stock.location']
+        Category = cls.env['stock.location.category']
         cls.stock_location = cls.env.ref('stock.stock_location_stock')
 
         input_zone = cls.stock_location.copy({'name': 'TEST_INPUT'})
@@ -116,6 +117,16 @@ class BaseUDES(common.SavepointCase):
 
         cls.test_output_locations = cls.test_output_location_01 + \
             cls.test_output_location_02
+
+        cls.location_category_high = Category.create({'name': 'High'})
+        cls.location_category_super_high = Category.create({
+            'name': 'Super',
+            'parent_id': cls.location_category_high.id
+        })
+        cls.location_category_ground= Category.create({'name': 'Ground'})
+        cls.location_categories = cls.location_category_high + \
+                                  cls.location_category_super_high + \
+                                  cls.location_category_ground
 
     @classmethod
     def _setup_check_location(cls):
