@@ -5,8 +5,8 @@
             <field name="name">no_customers</field>
             <field name="model_id" search="[('model','=','res.partner')]" model="ir.model"/>
             <field name="global" eval="True"/>
-            <field name="domain_force">[('customer', '=', user.u_view_customers)]</field>
-        </record>
+            <field name="domain_force">['|',('customer', '=', False),('customer', '=', user.u_view_customers)]</field>
+        </record>     
 
         <record id="udes_stock.group_inbound_user" model="res.groups">
             <field name="name">Inbound User</field>
@@ -26,6 +26,5 @@
             <field name="implied_ids"
                    eval="[(4, ref('sales_team.group_sale_salesman_all_leads'))]"/>
         </record>
-
     </data>
 </odoo>

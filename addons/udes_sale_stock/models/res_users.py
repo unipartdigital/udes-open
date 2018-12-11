@@ -11,7 +11,7 @@ class ResUser(models.Model):
         """ User's allowed to view customers if its group is.
         """
         for user in self:
-            user.u_view_customers = all(
+            user.u_view_customers = any(
                 user.mapped('groups_id.u_view_customers'))
 
     u_view_customers = fields.Boolean(
@@ -20,3 +20,7 @@ class ResUser(models.Model):
         compute=_compute_allowed_to_view_customers,
         readonly=True,
     )
+
+    # Partners are customers by default. Partners auto-created for a user shouldn't be.
+    customer = fields.Boolean(related='partner_id.customer', inherited=True, default=False)
+       

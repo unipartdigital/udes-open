@@ -406,7 +406,7 @@ class StockPickingBatch(models.Model):
         if not picking:
             return None
 
-        batch = PickingBatch.create({'user_id': user_id})
+        batch = PickingBatch.sudo().create({'user_id': user_id})
         picking.write({'batch_id': batch.id})
         batch.write({'u_ephemeral': True})
         batch.confirm_picking()
@@ -645,7 +645,7 @@ class StockPickingBatch(models.Model):
         if user_id is None:
             user_id = self.env.user.id
         # Search for in progress batches
-        batches = self.search([('user_id', '=', user_id),
+        batches = self.sudo().search([('user_id', '=', user_id),
                                ('state', '=', 'in_progress')])
         return batches
 
@@ -660,7 +660,7 @@ class StockPickingBatch(models.Model):
         also unassign incomplete pickings from the batch
         """
         # Unassign user from batch
-        self.write({'user_id': False})
+        self.sudo().write({'user_id': False})
 
         # Unassign batch_id from incomplete stock pickings on ephemeral batches
         self.filtered(lambda b: b.u_ephemeral)\
