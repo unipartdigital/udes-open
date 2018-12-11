@@ -16,7 +16,6 @@
     ],
     'data': [
         'views/sale_order_views.xml',
-        'security/udes_sale_stock_security.xml',
     ],
     'qweb': [
     ],
