@@ -7,6 +7,7 @@ from . import test_create_procurement_group
 from . import test_edi_quant_report
 from . import test_generate_lot
 from . import test_handle_partials
+from . import test_location_category
 from . import test_location_pi
 from . import test_location_policy
 from . import test_move_line
