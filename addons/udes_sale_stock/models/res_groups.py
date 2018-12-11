@@ -10,5 +10,5 @@ class ResGroups(models.Model):
     u_view_customers = fields.Boolean(
         string='Customers',
         help='If a user is allowed to view customers',
-        default=True,
+        default=False,
     )
