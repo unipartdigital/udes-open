@@ -548,8 +548,7 @@ class StockPickingBatch(models.Model):
                 + ": '%s'" % criterion if criterion else "")
 
         mls_to_drop, summary = func(item_identity, all_mls_to_drop)
-        # TODO(ale): consider debug-logging the number of remaining lines
-        last = len(all_mls_to_drop - mls_to_drop) > 0
+        last = len(all_mls_to_drop) == len(mls_to_drop)
 
         return {'last': last,
                 'move_line_ids': mls_to_drop.mapped('id'),
