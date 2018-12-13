@@ -396,6 +396,7 @@ class StockPickingBatch(models.Model):
         Create a batch for the specified user by including only
         those pickings with the specified picking_type_id and picking
         priorities (optional).
+        The batch will be marked as ephemeral.
         In case no pickings exist, return None.
         """
         PickingBatch = self.env['stock.picking.batch']
@@ -449,7 +450,7 @@ class StockPickingBatch(models.Model):
         Validate the move lines of the batch (expects a singleton)
         by moving them to the specified location.
 
-        In case continue_batch is flagged, unassign the batch
+        In case continue_batch is flagged, unassign the batch.
         """
         self.ensure_one()
 
@@ -468,10 +469,10 @@ class StockPickingBatch(models.Model):
         else:
             completed_move_lines = self._get_move_lines_to_drop_off()
 
-        if dest_loc and completed_move_lines:
-            completed_move_lines.write({'location_dest_id': dest_loc.id})
-
         if completed_move_lines:
+            if dest_loc:
+                completed_move_lines.write({'location_dest_id': dest_loc.id})
+
             pickings = completed_move_lines.mapped('picking_id')
 
             for pick in pickings:
@@ -562,13 +563,13 @@ class StockPickingBatch(models.Model):
                         ml.qty_done > 0
                         and ml.picking_id.state not in ['cancel', 'done'])
 
-    def _get_next_drop_off_all(self, _item_identity, mls_to_drop):
+    def _get_next_drop_off_all(self, item_identity, mls_to_drop):
         raise ValidationError(
-            _("This drop off criterion should not be invoked"))
+            _("The 'all' drop off criterion should not be invoked"))
 
     def _get_drop_off_instructions_all(self):
         raise ValidationError(
-            _("No need for instructions for this drop off criterion"))
+            _("The 'all' drop off instruction should not be invoked"))
 
     def _get_next_drop_off_by_products(self, item_identity, mls_to_drop):
         mls = mls_to_drop.filtered(
@@ -578,8 +579,8 @@ class StockPickingBatch(models.Model):
         if product.u_speed_category_id:
             product_speed = " ({})".format(product.u_speed_category_id.name)
         summary = "<br>{} x {}{}".format(product.display_name,
-                                                 sum(mls.mapped('qty_done')),
-                                                 product_speed)
+                                         sum(mls.mapped('qty_done')),
+                                         product_speed)
         return mls, summary
 
     def _get_drop_off_instructions_by_products(self):

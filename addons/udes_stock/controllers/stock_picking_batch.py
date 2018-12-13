@@ -184,7 +184,8 @@ class PickingBatchApi(UdesApi):
         to false).
         """
         batch = _get_batch(request.env, ident)
-        updated_batch = batch.drop_off_picked(continue_batch, move_line_ids,
+        updated_batch = batch.drop_off_picked(continue_batch,
+                                              move_line_ids,
                                               location_barcode)
 
         return _get_single_batch_info(updated_batch)

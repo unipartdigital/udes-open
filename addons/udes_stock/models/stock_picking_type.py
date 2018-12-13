@@ -167,7 +167,7 @@ class StockPickingType(models.Model):
     u_drop_criterion = fields.Selection([
         ('all', 'Drop off everything in one location'),
         ('by_products', 'Group items by product'),
-        ('by_orders', 'Group item by order')
+        ('by_orders', 'Group items by order')
     ],
         default='all',
         string='Drop Off Criterion',
