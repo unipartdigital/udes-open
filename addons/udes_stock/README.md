@@ -556,9 +556,30 @@ Old method(s): drop_off_picked
 ```
 Update current user's picking batch.
 
-* @param id - id of the batch to process
-* @param location_barcode - (optional) Barcode of the location where the picked stock is dropped off
-* @param continue_batch - (optional) Determines if the batch should continue or finish the batch (not used)
+Request:
+
+URL parameters:
+* @param id - id of the batch to process (included in the URL, as above)
+
+Payload - a JSON object containing:
+* @param continue_batch - (boolean) whether the batch should continue or finish ;
+  the batch
+* @param move_line_ids - (array of numbers) IDs of the move lines that were
+  dropped; if empty, ALL the move lines of the batch will be considered dropped;
+* @param location_barcode - (optional string) barcode of the drop off location;
+  when specified, the `location_dest_id` of the batch will be updated.
+
+Response:
+
+In case the backend succeeds to update the specified batch, the response will
+contain a JSON object with the same format as the above `get` endpoint that will
+represent the updated batch. Otherwise the response will contain the relevant
+error.
+
+Returns an error in case of:
+ - the specified batch is unknown;
+ - the batch is not in progress;
+ - the specified move lines don't belong to the batch.
 
 ### Get move lines to drop off, given a scanned item
 ```
