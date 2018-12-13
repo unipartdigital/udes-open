@@ -1312,6 +1312,10 @@ class StockPicking(models.Model):
 
         return picking
 
+    #
+    ## Suggested locations policies
+    #
+
     def check_policy_for_preprocessing(self, policy):
         """"Check policy allows pre processing as not all polices
             can be used in this way
@@ -1351,10 +1355,11 @@ class StockPicking(models.Model):
 
         for picking in self:
             policy = picking.picking_type_id.u_drop_location_policy
+
             if policy:
-                if move_line_ids and \
-                        picking.picking_type_id.u_drop_location_preprocess and \
-                        not move_line_ids.any_destination_locations_default():
+                if move_line_ids \
+                        and picking.picking_type_id.u_drop_location_preprocess \
+                        and not move_line_ids.any_destination_locations_default():
                     # The policy has been preprocessed this assumes the
                     # the policy is able to provide a sensible value (this is
                     # not the case for every policy)
@@ -1368,14 +1373,12 @@ class StockPicking(models.Model):
                 # If the pre-selected value is blocked
                 if not result:
                     func = getattr(self, '_get_suggested_location_' + policy, None)
+
                     if func:
                         result = func(move_line_ids)
 
         return result
 
-    #
-    ## Suggested locations policies
-    #
 
     def _check_picking_move_lines_suggest_location(self, move_line_ids):
         pick_move_lines = self.mapped('move_line_ids').filtered(
