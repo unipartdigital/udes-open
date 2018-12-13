@@ -444,7 +444,7 @@ class StockPickingBatch(models.Model):
                   "more:\n {}").format(picks_txt)
             )
 
-    def drop_off_picked(self, continue_batch, location_barcode):
+    def drop_off_picked(self, continue_batch, move_line_ids, location_barcode):
         """
         Validate the move lines of the batch (expects a singleton)
         by moving them to the specified location.
@@ -457,12 +457,16 @@ class StockPickingBatch(models.Model):
             raise ValidationError(_("Wrong batch state: %s.") % self.state)
 
         Location = self.env['stock.location']
+        MoveLine = self.env['stock.move.line']
         dest_loc = None
 
         if location_barcode:
             dest_loc = Location.get_location(location_barcode)
 
-        completed_move_lines = self._get_move_lines_to_drop_off()
+        if move_line_ids:
+            completed_move_lines = MoveLine.browse(move_line_ids)
+        else:
+            completed_move_lines = self._get_move_lines_to_drop_off()
 
         if dest_loc and completed_move_lines:
             completed_move_lines.write({'location_dest_id': dest_loc.id})
@@ -472,7 +476,8 @@ class StockPickingBatch(models.Model):
 
             for pick in pickings:
                 pick_todo = pick
-                pick_mls = completed_move_lines.filtered(lambda x: x.picking_id == pick)
+                pick_mls = completed_move_lines.filtered(
+                    lambda x: x.picking_id == pick)
 
                 if pick._requires_backorder(pick_mls):
                     pick_todo = pick._backorder_movelines(pick_mls)

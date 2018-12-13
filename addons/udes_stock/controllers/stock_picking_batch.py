@@ -170,8 +170,9 @@ class PickingBatchApi(UdesApi):
     @http.route('/api/stock-picking-batch/<ident>',
                 type='json', methods=['POST'], auth='user')
     def update_batch(self, ident,
-                     location_barcode=None,
-                     continue_batch=False):
+                     continue_batch,
+                     move_line_ids,
+                     location_barcode=None):
         """
         Update the specified batch by inspecting its move lines
         and setting the destination to the location with the
@@ -182,7 +183,8 @@ class PickingBatchApi(UdesApi):
         to false).
         """
         batch = _get_batch(request.env, ident)
-        updated_batch = batch.drop_off_picked(continue_batch, location_barcode)
+        updated_batch = batch.drop_off_picked(continue_batch, move_line_ids,
+                                              location_barcode)
 
         return _get_single_batch_info(updated_batch)
 
