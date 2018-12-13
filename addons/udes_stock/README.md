@@ -358,33 +358,9 @@ Check that a package is not in use and hence is compatible with the stock pickin
 * @param id - the id of the stock.picking to check.
 * @param package_name - string with the name of the package.
 
-### Retrieve the list of suggested locations for a given package or move lines
-
-```
-URI: /api/stock-picking/:id/suggested-locations
-HTTP Method: GET
-```
-Suggest drop off locations based on the configured `u_drop_location_policy`.
-
-* `id` - the id of the stock.picking that is being processed.
-
-Request payload - json object:
-
-* `move_line_ids`: list of the move line ids being processed.
-
-Response payload - json array with Location objects; exmple:
-
-```javascript
-{ "jsonrpc": "2.0",
-  "result" : [
-    {"id": 1, "name": "Location 1", "barcode": "L00000100"},
-    {"id": 2, "name": "Location 2", "barcode": "L00000200"}
-]}
-```
-
 ## Stock Location
 
-### Stock Location
+### Stock Location (GET)
 ```
 URI: /api/stock-location
 HTTP Method: GET
@@ -706,6 +682,35 @@ Old method(s): none
 Works only for ephemeral batches, otherwise raises an error.
 Removes pickings that were not started from the batch, backorders incomplete move lines from other pickings
 Returns the information of the batch that work was removed from.
+
+## Stock Move Line
+
+### Retrieve the list of suggested locations for the specified move lines
+
+```
+URI: /api/stock-move-line/suggested-locations
+HTTP Method: GET
+```
+Suggest drop off locations based on the configured `u_drop_location_policy`.
+
+Request:
+
+The payload should include a JSON object with a single `move_line_ids` entry
+that is an aray of numbers, containing the IDs of the move lines being dropped.
+
+Response:
+
+The payload should contain an array with `Location` objects; example:
+
+```javascript
+{ "jsonrpc": "2.0",
+  "result" : [
+    {"id": 1, "name": "Location 1", "barcode": "L00000100"},
+    {"id": 2, "name": "Location 2", "barcode": "L00000200"}]
+}
+```
+
+Returns an error in case no move lines are specified.
 
 ## Stock Picking Priorities
 ```
