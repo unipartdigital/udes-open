@@ -176,7 +176,8 @@ class PickingBatchApi(UdesApi):
         """
         Update the specified batch by inspecting its move lines
         and setting the destination to the location with the
-        provided `location_barcode`.
+        provided `location_barcode`. Refer to the API specs for
+        more details.
 
         In case all pickings are completed, the batch will be
         marked as 'done' if `continue_batch` is flagged (defaults
