@@ -214,6 +214,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         # On drop off a backorder is created for the remaining 2 units,
         # but _check_batches() removes it from the batch since it is not ready
         batch.drop_off_picked(continue_batch=True,
+                              move_line_ids=None,
                               location_barcode=self.test_output_location_01.name)
 
         # check the picking is done and the backorder is not in the batch
