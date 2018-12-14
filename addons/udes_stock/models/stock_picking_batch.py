@@ -573,13 +573,8 @@ class StockPickingBatch(models.Model):
     def _get_next_drop_off_by_products(self, item_identity, mls_to_drop):
         mls = mls_to_drop.filtered(
             lambda ml: ml.product_id.barcode == item_identity)
-        product = mls.mapped('product_id')
-        product_speed = ""
-        if product.u_speed_category_id:
-            product_speed = " ({})".format(product.u_speed_category_id.name)
-        summary = "<br>{} x {}{}".format(product.display_name,
-                                         sum(mls.mapped('qty_done')),
-                                         product_speed)
+        summary = mls._drop_off_criterion_summary()
+
         return mls, summary
 
     def _get_drop_off_instructions_by_products(self):
@@ -588,14 +583,8 @@ class StockPickingBatch(models.Model):
     def _get_next_drop_off_by_orders(self, item_identity, mls_to_drop):
         mls = mls_to_drop.filtered(
             lambda ml: ml.picking_id.origin == item_identity)
-        summary = ""
-        for product, prod_mls in mls.groupby(lambda ml: ml.product_id):
-            product_speed = ""
-            if product.u_speed_category_id:
-                product_speed = " ({})".format(product.u_speed_category_id.name)
-            summary += "<br>{} x {}{}".format(product.display_name,
-                                              sum(prod_mls.mapped('qty_done')),
-                                              product_speed)
+        summary = mls._drop_off_criterion_summary()
+
         return mls, summary
 
     def _get_drop_off_instructions_by_orders(self):

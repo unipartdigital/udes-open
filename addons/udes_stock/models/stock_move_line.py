@@ -844,3 +844,22 @@ class StockMoveLine(models.Model):
 
     def new_package_name_default(self):
         return self.env['stock.quant.package'].new_package_name()
+
+    def _drop_off_criterion_summary(self):
+        """ Generate product summary for drop off criterion for the move
+            lines in self.
+            Generate one piece of information for each product:
+            * Display name
+            * Total quantity in move lines
+            * Speed of the product (if it is set)
+        """
+        self.mapped('product_id')
+        summary = ""
+        for product, prod_mls in self.groupby(lambda ml: ml.product_id):
+            product_speed = ""
+            if product.u_speed_category_id:
+                product_speed = " (speed: {})".format(product.u_speed_category_id.name)
+            summary += "<br>{} x {}{}".format(product.display_name,
+                                              int(sum(prod_mls.mapped('qty_done'))),
+                                              product_speed)
+        return summary
