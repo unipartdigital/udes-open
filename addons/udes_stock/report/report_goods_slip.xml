@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data>
+
+  	<!-- Package Goods Label (CPCL) -->
+    <report id="report_goods_slip"
+            model="stock.quant.package"
+	        name="udes_stock.report_goods_slip_cpcl"
+            report_type="qweb-cpcl"
+            file="udes_stock.report_goods_slip_cpcl"
+            string="Goods Slip"/>
+
+    <!-- Package Goods Label (CPCL) -->
+    <template id="report_goods_slip_cpcl">
+	  <cpcl xmlns="http://www.fensystems.co.uk/xmlns/cpcl">
+	    <t t-foreach="docs" t-as="package">
+		  <t t-foreach="package.quant_ids" t-as="quant">
+			<print height="250">
+			<in-millimeters/>
+			<page-width>100</page-width>
+			<page-height>100</page-height>
+			<center/>
+			<box x0="0" y0="5" x1="95" y1="66" width="0" />
+			<text y="8" size="3" t-esc="quant.product_id.name[:32]"/>
+			<text y="20" size="3" t-field="quant.product_id.u_manufacturer_part_no"/>
+			<barcode-text size="1" offset="1" />
+			<barcode type="128" y="34" width="0.4" height="20" t-field="quant.product_id.barcode"/>
+			<box x0="0" y0="66" x1="95" y1="98" width="0" />
+			<left />
+			<text y="75" x="20" size="5" t-esc="'QTY: %s' % int(quant.quantity)"/>
+			<barcode type="128" x="56" y="70" width="0.4" height="20" t-esc="int(quant.quantity)"/>
+			<form/>
+			</print>
+			</t>
+		  </t>
+      </cpcl>
+    </template>
+
+  </data>
+</odoo>
+

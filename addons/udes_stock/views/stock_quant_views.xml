@@ -8,4 +8,17 @@
         view_type="form" view_mode="form"
         key2="client_action_multi" target="new" />
 
+    <record model="ir.ui.view" id="view_quant_package_form">
+        <field name="name">Print Goods Slip</field>
+        <field name="inherit_id" ref="stock.view_quant_package_form"/>
+        <field name="model">stock.quant.package</field>
+        <field name="arch" type="xml">
+            <xpath expr="//form/header" position="inside">
+                <button name="action_print_goods_slip" type="object"
+                        string="Print Goods Slip">
+                </button>
+            </xpath>
+        </field>
+    </record>
+
 </odoo>

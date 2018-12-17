@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 
 from odoo import api, fields, models, _
-from odoo.exceptions import ValidationError
+from odoo.exceptions import ValidationError, UserError
 
+import logging
+_logger = logging.getLogger(__name__)
 
 class StockQuantPackage(models.Model):
     _inherit = "stock.quant.package"
@@ -179,3 +181,20 @@ class StockQuantPackage(models.Model):
                 % (self.name, pick_names_txt))
 
         return move_lines
+
+    def action_print_goods_slip(self):
+        """
+        Print label for package
+        """
+        Printer = self.env['print.printer']
+        self.ensure_one()
+
+        _logger.info(_("User %d requested print of goods slip "
+                       "for %s") % (self.env.uid, self.name))
+
+        spool = Printer.spool_report(docids=[self.id],
+                                     report_name='udes_stock.report_goods_slip')
+        if spool:
+            return True
+        else:
+            raise UserError(_("Label failed to print"))
