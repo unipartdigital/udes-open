@@ -779,14 +779,18 @@ class StockPickingBatch(models.Model):
         """
         Picking = self.env['stock.picking']
 
+        self.ensure_one()
+
         if not self.u_ephemeral:
-            raise ValidationError(_("Can only remove work from ephemeral batches"))
+            raise ValidationError(
+                _("Can only remove work from ephemeral batches"))
 
         pickings_to_remove = Picking.browse()
         pickings_to_add = Picking.browse()
 
         for picking in self.picking_ids:
-            started_lines = picking.mapped('move_line_ids').filtered(lambda x: x.qty_done > 0)
+            started_lines = picking.mapped('move_line_ids').filtered(
+                lambda x: x.qty_done > 0)
             if started_lines:
                 # backorder incomplete moves
                 if picking._requires_backorder(started_lines):
@@ -796,8 +800,13 @@ class StockPickingBatch(models.Model):
             else:
                 pickings_to_remove |= picking
 
-        pickings_to_remove.with_context(lock_batch_state=True).write({'batch_id': False})
-        pickings_to_add.write({'batch_id': self.id})
+        pickings_to_remove.with_context(
+            lock_batch_state=True).write({'batch_id': False})
+        pickings_to_add.with_context(
+            lock_batch_state=True).write({'batch_id': self.id})
+        self._compute_state()
+
+        return self
 
     def get_batch_priority_group(self):
         """ Get priority group for this batch based on the pickings' priorities
