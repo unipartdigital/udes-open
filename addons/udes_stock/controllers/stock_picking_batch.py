@@ -52,7 +52,8 @@ class PickingBatchApi(UdesApi):
         """
         Search for a picking batch in progress for the current user.
         In case one is found, return a JSON object with:
-         - the ID and the name of the batch ('id', 'name' strings);
+         - the ID, state, and the name of the batch ('id', 'state',
+           'name' strings);
          - the list of pickings in assigned state ('picking_ids'
            array of stock.picking objects);
          - the result packages ('result_package_names' array).
@@ -294,11 +295,14 @@ class PickingBatchApi(UdesApi):
                 type='json', methods=['POST'], auth='user')
     def remove_unfinished_work(self, ident):
         """
-        Remove pickings from batch if they are not started
+        Remove pickings from batch if they are not started.
+        Returned the metadata of the batch, by only including
+        the 'assigned' pickings.
 
         Backorder half-finished pickings
         """
         batch = _get_batch(request.env, ident)
         updated_batch = batch.remove_unfinished_work()
 
-        return _get_single_batch_info(updated_batch)
+        return _get_single_batch_info(updated_batch,
+                                      allowed_picking_states=['assigned'])

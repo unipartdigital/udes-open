@@ -900,6 +900,7 @@ class StockPicking(models.Model):
             - location_dest_id: int
             - picking_type_id: int
             - move_lines: [{stock.move}]
+            - state: string
             - u_pending: boolean (only if picking type does not handle partials)
 
             @param (optional) priorities

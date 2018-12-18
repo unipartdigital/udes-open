@@ -472,7 +472,7 @@ user.
 Response:
 
 It returns a JSON object with:
- - the `id` and `name` of the batch;
+ - the `id`, `state`, and `name` of the batch;
  - `picking_ids`: an array  metadata of the `assigned` pickings of the batch
  - `result_package_names`: an array with the result packages
 
