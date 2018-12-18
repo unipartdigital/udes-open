@@ -214,7 +214,11 @@ class StockPicking(models.Model):
         batches = mls.mapped('picking_id.batch_id')
         res = super(StockPicking,
                     self.with_context(lock_batch_state=True)).action_done()
-        picks = mls.mapped('picking_id')
+
+        # just in case move lines change on action done, for instance cancelling
+        # a picking
+        mls = mls.exists()
+        picks = mls.exists().mapped('picking_id')
         # batches of the following stage should also be recomputed
         picks |= mls.mapped('picking_id.u_next_picking_ids')
         batches |= picks.mapped('batch_id')
