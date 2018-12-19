@@ -52,7 +52,8 @@ class PickingBatchApi(UdesApi):
         """
         Search for a picking batch in progress for the current user.
         In case one is found, return a JSON object with:
-         - the ID and the name of the batch ('id', 'name' strings);
+         - the ID, state, and the name of the batch ('id', 'state',
+           'name' strings);
          - the list of pickings in assigned state ('picking_ids'
            array of stock.picking objects);
          - the result packages ('result_package_names' array).
@@ -67,6 +68,17 @@ class PickingBatchApi(UdesApi):
 
         return _get_single_batch_info(batch,
                                       allowed_picking_states=['assigned'])
+
+    @http.route('/api/stock-picking-batch/check-user-batches',
+                type='json', methods=['GET'], auth='user')
+    def check_user_batches(self):
+        """
+        Whether the user has any assigned batch.
+        """
+        PickingBatch = request.env['stock.picking.batch']
+        batches = PickingBatch.get_user_batches()
+
+        return True if batches else False
 
     @http.route('/api/stock-picking-batch/<ident>/next',
                 type='json', methods=['GET'], auth='user')
@@ -159,21 +171,45 @@ class PickingBatchApi(UdesApi):
     @http.route('/api/stock-picking-batch/<ident>',
                 type='json', methods=['POST'], auth='user')
     def update_batch(self, ident,
-                     location_barcode=None,
-                     continue_batch=False):
+                     continue_batch,
+                     move_line_ids,
+                     location_barcode=None):
         """
         Update the specified batch by inspecting its move lines
         and setting the destination to the location with the
-        provided `location_barcode`.
+        provided `location_barcode`. Refer to the API specs for
+        more details.
 
         In case all pickings are completed, the batch will be
         marked as 'done' if `continue_batch` is flagged (defaults
         to false).
         """
         batch = _get_batch(request.env, ident)
-        updated_batch = batch.drop_off_picked(continue_batch, location_barcode)
+        updated_batch = batch.drop_off_picked(continue_batch,
+                                              move_line_ids,
+                                              location_barcode)
 
         return _get_single_batch_info(updated_batch)
+
+    @http.route('/api/stock-picking-batch/<ident>/drop',
+                type='json', methods=['GET'], auth='user')
+    def get_next_drop_off(self, ident, identity):
+        """
+        Determines what move lines from the batch the user should
+        drop off, based on the picked item specified by its
+        `identity`. Returns an object containing the move lines
+        and other metadata for guiding the user during the drop off
+        workflow (refer to the API specs for more details).
+
+        Raises a ValidationError in case the specified batch does
+        not exist or if it's not in progress.
+        """
+        batch = _get_batch(request.env, ident)
+
+        if batch.state != 'in_progress':
+            raise ValidationError(_("The specified batch is not in progress."))
+
+        return batch.get_next_drop_off(identity)
 
     @http.route('/api/stock-picking-batch/<ident>/is-valid-dest-location',
                 type='json', methods=['GET'], auth='user')
@@ -238,17 +274,6 @@ class PickingBatchApi(UdesApi):
             raise_stock_investigation=raise_stock_investigation
         )
 
-    @http.route('/api/stock-picking-batch/check-user-batches',
-                type='json', methods=['GET'], auth='user')
-    def check_user_batches(self):
-        """
-        Whether the user has any assigned batch.
-        """
-        PickingBatch = request.env['stock.picking.batch']
-        batches = PickingBatch.get_user_batches()
-
-        return True if batches else False
-
     @http.route('/api/stock-picking-batch/<ident>/add-extra-pickings',
                 type='json', methods=['POST'], auth='user')
     def add_extra_pickings(self, ident, picking_type_id):
@@ -270,11 +295,14 @@ class PickingBatchApi(UdesApi):
                 type='json', methods=['POST'], auth='user')
     def remove_unfinished_work(self, ident):
         """
-        Remove pickings from batch if they are not started
+        Remove pickings from batch if they are not started.
+        Returned the metadata of the batch, by only including
+        the 'assigned' pickings.
 
         Backorder half-finished pickings
         """
         batch = _get_batch(request.env, ident)
         updated_batch = batch.remove_unfinished_work()
 
-        return _get_single_batch_info(updated_batch)
+        return _get_single_batch_info(updated_batch,
+                                      allowed_picking_states=['assigned'])

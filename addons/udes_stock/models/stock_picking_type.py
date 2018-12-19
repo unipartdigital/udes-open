@@ -164,6 +164,16 @@ class StockPickingType(models.Model):
 
     # Drop location options
 
+    u_drop_criterion = fields.Selection([
+        ('all', 'Drop off everything in one location'),
+        ('by_products', 'Group items by product'),
+        ('by_orders', 'Group items by order')
+    ],
+        default='all',
+        string='Drop Off Criterion',
+        help='How to group items when dropping off.'
+    )
+
     u_drop_location_constraint = fields.Selection([
         ('dont_scan', 'Do not scan'),
         ('scan', 'Scan'),
@@ -291,11 +301,16 @@ class StockPickingType(models.Model):
             - u_create_batch_for_user: boolean
             - u_check_picking_priorities: boolean
             - u_use_location_categories: boolean
+            - u_drop_criterion: string
             - u_drop_location_constraint: string
             - u_drop_location_policy: string
             - u_new_package_policy: string
         """
         self.ensure_one()
+        Batch = self.env['stock.picking.batch']
+        drop_off_instructions = \
+            "" if self.u_drop_criterion == 'all' \
+            else Batch.get_drop_off_instructions(self.u_drop_criterion)
 
         return {'id': self.id,
                 'code': self.code,
@@ -320,6 +335,8 @@ class StockPickingType(models.Model):
                 'u_create_procurement_group': self.u_create_procurement_group,
                 'u_confirm_tracking': self.u_confirm_tracking,
                 'u_confirm_expiry_date': self.u_confirm_expiry_date,
+                'u_drop_criterion': self.u_drop_criterion,
+                'drop_criterion_instructions': drop_off_instructions,
                 'u_drop_location_constraint': self.u_drop_location_constraint,
                 'u_drop_location_policy': self.u_drop_location_policy,
                 'u_new_package_policy': self.u_new_package_policy,

@@ -335,6 +335,7 @@ class StockPickingBatch(models.Model):
 
         return {'id': self.id,
                 'name': self.name,
+                'state': self.state,
                 'picking_ids': pickings.get_info(),
                 'result_package_names': pickings.get_result_packages_names()}
 
@@ -396,6 +397,7 @@ class StockPickingBatch(models.Model):
         Create a batch for the specified user by including only
         those pickings with the specified picking_type_id and picking
         priorities (optional).
+        The batch will be marked as ephemeral.
         In case no pickings exist, return None.
         """
         PickingBatch = self.env['stock.picking.batch']
@@ -444,12 +446,12 @@ class StockPickingBatch(models.Model):
                   "more:\n {}").format(picks_txt)
             )
 
-    def drop_off_picked(self, continue_batch, location_barcode):
+    def drop_off_picked(self, continue_batch, move_line_ids, location_barcode):
         """
         Validate the move lines of the batch (expects a singleton)
         by moving them to the specified location.
 
-        In case continue_batch is flagged, unassign the batch
+        In case continue_batch is flagged, unassign the batch.
         """
         self.ensure_one()
 
@@ -457,34 +459,137 @@ class StockPickingBatch(models.Model):
             raise ValidationError(_("Wrong batch state: %s.") % self.state)
 
         Location = self.env['stock.location']
+        MoveLine = self.env['stock.move.line']
         dest_loc = None
 
         if location_barcode:
             dest_loc = Location.get_location(location_barcode)
 
-        completed_move_lines = self.picking_ids.mapped('move_line_ids').filtered(
-            lambda x: x.qty_done > 0
-                      and x.picking_id.state not in ['cancel', 'done'])
-
-        if dest_loc and completed_move_lines:
-            completed_move_lines.write({'location_dest_id': dest_loc.id})
+        if move_line_ids:
+            completed_move_lines = MoveLine.browse(move_line_ids)
+        else:
+            completed_move_lines = self._get_move_lines_to_drop_off()
 
         if completed_move_lines:
+            if dest_loc:
+                completed_move_lines.write({'location_dest_id': dest_loc.id})
+
             pickings = completed_move_lines.mapped('picking_id')
 
             for pick in pickings:
                 pick_todo = pick
-                pick_mls = completed_move_lines.filtered(lambda x: x.picking_id == pick)
+                pick_mls = completed_move_lines.filtered(
+                    lambda x: x.picking_id == pick)
 
                 if pick._requires_backorder(pick_mls):
                     pick_todo = pick._backorder_movelines(pick_mls)
 
                 # at this point pick_todo should contain only mls done
                 pick_todo.update_picking(validate=True)
+
         if not continue_batch:
             self.unassign()
 
         return self
+
+    @api.model
+    def get_drop_off_instructions(self, criterion):
+        """
+        Returns a string indicating instructions about what the
+        user has to scan before requesting the move lines for
+        drop off.
+
+        Raises an error if the instruction method for the
+        specified criterion does not exist.
+        """
+        func = getattr(self, '_get_drop_off_instructions_' + criterion, None)
+
+        if not func:
+            raise ValidationError(
+                _("An unexpected drop off criterion is currently configured")
+                + ": '%s'" % criterion if criterion else "")
+
+        return func()
+
+    def get_next_drop_off(self, item_identity):
+        """
+        Based on the criteria specified for the batch picking type,
+        determines what move lines should be dropped (refer to the
+        batch::drop API specs for the format of the returned value).
+
+        Expects an `in_progress` singleton.
+
+        Raises an error in case:
+         - not all pickings of the batch have the same picking type;
+         - unknown or invalid (e.g. 'all') drop off criterion.
+        """
+        self.ensure_one()
+        assert self.state == 'in_progress', \
+               "Batch must be in progress to be dropped off"
+
+        all_mls_to_drop = self._get_move_lines_to_drop_off()
+
+        if not len(all_mls_to_drop):
+            return {'last': True,
+                    'move_line_ids': [],
+                    'summary': ""}
+
+        picking_type = self.picking_type_ids
+
+        if len(picking_type) > 1:
+            raise ValidationError(
+                _("The batch unexpectedly has pickings of different types"))
+
+        criterion = picking_type.u_drop_criterion
+        func = getattr(self, '_get_next_drop_off_' + criterion, None)
+
+        if not func:
+            raise ValidationError(
+                _("An unexpected drop off criterion is currently configured")
+                + ": '%s'" % criterion if criterion else "")
+
+        mls_to_drop, summary = func(item_identity, all_mls_to_drop)
+        last = len(all_mls_to_drop) == len(mls_to_drop)
+
+        return {'last': last,
+                'move_line_ids': mls_to_drop.mapped('id'),
+                'summary': summary}
+
+    def _get_move_lines_to_drop_off(self):
+        self.ensure_one()
+        return self.picking_ids \
+                   .mapped('move_line_ids') \
+                   .filtered(lambda ml:
+                        ml.qty_done > 0
+                        and ml.picking_id.state not in ['cancel', 'done'])
+
+    def _get_next_drop_off_all(self, item_identity, mls_to_drop):
+        raise ValidationError(
+            _("The 'all' drop off criterion should not be invoked"))
+
+    def _get_drop_off_instructions_all(self):
+        raise ValidationError(
+            _("The 'all' drop off instruction should not be invoked"))
+
+    def _get_next_drop_off_by_products(self, item_identity, mls_to_drop):
+        mls = mls_to_drop.filtered(
+            lambda ml: ml.product_id.barcode == item_identity)
+        summary = mls._drop_off_criterion_summary()
+
+        return mls, summary
+
+    def _get_drop_off_instructions_by_products(self):
+        return _("Please scan the product that you want to drop off")
+
+    def _get_next_drop_off_by_orders(self, item_identity, mls_to_drop):
+        mls = mls_to_drop.filtered(
+            lambda ml: ml.picking_id.origin == item_identity)
+        summary = mls._drop_off_criterion_summary()
+
+        return mls, summary
+
+    def _get_drop_off_instructions_by_orders(self):
+        return _("Please enter the order of the items that you want to drop off")
 
     def is_valid_location_dest_id(self, location_ref):
         """
@@ -675,14 +780,18 @@ class StockPickingBatch(models.Model):
         """
         Picking = self.env['stock.picking']
 
+        self.ensure_one()
+
         if not self.u_ephemeral:
-            raise ValidationError(_("Can only remove work from ephemeral batches"))
+            raise ValidationError(
+                _("Can only remove work from ephemeral batches"))
 
         pickings_to_remove = Picking.browse()
         pickings_to_add = Picking.browse()
 
         for picking in self.picking_ids:
-            started_lines = picking.mapped('move_line_ids').filtered(lambda x: x.qty_done > 0)
+            started_lines = picking.mapped('move_line_ids').filtered(
+                lambda x: x.qty_done > 0)
             if started_lines:
                 # backorder incomplete moves
                 if picking._requires_backorder(started_lines):
@@ -692,8 +801,13 @@ class StockPickingBatch(models.Model):
             else:
                 pickings_to_remove |= picking
 
-        pickings_to_remove.with_context(lock_batch_state=True).write({'batch_id': False})
-        pickings_to_add.write({'batch_id': self.id})
+        pickings_to_remove.with_context(
+            lock_batch_state=True).write({'batch_id': False})
+        pickings_to_add.with_context(
+            lock_batch_state=True).write({'batch_id': self.id})
+        self._compute_state()
+
+        return self
 
     def get_batch_priority_group(self):
         """ Get priority group for this batch based on the pickings' priorities

@@ -214,6 +214,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         # On drop off a backorder is created for the remaining 2 units,
         # but _check_batches() removes it from the batch since it is not ready
         batch.drop_off_picked(continue_batch=True,
+                              move_line_ids=None,
                               location_barcode=self.test_output_location_01.name)
 
         # check the picking is done and the backorder is not in the batch
@@ -1337,3 +1338,218 @@ class TestBatchState(common.BaseUDES):
         )
         self.batch01._compute_state()
         self.assertEqual(self.batch01.state, 'done')
+
+
+class TestBatchMultiDropOff(common.BaseUDES):
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestBatchMultiDropOff, cls).setUpClass()
+        cls.pack_2prods_info = [{'product': cls.apple, 'qty': 4},
+                                {'product': cls.banana, 'qty': 4}]
+
+    @classmethod
+    def product_str(cls, product, qty):
+        return "{} x {}".format(product.display_name, qty)
+
+    @classmethod
+    def complete_pick(cls, picking):
+        for line in picking.move_line_ids:
+            line.write({
+                'qty_done': line.product_uom_qty,
+            })
+
+    def test01_next_drop_off_by_products(self):
+        """ Test next drop off criterion by products """
+        MoveLine = self.env['stock.move.line']
+        Batch = self.env['stock.picking.batch']
+        Batch = Batch.sudo(self.outbound_user)
+
+        self.picking_type_pick.u_drop_criterion = 'by_products'
+
+        out_location = self.test_output_location_01.barcode
+
+        # Create quants and picking for one order and two products
+        self.create_quant(self.apple.id, self.test_location_01.id, 4)
+        self.create_quant(self.banana.id, self.test_location_02.id, 4)
+        picking = self.create_picking(self.picking_type_pick,
+                                      products_info=self.pack_2prods_info,
+                                      confirm=True,
+                                      assign=True)
+        # Create batch for outbound user
+        priority = picking.priority
+        batch = Batch.create_batch(self.picking_type_pick.id, [priority])
+
+        # Mark all move lines to done
+        self.complete_pick(picking)
+
+        # Get next drop off info for apples
+        info = batch.get_next_drop_off(self.apple.barcode)
+        drop_mls = MoveLine.browse(info['move_line_ids'])
+        summary = info['summary']
+        last = info['last']
+
+        # Check there are move lines to drop, the summary is for 4 apples and
+        # it is not the last drop off (still bananas to drop)
+        self.assertTrue(len(drop_mls.exists()) > 0)
+        self.assertTrue(self.product_str(self.apple, 4) in summary)
+        self.assertFalse(last)
+
+        # Drop off apple move lines, and check expected state of the batch
+        batch_after = batch.drop_off_picked(continue_batch=True,
+                                            move_line_ids=drop_mls.ids,
+                                            location_barcode=out_location)
+        self.assertEqual(batch, batch_after)
+        self.assertNotEqual(batch.state, 'done')
+
+        # Get next drop off info for apples
+        info = batch.get_next_drop_off(self.apple.barcode)
+        drop_mls = MoveLine.browse(info['move_line_ids'])
+        summary = info['summary']
+        last = info['last']
+
+        # Check there are not more apple move lines to drop, the summary is
+        # empty and it is not the last drop off (still bananas to drop)
+        self.assertEqual(len(drop_mls.exists()), 0)
+        self.assertEqual(len(summary), 0)
+        self.assertFalse(last)
+
+        # Get next drop off info for bananas
+        info = batch.get_next_drop_off(self.banana.barcode)
+        drop_mls = MoveLine.browse(info['move_line_ids'])
+        summary = info['summary']
+        last = info['last']
+
+        # Check there are move lines to drop, the summary is for 4 bananas and
+        # it is the last drop off (nothing else to drop)
+        self.assertTrue(len(drop_mls.exists()) > 0)
+        self.assertTrue(self.product_str(self.banana, 4) in summary)
+        self.assertTrue(last)
+
+        # Drop off banana move lines, and check expected state of the batch
+        batch_after = batch.drop_off_picked(continue_batch=True,
+                                            move_line_ids=drop_mls.ids,
+                                            location_barcode=out_location)
+        self.assertEqual(batch, batch_after)
+        self.assertEqual(batch.state, 'done')
+
+    def test02_next_drop_off_by_orders(self):
+        """ Test next drop off criterion by orders """
+        MoveLine = self.env['stock.move.line']
+        Batch = self.env['stock.picking.batch']
+        Batch = Batch.sudo(self.outbound_user)
+
+        self.picking_type_pick.u_drop_criterion = 'by_orders'
+
+        out_location = self.test_output_location_01.barcode
+        out_location2 = self.test_output_location_02.barcode
+
+        # Create quants and picking for two orders and two products
+        self.create_quant(self.apple.id, self.test_location_01.id, 8)
+        self.create_quant(self.banana.id, self.test_location_02.id, 8)
+        picking1 = self.create_picking(self.picking_type_pick,
+                                      products_info=self.pack_2prods_info,
+                                      confirm=True,
+                                      assign=True,
+                                      origin="test_order_01")
+        # Create batch for outbound user
+        priority = picking1.priority
+        batch = Batch.create_batch(self.picking_type_pick.id, [priority])
+
+        picking2 = self.create_picking(self.picking_type_pick,
+                                       products_info=self.pack_2prods_info,
+                                       confirm=True,
+                                       assign=True,
+                                       origin="test_order_02")
+        # Add the second pick to the batch
+        picking2.batch_id = batch
+
+        # Mark all move lines to done for both pickings
+        self.complete_pick(picking1)
+        self.complete_pick(picking2)
+
+        # Get next drop off info for picking2
+        info = batch.get_next_drop_off(picking2.origin)
+        drop_mls = MoveLine.browse(info['move_line_ids'])
+        summary = info['summary']
+        last = info['last']
+
+        # Check there are move lines to drop, the summary is for 4 apples and 4
+        # bananas and it is not the last drop off (still another order to drop)
+        self.assertTrue(len(drop_mls.exists()) > 0)
+        self.assertTrue(self.product_str(self.apple, 4) in summary)
+        self.assertTrue(self.product_str(self.banana, 4) in summary)
+        self.assertFalse(last)
+
+        # Drop off picking2 move lines, and check expected state of the batch
+        batch_after = batch.drop_off_picked(continue_batch=True,
+                                            move_line_ids=drop_mls.ids,
+                                            location_barcode=out_location2)
+        self.assertEqual(batch, batch_after)
+        self.assertNotEqual(batch.state, 'done')
+        # Check state of pickings are as expected
+        self.assertEqual(picking1.state, 'assigned')
+        self.assertEqual(picking2.state, 'done')
+
+        # Get next drop off info for picking2
+        info = batch.get_next_drop_off(self.apple.barcode)
+        drop_mls = MoveLine.browse(info['move_line_ids'])
+        summary = info['summary']
+        last = info['last']
+
+        # Check there are not more picking2 move lines to drop, the summary is
+        # empty and it is not the last drop off (still another order to drop)
+        self.assertEqual(len(drop_mls.exists()), 0)
+        self.assertEqual(len(summary), 0)
+        self.assertFalse(last)
+
+        # Get next drop off info for picking1
+        info = batch.get_next_drop_off(picking1.origin)
+        drop_mls = MoveLine.browse(info['move_line_ids'])
+        summary = info['summary']
+        last = info['last']
+
+        # Check there are move lines to drop, the summary is for 4 apples and 4
+        # bananas and it is the last drop off (nothing else to drop)
+        self.assertTrue(len(drop_mls.exists()) > 0)
+        self.assertTrue(self.product_str(self.apple, 4) in summary)
+        self.assertTrue(self.product_str(self.banana, 4) in summary)
+        self.assertTrue(last)
+
+        # Drop off banana move lines, and check expected state of the batch
+        batch_after = batch.drop_off_picked(continue_batch=True,
+                                            move_line_ids=drop_mls.ids,
+                                            location_barcode=out_location)
+        self.assertEqual(batch, batch_after)
+        self.assertEqual(batch.state, 'done')
+
+    def test03_next_drop_off_nothing_to_drop(self):
+        """ Test next drop off criterion by products but nothing to drop """
+        MoveLine = self.env['stock.move.line']
+        Batch = self.env['stock.picking.batch']
+        Batch = Batch.sudo(self.outbound_user)
+
+        self.picking_type_pick.u_drop_criterion = 'by_products'
+
+        # Create quants and picking for one order and two products
+        self.create_quant(self.apple.id, self.test_location_01.id, 4)
+        self.create_quant(self.banana.id, self.test_location_02.id, 4)
+        picking = self.create_picking(self.picking_type_pick,
+                                      products_info=self.pack_2prods_info,
+                                      confirm=True,
+                                      assign=True)
+        # Create batch for outbound user
+        priority = picking.priority
+        batch = Batch.create_batch(self.picking_type_pick.id, [priority])
+
+        # Get next drop off info for apples when nothing has been picked
+        info = batch.get_next_drop_off(self.apple.barcode)
+        drop_mls = MoveLine.browse(info['move_line_ids'])
+        summary = info['summary']
+        last = info['last']
+
+        # Check there are not any apple move lines to drop, the summary is
+        # empty and it is the last drop off
+        self.assertEqual(len(drop_mls.exists()), 0)
+        self.assertEqual(len(summary), 0)
+        self.assertTrue(last)

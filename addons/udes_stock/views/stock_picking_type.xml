@@ -30,6 +30,7 @@
                     <field name="u_reserve_as_packages" />
                     <field name="u_handle_partials" />
                     <field name="u_create_procurement_group"/>
+                    <field name="u_drop_criterion" />
                     <field name="u_drop_location_constraint" />
                     <field name="u_drop_location_policy" />
                     <field name="u_new_package_policy" />

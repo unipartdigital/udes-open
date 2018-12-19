@@ -358,33 +358,9 @@ Check that a package is not in use and hence is compatible with the stock pickin
 * @param id - the id of the stock.picking to check.
 * @param package_name - string with the name of the package.
 
-### Retrieve the list of suggested locations for a given package or move lines
-
-```
-URI: /api/stock-picking/:id/suggested-locations
-HTTP Method: GET
-```
-Suggest drop off locations based on the configured `u_drop_location_policy`.
-
-* `id` - the id of the stock.picking that is being processed.
-
-Request payload - json object:
-
-* `move_line_ids`: list of the move line ids being processed.
-
-Response payload - json array with Location objects; exmple:
-
-```javascript
-{ "jsonrpc": "2.0",
-  "result" : [
-    {"id": 1, "name": "Location 1", "barcode": "L00000100"},
-    {"id": 2, "name": "Location 2", "barcode": "L00000200"}
-]}
-```
-
 ## Stock Location
 
-### Stock Location
+### Stock Location (GET)
 ```
 URI: /api/stock-location
 HTTP Method: GET
@@ -496,7 +472,7 @@ user.
 Response:
 
 It returns a JSON object with:
- - the `id` and `name` of the batch;
+ - the `id`, `state`, and `name` of the batch;
  - `picking_ids`: an array  metadata of the `assigned` pickings of the batch
  - `result_package_names`: an array with the result packages
 
@@ -580,9 +556,63 @@ Old method(s): drop_off_picked
 ```
 Update current user's picking batch.
 
-* @param id - id of the batch to process
-* @param location_barcode - (optional) Barcode of the location where the picked stock is dropped off
-* @param continue_batch - (optional) Determines if the batch should continue or finish the batch (not used)
+Request:
+
+URL parameters:
+* @param id - id of the batch to process (included in the URL, as above)
+
+Payload - a JSON object containing:
+* @param continue_batch - (boolean) whether the batch should continue or finish ;
+  the batch
+* @param move_line_ids - (array of numbers) IDs of the move lines that were
+  dropped; if empty, ALL the move lines of the batch will be considered dropped;
+* @param location_barcode - (optional string) barcode of the drop off location;
+  when specified, the `location_dest_id` of the batch will be updated.
+
+Response:
+
+In case the backend succeeds to update the specified batch, the response will
+contain a JSON object with the same format as the above `get` endpoint that will
+represent the updated batch. Otherwise the response will contain the relevant
+error.
+
+Returns an error in case of:
+ - the specified batch is unknown;
+ - the batch is not in progress;
+ - the specified move lines don't belong to the batch.
+
+### Get move lines to drop off, given a scanned item
+```
+URI: /api/stock-picking-batch/:id/drop
+HTTP Method: GET
+```
+Determines what move lines from the batch the user should drop off, given an
+item that the user is currently interested in dropping off. That is done by
+using the configured criterion for the picking type of the batch being
+processed.
+
+Request:
+
+The `id` of the batch that is being dropped off should be specified in the URL.
+The payload should include a JSON object with a single `identity` entry that will
+indicate the scanend item (e.g. a product, package, order). Such `identity`
+should be expected by the drop off criterion of the picking type.
+
+Response:
+
+Returns a JSON object including:
+ - a `last` boolean, indicating, if flagged, that there are no further move
+   lines to be dropped off in addition to the ones included in the response;
+ - a `move_line_ids` array of numbers, each being the ID of a move line that
+   should be dropped off; such array will be empty in case there are no move
+   lines related to the scanned item;
+ - a `summary` string, to be presented to the user; such string will be empty
+   in case there are no move lines related to the scanned item.
+
+Returns an error in case there's no drop off criterion configured for the
+picking type of the batch.
+
+Assumes that all the pickings of the batch have the same picking type.
 
 ### Validate drop off location of picking batch
 ```
@@ -673,6 +703,35 @@ Old method(s): none
 Works only for ephemeral batches, otherwise raises an error.
 Removes pickings that were not started from the batch, backorders incomplete move lines from other pickings
 Returns the information of the batch that work was removed from.
+
+## Stock Move Line
+
+### Retrieve the list of suggested locations for the specified move lines
+
+```
+URI: /api/stock-move-line/suggested-locations
+HTTP Method: GET
+```
+Suggest drop off locations based on the configured `u_drop_location_policy`.
+
+Request:
+
+The payload should include a JSON object with a single `move_line_ids` entry
+that is an aray of numbers, containing the IDs of the move lines being dropped.
+
+Response:
+
+The payload should contain an array with `Location` objects; example:
+
+```javascript
+{ "jsonrpc": "2.0",
+  "result" : [
+    {"id": 1, "name": "Location 1", "barcode": "L00000100"},
+    {"id": 2, "name": "Location 2", "barcode": "L00000200"}]
+}
+```
+
+Returns an error in case no move lines are specified.
 
 ## Stock Picking Priorities
 ```
