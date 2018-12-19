@@ -1275,7 +1275,7 @@ class StockPicking(models.Model):
         return res
 
     @api.model
-    def _new_picking_for_group(self, group_key, moves, origin=None):
+    def _new_picking_for_group(self, group_key, moves, **kwargs):
         Group = self.env['procurement.group']
 
         picking_type = moves.mapped('picking_type_id')
@@ -1294,17 +1294,27 @@ class StockPicking(models.Model):
             ('state', 'in', ['assigned', 'confirmed', 'waiting']),
         ])
         if not picking or len(picking) > 1:
-            picking = self.create({
+            values = {
                 'picking_type_id': picking_type.id,
                 'location_id': src_loc.id,
                 'location_dest_id': dest_loc.id,
                 'group_id': group.id,
-                'origin': origin,
-            })
+            }
+            values.update(kwargs)
+
+            picking = self.create(values)
+
         else:
-            # avoid misleading source document
-            if origin != picking.origin:
-                picking.origin = False
+            # Avoid misleading values for extra fields.
+            # If any of the fields in kwargs is set and its value is different
+            # than the new one, set the field value to False to avoid misleading
+            # values.
+            # For instance, picking.origin is 'ASN001' and kwargs contains
+            # origin with value 'ASN002', picking.origin is set to False.
+            for field, value in kwargs.items():
+                current_value = getattr(picking, field, None)
+                if current_value and current_value != value:
+                    setattr(picking, field, False)
 
         moves.write({
             'group_id': group.id,

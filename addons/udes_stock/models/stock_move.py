@@ -361,6 +361,28 @@ class StockMove(models.Model):
 
         return self.groupby(lambda ml: ml.u_grouping_key)
 
+    def _prepare_extra_info_for_new_picking_for_group(self, pickings, moves):
+        """ Given the group of moves to refactor and its related pickings,
+            prepare the extra info for the new pickings that might be created
+            for the group of moves.
+            Fields with more than one value are going to be ignored.
+        """
+        values = {}
+
+        origins = list(set(pickings.mapped('origin')))
+        if len(origins) == 1:
+            values['origin'] = origins[0]
+
+        partners = pickings.mapped('partner_id')
+        if len(partners) == 1:
+            values['partner_id'] = partners.id
+
+        dates_done = list(set(moves.mapped('date')))
+        if len(dates_done) == 1:
+            values['date_done'] = dates_done[0]
+
+        return values
+
     def refactor_action_group_by_move_key(self):
         """
         group the moves by the splitting criteria
@@ -394,12 +416,10 @@ class StockMove(models.Model):
                       '') % (key, move_group.mapped('location_id'),
                              move_group.mapped('location_dest_id')))
 
-            origins = list(set(move_group.mapped('picking_id.origin')))
-            origin = None
-            if len(origins) == 1:
-                origin = origins[0]
+            values = self._prepare_extra_info_for_new_picking_for_group(
+                move_group.mapped('picking_id'), move_group)
 
-            Picking._new_picking_for_group(key, move_group, origin=origin)
+            Picking._new_picking_for_group(key, move_group, **values)
 
         empty_picks = pickings.filtered(lambda p: len(p.move_lines) == 0)
         if empty_picks:
@@ -460,12 +480,10 @@ class StockMove(models.Model):
                 else:
                     group_moves |= move
 
-            origins = list(set(group_pickings.mapped('origin')))
-            origin = None
-            if len(origins) == 1:
-                origin = origins[0]
+            values = self._prepare_extra_info_for_new_picking_for_group(
+                group_pickings, group_moves)
 
-            Picking._new_picking_for_group(key, group_moves, origin=origin)
+            Picking._new_picking_for_group(key, group_moves, **values)
             result_moves |= group_moves
 
         empty_picks = pickings.filtered(lambda p: len(p.move_lines) == 0)
