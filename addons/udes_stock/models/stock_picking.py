@@ -195,6 +195,25 @@ class StockPicking(models.Model):
             else:
                 picking.u_pending = False
 
+    @api.depends('move_type', 'move_lines.state', 'move_lines.picking_id')
+    @api.one
+    def _compute_state(self):
+        ''' Prevent pickings to be in state assigned when not able to handle
+            partials, so they should remain in state waiting or confirmed until
+            they are fully assigned.
+        '''
+
+        if self.move_lines and not self.can_handle_partials():
+            relevant_move_state = self.move_lines._get_relevant_state_among_moves()
+            if relevant_move_state == 'partially_available':
+                if self.u_prev_picking_ids:
+                    self.state = 'waiting'
+                else:
+                    self.state = 'confirmed'
+                return
+
+        super()._compute_state()
+
     def assert_not_pending(self):
         for picking in self:
             if picking.can_handle_partials() is False \
