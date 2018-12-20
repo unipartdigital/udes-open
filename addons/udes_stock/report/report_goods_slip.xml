@@ -2,55 +2,70 @@
 <odoo>
   <data>
 
-	<!-- Picking Goods Label (CPCL) -->
-    <report id="report_picking_goods_slip"
-            model="stock.picking"
-	        name="udes_stock.report_picking_goods_slip_cpcl"
+	<!-- Moveline Goods Slip Report (CPCL) -->
+    <report id="report_moveline_goods_slip"
+            model="stock.move.line"
+	        name="udes_stock.report_moveline_goods_slip_cpcl"
             report_type="qweb-cpcl"
-            file="udes_stock.report_picking_goods_slip_cpcl"
-            string="Picking Goods Slip"/>
+            file="udes_stock.report_moveline_goods_slip_cpcl"
+            string="Moveline Goods Slip"/>
 
-	  <!-- Picking Goods Label (CPCL) -->
-    <template id="report_picking_goods_slip_cpcl">
-		  <t t-foreach="docs.mapped('move_line_ids.result_package_id')" t-as="package">
-			<t t-call="udes_stock.report_goods_slip_cpcl">
-				<t t-set="docs" t-value="package"/>
-			</t>
-		  </t>
-	</template>
-
-  	<!-- Package Goods Label (CPCL) -->
-    <report id="report_goods_slip"
+  	<!-- Package Goods Slip Report (CPCL) -->
+    <report id="report_package_goods_slip"
             model="stock.quant.package"
-	        name="udes_stock.report_goods_slip_cpcl"
+	        name="udes_stock.report_package_goods_slip_cpcl"
             report_type="qweb-cpcl"
-            file="udes_stock.report_goods_slip_cpcl"
-            string="Goods Slip"/>
+            file="udes_stock.report_package_goods_slip_cpcl"
+            string="Package Goods Slip"/>
 
-    <!-- Package Goods Label (CPCL) -->
-    <template id="report_goods_slip_cpcl">
+    <!-- Moveline Goods Slip Template (CPCL) -->
+    <template id="report_moveline_goods_slip_cpcl">
+	  <cpcl xmlns="http://www.fensystems.co.uk/xmlns/cpcl">
+	    <t t-foreach="docs" t-as="ml">
+		  <t t-call="udes_stock.report_goods_slip_cpcl">
+			<t t-set="product_name" t-value="ml.product_id.name"/>
+			<t t-set="barcode" t-value="ml.product_id.barcode"/>
+			<t t-set="u_manufacturer_part_no" t-value="ml.product_id.u_manufacturer_part_no"/>
+			<t t-set="quantity" t-value="ml.qty_done"/>
+		  </t>
+		</t>
+      </cpcl>
+    </template>
+
+    <!-- Package Goods Slip Template (CPCL) -->
+    <template id="report_package_goods_slip_cpcl">
 	  <cpcl xmlns="http://www.fensystems.co.uk/xmlns/cpcl">
 	    <t t-foreach="docs" t-as="package">
 		  <t t-foreach="package.quant_ids" t-as="quant">
-			<print height="250">
-			<in-millimeters/>
-			<page-width>100</page-width>
-			<page-height>100</page-height>
-			<center/>
-			<box x0="0" y0="5" x1="95" y1="66" width="0" />
-			<text y="8" size="3" t-esc="quant.product_id.name[:32]"/>
-			<text y="20" size="3" t-field="quant.product_id.u_manufacturer_part_no"/>
-			<barcode-text size="1" offset="1" />
-			<barcode type="128" y="34" width="0.4" height="20" t-field="quant.product_id.barcode"/>
-			<box x0="0" y0="66" x1="95" y1="98" width="0" />
-			<left />
-			<text y="75" x="20" size="5" t-esc="'QTY: %s' % int(quant.quantity)"/>
-			<barcode type="128" x="56" y="70" width="0.4" height="20" t-esc="int(quant.quantity)"/>
-			<form/>
-			</print>
+			<t t-call="udes_stock.report_goods_slip_cpcl">
+			  <t t-set="product_name" t-value="quant.product_id.name"/>
+			  <t t-set="barcode" t-value="quant.product_id.barcode"/>
+			  <t t-set="u_manufacturer_part_no" t-value="quant.product_id.u_manufacturer_part_no"/>
+			  <t t-set="quantity" t-value="quant.quantity"/>
 			</t>
 		  </t>
+		</t>
       </cpcl>
+    </template>
+
+    <!-- Generic Goods Slip (CPCL) -->
+    <template id="report_goods_slip_cpcl">
+	  <print height="250">
+	  <in-millimeters/>
+	  <page-width>100</page-width>
+	  <page-height>100</page-height>
+	  <center/>
+	  <box x0="0" y0="5" x1="95" y1="66" width="0" />
+	  <text y="8" size="3" t-esc="product_name[:32]"/>
+	  <text y="20" size="3" t-esc="u_manufacturer_part_no"/>
+	  <barcode-text size="1" offset="1" />
+	  <barcode type="128" y="34" width="0.4" height="20" t-esc="barcode"/>
+	  <box x0="0" y0="66" x1="95" y1="98" width="0" />
+	  <left />
+	  <text y="75" x="20" size="5" t-esc="'QTY: %s' % int(quantity)"/>
+	  <barcode type="128" x="56" y="70" width="0.4" height="20" t-esc="int(quantity)"/>
+	  <form/>
+	  </print>
     </template>
 
   </data>

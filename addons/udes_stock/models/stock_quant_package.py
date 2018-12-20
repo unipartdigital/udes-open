@@ -193,7 +193,7 @@ class StockQuantPackage(models.Model):
                        "for %s") % (self.env.uid, self.name))
 
         spool = Printer.spool_report(docids=[self.id],
-                                     report_name='udes_stock.report_goods_slip')
+                                     report_name='udes_stock.report_package_goods_slip')
         if spool:
             return True
         else:
