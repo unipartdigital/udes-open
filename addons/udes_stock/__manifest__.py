@@ -53,6 +53,7 @@
         'report/deliveryslip_templates.xml',
         'report/external_layout_standard.xml',
         'report/external_layout.xml',
+        'report/report_goods_slip.xml',
         'wizard/change_quant_location_view.xml',
         'wizard/refactor_views.xml',
         'security/ir.model.access.csv',
