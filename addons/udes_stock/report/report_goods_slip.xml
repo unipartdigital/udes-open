@@ -21,12 +21,13 @@
         <!-- Moveline Goods Slip Template (CPCL) -->
         <template id="report_moveline_goods_slip_cpcl">
             <cpcl xmlns="http://www.fensystems.co.uk/xmlns/cpcl">
-                <t t-foreach="docs" t-as="ml">
+                <t t-foreach="docs.mapped('product_id')" t-as="product_id">
+                <t t-set="mls" t-value="docs.filtered(lambda x: x.product_id==product_id)" />
                     <t t-call="udes_stock.report_goods_slip_cpcl">
-                        <t t-set="product_name" t-value="ml.product_id.name"/>
-                        <t t-set="barcode" t-value="ml.product_id.barcode"/>
-                        <t t-set="u_manufacturer_part_no" t-value="ml.product_id.u_manufacturer_part_no"/>
-                        <t t-set="quantity" t-value="ml.qty_done"/>
+                        <t t-set="product_name" t-value="product_id.name"/>
+                        <t t-set="barcode" t-value="product_id.barcode"/>
+                        <t t-set="default_code" t-value="product_id.default_code"/>
+                        <t t-set="quantity" t-value="sum(mls.mapped('qty_done'))"/>
                     </t>
                 </t>
             </cpcl>
@@ -40,7 +41,7 @@
                         <t t-call="udes_stock.report_goods_slip_cpcl">
                             <t t-set="product_name" t-value="quant.product_id.name"/>
                             <t t-set="barcode" t-value="quant.product_id.barcode"/>
-                            <t t-set="u_manufacturer_part_no" t-value="quant.product_id.u_manufacturer_part_no"/>
+                            <t t-set="default_code" t-value="quant.product_id.default_code"/>
                             <t t-set="quantity" t-value="quant.quantity"/>
                         </t>
                     </t>
@@ -57,7 +58,7 @@
                 <center/>
                 <box x0="0" y0="5" x1="95" y1="66" width="0" />
                 <text y="8" size="3" t-esc="product_name[:32]"/>
-                <text y="20" size="3" t-esc="u_manufacturer_part_no"/>
+                <text y="20" size="3" t-esc="default_code"/>
                 <barcode-text size="1" offset="1" />
                 <barcode type="128" y="34" width="0.4" height="20" t-esc="barcode"/>
                 <box x0="0" y0="66" x1="95" y1="98" width="0" />
