@@ -2,6 +2,23 @@
 <odoo>
   <data>
 
+	<!-- Picking Goods Label (CPCL) -->
+    <report id="report_picking_goods_slip"
+            model="stock.picking"
+	        name="udes_stock.report_picking_goods_slip_cpcl"
+            report_type="qweb-cpcl"
+            file="udes_stock.report_picking_goods_slip_cpcl"
+            string="Picking Goods Slip"/>
+
+	  <!-- Picking Goods Label (CPCL) -->
+    <template id="report_picking_goods_slip_cpcl">
+		  <t t-foreach="docs.mapped('move_line_ids.result_package_id')" t-as="package">
+			<t t-call="udes_stock.report_goods_slip_cpcl">
+				<t t-set="docs" t-value="package"/>
+			</t>
+		  </t>
+	</template>
+
   	<!-- Package Goods Label (CPCL) -->
     <report id="report_goods_slip"
             model="stock.quant.package"
