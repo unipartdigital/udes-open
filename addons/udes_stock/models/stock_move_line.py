@@ -193,6 +193,17 @@ class StockMoveLine(models.Model):
                 print_records=result_package
             ).run()
 
+        if mls_done and picking is not None:
+            print_mls = MoveLine.search([
+                ('result_package_id', 'in', mls_done.mapped('result_package_id').ids),
+                ('product_id', 'in', mls_done.mapped('product_id').ids)])
+            # Print the move line label
+            self.env.ref('udes_stock.picking_update_move_done').with_context(
+                active_model=picking._name,
+                active_ids=picking.ids,
+                print_records=print_mls
+            ).run()
+
         return mls_done
 
     def _filter_by_products_info(self, products_info):
