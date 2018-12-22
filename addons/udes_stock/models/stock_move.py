@@ -320,7 +320,8 @@ class StockMove(models.Model):
             created_moves |= self._create_moves_for_push(push, move_lines)
 
         confirmed_moves = created_moves._action_confirm()
-        confirmed_moves._action_assign()
+        confirmed_moves.with_context(
+            get_values_from_previous_pick=True)._action_assign()
 
     @api.model
     def _create_moves_for_push(self, push, move_lines):
@@ -368,6 +369,8 @@ class StockMove(models.Model):
             Fields with more than one value are going to be ignored.
         """
         values = {}
+        if self.env.context.get('get_values_from_previous_pick'):
+            pickings = moves.mapped('move_orig_ids.picking_id')
 
         origins = list(set(pickings.mapped('origin')))
         if len(origins) == 1:
