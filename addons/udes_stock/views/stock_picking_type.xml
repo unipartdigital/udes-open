@@ -45,6 +45,7 @@
                     <field name="u_create_batch_for_user" />
                     <field name="u_check_picking_priorities" />
                     <field name="u_use_location_categories" />
+                    <field name="u_enable_unpickable_items" />
                 </group>
                 <group string="Pick Refactoring" groups='base.group_no_one'>
                     <field name="u_move_line_key_format" />

@@ -618,6 +618,18 @@ class StockPickingBatch(models.Model):
         return all([pick.is_valid_location_dest_id(location=location)
                     for pick in all_done_pickings])
 
+    def _check_unpickable_item(self):
+        """ Checks if all the picking types of the batch are allowed to handle
+            unpickable items. If one of them does not, it raises an error.
+        """
+        if not all(self.picking_type_ids.mapped('u_enable_unpickable_items')):
+            raise ValidationError(
+                _('This type of operation cannot handle unpickable items. '
+                  'Please, contact your team leader to resolve the issue. '
+                  'Press back when resolved.')
+            )
+
+
     def unpickable_item(self,
                         reason,
                         product_id=None,
@@ -642,6 +654,8 @@ class StockPickingBatch(models.Model):
         Package = self.env['stock.quant.package']
         Location = self.env['stock.location']
         Product = self.env['product.product']
+
+        self._check_unpickable_item()
 
         product = Product.get_product(product_id) if product_id else None
         location = Location.get_location(location_id) if location_id else None

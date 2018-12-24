@@ -162,6 +162,13 @@ class StockPickingType(models.Model):
              'are used to decide which pickings are suitable to the users.',
     )
 
+    u_enable_unpickable_items = fields.Boolean(
+        string='Enable Unpickable Items',
+        default=False,
+        help='Flag to indicate if the current picking type has unpickable '
+             'items enabled.',
+    )
+
     # Drop location options
 
     u_drop_criterion = fields.Selection([
