@@ -380,9 +380,14 @@ class StockMove(models.Model):
         if len(partners) == 1:
             values['partner_id'] = partners.id
 
-        dates_done = list(set(moves.mapped('date')))
-        if len(dates_done) == 1:
-            values['date_done'] = dates_done[0]
+        if not self.env.context.get('get_values_from_previous_pick'):
+            dates_done = list(set(moves.mapped('date')))
+            if len(dates_done) == 1:
+                values['date_done'] = dates_done[0]
+
+            scheduled_dates = list(set(pickings.mapped('scheduled_date')))
+            if len(scheduled_dates) == 1:
+                values['scheduled_date'] = scheduled_dates[0]
 
         return values
 
