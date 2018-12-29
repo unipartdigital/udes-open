@@ -1313,6 +1313,8 @@ class StockPicking(models.Model):
             # origin with value 'ASN002', picking.origin is set to False.
             for field, value in kwargs.items():
                 current_value = getattr(picking, field, None)
+                if isinstance(current_value, models.BaseModel):
+                    current_value = current_value.id
                 if current_value and current_value != value:
                     setattr(picking, field, False)
 
