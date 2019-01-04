@@ -6,25 +6,26 @@
             <field name="model_id" search="[('model','=','res.partner')]" model="ir.model"/>
             <field name="global" eval="True"/>
             <field name="domain_force">['|',('customer', '=', False),('customer', '=', user.u_view_customers)]</field>
-        </record>     
+        </record>
 
         <record id="udes_stock.group_inbound_user" model="res.groups">
             <field name="name">Inbound User</field>
-            <field name="u_view_customers" eval="False"/>
             <field name="implied_ids"
                    eval="[(4, ref('sales_team.group_sale_salesman'))]"/>
         </record>
         <record id="udes_stock.group_stock_user" model="res.groups">
             <field name="name">Stock User</field>
-            <field name="u_view_customers" eval="True"/>
             <field name="implied_ids"
-                   eval="[(4, ref('sales_team.group_sale_salesman_all_leads'))]"/>
+                   eval="[(4, ref('sales_team.group_sale_salesman'))]"/>
         </record>
         <record id="udes_stock.group_outbound_user" model="res.groups">
             <field name="name">Outbound User</field>
-            <field name="u_view_customers" eval="True"/>
-            <field name="implied_ids"
-                   eval="[(4, ref('sales_team.group_sale_salesman_all_leads'))]"/>
         </record>
+
+        <!-- Sales User Manager can view customer details -->
+        <record id="sales_team.group_sale_manager" model="res.groups">
+            <field name="u_view_customers" eval="True"/>
+        </record>
+
     </data>
 </odoo>
