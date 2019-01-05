@@ -1324,6 +1324,10 @@ class StockPicking(models.Model):
         mls = moves.mapped('move_line_ids')
         if mls:
             mls.write({'picking_id': picking.id})
+            # After moving move lines check entire packages again just in case
+            # some of the move lines are completing packages
+            if picking.state != 'done':
+                picking._check_entire_pack()
 
         return picking
 
