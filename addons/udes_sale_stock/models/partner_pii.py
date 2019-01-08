@@ -7,8 +7,6 @@ import logging
 
 _logger = logging.getLogger(__name__)
 
-REDACTED = _('Redacted')
-
 PII_RELATIONS = [
     'partner_id', 'res_partner_id', 'author_id', 'partner_address_id', 'owner_id', 
     'partner_shipping_id', 'partner_invoice_id', 'order_partner_id', 'customer_id'
@@ -26,7 +24,7 @@ def _read(self, result):
         for field in record:
             if field in PII_RELATIONS and isinstance(record[field], tuple) and \
                 self.env['res.partner'].sudo().search_count([('id', '=', record[field][0]),('customer', '=', True)]):
-                record[field] = (record[field][0], REDACTED)
+                record[field] = (record[field][0], _('Redacted'))
                 _logger.info("Redacted: %s.%s", self._name, field)
 
     return result
@@ -47,7 +45,7 @@ class ResPartner(models.Model):
         for i, record in enumerate(result):
             if isinstance(record, tuple) and \
                 self.sudo().search_count([('id', '=', record[0]),('customer', '=', True)]):
-                result[i] = (record[0], REDACTED)
+                result[i] = (record[0], _('Redacted'))
                 _logger.info("Redacted: res.partner")
 
         return result
