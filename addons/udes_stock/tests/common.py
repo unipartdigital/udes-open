@@ -511,3 +511,10 @@ class BaseUDES(common.SavepointCase):
     def create_category(cls, **kwargs):
         ProductCategory = cls.env['product.category']
         return ProductCategory.create(kwargs)
+
+    @classmethod
+    def create_partner(cls, name, **kwargs):
+        Partner = cls.env['res.partner']
+        vals = {'name': name}
+        vals.update(kwargs)
+        return Partner.create(vals)

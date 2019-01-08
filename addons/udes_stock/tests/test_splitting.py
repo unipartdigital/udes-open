@@ -301,9 +301,13 @@ class TestValidateSplitting(common.BaseUDES):
             3
         )
 
-    def test02_maintain_origin_single_pick(self):
-        """ Check that when a move is split the picking's origin is copied to
-        the new pick
+    def test02_maintain_single_pick_extra_info(self):
+        """ Check that when a move is split the picking's extra info is copied
+            to the new pick.
+            Extra info:
+            - origin
+            - partner_id
+            - date_done (comes from move.date)
         """
         apple_pallet = self.create_package()
         self.create_quant(self.apple.id, self.test_location_01.id,
@@ -328,7 +332,10 @@ class TestValidateSplitting(common.BaseUDES):
             'qty_done': banana_move_line.product_uom_qty
         })
 
-        self.picking.write({'origin': "Test origin 123"})
+        # Prepare pick extra info to keep
+        partner = self.create_partner('Test Partner 123')
+        self.picking.write({'origin': "Test origin 123",
+                            'partner_id': partner.id})
 
         self.picking.action_done()
 
@@ -338,12 +345,25 @@ class TestValidateSplitting(common.BaseUDES):
             3
         )
 
+        # Check pick extra info
         self.assertEqual(self.picking.origin, apple_move.picking_id.origin)
         self.assertEqual(self.picking.origin, banana_move.picking_id.origin)
+        self.assertEqual(self.picking.partner_id,
+                         apple_move.picking_id.partner_id)
+        self.assertEqual(self.picking.partner_id,
+                         banana_move.picking_id.partner_id)
+        # Date done of the picking is the date of the moves
+        self.assertEqual(apple_move.picking_id.date_done, apple_move.date)
+        self.assertEqual(banana_move.picking_id.date_done, banana_move.date)
 
-    def test02_maintain_origin_two_picks(self):
-        """ Check that when a move is split the picking's origin is copied to
-        the new pick
+    def test02_maintain_two_picks_extra_info(self):
+        """ Check that when a moves from different picks are split the pickings
+            extra info is copied to the new pick and maintained when two picks
+            share the same info.
+            Extra info:
+            - origin
+            - partner_id
+            - date_done (comes from move.date)
         """
 
         # Setup pick 1
@@ -396,9 +416,12 @@ class TestValidateSplitting(common.BaseUDES):
             'qty_done': damson_move_line.product_uom_qty
         })
 
-        # Validate both picks at the same time
+        # Prepare both picks extra info and validate them at the same time
         both_picks = (self.picking | self.picking_2)
-        both_picks.write({'origin': "Test origin 123"})
+
+        partner = self.create_partner('Test Partner 123')
+        both_picks.write({'origin': "Test origin 123",
+                          'partner_id': partner.id})
         both_picks.action_done()
 
         # apple and banana moves are now in different pickings.
@@ -410,8 +433,16 @@ class TestValidateSplitting(common.BaseUDES):
         self.assertEqual(apple_move.picking_id.id, cherry_move.picking_id.id)
         self.assertEqual(banana_move.picking_id.id, damson_move.picking_id.id)
 
+        # Check pick extra info
         self.assertEqual(self.picking.origin, apple_move.picking_id.origin)
         self.assertEqual(self.picking.origin, banana_move.picking_id.origin)
+        self.assertEqual(self.picking.partner_id,
+                         apple_move.picking_id.partner_id)
+        self.assertEqual(self.picking.partner_id,
+                         banana_move.picking_id.partner_id)
+        # Date done of the picking is the date of the move
+        self.assertEqual(apple_move.picking_id.date_done, apple_move.date)
+        self.assertEqual(banana_move.picking_id.date_done, banana_move.date)
 
 
 class TestConfirmSplitting(common.BaseUDES):
