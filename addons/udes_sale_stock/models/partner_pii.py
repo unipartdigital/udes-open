@@ -10,7 +10,7 @@ _logger = logging.getLogger(__name__)
 REDACTED = _('Redacted')
 
 PII_RELATIONS = [
-    'partner_id', 'parent_id', 'res_partner_id', 'author_id', 'partner_address_id', 'owner_id', 
+    'partner_id', 'res_partner_id', 'author_id', 'partner_address_id', 'owner_id', 
     'partner_shipping_id', 'partner_invoice_id', 'order_partner_id', 'customer_id'
 ]
 
