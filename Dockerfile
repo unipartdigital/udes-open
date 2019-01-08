@@ -23,6 +23,7 @@ RUN unzip -q -d /opt /opt/odoo-blocked-locations.zip ; \
           /opt/odoo-print-HEAD/addons/* \
           /opt/odoo-edi-HEAD/addons/* \
           /opt/server-auth-HEAD/password_security \
+          /opt/server-auth-HEAD/auth_brute_force \
           /opt/odoo/addons/
 
 # Add modules

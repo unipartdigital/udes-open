@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+
+<odoo>
+
+  <!-- Auth brute force config -->
+  <record id="per_ip_attempts" model="ir.config_parameter">
+    <field name="key">auth_brute_force.max_by_ip</field>
+    <field name="value" eval="1000"/>
+  </record>
+
+  <record id="per_user_attempts" model="ir.config_parameter">
+    <field name="key">auth_brute_force.max_by_ip_user</field>
+    <field name="value" eval="15"/>
+  </record>
+
+  <!-- Disable remote api checks -->
+  <record id="remote_ip_api" model="ir.config_parameter">
+    <field name="key">auth_brute_force.check_remote</field>
+    <field name="value" eval="0" />
+  </record>
+
+  <!-- Disable per IP checks -->
+  <record id="check_by_ip" model="ir.config_parameter">
+    <field name="key">auth_brute_force.check_by_ip</field>
+    <field name="value" eval="0"/>
+  </record>
+
+</odoo>
