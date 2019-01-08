@@ -10,6 +10,10 @@ Security enhancements used by UDES
     'depends': [
         'web',
         'password_security',
+        'auth_brute_force',
     ],
     'category': "Authentication",
+    'data': [
+        'data/auth_brute_force.xml',
+    ]
 }
