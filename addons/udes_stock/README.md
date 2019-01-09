@@ -721,13 +721,24 @@ that is an aray of numbers, containing the IDs of the move lines being dropped.
 
 Response:
 
-The payload should contain an array with `Location` objects; example:
+The payload should contain an array of objects, each containing a `title` string
+(possibly empty) and a `locations` array of `Location` objects.
+Example:
 
 ```javascript
 { "jsonrpc": "2.0",
-  "result" : [
-    {"id": 1, "name": "Location 1", "barcode": "L00000100"},
-    {"id": 2, "name": "Location 2", "barcode": "L00000200"}]
+    "result" : [
+        { "title": "",
+          "locations": [
+            {"id": 1, "name": "Location 1", "barcode": "L00000100"},
+            {"id": 2, "name": "Location 2", "barcode": "L00000200"}]
+        },
+        { "title": "empty locations",
+          "locations": [
+            {"id": 3, "name": "Location 3", "barcode": "L00000300"},
+            {"id": 4, "name": "Location 4", "barcode": "L00000400"}]
+        },
+    ]
 }
 ```
 
