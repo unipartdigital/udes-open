@@ -113,7 +113,7 @@ A lot of custom UDES functionality is specfied at the picking type level. This i
 | u_target_storage_format    | string  | This defines how the stock is stored at the end of the stock.picking (enum: 'pallet_products', 'pallet_packages', 'package', 'product'). |
 | u_user_scans               | string  | This defines what the user will scan (enum: 'pallet', 'package', 'product'). |
 | u_validate_real_time       | boolean | Do we validate move lines in real time. |
-| u_drop_location_constraint | string  | Whether drop location should be scanned, suggested and, then, enforced (enum: 'dont_scan', 'scan', 'enforce', 'suggest'); default: 'scan'. |
+| u_drop_location_constraint | string  | Whether drop location should be scanned, suggested and, then, enforced (enum: 'dont_scan', 'scan', 'enforce', 'enforce_with_empty', 'suggest'); default: 'scan'. |
 | u_drop_location_policy     | string  | To indicate the policy for suggesting drop locations (enum: 'exactly_match_move_line', 'by_products', 'by_packages'); default: 'exactly_match_move_line'. |
 | u_drop_location_preprocess  | boolean | Selects if suggestions u_drop_location_policy should be added on assignment. If this is set will apply the u_drop_location_policy and the first location is set as location_dest_id for the set of move_lines. This can only be used with polcies decorated with allow_preprocess, usage on other polcies will result in an ValidationError.|
 | u_display_summary          | string  | How to display the Source Document and a summary of all Package Names associated with that Source Document number at Goods-Out (enum: 'none', 'list', 'list_contents'). |
@@ -126,7 +126,8 @@ More on the enumeration fields below.
  - `dont_scan`: don't require scanning the destination location;
  - `scan` (default): the system will require scanning the destination location and it will validate it by checking if it's a child of the pick parent destination location;
  - `suggest`: before require scanning (as per above 'scan'), the system will suggest one or more locations for dropping (NB: such list may be empty; in that case, nothing will be displayed);
- - `enforce`: as 'suggest', but the system will require (by validating the scanned location barcode) dropping in one of the suggested locations (NB: if the list is empty, any child of the pick parent destination location would be valid).
+ - `enforce`: as 'suggest', but the system will require (by validating the scanned location barcode) dropping in one of the suggested locations (NB: if the list is empty, any child of the pick parent destination location would be valid);
+ - `enforce_with_empty`: as 'enforce', but empty locations will be always sent separately, if not included among the suggested ones.
 
 `u_drop_location_policy`:
  - `exactly_match_move_line`: the system will suggest the location that is already expected for the move line;

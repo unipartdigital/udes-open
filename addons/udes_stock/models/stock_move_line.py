@@ -785,7 +785,7 @@ class StockMoveLine(models.Model):
         """ Ensures that the location destination is a child of the
             default_location_dest_id of the picking and that is
             one of the suggested locations if the drop off policy
-            is enforce.
+            is 'enforce' or 'enforce_with_empty'.
         """
 
         if location is None:
@@ -808,8 +808,8 @@ class StockMoveLine(models.Model):
                       (location.name, picking.location_dest_id.name))
                 )
 
-            if picking.picking_type_id.u_drop_location_constraint == 'enforce':
-
+            if picking.picking_type_id.u_drop_location_constraint \
+                    in ['enforce', 'enforce_with_empty']:
                 # Don't use move lines that are not available for suggesting
                 mls = self.filtered(
                     lambda ml: ml.picking_id == picking and \
