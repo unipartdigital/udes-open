@@ -507,27 +507,26 @@ class TestPickingType(common.BaseUDES):
 
     def test16_enforce_exactly_match_move_line(self):
         """Check that location is forced to match the move_line"""
-        self.picking_type_putaway.write({
-            'u_drop_location_policy': 'exactly_match_move_line',
-            'u_drop_location_constraint': 'enforce',
-        })
-        self.create_quant(self.apple.id,
-                          self.picking_type_putaway.default_location_src_id.id,
-                          4, package_id=self.package_one.id)
-
-        picking = self.create_picking(self.picking_type_putaway,
-                                      products_info=self.pack_4apples_info,
-                                      confirm=True,
-                                      assign=True)
-        mls = picking.move_line_ids
-        mls.write({'location_dest_id': self.test_location_01.id})
-        location = picking.get_suggested_locations(mls)
-        self.assertEqual(location, self.test_location_01)
-
-        with self.assertRaises(ValidationError):
-            mls.write({
-                'location_dest_id': self.test_location_02.id
+        for constraint in ['enforce', 'enforce_with_empty']:
+            self.picking_type_putaway.write({
+                'u_drop_location_policy': 'exactly_match_move_line',
+                'u_drop_location_constraint': constraint,
             })
+            self.create_quant(self.apple.id,
+                              self.picking_type_putaway.default_location_src_id.id,
+                              4, package_id=self.package_one.id)
+
+            picking = self.create_picking(self.picking_type_putaway,
+                                          products_info=self.pack_4apples_info,
+                                          confirm=True,
+                                          assign=True)
+            mls = picking.move_line_ids
+            mls.write({'location_dest_id': self.test_location_01.id})
+            location = picking.get_suggested_locations(mls)
+            self.assertEqual(location, self.test_location_01)
+
+            with self.assertRaises(ValidationError):
+                mls.write({'location_dest_id': self.test_location_02.id})
 
     def test17_enforce_preprocessed_location(self):
         """Check that if a location has not been set in preprocessing
@@ -538,6 +537,45 @@ class TestPickingType(common.BaseUDES):
             'u_drop_location_policy': 'by_height_speed',
             'u_drop_location_preprocess': True,
             'u_drop_location_constraint': 'enforce',
+        })
+        self.create_quant(
+            self.apple.id,
+            self.picking_type_putaway.default_location_src_id.id,
+            4,
+            package_id=self.package_one.id,
+        )
+
+        self.test_location_01.u_speed_category_id = self.slow_category
+
+        picking = self.create_picking(
+            self.picking_type_putaway,
+            products_info=self.pack_4apples_info,
+            confirm=True,
+            assign=True,
+        )
+
+        self.assertEqual(
+            picking.move_line_ids.mapped('location_dest_id'),
+            self.test_location_01,
+        )
+
+        locations = picking.get_suggested_locations(picking.move_line_ids)
+        self.assertEqual(locations, self.test_location_01)
+
+        with self.assertRaises(ValidationError):
+            picking.move_line_ids.write({
+                'location_dest_id': self.test_location_02.id
+            })
+
+    def test18_enforce_with_empty_preprocessed_location(self):
+        """Check that if a location has not been set in preprocessing
+           it can be suggested when requested if a location has become
+           available - same as test_17, but with enforce_with_empty
+        """
+        self.picking_type_putaway.write({
+            'u_drop_location_policy': 'by_height_speed',
+            'u_drop_location_preprocess': True,
+            'u_drop_location_constraint': 'enforce_with_empty',
         })
         self.create_quant(
             self.apple.id,
