@@ -15,7 +15,7 @@ class TestValidateLocationDest(common.BaseUDES):
         cls.picking_type_in.u_target_storage_format = 'product'
         cls._pick_info = [{'product': cls.apple, 'qty': 4}]
 
-    def test01_drop_location_not_suggeested_enforced_failure(self):
+    def test01_drop_location_not_suggested_enforced_failure(self):
         """ When the policy is `enforce` or `enforce_with_empty`,
             an error is thrown when a valid, but not suggested,
             drop off location is used.
