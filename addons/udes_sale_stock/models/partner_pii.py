@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# @TODO: EDI, testing, tidy, forms field read-only
-# inherit base class
+# @TODO: Tidy, forms field read-only
 
 from odoo import models, fields, api, SUPERUSER_ID, _
 import logging
