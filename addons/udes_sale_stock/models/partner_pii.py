@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # @TODO: EDI, testing, tidy, forms field read-only
+# inherit base class
 
 from odoo import models, fields, api, SUPERUSER_ID, _
 import logging
@@ -19,13 +20,20 @@ def _read(self, result):
 
     if self.env.uid == SUPERUSER_ID or self.env.user.u_view_customers:
         return result
-
-    for record in result:          
+    
+    for record in result:
+                  
         for field in record:
-            if field in PII_RELATIONS and isinstance(record[field], tuple) and \
-                self.env['res.partner'].sudo().search_count([('id', '=', record[field][0]),('customer', '=', True)]):
-                record[field] = (record[field][0], _('Redacted'))
-                _logger.info("Redacted: %s.%s", self._name, field)
+            
+            if (field in PII_RELATIONS \
+                and isinstance(record[field], tuple) \
+                and self.env['res.partner'].sudo().search_count([
+                    ('id', '=', record[field][0]), 
+                    ('customer', '=', True)
+                    ])):
+                        # Record ID remains and string value redacted
+                        record[field] = (record[field][0], _('Redacted'))
+                        _logger.info("Redacted: %s.%s", self._name, field)
 
     return result
 
@@ -43,10 +51,14 @@ class ResPartner(models.Model):
             return result
 
         for i, record in enumerate(result):
-            if isinstance(record, tuple) and \
-                self.sudo().search_count([('id', '=', record[0]),('customer', '=', True)]):
-                result[i] = (record[0], _('Redacted'))
-                _logger.info("Redacted: res.partner")
+            if (isinstance(record, tuple) \
+                and self.sudo().search_count([
+                    ('id', '=', record[0]), 
+                    ('customer', '=', True)
+                    ])):
+                        # Record ID remains and string value redacted
+                        result[i] = (record[0], _('Redacted'))
+                        _logger.info("Redacted: res.partner")
 
         return result
 
