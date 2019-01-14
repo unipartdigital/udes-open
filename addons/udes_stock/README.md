@@ -734,7 +734,7 @@ Example:
             {"id": 1, "name": "Location 1", "barcode": "L00000100"},
             {"id": 2, "name": "Location 2", "barcode": "L00000200"}]
         },
-        { "title": "empty locations",
+        { "title": "empty",
           "locations": [
             {"id": 3, "name": "Location 3", "barcode": "L00000300"},
             {"id": 4, "name": "Location 4", "barcode": "L00000400"}]

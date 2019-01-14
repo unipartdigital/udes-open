@@ -44,7 +44,7 @@ class StockMoveLineApi(UdesApi):
                 empty_locations = empty_locations - locations
 
         if empty_locations:
-            response.append({"title": "empty locations",
+            response.append({"title": "empty",
                              "locations": empty_locations.get_info()})
 
         return response
