@@ -765,7 +765,7 @@ class StockPickingBatch(models.Model):
             user_id = self.env.user.id
         # Search for in progress batches
         batches = self.sudo().search([('user_id', '=', user_id),
-                               ('state', '=', 'in_progress')])
+                                      ('state', '=', 'in_progress')])
         return batches
 
     def unassign_user_batches(self):

@@ -785,7 +785,7 @@ class StockMoveLine(models.Model):
         """ Ensures that the location destination is a child of the
             default_location_dest_id of the picking and that is
             one of the suggested locations if the drop off policy
-            is enforce.
+            is 'enforce' or 'enforce_with_empty'.
         """
 
         if location is None:
@@ -800,7 +800,6 @@ class StockMoveLine(models.Model):
         # iterating picking_id even if it's a many2one
         # because the constraint can be triggered anywhere
         for picking in self.mapped('picking_id'):
-
             if not picking.is_valid_location_dest_id(location=location):
                 raise ValidationError(
                     _("The location '%s' is not a child of the picking "
@@ -808,8 +807,9 @@ class StockMoveLine(models.Model):
                       (location.name, picking.location_dest_id.name))
                 )
 
-            if picking.picking_type_id.u_drop_location_constraint == 'enforce':
+            constraint = picking.picking_type_id.u_drop_location_constraint
 
+            if  constraint in ['enforce', 'enforce_with_empty']:
                 # Don't use move lines that are not available for suggesting
                 mls = self.filtered(
                     lambda ml: ml.picking_id == picking and \
@@ -820,6 +820,9 @@ class StockMoveLine(models.Model):
                     continue
 
                 locations = picking.get_suggested_locations(mls)
+
+                if constraint == 'enforce_with_empty':
+                    locations = locations | picking.get_empty_locations()
 
                 # location should be one of the suggested locations, if any
                 if locations and location not in locations:

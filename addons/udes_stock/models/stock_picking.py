@@ -1148,7 +1148,6 @@ class StockPicking(models.Model):
                                                                     confirm=True,
                                                                     assign=True)
 
-
     def _create_own_procurement_group(self):
         """Create a procurement group for self with the same name as self."""
         self.ensure_one()
@@ -1420,6 +1419,14 @@ class StockPicking(models.Model):
 
         return result
 
+    def get_empty_locations(self):
+        ''' Returns the recordset of locations that are child of the
+            instance dest location, are not blocked, and are empty.
+            Expects a singleton instance.
+        '''
+        return self._get_child_dest_locations([('u_blocked', '=', False),
+                                               ('barcode', '!=', False),
+                                               ('quant_ids', '=', False)])
 
     def _check_picking_move_lines_suggest_location(self, move_line_ids):
         pick_move_lines = self.mapped('move_line_ids').filtered(
@@ -1467,10 +1474,7 @@ class StockPicking(models.Model):
         if not suggested_locations:
             # No drop locations currently used for this product;
             # gather the empty ones
-            suggested_locations = self._get_child_dest_locations(
-                [('u_blocked', '=', False),
-                 ('barcode', '!=', False),
-                 ('quant_ids', '=', False)])
+            suggested_locations = self.get_empty_locations()
 
         return suggested_locations
 
@@ -1511,6 +1515,7 @@ class StockPicking(models.Model):
                       speed_category.mapped('name'),
                   )
             )
+
         default_location.ensure_one()
 
         # Get empty locations where height and speed match product
@@ -1524,6 +1529,7 @@ class StockPicking(models.Model):
             # get them all then do a filter for checking if theres space
             ('quant_ids', '=', False),
         ])
+
         return self._location_not_in_other_move_lines(candidate_locations)
 
     def _location_not_in_other_move_lines(self, candidate_locations):

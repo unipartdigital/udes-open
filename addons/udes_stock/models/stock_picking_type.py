@@ -186,6 +186,7 @@ class StockPickingType(models.Model):
         ('scan', 'Scan'),
         ('suggest', 'Suggest'),
         ('enforce', 'Enforce'),
+        ('enforce_with_empty', 'Enforce with empty locations'),
     ],
         default='scan',
         string='Suggest Locations Constraint',
