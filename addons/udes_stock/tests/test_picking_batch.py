@@ -834,6 +834,55 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         self.assertEqual(inv_picking.move_line_ids[0].product_qty, 3)
 
 
+class TestPickingBatchDisabledUnpickableItems(common.BaseUDES):
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestPickingBatchDisabledUnpickableItems, cls).setUpClass()
+        cls.pack_4apples_info = [{'product': cls.apple, 'qty': 4}]
+        # disable unpickable items by default
+        cls.picking_type_pick.u_enable_unpickable_items = False
+
+    def setUp(self):
+        super(TestPickingBatchDisabledUnpickableItems, self).setUp()
+        Package = self.env['stock.quant.package']
+
+        self.package_one = Package.get_package("test_package_one",
+                                               create=True)
+
+    def _create_valid_batch(self):
+        Batch = self.env['stock.picking.batch']
+        Batch = Batch.sudo(self.outbound_user)
+
+        self.create_quant(self.apple.id, self.test_location_01.id, 4,
+                          package_id=self.package_one.id)
+        picking = self.create_picking(self.picking_type_pick,
+                                      products_info=self.pack_4apples_info,
+                                      confirm=True,
+                                      assign=True)
+
+        return picking, Batch.create_batch(self.picking_type_pick.id, None)
+
+    def test01_disabled_unpickable_item_single_move_line_success_default_type(self):
+        """ Raise an error when unpickable items is not enabled, and
+            everything remains the same.
+        """
+        picking, batch = self._create_valid_batch()
+        move_line = picking.move_line_ids[0]
+        reason = 'missing item'
+        expected_error = 'This type of operation cannot handle unpickable ' \
+                         'items. Please, contact your team leader to resolve ' \
+                         'the issue. Press back when resolved.'
+        with self.assertRaisesRegex(ValidationError, expected_error,
+                                    msg='Incorrect error thrown'):
+            batch.unpickable_item(package_name=move_line.package_id.name,
+                                  reason=reason)
+
+        package_picking = self.package_one.find_move_lines().picking_id
+
+        self.assertEqual(package_picking, picking)
+
+
 class TestBatchGetNextTask(common.BaseUDES):
 
     @classmethod
