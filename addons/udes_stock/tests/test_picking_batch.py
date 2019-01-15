@@ -24,10 +24,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
     def test01_check_user_id_raise_with_empty_id_string(self):
         """ Should error if passed an empty id """
-        batch = self.create_batch(
-            user=self.outbound_user,
-            picking_type_id=self.picking_type_pick.id,
-        )
+        batch = self.create_batch(user=self.outbound_user)
         batch = batch.sudo(self.outbound_user)
 
         with self.assertRaises(ValidationError) as err:
@@ -37,10 +34,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
     def test02_check_user_id_valid_id(self):
         """ Should return a non empty string """
-        batch = self.create_batch(
-            user=self.outbound_user,
-            picking_type_id=self.picking_type_pick.id,
-        )
+        batch = self.create_batch(user=self.outbound_user)
         batch = batch.sudo(self.outbound_user)
 
         checked_user_id = batch._check_user_id("42")
@@ -49,9 +43,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
     def test03_check_user_id_default_id(self):
         """ Should return the current user id if passed None """
-        batch = self.create_batch(
-            user=self.outbound_user,
-            picking_type_id=self.picking_type_pick.id)
+        batch = self.create_batch(user=self.outbound_user)
         batch = batch.sudo(self.outbound_user)
 
         user_id = batch._check_user_id(None)
@@ -101,10 +93,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         self.create_quant(self.apple.id, self.test_location_01.id, 4,
                           package_id=self.package_two.id)
 
-        batch01 = self.create_batch(
-            user=self.outbound_user,
-            picking_type_id=self.picking_type_pick.id,
-        )
+        batch01 = self.create_batch(user=self.outbound_user)
         self.create_picking(self.picking_type_pick,
                             products_info=self.pack_4apples_info,
                             confirm=True,
@@ -112,10 +101,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
                             batch_id=batch01.id)
         batch01.state = 'in_progress'
 
-        batch02 = self.create_batch(
-            user=self.outbound_user,
-            picking_type_id=self.picking_type_pick.id,
-        )
+        batch02 = self.create_batch(user=self.outbound_user)
         self.create_picking(self.picking_type_pick,
                             products_info=self.pack_4apples_info,
                             confirm=True,
@@ -314,7 +300,6 @@ class TestGoodsInPickingBatch(common.BaseUDES):
                                       assign=True)
 
         return picking, Batch.create_batch(self.picking_type_pick.id, None)
-
 
     def test12_is_valid_location_dest_success(self):
         """ Returns True for a valid location """
@@ -869,8 +854,7 @@ class TestBatchGetNextTask(common.BaseUDES):
                                       products_info=self.pack_2prods_info,
                                       confirm=True,
                                       assign=True)
-        batch = self.create_batch(user=self.outbound_user,
-                                  picking_type_id=self.picking_type_pick.id)
+        batch = self.create_batch(user=self.outbound_user)
         picking.batch_id = batch.id
 
         criteria = lambda ml: (int(ml.package_id.name))
@@ -1026,10 +1010,7 @@ class TestBatchState(common.BaseUDES):
 
         cls.pack_4apples_info = [{'product': cls.apple, 'qty': 4}]
 
-        cls.batch01 = cls.create_batch(
-            user=False,
-            picking_type_id=cls.picking_type_pick.id,
-        )
+        cls.batch01 = cls.create_batch(user=False)
 
         cls.picking01 = cls.create_picking(
             cls.picking_type_pick,
