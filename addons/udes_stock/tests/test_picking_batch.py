@@ -12,6 +12,8 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         super(TestGoodsInPickingBatch, cls).setUpClass()
         cls.pack_4apples_info = [{'product': cls.apple,
                                   'qty': 4}]
+        # enable unpickable items by default
+        cls.picking_type_pick.u_enable_unpickable_items = True
 
     def setUp(self):
         super(TestGoodsInPickingBatch, self).setUp()
