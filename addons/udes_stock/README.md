@@ -115,10 +115,11 @@ A lot of custom UDES functionality is specfied at the picking type level. This i
 | u_validate_real_time       | boolean | Do we validate move lines in real time. |
 | u_drop_location_constraint | string  | Whether drop location should be scanned, suggested and, then, enforced (enum: 'dont_scan', 'scan', 'enforce', 'suggest'); default: 'scan'. |
 | u_drop_location_policy     | string  | To indicate the policy for suggesting drop locations (enum: 'exactly_match_move_line', 'by_products', 'by_packages'); default: 'exactly_match_move_line'. |
-| u_drop_location_preprocess  | boolean | Selects if suggestions u_drop_location_policy should be added on assignment. If this is set will apply the u_drop_location_policy and the first location is set as location_dest_id for the set of move_lines. This can only be used with polcies decorated with allow_preprocess, usage on other polcies will result in an ValidationError.|
+| u_drop_location_preprocess | boolean | Selects if suggestions u_drop_location_policy should be added on assignment. If this is set will apply the u_drop_location_policy and the first location is set as location_dest_id for the set of move_lines. This can only be used with polcies decorated with allow_preprocess, usage on other polcies will result in an ValidationError.|
 | u_display_summary          | string  | How to display the Source Document and a summary of all Package Names associated with that Source Document number at Goods-Out (enum: 'none', 'list', 'list_contents'). |
 | u_handle_partials          | boolean | If the picking type is allowed to handle partially available pickings. If True, then pickings of this type will report their u_pending value. If False, prevents the state of a picking to be ready until the previous pickings are resolved.|
 | u_create_procurement_group | boolean | Indicate if a procurement group should be created on confirmation of the picking if one does not already exist. |
+| u_enable_unpickable_items  | boolean | When not enabled only an error is shown to the user instead of the usual unpickable items behaviour. |
 
 More on the enumeration fields below.
 
