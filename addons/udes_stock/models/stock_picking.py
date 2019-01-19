@@ -1393,6 +1393,9 @@ class StockPicking(models.Model):
         '''
         result = self.env['stock.location']
 
+        # WS-MPS: use self.ensure_one() and don't loop (self is used in all but
+        # one place), or suggest locations for the move lines of the picking,
+        # use picking instead of self inside the loop and ?intersect? result.
         for picking in self:
             policy = picking.picking_type_id.u_drop_location_policy
 
