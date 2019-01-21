@@ -60,11 +60,15 @@
                 <text y="8" size="3" t-esc="product_name[:32]"/>
                 <text y="20" size="3" t-esc="default_code"/>
                 <barcode-text size="1" offset="1" />
-                <barcode type="128" y="34" width="0.4" height="20" t-esc="barcode"/>
+                <barcode type="128" y="34" width="0.4" height="20"
+                         t-esc="barcode"/>
                 <box x0="0" y0="66" x1="95" y1="98" width="0" />
                 <left />
                 <text y="75" x="20" size="5" t-esc="'QTY: %s' % int(quantity)"/>
-                <barcode type="128" x="56" y="70" width="0.4" height="20" t-esc="int(quantity)"/>
+                <!-- Padding with zeroes here because many barcode scanners
+                 by default will not scan code128 barcodes 1 or 2 digits -->
+                <barcode type="128" x="56" y="70" width="0.4" height="20"
+                         t-esc="'{:04d}'.format(int(quantity)) "/>
                 <form/>
             </print>
         </template>
