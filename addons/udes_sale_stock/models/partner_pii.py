@@ -20,6 +20,16 @@ PII_RELATIONS = [
 def _read(self, result):
     """Redact fields based on res.user.u_view_customers"""
     if self.env.uid == SUPERUSER_ID or self.env.user.u_view_customers:
+        for record in result:
+            for field in record:
+                if (field in PII_RELATIONS
+                        and isinstance(record[field], tuple)
+                        and self.env['res.partner'].sudo().search_count([
+                            ('id', '=', record[field][0]),
+                            ('customer', '=', True)])):
+                                # Log PII has been viewed
+                                _logger.info("User %s viewed Customer %s via %s.%s",
+                                             self.env.uid, record[field][0], self._name, field)
         return result
 
     for record in result:
@@ -47,6 +57,13 @@ class ResPartner(models.Model):
         result = super(ResPartner, self).name_get()
 
         if self.env.uid == SUPERUSER_ID or self.env.user.u_view_customers:
+            for record in result:
+                if (isinstance(record, tuple)
+                        and self.sudo().search_count([('id', '=', record[0]),
+                                                      ('customer', '=', True)])):
+                    # Log PII viewed
+                    _logger.info("User %s viewed Customer %s via res.partner", self.env.uid, record[0])
+                    
             return result
 
         redacted_result = []
