@@ -427,6 +427,7 @@ class StockMove(models.Model):
             # action_cancel does not cancel a picking with no moves.
             empty_picks.write({
                 'state': 'cancel',
+                'u_to_delete': True,
                 'is_locked': True
             })
 
@@ -492,6 +493,7 @@ class StockMove(models.Model):
             # action_cancel does not cancel a picking with no moves.
             empty_picks.write({
                 'state': 'cancel',
+                'u_to_delete': True,
                 'is_locked': True
             })
 

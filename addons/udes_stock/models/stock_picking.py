@@ -107,6 +107,12 @@ class StockPicking(models.Model):
         store=True,
     )
 
+    u_to_delete = fields.Boolean(
+        string='Picking to be deleted',
+        default=False,
+        help='Flag to indicate if the picking record should be deleted,'
+             'e.g. after refactoring')
+
     @api.depends('move_line_ids',
                  'move_line_ids.location_id',
                  'move_line_ids.location_id.u_location_category_id')
@@ -248,6 +254,9 @@ class StockPicking(models.Model):
             active_model=picks._name,
             active_ids=picks.ids,
         ).run()
+
+        self.unlink_to_delete()
+
         return res
 
     def action_cancel(self):
@@ -1086,7 +1095,19 @@ class StockPicking(models.Model):
                 lambda p: p.picking_type_id.u_create_procurement_group
                           and not p.group_id):
             pick._create_own_procurement_group()
-        return super(StockPicking, self).action_confirm()
+        res = super(StockPicking, self).action_confirm()
+
+        self.unlink_to_delete()
+
+        return res
+
+    def unlink_to_delete(self):
+        """
+            Delete pickings in self where u_to_delete is true
+            Returns pickings that still exist in self
+        """
+        self.filtered(lambda p: p.u_to_delete).unlink()
+        return self.exists()
 
     def _check_entire_pack(self):
         """

@@ -337,6 +337,8 @@ class TestValidateSplitting(common.BaseUDES):
         self.picking.write({'origin': "Test origin 123",
                             'partner_id': partner.id})
 
+        # Take a copy of the original picking, as refactoring can delete records
+        original_picking = self.picking.copy()
         self.picking.action_done()
 
         # apple and banana moves are now in different pickings.
@@ -346,11 +348,11 @@ class TestValidateSplitting(common.BaseUDES):
         )
 
         # Check pick extra info
-        self.assertEqual(self.picking.origin, apple_move.picking_id.origin)
-        self.assertEqual(self.picking.origin, banana_move.picking_id.origin)
-        self.assertEqual(self.picking.partner_id,
+        self.assertEqual(original_picking.origin, apple_move.picking_id.origin)
+        self.assertEqual(original_picking.origin, banana_move.picking_id.origin)
+        self.assertEqual(original_picking.partner_id,
                          apple_move.picking_id.partner_id)
-        self.assertEqual(self.picking.partner_id,
+        self.assertEqual(original_picking.partner_id,
                          banana_move.picking_id.partner_id)
         # Date done of the picking is the date of the moves
         self.assertEqual(apple_move.picking_id.date_done, apple_move.date)
@@ -422,6 +424,9 @@ class TestValidateSplitting(common.BaseUDES):
         partner = self.create_partner('Test Partner 123')
         both_picks.write({'origin': "Test origin 123",
                           'partner_id': partner.id})
+
+        # Take a copy of the original picking, as refactoring can delete records
+        original_picking = self.picking.copy()
         both_picks.action_done()
 
         # apple and banana moves are now in different pickings.
@@ -434,11 +439,11 @@ class TestValidateSplitting(common.BaseUDES):
         self.assertEqual(banana_move.picking_id.id, damson_move.picking_id.id)
 
         # Check pick extra info
-        self.assertEqual(self.picking.origin, apple_move.picking_id.origin)
-        self.assertEqual(self.picking.origin, banana_move.picking_id.origin)
-        self.assertEqual(self.picking.partner_id,
+        self.assertEqual(original_picking.origin, apple_move.picking_id.origin)
+        self.assertEqual(original_picking.origin, banana_move.picking_id.origin)
+        self.assertEqual(original_picking.partner_id,
                          apple_move.picking_id.partner_id)
-        self.assertEqual(self.picking.partner_id,
+        self.assertEqual(original_picking.partner_id,
                          banana_move.picking_id.partner_id)
         # Date done of the picking is the date of the move
         self.assertEqual(apple_move.picking_id.date_done, apple_move.date)
