@@ -8,16 +8,27 @@
             <field name="domain_force">['|',('customer', '=', False),('customer', '=', user.u_view_customers)]</field>
         </record>
 
-        <record id="udes_stock.group_inbound_user" model="res.groups">
+        <record id="no_sale_orders" model="ir.rule">
+            <field name="name">no_sale_orders</field>
+            <field name="model_id" search="[('model','=','sale.order')]" model="ir.model"/>
+            <field name="global" eval="True"/>
+            <field name="groups"
+                   eval="[(6, 0, [ref('udes_stock.group_inbound_user')])]"/>
+            <field name="domain_force">[('id', '=', False)]</field>
+        </record>
+
+         <record id="udes_stock.group_inbound_user" model="res.groups">
             <field name="name">Inbound User</field>
             <field name="implied_ids"
-                   eval="[(4, ref('sales_team.group_sale_salesman'))]"/>
+                   eval="[(3, ref('sales_team.group_sale_salesman'))]"/>
         </record>
+
         <record id="udes_stock.group_stock_user" model="res.groups">
             <field name="name">Stock User</field>
             <field name="implied_ids"
                    eval="[(4, ref('sales_team.group_sale_salesman'))]"/>
         </record>
+
         <record id="udes_stock.group_outbound_user" model="res.groups">
             <field name="name">Outbound User</field>
         </record>
