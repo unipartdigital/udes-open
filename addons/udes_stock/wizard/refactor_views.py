@@ -18,7 +18,9 @@ class RefactorStockPicking(models.TransientModel):
                      "{PICKINGS}".format(UID=str(self.env.uid),
                                          PICKINGS=picking_ids))
 
-        res = Picking.browse(picking_ids).mapped('move_lines')._action_refactor()
+        pickings = Picking.browse(picking_ids)
+        res = pickings.mapped('move_lines')._action_refactor()
+        pickings.unlink_empty()
         return res
 
 
@@ -36,7 +38,9 @@ class RefactorStockMove(models.TransientModel):
                      "{MOVES}".format(UID=str(self.env.uid),
                                       MOVES=move_ids))
 
-        res = Move.browse(move_ids)._action_refactor()
+        moves = Move.browse(move_ids)
+        res = moves._action_refactor()
+        self.mapped('picking_id').unlink_empty()
         return res
 
 class RefactorStockPickingBatch(models.TransientModel):
@@ -53,5 +57,7 @@ class RefactorStockPickingBatch(models.TransientModel):
                      "{BATCHES}".format(UID=str(self.env.uid),
                                       BATCHES=batch_ids))
 
-        res = Batch.browse(batch_ids).mapped('picking_ids.move_lines')._action_refactor()
+        batches = Batch.browse(batch_ids)
+        res = batches.mapped('picking_ids.move_lines')._action_refactor()
+        batches.mapped('picking_ids').unlink_empty()
         return res        

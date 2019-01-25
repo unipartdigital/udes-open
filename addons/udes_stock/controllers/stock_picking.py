@@ -50,7 +50,11 @@ class PickingApi(UdesApi):
 
         picking.update_picking(**kwargs)
 
-        return picking.get_info()[0]
+        # If refactoring deletes our original picking, info may not be available
+        # in case this has happened return true
+        if picking.exists():
+            return picking.get_info()[0]
+        return True
 
     @http.route('/api/stock-picking/<ident>/is_compatible_package/<package_name>',
                 type='json', methods=['GET'], auth='user')
