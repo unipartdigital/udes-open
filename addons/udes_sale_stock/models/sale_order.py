@@ -6,6 +6,11 @@ from odoo.addons.udes_stock.models import common
 class SaleOrder(models.Model):
     _inherit = "sale.order"
 
+    # Add index to origin as this field is frequently used in searches
+    origin = fields.Char(string='Source Document', 
+                         help="Reference of the document that generated this sales order request.", 
+                         index=True)
+
     # Rename states
     state = fields.Selection(selection_add=[
         ('sale', 'In Progress'),
