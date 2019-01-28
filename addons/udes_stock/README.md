@@ -120,6 +120,7 @@ A lot of custom UDES functionality is specfied at the picking type level. This i
 | u_handle_partials          | boolean | If the picking type is allowed to handle partially available pickings. If True, then pickings of this type will report their u_pending value. If False, prevents the state of a picking to be ready until the previous pickings are resolved.|
 | u_create_procurement_group | boolean | Indicate if a procurement group should be created on confirmation of the picking if one does not already exist. |
 | u_enable_unpickable_items  | boolean | When not enabled only an error is shown to the user instead of the usual unpickable items behaviour. |
+| u_confirm_batch            | boolean | Flag to indicate if user has confirm the batch to work with |
 
 More on the enumeration fields below.
 
