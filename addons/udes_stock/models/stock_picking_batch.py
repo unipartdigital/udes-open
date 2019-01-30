@@ -238,6 +238,13 @@ class StockPickingBatch(models.Model):
         for different customers. Also note that the
         task_grouping_criteria argument is added to the signature to
         enable dependency injection for the sake of testing.
+
+        Confirmations is a list of dictionaries of the form:
+            {'query': 'XXX', 'result': 'XXX'}
+        After the user has picked the move lines, should be requested by the
+        'query' to scan/type a value that should match with 'result'.
+        They are enabled by picking type and should be filled at
+        _prepare_task_info(), by default it is not required to confirm anything.
         """
         self.ensure_one()
 
@@ -251,7 +258,9 @@ class StockPickingBatch(models.Model):
             lambda ml: ml.qty_done == ml.product_qty))
         task = {'tasks_picked': num_tasks_picked > 0,
                 'num_tasks_to_pick': 0,
-                'move_line_ids': []}
+                'move_line_ids': [],
+                'confirmations': [],
+                }
         todo_mls = available_mls.get_lines_todo() \
                                 .sort_by_location_product()
 

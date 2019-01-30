@@ -47,6 +47,7 @@
                     <field name="u_use_location_categories" />
                     <field name="u_enable_unpickable_items" />
                     <field name="u_confirm_batch" />
+                    <field name="u_enable_confirmations" />
                 </group>
                 <group string="Pick Refactoring" groups='base.group_no_one'>
                     <field name="u_move_line_key_format" />

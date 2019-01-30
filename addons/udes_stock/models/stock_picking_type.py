@@ -172,7 +172,14 @@ class StockPickingType(models.Model):
     u_confirm_batch = fields.Boolean(
         string='Confirm Batch',
         default=False,
-        help='Flag to indicate if user has confirm the batch to work with.'
+        help='Flag to indicate if user has to confirm the batch to work with.'
+    )
+
+    u_enable_confirmations = fields.Boolean(
+        string='Enable Confirmations',
+        default=False,
+        help='Flag to indicate if user has to perform any confirmation after '
+             'picking a product.'
     )
 
     # Drop location options
@@ -316,6 +323,7 @@ class StockPickingType(models.Model):
             - u_check_picking_priorities: boolean
             - u_use_location_categories: boolean
             - u_confirm_batch: boolean
+            - u_enable_confirmations: boolean
             - u_drop_criterion: string
             - u_drop_location_constraint: string
             - u_drop_location_policy: string
@@ -364,6 +372,7 @@ class StockPickingType(models.Model):
                 'u_check_picking_priorities': self.u_check_picking_priorities,
                 'u_use_location_categories': self.u_use_location_categories,
                 'u_confirm_batch': self.u_confirm_batch,
+                'u_enable_confirmations': self.u_enable_confirmations,
                 }
 
     def get_info(self):

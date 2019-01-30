@@ -120,7 +120,8 @@ A lot of custom UDES functionality is specfied at the picking type level. This i
 | u_handle_partials          | boolean | If the picking type is allowed to handle partially available pickings. If True, then pickings of this type will report their u_pending value. If False, prevents the state of a picking to be ready until the previous pickings are resolved.|
 | u_create_procurement_group | boolean | Indicate if a procurement group should be created on confirmation of the picking if one does not already exist. |
 | u_enable_unpickable_items  | boolean | When not enabled only an error is shown to the user instead of the usual unpickable items behaviour. |
-| u_confirm_batch            | boolean | Flag to indicate if user has confirm the batch to work with |
+| u_confirm_batch            | boolean | Flag to indicate if user has to confirm the batch to work with |
+| u_enable_confirmations     | boolean | Flag to indicate if user has to perform any confirmation after picking a product.|
 
 More on the enumeration fields below.
 
@@ -672,7 +673,16 @@ Old method(s): none
 * @param id - id of the batch to get next task to pick
 * @param skipped_product_ids - (optional) list of product ids that should be skipped by next
 
-Returns the information of the next task to pick: picking_id and quant_id or package_id.
+Returns the information of the next task to pick:
+* picking_id
+* quant_id and pick_quantity (when picking products)
+* package_id (when picking packages)
+* move_line_ids
+* num_tasks_picked
+* num_tasks_to_pick
+* confirmations: list of dictionaries of the form `{'query': 'XXX', 'result': 'XXX'}`.
+
+Note: Confirmations are used after the user picks the product/package, and it should be requested by the 'query' to scan/type a value that should match with 'result'. Confirmations are enabled by picking type (u_enable_confirmations).
 
 ### Check whether the user has any assigned batch
 ```
