@@ -11,6 +11,10 @@
         <xpath expr="//field[@name='payment_term_id']" position="after">
           <field name="priority"/>
         </xpath>
+        <xpath expr="//field[@name='order_line']/tree/field[@name='price_unit']"
+               position="before">
+          <field name="is_cancelled"/>
+        </xpath>
       </field>
     </record>
 
