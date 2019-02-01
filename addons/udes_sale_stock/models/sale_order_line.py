@@ -13,12 +13,14 @@ class SaleOrderLine(models.Model):
     @api.depends('move_ids.state')
     def _compute_is_cancelled(self):
         location_customers = self.env.ref('stock.stock_location_customers')
-        for line in self:
+        for line in self.filtered(lambda l: not l.is_cancelled):
             # get non cancelled final moves
             not_cancelled = line.move_ids.filtered(
                 lambda m: m.state not in ['cancel'] and
                           m.location_dest_id == location_customers)
-            line.is_cancelled = len(not_cancelled) == 0
+            if len(not_cancelled) == 0:
+                line.is_cancelled = True
+                line.order_id.check_state_cancelled()
 
     def _prepare_procurement_values(self, group_id=False):
         values = super()._prepare_procurement_values(group_id)

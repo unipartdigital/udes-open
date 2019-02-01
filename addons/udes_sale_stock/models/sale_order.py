@@ -59,3 +59,11 @@ class SaleOrder(models.Model):
         """Override to cancel by moves instead of by pickings"""
         self.mapped('order_line.move_ids')._action_cancel()
         return self.write({'state': 'cancel'})
+
+    def check_state_cancelled(self):
+        for order in self.filtered(
+                lambda o: o.state not in ['done', 'cancel', 'draft']):
+            non_cancelled = order.order_line.filtered(
+                lambda l: not l.is_cancelled)
+            if len(non_cancelled) == 0:
+                order.write({'state': 'cancel'})
