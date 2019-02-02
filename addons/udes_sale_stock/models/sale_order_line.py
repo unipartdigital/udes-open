@@ -6,7 +6,7 @@ from odoo import api, models, fields
 class SaleOrderLine(models.Model):
     _inherit = 'sale.order.line'
 
-    is_cancelled = fields.Boolean(string='Cancelled', readonly=True, store=True,
+    is_cancelled = fields.Boolean(string='Cancelled', readonly=True, store=False,
                                   default=False, index=True,
                                   compute='_compute_is_cancelled')
 
