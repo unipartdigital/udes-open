@@ -66,4 +66,4 @@ class SaleOrder(models.Model):
             non_cancelled = order.order_line.filtered(
                 lambda l: not l.is_cancelled)
             if len(non_cancelled) == 0:
-                order.write({'state': 'cancel'})
+                order.state = 'cancel'
