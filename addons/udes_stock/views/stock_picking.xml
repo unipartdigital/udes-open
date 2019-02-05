@@ -193,19 +193,24 @@
                 </div>
             </xpath>
 
-            <!-- Change bootstrap columns to allow for longer numbers and add red styling to late number -->
+            <!-- Change bootstrap columns to allow for longer numbers -->
             <xpath expr="//div[@t-if='record.count_picking_late.raw_value > 0']" position="replace">
                 <div t-if="record.count_picking_late.raw_value > 0" class="row">
-                    <div class="col-xs-9">
+                    <div class="col-xs-6">
                         <a class="oe_kanban_stock_picking_type_list" name="get_action_picking_tree_late" type="object">
                             Late
                         </a>
                     </div>
-                    <div class="col-xs-3">
-                        <field style="color:red;font-weight:bold" name="count_picking_late"/>
+                    <div class="col-xs-6">
+                        <field name="count_picking_late"/>
                     </div>
                 </div>
             </xpath>
+
+            <!-- Change the Late count to Red -->
+            <xpath expr="//div[@t-if='record.count_picking_late.raw_value > 0']" position="attributes">
+                <attribute name="style">color:red;font-weight:bold</attribute>
+            </xpath>    
 
             <!-- Change bootstrap columns to allow for longer numbers -->
             <xpath expr="//div[@t-if='record.count_picking_backorders.raw_value > 0']" position="replace">
