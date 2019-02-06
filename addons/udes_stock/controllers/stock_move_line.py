@@ -9,7 +9,7 @@ from .main import UdesApi
 class StockMoveLineApi(UdesApi):
 
     @http.route('/api/stock-move-line/suggested-locations',
-                type='json', methods=['GET'], auth='user')
+                type='json', methods=['POST'], auth='user')
     def suggested_locations(self, move_line_ids):
         """
         Search suggested locations - refer to the API specs for details.
