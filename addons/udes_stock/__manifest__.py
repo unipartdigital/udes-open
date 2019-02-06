@@ -14,7 +14,6 @@
         'package_hierarchy',
         'print',
         'udes_security',
-        'udes_branding',
         'edi',
         'edi_stock',
     ],
