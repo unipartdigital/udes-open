@@ -28,9 +28,9 @@ class SaleOrder(models.Model):
 
     @api.depends('order_line.move_ids.picking_id')
     def _compute_picking_ids_by_line(self):
+        self.mapped('order_line.move_ids.picking_id')
         for order in self:
-            order.picking_ids = order.mapped(
-                'order_line.move_ids.picking_id')
+            order.picking_ids = order.mapped('order_line.move_ids.picking_id')
 
     @api.multi
     def _set_priority(self):
