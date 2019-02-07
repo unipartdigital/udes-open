@@ -210,6 +210,9 @@ class StockMove(models.Model):
             raise UserError(_("Unknown stage for move refactor: %s") % stage)
         moves = self
 
+        if self._context.get('disable_move_refactor'):
+            return moves
+
         rf_moves = moves.filtered(
             lambda m: m.picking_type_id and m.state not in ['draft', 'cancel']
         )
