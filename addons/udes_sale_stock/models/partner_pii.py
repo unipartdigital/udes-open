@@ -19,7 +19,10 @@ PII_RELATIONS = [
 @api.model
 def _read(self, result):
     """Redact fields based on res.user.u_view_customers"""
-    if self.env.uid == SUPERUSER_ID or self.env.user.u_view_customers:
+    if self._uid == SUPERUSER_ID:
+        return result
+
+    if self.env.user.u_view_customers:
         for record in result:
             for field in record:
                 if (field in PII_RELATIONS
@@ -55,8 +58,10 @@ class ResPartner(models.Model):
            still need to redact data retrieved via joined queries
         """
         result = super(ResPartner, self).name_get()
+        if self._uid == SUPERUSER_ID:
+            return result
 
-        if self.env.uid == SUPERUSER_ID or self.env.user.u_view_customers:
+        if self.env.user.u_view_customers:
             for record in result:
                 if (isinstance(record, tuple)
                         and self.sudo().search_count([('id', '=', record[0]),
