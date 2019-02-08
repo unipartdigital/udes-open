@@ -40,6 +40,7 @@ class StockPicking(models.Model):
 
     priority = fields.Selection(selection=common.PRIORITIES)
     sequence = fields.Integer("Sequence", default=0)
+    active = fields.Boolean("Active", default=True)
 
     # compute previous and next pickings
     u_prev_picking_ids = fields.One2many(
@@ -1107,7 +1108,7 @@ class StockPicking(models.Model):
         """
         self.filtered(lambda p:
                       (len(p.move_lines) == 0
-                       and p.state == 'cancel'
+                       and not p.active
                        and p.is_locked)).unlink()
         return self.exists()
 

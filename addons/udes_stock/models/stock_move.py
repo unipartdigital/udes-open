@@ -429,7 +429,7 @@ class StockMove(models.Model):
             _logger.info(_("Cancelling empty picks after splitting."))
             # action_cancel does not cancel a picking with no moves.
             empty_picks.write({
-                'state': 'cancel',
+                'active': False,
                 'is_locked': True
             })
 
@@ -494,7 +494,7 @@ class StockMove(models.Model):
             _logger.info(_("Cancelling empty picks after splitting."))
             # action_cancel does not cancel a picking with no moves.
             empty_picks.write({
-                'state': 'cancel',
+                'active': False,
                 'is_locked': True
             })
 
