@@ -229,7 +229,6 @@ class StockPicking(models.Model):
         after a refactor
         """
         res = super(StockPicking, self).action_assign()
-        self.unlink_empty()
         return res
 
     def action_done(self):
@@ -257,7 +256,6 @@ class StockPicking(models.Model):
             active_model=picks._name,
             active_ids=picks.ids,
         ).run()
-        self.unlink_empty()
         return res
 
     def action_cancel(self):
@@ -1097,19 +1095,8 @@ class StockPicking(models.Model):
                           and not p.group_id):
             pick._create_own_procurement_group()
         res = super(StockPicking, self).action_confirm()
-        self.unlink_empty()
-        return res
 
-    def unlink_empty(self):
-        """
-            Delete pickings in self that are empty, locked and cancelled
-            This is to prevent us leaving junk data behind when refactoring
-        """
-        self.filtered(lambda p:
-                      (len(p.move_lines) == 0
-                       and p.state == 'cancel'
-                       and p.is_locked)).unlink()
-        return self.exists()
+        return res
 
     def _check_entire_pack(self):
         """
