@@ -424,14 +424,10 @@ class StockMove(models.Model):
 
             Picking._new_picking_for_group(key, move_group, **values)
 
+        # Deactivate any empty picks
         empty_picks = pickings.filtered(lambda p: len(p.move_lines) == 0)
         if empty_picks:
-            _logger.info(_("Cancelling empty picks after splitting."))
-            # action_cancel does not cancel a picking with no moves.
-            empty_picks.write({
-                'state': 'cancel',
-                'is_locked': True
-            })
+            empty_picks.write({'active': False})
 
         return self
 
@@ -489,13 +485,9 @@ class StockMove(models.Model):
             Picking._new_picking_for_group(key, group_moves, **values)
             result_moves |= group_moves
 
+        # Deactivate any empty picks
         empty_picks = pickings.filtered(lambda p: len(p.move_lines) == 0)
         if empty_picks:
-            _logger.info(_("Cancelling empty picks after splitting."))
-            # action_cancel does not cancel a picking with no moves.
-            empty_picks.write({
-                'state': 'cancel',
-                'is_locked': True
-            })
+            empty_picks.write({'active': False})
 
         return result_moves

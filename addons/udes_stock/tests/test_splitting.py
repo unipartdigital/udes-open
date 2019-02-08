@@ -64,7 +64,7 @@ class TestAssignSplitting(common.BaseUDES):
         self.assertEqual(banana_ml.result_package_id, banana_pallet)
         self.assertEqual(banana_ml.product_id, self.banana)
 
-        self.assertFalse(self.picking.exists())
+        self.assertFalse(self.picking.active)
 
     def test02_split_move(self):
         """Reserve self.picking with two pallet of the same product and check it
@@ -108,7 +108,7 @@ class TestAssignSplitting(common.BaseUDES):
         self.assertEqual(p2_ml.result_package_id, cherry_pallet2)
         self.assertEqual(p2_ml.product_id, self.cherry)
 
-        self.assertFalse(self.picking.exists())
+        self.assertFalse(self.picking.active)
 
     def test03_two_products_in_pallet(self):
         """Reserve self.picking with a pallet containing two different products
@@ -146,7 +146,7 @@ class TestAssignSplitting(common.BaseUDES):
         self.assertEqual(grape_ml.package_id, mixed_pallet)
         self.assertEqual(grape_ml.result_package_id, mixed_pallet)
 
-        self.assertFalse(self.picking.exists())
+        self.assertFalse(self.picking.active)
 
     def test04_combine_two_pickings_at_reserve(self):
         """Create two pickings for two items on the same pallet. Reserve them
@@ -183,7 +183,7 @@ class TestAssignSplitting(common.BaseUDES):
         self.assertEqual(ml2.package_id, pallet)
         self.assertEqual(ml2.product_id, self.elderberry)
 
-        self.assertFalse(self.picking.exists())
+        self.assertFalse(self.picking.active)
 
     def test05_add_to_existing_picking(self):
         """Create two pickings for two items on the same pallet. Reserve them
@@ -221,7 +221,7 @@ class TestAssignSplitting(common.BaseUDES):
         self.assertEqual(ml2.package_id, pallet)
         self.assertEqual(ml2.product_id, self.elderberry)
 
-        self.assertFalse(self.picking.exists())
+        self.assertFalse(self.picking.active)
 
     def test06_persist_locations(self):
         """Reserve when the locations of the picking are not the defaults of

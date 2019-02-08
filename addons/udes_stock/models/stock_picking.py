@@ -40,6 +40,7 @@ class StockPicking(models.Model):
 
     priority = fields.Selection(selection=common.PRIORITIES)
     sequence = fields.Integer("Sequence", default=0)
+    active = fields.Boolean("Active", default=True)
 
     # compute previous and next pickings
     u_prev_picking_ids = fields.One2many(
@@ -223,15 +224,6 @@ class StockPicking(models.Model):
                     _("Cannot validate %s until all of its"
                       " preceding pickings are done.") % picking.name)
 
-    def action_assign(self):
-        """
-        Unlink empty pickings after action_assign, as there may be junk data
-        after a refactor
-        """
-        res = super(StockPicking, self).action_assign()
-        self.unlink_empty()
-        return res
-
     def action_done(self):
         """
         Ensure we don't incorrectly validate pending pickings.
@@ -257,14 +249,6 @@ class StockPicking(models.Model):
             active_model=picks._name,
             active_ids=picks.ids,
         ).run()
-        self.unlink_empty()
-        return res
-
-    def action_cancel(self):
-        """
-        Check if picking batch is now complete
-        """
-        res = super(StockPicking, self).action_cancel()
         return res
 
     def write(self, vals):
@@ -1097,19 +1081,7 @@ class StockPicking(models.Model):
                           and not p.group_id):
             pick._create_own_procurement_group()
         res = super(StockPicking, self).action_confirm()
-        self.unlink_empty()
         return res
-
-    def unlink_empty(self):
-        """
-            Delete pickings in self that are empty, locked and cancelled
-            This is to prevent us leaving junk data behind when refactoring
-        """
-        self.filtered(lambda p:
-                      (len(p.move_lines) == 0
-                       and p.state == 'cancel'
-                       and p.is_locked)).unlink()
-        return self.exists()
 
     def _check_entire_pack(self):
         """
