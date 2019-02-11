@@ -469,6 +469,7 @@ class StockPickingBatch(models.Model):
 
         Location = self.env['stock.location']
         MoveLine = self.env['stock.move.line']
+        Picking = self.env['stock.picking']
         dest_loc = None
 
         if location_barcode:
@@ -485,6 +486,7 @@ class StockPickingBatch(models.Model):
 
             pickings = completed_move_lines.mapped('picking_id')
 
+            to_add = Picking.browse()
             for pick in pickings:
                 pick_todo = pick
                 pick_mls = completed_move_lines.filtered(
@@ -492,9 +494,13 @@ class StockPickingBatch(models.Model):
 
                 if pick._requires_backorder(pick_mls):
                     pick_todo = pick._backorder_movelines(pick_mls)
+                    to_add |= pick_todo
 
                 # at this point pick_todo should contain only mls done
                 pick_todo.update_picking(validate=True)
+
+            # Add backorders to the batch
+            to_add.write({'batch_id': self.id})
 
         if not continue_batch:
             self.unassign()
