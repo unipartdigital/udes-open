@@ -485,22 +485,20 @@ class StockPickingBatch(models.Model):
                 completed_move_lines.write({'location_dest_id': dest_loc.id})
 
             pickings = completed_move_lines.mapped('picking_id')
-
             to_add = Picking.browse()
+            picks_todo = Picking.browse()
             for pick in pickings:
                 pick_todo = pick
                 pick_mls = completed_move_lines.filtered(
                     lambda x: x.picking_id == pick)
-
                 if pick._requires_backorder(pick_mls):
                     pick_todo = pick._backorder_movelines(pick_mls)
                     to_add |= pick_todo
-
-                # at this point pick_todo should contain only mls done
-                pick_todo.update_picking(validate=True)
+                picks_todo |= pick_todo
 
             # Add backorders to the batch
             to_add.write({'batch_id': self.id})
+            picks_todo.action_done()
 
         if not continue_batch:
             self.unassign()
