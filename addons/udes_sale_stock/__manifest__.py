@@ -7,6 +7,7 @@
     'summary': 'Inventory, Logistics, Warehousing',
     'description': "Extension of sale_stock model for UDES",
     'depends': [
+        'edi_sale',
         'sale_stock',
         'udes_stock',
     ],
