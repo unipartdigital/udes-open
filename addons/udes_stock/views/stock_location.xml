@@ -24,7 +24,7 @@
                            attrs="{'readonly': [('u_date_last_checked', '!=', False)]}"/>
                     <field name="u_date_last_checked_correct"
                            attrs="{'readonly': [('u_date_last_checked_correct', '!=', False)]}"/>
-                    <field name="u_quant_policy"/>
+                    <field name="u_quant_policy" readonly="1"/>
                 </xpath>
 
                 <!-- Add a confirmation to the "Archive" button. -->
