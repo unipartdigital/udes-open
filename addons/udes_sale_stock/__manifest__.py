@@ -21,6 +21,7 @@
         'views/sale_order_views.xml',
         'views/res_users_views.xml',
         'views/res_groups_views.xml',
+        'views/stock_picking_views.xml',
     ],
     'qweb': [
     ],
