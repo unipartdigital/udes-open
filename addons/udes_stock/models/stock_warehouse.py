@@ -78,6 +78,8 @@ class StockWarehouse(models.Model):
         string='Stock Investigation Picking Type',
         help="Picking type used to create stock investigation pickings."
     )
+    u_show_rpc_timing = fields.Boolean(string="Show RPC timing", default=False,
+                                       help="Show RPC call times on mobile UI")
 
     def _prepare_info(self):
         """
@@ -98,6 +100,7 @@ class StockWarehouse(models.Model):
             - u_print_labels_picking_type_ids: list(int)
             - u_pallet_barcode_regex: string
             - u_package_barcode_regex: string
+            - u_show_rpc_timing: boolean
         """
         self.ensure_one()
 
@@ -120,6 +123,7 @@ class StockWarehouse(models.Model):
             'u_package_barcode_regex': self.u_package_barcode_regex,
             'u_pi_count_move_picking_type': self.u_pi_count_move_picking_type.id,
             'u_stock_investigation_picking_type': self.u_stock_investigation_picking_type.id,
+            'u_show_rpc_timing': self.u_show_rpc_timing,
         }
 
     def get_info(self):

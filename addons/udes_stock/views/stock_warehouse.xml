@@ -35,6 +35,7 @@
                             <field name="u_dangerous_location_id" />
                             <field name="u_pallet_barcode_regex" />
                             <field name="u_package_barcode_regex" />
+                            <field name="u_show_rpc_timing" />
                         </group>
                     </page>
 
