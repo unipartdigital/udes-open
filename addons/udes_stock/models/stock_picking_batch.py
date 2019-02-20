@@ -499,7 +499,7 @@ class StockPickingBatch(models.Model):
             # Add backorders to the batch
             to_add.write({'batch_id': self.id})
             with self.statistics() as stats:
-                picks_todo.with_context(tracking_disable=True).action_done()
+                picks_todo.sudo().with_context(tracking_disable=True).action_done()
             _logger.info("%s action_done in %.2fs, %d queries",
                          picks_todo, stats.elapsed, stats.count)
 
