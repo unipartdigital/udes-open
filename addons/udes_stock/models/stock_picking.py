@@ -1632,6 +1632,9 @@ class StockPicking(models.Model):
         PickingType = self.env['stock.picking.type']
 
         search_domain = [] if domain is None else domain
+        # -1 means unbounded
+        if limit == -1:
+            limit = None
 
         if picking_priorities is not None:
             search_domain.append(('priority', 'in', picking_priorities))
