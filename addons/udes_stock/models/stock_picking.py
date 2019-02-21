@@ -1623,14 +1623,15 @@ class StockPicking(models.Model):
         # investigation, we've reserved the problematic stock
         self.action_assign()
 
-    def search_for_pickings(self, picking_type_id, picking_priorities, limit=1):
+    def search_for_pickings(self, picking_type_id, picking_priorities, limit=1,
+                            domain=None):
         """ Search for next available picking based on
             picking type and priorities
         """
         Users = self.env['res.users']
         PickingType = self.env['stock.picking.type']
 
-        search_domain = []
+        search_domain = [] if domain is None else domain
 
         if picking_priorities is not None:
             search_domain.append(('priority', 'in', picking_priorities))
