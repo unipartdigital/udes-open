@@ -739,6 +739,7 @@ class StockPickingBatch(models.Model):
             original_picking_id = picking.id
             picking = picking._backorder_movelines(move_lines)
 
+        moves = picking.move_lines
         if raise_stock_investigation:
             # By default the pick is unreserved
             picking.with_context(
@@ -749,10 +750,11 @@ class StockPickingBatch(models.Model):
                 quants=quants,
                 location=location,
             )
-            self._compute_state()
 
-            if picking.state == 'assigned' \
-                    and original_picking_id is not None:
+            if picking.exists() \
+                    and picking.state == 'assigned' \
+                    and original_picking_id is not None\
+                    and not picking.picking_type_id.u_post_assign_action:
                 # A backorder has been created, but the stock is
                 # available; get rid of the backorder after linking the
                 # move lines to the original picking, so it can be
@@ -760,6 +762,14 @@ class StockPickingBatch(models.Model):
                 picking.move_line_ids.write({'picking_id': original_picking_id})
                 picking.move_lines.write({'picking_id': original_picking_id})
                 picking.unlink()
+            else:
+                # Moves may be part of a new picking after refactor, this should
+                # be added back to the batch
+                moves.mapped('picking_id')\
+                    .filtered(lambda p: p.state == 'assigned')\
+                    .write({'batch_id': self.id})
+            self._compute_state()
+
         else:
             picking.batch_id = False
 
