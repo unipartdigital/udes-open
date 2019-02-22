@@ -1636,13 +1636,18 @@ class StockPicking(models.Model):
 
         # filter pickings by location categories if they are enabled for the
         # given picking type
+        # if a user has at least one category of picking enabled, allow that
+        # user to pick from locations that have unassigned categories
         picking_type = PickingType.browse(picking_type_id)
         if picking_type.u_use_location_categories:
             categories = Users.get_user_location_categories()
             if categories:
-                search_domain.append(
+                search_domain.extend(
+                    ['|',
                     ('u_location_category_id',
-                     'child_of', categories.ids))
+                     'child_of', categories.ids),
+                    ('u_location_category_id',
+                     '=', False)])
 
         search_domain.extend([('picking_type_id', '=', picking_type_id),
                               ('state', '=', 'assigned'),
