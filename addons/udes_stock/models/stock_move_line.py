@@ -594,7 +594,7 @@ class StockMoveLine(models.Model):
 
         return res
 
-    def move_lines_for_qty(self, quantity):
+    def move_lines_for_qty(self, quantity, sort=True):
         """ Return a subset of move lines from self where their sum of quantity
             to do is equal to parameter quantity.
             In case that a move line needs to be split, the new move line is
@@ -609,12 +609,16 @@ class StockMoveLine(models.Model):
         #       an equal otherwise a greater. If nothing found then use all
         #       of them.
 
-        sorted_mls = self.sorted(
-            lambda ml: ml.product_qty, reverse=True)
-        greater_equal_mls = sorted_mls.filtered(
-            lambda ml: ml.product_qty >= quantity)
-        # last one will be at least equal
-        mls = greater_equal_mls[-1] if greater_equal_mls else sorted_mls
+        if sort:
+            sorted_mls = self.sorted(
+                lambda ml: ml.product_qty, reverse=True)
+            greater_equal_mls = sorted_mls.filtered(
+                lambda ml: ml.product_qty >= quantity)
+            # last one will be at least equal
+            mls = greater_equal_mls[-1] if greater_equal_mls else sorted_mls
+        else:
+            mls = self
+
         result = self.browse()
         for ml in mls:
             if ml.product_qty >= quantity:
