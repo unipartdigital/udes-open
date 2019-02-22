@@ -669,7 +669,11 @@ class StockPicking(models.Model):
                       ' are move lines todo'))
             # by default action_done will backorder the stock.move.lines todo
             # validate stock.picking
-            picking.action_done()  # old do_transfer
+            with self.statistics() as stats:
+                picking.sudo().with_context(tracking_disable=True).action_done()
+            _logger.info("%s (update_picking) action_done in %.2fs, %d queries",
+                         picking, stats.elapsed, stats.count)
+
 
     def _requires_backorder(self, mls):
         """ Checks if a backorder is required
