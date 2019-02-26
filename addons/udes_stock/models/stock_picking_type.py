@@ -78,6 +78,8 @@ class StockPickingType(models.Model):
         'scan something from pickings of this type'
     )
 
+    # TODO(ale): misleading, as this also depends on `u_user_scans` and
+    # and `u_target_storage_format`; consider using an enumeration
     u_scan_parent_package_end = fields.Boolean(
         string='Scan parent package at the end',
         default=False,
