@@ -498,7 +498,8 @@ class StockPickingBatch(models.Model):
                         _('Expecting result package on drop off.')
                     )
 
-                result_package = Package.get_package(result_package_name)
+                result_package = Package.get_package(result_package_name,
+                                                     create=True)
 
                 if picking_type.u_target_storage_format == 'pallet_packages':
                     to_update['u_result_parent_package_id'] = result_package.id
