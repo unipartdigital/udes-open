@@ -571,7 +571,9 @@ Payload - a JSON object containing:
 * @param move_line_ids - (array of numbers) IDs of the move lines that were
   dropped; if empty, ALL the move lines of the batch will be considered dropped;
 * @param location_barcode - (optional string) barcode of the drop off location;
-  when specified, the `location_dest_id` of the batch will be updated.
+  when specified, the `location_dest_id` of the batch will be updated;
+* @param result_package_name (optional - string) - required based on wheter and
+  how the parent package needs to be scanned for the given picking type.
 
 Response:
 
@@ -583,6 +585,7 @@ error.
 Returns an error in case of:
  - the specified batch is unknown;
  - the batch is not in progress;
+ - the specified parent package is unexpected;
  - the specified move lines don't belong to the batch.
 
 ### Get move lines to drop off, given a scanned item

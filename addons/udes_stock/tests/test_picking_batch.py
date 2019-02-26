@@ -203,7 +203,8 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         # but _check_batches() removes it from the batch since it is not ready
         batch.drop_off_picked(continue_batch=True,
                               move_line_ids=None,
-                              location_barcode=self.test_output_location_01.name)
+                              location_barcode=self.test_output_location_01.name,
+                              result_package_name=None)
 
         # check the picking is done and the backorder is not in the batch
         self.assertEqual(picking.state, 'done')
@@ -1430,7 +1431,8 @@ class TestBatchMultiDropOff(common.BaseUDES):
         # Drop off apple move lines, and check expected state of the batch
         batch_after = batch.drop_off_picked(continue_batch=True,
                                             move_line_ids=drop_mls.ids,
-                                            location_barcode=out_location)
+                                            location_barcode=out_location,
+                                            result_package_name=None)
         self.assertEqual(batch, batch_after)
         self.assertNotEqual(batch.state, 'done')
 
@@ -1461,7 +1463,8 @@ class TestBatchMultiDropOff(common.BaseUDES):
         # Drop off banana move lines, and check expected state of the batch
         batch_after = batch.drop_off_picked(continue_batch=True,
                                             move_line_ids=drop_mls.ids,
-                                            location_barcode=out_location)
+                                            location_barcode=out_location,
+                                            result_package_name=None)
         self.assertEqual(batch, batch_after)
         self.assertEqual(batch.state, 'done')
 
@@ -1516,7 +1519,8 @@ class TestBatchMultiDropOff(common.BaseUDES):
         # Drop off picking2 move lines, and check expected state of the batch
         batch_after = batch.drop_off_picked(continue_batch=True,
                                             move_line_ids=drop_mls.ids,
-                                            location_barcode=out_location2)
+                                            location_barcode=out_location2,
+                                            result_package_name=None)
         self.assertEqual(batch, batch_after)
         self.assertNotEqual(batch.state, 'done')
         # Check state of pickings are as expected
@@ -1551,7 +1555,8 @@ class TestBatchMultiDropOff(common.BaseUDES):
         # Drop off banana move lines, and check expected state of the batch
         batch_after = batch.drop_off_picked(continue_batch=True,
                                             move_line_ids=drop_mls.ids,
-                                            location_barcode=out_location)
+                                            location_barcode=out_location,
+                                            result_package_name=None)
         self.assertEqual(batch, batch_after)
         self.assertEqual(batch.state, 'done')
 

@@ -19,6 +19,7 @@
                 <group string="UDES Config" groups='base.group_no_one'>
                     <field name="u_target_storage_format" />
                     <field name="u_user_scans" />
+                    <field name="u_scan_parent_package_end" />
                     <field name="u_allow_swapping_packages" />
                     <field name="u_skip_allowed" />
                     <field name="u_split_on_drop_off_picked" />

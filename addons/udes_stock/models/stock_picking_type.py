@@ -78,6 +78,14 @@ class StockPickingType(models.Model):
         'scan something from pickings of this type'
     )
 
+    # TODO(ale): misleading, as this also depends on `u_user_scans` and
+    # and `u_target_storage_format`; consider using an enumeration
+    u_scan_parent_package_end = fields.Boolean(
+        string='Scan parent package at the end',
+        default=False,
+        help='If True, the user is asked to scan parent package on drop off.',
+    )
+
     u_reserve_as_packages = fields.Boolean(
         string='Reserve entire packages',
         default=False,
@@ -313,6 +321,7 @@ class StockPickingType(models.Model):
             - u_validate_real_time: boolean
             - u_target_storage_format: string
             - u_user_scans: string
+            - u_scan_parent_package_end: boolean
             - u_reserve_as_packages: boolean
             - u_auto_batch_pallet: boolean
             - u_continue_picking: boolean
@@ -352,6 +361,7 @@ class StockPickingType(models.Model):
                 'u_validate_real_time': self.u_validate_real_time,
                 'u_target_storage_format': self.u_target_storage_format,
                 'u_user_scans': self.u_user_scans,
+                'u_scan_parent_package_end': self.u_scan_parent_package_end,
                 'u_display_summary': self.u_display_summary,
                 'u_reserve_as_packages': self.u_reserve_as_packages,
                 'u_handle_partials': self.u_handle_partials,

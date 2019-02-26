@@ -173,7 +173,8 @@ class PickingBatchApi(UdesApi):
     def update_batch(self, ident,
                      continue_batch,
                      move_line_ids,
-                     location_barcode=None):
+                     location_barcode=None,
+                     result_package_name=None):
         """
         Update the specified batch by inspecting its move lines
         and setting the destination to the location with the
@@ -187,7 +188,8 @@ class PickingBatchApi(UdesApi):
         batch = _get_batch(request.env, ident)
         updated_batch = batch.drop_off_picked(continue_batch,
                                               move_line_ids,
-                                              location_barcode)
+                                              location_barcode,
+                                              result_package_name)
 
         return _get_single_batch_info(updated_batch)
 
