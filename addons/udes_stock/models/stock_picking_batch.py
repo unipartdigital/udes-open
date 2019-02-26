@@ -456,7 +456,7 @@ class StockPickingBatch(models.Model):
             )
 
     def drop_off_picked(self, continue_batch, move_line_ids, location_barcode,
-                        result_package):
+                        result_package_name):
         """
         Validate the move lines of the batch (expects a singleton)
         by moving them to the specified location.
@@ -484,17 +484,22 @@ class StockPickingBatch(models.Model):
 
         if completed_move_lines:
             to_update = {}
+
             if dest_loc:
                 to_update['location_dest_id'] = dest_loc.id
+
             pickings = completed_move_lines.mapped('picking_id')
             picking_type = pickings.mapped('picking_type_id')
             picking_type.ensure_one()
+
             if picking_type.u_scan_parent_package_end:
-                if not result_package:
+                if not result_package_name:
                     raise ValidationError(
                         _('Expecting result package on drop off.')
                     )
-                result_package = Package.get_package(result_package)
+
+                result_package = Package.get_package(result_package_name)
+
                 if picking_type.u_target_storage_format == 'pallet_packages':
                     to_update['u_result_parent_package_id'] = result_package.id
                 elif picking_type.u_target_storage_format == 'pallet_products':
@@ -503,24 +508,30 @@ class StockPickingBatch(models.Model):
                     raise ValidationError(
                         _('Unnexpected result package at drop off.')
                     )
+
             if to_update:
                 completed_move_lines.write(to_update)
 
             to_add = Picking.browse()
             picks_todo = Picking.browse()
+
             for pick in pickings:
                 pick_todo = pick
                 pick_mls = completed_move_lines.filtered(
                     lambda x: x.picking_id == pick)
+
                 if pick._requires_backorder(pick_mls):
                     pick_todo = pick._backorder_movelines(pick_mls)
                     to_add |= pick_todo
+
                 picks_todo |= pick_todo
 
             # Add backorders to the batch
             to_add.write({'batch_id': self.id})
+
             with self.statistics() as stats:
                 picks_todo.sudo().with_context(tracking_disable=True).action_done()
+
             _logger.info("%s action_done in %.2fs, %d queries",
                          picks_todo, stats.elapsed, stats.count)
 
