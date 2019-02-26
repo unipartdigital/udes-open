@@ -37,15 +37,22 @@ class StockMoveLine(models.Model):
         # atm mark_as_done is only called per picking
         picking = self.mapped('picking_id')
         picking.ensure_one()
+
         target_storage_format = picking.picking_type_id.u_target_storage_format
+        # When scan_parent_package_end=true, no need for result_package
+        scan_parent_package_end = picking.picking_type_id.u_scan_parent_package_end
+
         Package = Package.with_context(move_line_ids=self.ids)
 
         if target_storage_format == 'pallet_packages':
-            if result_package:
+
+            if result_package or scan_parent_package_end:
                 # At pallet_packages, result_package parameter is expected
                 # to be the result_parent_package of the move_line
                 # It might be a new pallet id
-                parent_package = Package.get_package(result_package, create=True)
+                if not scan_parent_package_end:
+                    parent_package = Package.get_package(result_package,
+                                                         create=True)
                 result_package = None
                 if not package:
                     if products_info:
@@ -66,7 +73,7 @@ class StockMoveLine(models.Model):
                 # Moving stock into a pallet of products, result_package
                 # might be new pallet id
                 result_package = Package.get_package(result_package, create=True).name
-            elif products_info and not result_package:
+            elif products_info and not result_package and not scan_parent_package_end:
                 raise ValidationError(
                         _('Invalid parameters for target storage format,'
                           ' expecting result package.'))
