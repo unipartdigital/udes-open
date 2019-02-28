@@ -318,6 +318,32 @@ class TestAssignSplitting(common.BaseUDES):
         all_out_pickings = Picking.search([("picking_type_id", "=", self.picking_type_out.id)])
         self.assertEqual(all_out_pickings, out_pickings)
 
+    def test08_split_partial(self):
+        """Test splitting for refactor when only partially available"""
+        Picking = self.env["stock.picking"]
+        self.picking_type_pick.write({"u_move_line_key_format": "{product_id.name}"})
+        self.create_quant(self.elderberry.id, self.test_location_01.id, 5)
+        self.create_move(self.elderberry, 7, self.picking)
+        self.picking.action_assign()
+        # Get all pickings
+        all_pickings = Picking.search(
+            [
+                ("picking_type_id", "=", self.picking_type_pick.id),
+            ]
+        )
+        # Get the new picking created where there is not enough stock
+        new_picking = all_pickings.filtered(lambda p: p.id != self.picking.id)
+
+        # Check number of pickings and quantity of elderberries are correct
+        self.assertEqual(len(all_pickings), 2)
+        self.assertEqual(sum(all_pickings.mapped("move_lines.product_uom_qty")), 7)
+        # Check each picking
+        self.assertEqual(self.picking.state, "confirmed")
+        self.assertEqual(new_picking.state, "assigned")
+        self.assertEqual(self.picking.move_lines.product_uom_qty, 2)
+        self.assertEqual(new_picking.move_lines.product_uom_qty, 5)
+
+
 class TestValidateSplitting(common.BaseUDES):
 
     def setUp(self):

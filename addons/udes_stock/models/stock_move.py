@@ -145,9 +145,11 @@ class StockMove(models.Model):
         """
         self.ensure_one()
         if not all(ml.move_id == self for ml in move_lines):
-            raise ValueError(_("Cannot split move lines from a move they are" "not part of."))
-        if move_lines == self.move_line_ids and not self.move_orig_ids.filtered(
-            lambda x: x.state not in ("done", "cancel")
+            raise ValueError(_("Cannot split move lines from a move they are not part of."))
+        if (
+            move_lines == self.move_line_ids
+            and not self.move_orig_ids.filtered(lambda x: x.state not in ("done", "cancel"))
+            and not self.state == "partially_available"
         ):
             bk_move = self
             bk_move.write({"picking_id": None})
@@ -168,9 +170,7 @@ class StockMove(models.Model):
                     "state": self.state,
                 }
             )
-            move_lines.write(
-                {"move_id": bk_move.id, "picking_id": None,}
-            )
+            move_lines.write({"move_id": bk_move.id, "picking_id": None})
 
             # Adding context variables to avoid any change to be propagated to
             # the following moves and do not unreserve any quant related to the
@@ -521,7 +521,7 @@ class StockMove(models.Model):
                 group_pickings |= move.picking_id
                 move_mls = ml_group.filtered(lambda l: l.move_id == move)
 
-                if move_mls != move.move_line_ids:
+                if move_mls != move.move_line_ids or move.state == "partially_available":
                     # The move is not entirely contained by the move lines
                     # for this grouping. Need to split the move.
                     group_moves |= move.split_out_move_lines(move_mls)
