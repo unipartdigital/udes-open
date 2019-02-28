@@ -121,12 +121,12 @@ class StockMove(models.Model):
         for move in self:
             # Retain incomplete moves
             updated_origin_ids = move.mapped('move_orig_ids').filtered(
-                                            lambda x: x.state not in ('done', 'cancel')
-                                            )
+                lambda x: x.state not in ('done', 'cancel')
+            )
             for move_line in move.move_line_ids:
                 previous_mls = origin_mls.filtered(
-                                            self._make_mls_comparison_lambda(move_line)
-                                            )
+                    self._make_mls_comparison_lambda(move_line)
+                )
                 updated_origin_ids |= previous_mls.mapped('move_id')
             move.move_orig_ids = updated_origin_ids
 
@@ -145,9 +145,11 @@ class StockMove(models.Model):
         if not all(ml.move_id == self for ml in move_lines):
             raise ValueError(_("Cannot split move lines from a move they are"
                                "not part of."))
-        if move_lines == self.move_line_ids and \
-                not self.move_orig_ids.filtered(
-                    lambda x: x.state not in ('done', 'cancel')):
+        if (move_lines == self.move_line_ids
+            and not self.move_orig_ids.filtered(
+                lambda x: x.state not in ('done', 'cancel'))
+            and not self.state == 'partially_available'
+        ):
             bk_move = self
             bk_move.write({'picking_id': None})
         else:
@@ -185,12 +187,12 @@ class StockMove(models.Model):
             incomplete_moves = (self | bk_move).filtered(
                 lambda mv: mv.state != 'done'
             )
-            incomplete_moves._recompute_state()
-
-            move_lines.write({'state': bk_move.state})
 
             if self.move_orig_ids:
                 (bk_move | self).update_orig_ids(self.move_orig_ids)
+
+            incomplete_moves._recompute_state()
+            move_lines.write({'state': bk_move.state})
 
         return bk_move
 
@@ -497,7 +499,8 @@ class StockMove(models.Model):
                 group_pickings |= move.picking_id
                 move_mls = ml_group.filtered(lambda l: l.move_id == move)
 
-                if move_mls != move.move_line_ids:
+                if move_mls != move.move_line_ids or \
+                        move.state == 'partially_available':
                     # The move is not entirely contained by the move lines
                     # for this grouping. Need to split the move.
                     group_moves |= move.split_out_move_lines(move_mls)

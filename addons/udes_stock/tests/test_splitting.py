@@ -256,6 +256,26 @@ class TestAssignSplitting(common.BaseUDES):
         self.assertEqual(apple_pick.location_id.id, self.test_location_01.id)
         self.assertEqual(apple_pick.location_dest_id.id, self.test_output_location_01.id)
 
+    def test07_split_partial(self):
+        Picking = self.env['stock.picking']
+        self.picking_type_pick.write({
+            'u_move_line_key_format': "{product_id.name}",
+        })
+        self.create_quant(self.elderberry.id, self.test_location_01.id, 5)
+        self.create_move(self.elderberry, 7, self.picking)
+        self.picking.action_assign()
+
+        picks = Picking.search([
+            ('product_id', '=', self.elderberry.id),
+            ('picking_type_id', '=', self.picking_type_pick.id),
+        ])
+
+        self.assertEqual(len(picks), 2)
+        self.assertEqual(sum(picks.mapped('move_lines.product_uom_qty')), 7)
+        states = picks.mapped('state')
+        self.assertIn('confirmed', states)
+        self.assertIn('assigned', states)
+
 
 class TestValidateSplitting(common.BaseUDES):
 
