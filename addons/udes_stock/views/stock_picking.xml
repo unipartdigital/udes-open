@@ -59,7 +59,12 @@
             <!-- origin (Source Document  field changed to required for goods-in -->
             <xpath expr="//field[@name='origin']" position="attributes">
                 <attribute name="attrs">{'required': [('picking_type_code', '=', 'incoming')]}</attribute>
-            </xpath>              
+            </xpath>
+
+            <!-- Add date done to form view -->
+            <xpath expr="//field[@name='scheduled_date']" position="after">
+                <field name="date_done"/>
+            </xpath>
 
             <!-- Add sequence and Location Category -->
             <xpath expr="//field[@name='priority']" position="after">
@@ -118,6 +123,11 @@
             <xpath expr="//tree/field[1]" position="before">
                 <field name="sequence" widget="handle"/>
 
+            </xpath>
+
+            <!-- Show date done -->
+            <xpath expr="//field[@name='scheduled_date']" position="after">
+                <field name="date_done"/>
             </xpath>
 
             <!-- Show priority -->
