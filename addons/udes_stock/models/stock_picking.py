@@ -1554,8 +1554,8 @@ class StockPicking(models.Model):
             ('location_id', 'child_of', default_location.id),
             ('u_blocked', '=', False),
             ('barcode', '!=', False),
-            ('u_height_category_id', '=', height_category.id),
-            ('u_speed_category_id', '=', speed_category.id),
+            ('u_height_category_id', 'in', [height_category.id, False]),
+            ('u_speed_category_id', 'in', [speed_category.id, False]),
             # TODO(MTC): This should probably be a bit more inteligent perhaps
             # get them all then do a filter for checking if theres space
             ('quant_ids', '=', False),
