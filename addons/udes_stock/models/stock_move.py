@@ -69,11 +69,9 @@ class StockMove(models.Model):
         # this with the equivalent for move_line_key
         # we need to think of how we want to do it
 
-        _logger.warning("compute_grouping_key - self %s", self)
         # The environment must include {'compute_key': True}
         # to allow the keys to be computed.
         if not self.env.context.get('compute_key', False):
-            _logger.warning("not computing grouping keys")
             return
         for move in self:
             move_vals = {
@@ -88,7 +86,6 @@ class StockMove(models.Model):
                 move.u_grouping_key = format_str.format(**move_vals)
             else:
                 move.u_grouping_key = None
-        _logger.warning("compute_grouping_key - completed")
 
     def _make_mls_comparison_lambda(self, move_line):
         """ This makes the lambda for
