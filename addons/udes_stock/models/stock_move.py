@@ -20,8 +20,6 @@ STAGES = {
 class StockMove(models.Model):
     _inherit = "stock.move"
 
-    u_grouping_key = fields.Char('Key', compute='compute_grouping_key')
-
     def _unreserve_initial_demand(self, new_move):
         """ Override stock default function to keep the old move lines,
             so there is no need to create them again
@@ -69,23 +67,16 @@ class StockMove(models.Model):
         # this with the equivalent for move_line_key
         # we need to think of how we want to do it
 
-        # The environment must include {'compute_key': True}
-        # to allow the keys to be computed.
-        if not self.env.context.get('compute_key', False):
-            return
-        for move in self:
-            move_vals = {
-                fname: getattr(move, fname)
-                for fname in move._fields.keys()
-                if fname != 'u_grouping_key'
-            }
+        move_vals = {
+            fname: getattr(self, fname)
+            for fname in self._fields.keys()
+        }
 
-            format_str = move.picking_id.picking_type_id.u_move_key_format
+        format_str = self.picking_id.picking_type_id.u_move_key_format
 
-            if format_str:
-                move.u_grouping_key = format_str.format(**move_vals)
-            else:
-                move.u_grouping_key = None
+        if format_str:
+            return format_str.format(**move_vals)
+        return None
 
     def _make_mls_comparison_lambda(self, move_line):
         """ This makes the lambda for
@@ -369,7 +360,8 @@ class StockMove(models.Model):
                               "has no grouping key set."))
 
         # force recompute on u_grouping_key so we have an up-to-date key:
-        return self.with_context(compute_key=True).groupby(lambda ml: ml.u_grouping_key)
+        grouping_key = lambda ml: ml.compute_grouping_key()
+        return self.groupby(grouping_key)
 
     def _prepare_extra_info_for_new_picking_for_group(self, pickings, moves):
         """ Given the group of moves to refactor and its related pickings,

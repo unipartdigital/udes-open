@@ -9,24 +9,6 @@ from collections import Counter, defaultdict
 class StockMoveLine(models.Model):
     _inherit = 'stock.move.line'
 
-    u_grouping_key = fields.Char('Key', compute='compute_grouping_key')
-
-    def _get_pick_type(self):
-        return self.move_id.picking_type_id.id if self.move_id else False
-
-    u_picking_type_id = fields.Many2one(
-        'stock.picking.type', 'Operation Type', default=_get_pick_type)
-
-    @api.constrains('move_id')
-    @api.constrains('move_id.picking_type_id')
-    def _set_pick_type(self):
-        lines_grouped_by_type = defaultdict(lambda: self.browse())
-        for line in self:
-            lines_grouped_by_type[line._get_pick_type()] |= line
-
-        for pick_type_id, lines in lines_grouped_by_type.items():
-            lines.write({'u_picking_type_id': pick_type_id})
-
     def get_lines_todo(self):
         """ Return the move lines in self that are not completed,
             i.e., quantity done < quantity todo
@@ -764,26 +746,22 @@ class StockMoveLine(models.Model):
         return task
 
     def compute_grouping_key(self):
-        for ml in self:
-            ml_vals = {fname: getattr(ml, fname)
-                       for fname in ml._fields.keys()}
-            format_str = ml.picking_id.picking_type_id.u_move_line_key_format
+        ml_vals = {fname: getattr(self, fname)
+                    for fname in self._fields.keys()}
+        format_str = self.picking_id.picking_type_id.u_move_line_key_format
 
-            if format_str:
-                ml.u_grouping_key = format_str.format(**ml_vals)
-            else:
-                ml.u_grouping_key = None
+        if format_str:
+            return format_str.format(**ml_vals)
+        return None
 
     def group_by_key(self):
-        # force recompute on u_grouping_key so we have an up-to-date key:
-        self._fields['u_grouping_key'].compute_value(self)
 
         if any(pt.u_move_line_key_format is False
                for pt in self.mapped('picking_id.picking_type_id')):
             raise UserError(_("Cannot group move lines when their picking type"
                               "has no grouping key set."))
 
-        by_key = lambda ml: ml.u_grouping_key
+        by_key = lambda ml: ml.compute_grouping_key()
         return {k: self.browse([ml.id for ml in g])
                 for k, g in
                 groupby(sorted(self, key=by_key), key=by_key)}
