@@ -73,6 +73,7 @@ class StockMove(models.Model):
             move_vals = {
                 fname: getattr(move, fname)
                 for fname in move._fields.keys()
+                if fname != 'u_grouping_key'
             }
 
             format_str = move.picking_id.picking_type_id.u_move_key_format
