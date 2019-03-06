@@ -69,6 +69,10 @@ class StockMove(models.Model):
         # this with the equivalent for move_line_key
         # we need to think of how we want to do it
 
+        # The environment must include {'compute_key': True}
+        # to allow the keys to be computed.
+        if not self.env.context.get('compute_key', False):
+            return
         for move in self:
             move_vals = {
                 fname: getattr(move, fname)
@@ -359,15 +363,13 @@ class StockMove(models.Model):
         # this with the equivalent for move_line_key
         # we need to think of how we want to do it
 
-        # force recompute on u_grouping_key so we have an up-to-date key:
-        self._fields['u_grouping_key'].compute_value(self)
-
         if any(pt.u_move_key_format is False
                for pt in self.mapped('picking_id.picking_type_id')):
             raise UserError(_("Cannot group moves when their picking type"
                               "has no grouping key set."))
 
-        return self.groupby(lambda ml: ml.u_grouping_key)
+        # force recompute on u_grouping_key so we have an up-to-date key:
+        return self.with_context(compute_key=True).groupby(lambda ml: ml.u_grouping_key)
 
     def _prepare_extra_info_for_new_picking_for_group(self, pickings, moves):
         """ Given the group of moves to refactor and its related pickings,
