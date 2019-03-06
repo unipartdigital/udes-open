@@ -86,6 +86,7 @@ class StockMove(models.Model):
                 move.u_grouping_key = format_str.format(**move_vals)
             else:
                 move.u_grouping_key = None
+        _logger.warning("compute_grouping_key - completed")
 
     def _make_mls_comparison_lambda(self, move_line):
         """ This makes the lambda for
