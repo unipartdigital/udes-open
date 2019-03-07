@@ -5,6 +5,9 @@ from odoo.http import request
 from odoo.exceptions import ValidationError
 
 from .main import UdesApi
+import logging
+
+_logger = logging.getLogger(__name__)
 
 
 class PickingApi(UdesApi):
@@ -48,7 +51,11 @@ class PickingApi(UdesApi):
         if not picking.exists():
             raise ValidationError(_('Cannot find stock.picking with id %s') % ident)
 
-        picking.update_picking(**kwargs)
+        with picking.statistics() as stats:
+            picking.update_picking(**kwargs)
+        _logger.info("Updating picking(s) (user %s) in %.2fs, %d queries, %s",
+                     request.env.uid, stats.elapsed, stats.count, picking.ids)
+
 
         # If refactoring deletes our original picking, info may not be available
         # in case this has happened return true
