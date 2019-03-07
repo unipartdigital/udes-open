@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from itertools import groupby
-
 from odoo import api, fields, models,  _
 from odoo.exceptions import UserError, ValidationError
 from odoo.tools.float_utils import float_compare, float_round
@@ -12,6 +11,21 @@ class StockMoveLine(models.Model):
 
     u_grouping_key = fields.Char('Key', compute='compute_grouping_key')
 
+    def _get_pick_type(self):
+        return self.move_id.picking_type_id.id if self.move_id else False
+
+    u_picking_type_id = fields.Many2one(
+        'stock.picking.type', 'Operation Type', default=_get_pick_type)
+
+    @api.constrains('move_id')
+    @api.constrains('move_id.picking_type_id')
+    def _set_pick_type(self):
+        lines_grouped_by_type = defaultdict(lambda: self.browse())
+        for line in self:
+            lines_grouped_by_type[line._get_pick_type()] |= line
+
+        for pick_type_id, lines in lines_grouped_by_type.items():
+            lines.write({'u_picking_type_id': pick_type_id})
 
     def get_lines_todo(self):
         """ Return the move lines in self that are not completed,

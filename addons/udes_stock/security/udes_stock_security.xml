@@ -28,8 +28,7 @@
                    search="[('model','=','stock.move')]"
                    model="ir.model"/>
             <field name="global" eval="True"/>
-            <field name="domain_force">['|', ('picking_type_id','in',user.u_picking_type_ids.ids),
-                                             ('picking_type_id', '=', False)]</field>
+            <field name="domain_force">[('picking_type_id', 'in', user.u_picking_type_ids.ids + [False])]</field>
         </record>
         <record model="ir.rule" id="users_stock_move_line_rule">
             <field name="name">users_stock_move_line_rule</field>
@@ -37,8 +36,7 @@
                    search="[('model','=','stock.move.line')]"
                    model="ir.model"/>
             <field name="global" eval="True"/>
-            <field name="domain_force">['|', ('move_id.picking_type_id','in',user.u_picking_type_ids.ids),
-                                             ('move_id.picking_type_id', '=', False)]</field>
+            <field name="domain_force">[('u_picking_type_id', 'in', user.u_picking_type_ids.ids + [False])]</field>
         </record>
 
         <!-- Define default security groups -->
