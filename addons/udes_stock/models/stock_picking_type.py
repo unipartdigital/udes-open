@@ -182,6 +182,13 @@ class StockPickingType(models.Model):
              'picking a product.'
     )
 
+    u_multipallet  = fields.Boolean(
+        string='Allow multipallet selection',
+        default=False,
+        help='Flag to indicate if multiple pallets can be scanned in at once.'
+    )
+
+
     # Drop location options
 
     u_drop_criterion = fields.Selection([
@@ -324,6 +331,7 @@ class StockPickingType(models.Model):
             - u_use_location_categories: boolean
             - u_confirm_batch: boolean
             - u_enable_confirmations: boolean
+            - u_multipallet : boolean
             - u_drop_criterion: string
             - u_drop_location_constraint: string
             - u_drop_location_policy: string
@@ -373,6 +381,7 @@ class StockPickingType(models.Model):
                 'u_use_location_categories': self.u_use_location_categories,
                 'u_confirm_batch': self.u_confirm_batch,
                 'u_enable_confirmations': self.u_enable_confirmations,
+                'u_multipallet': self.u_multipallet,
                 }
 
     def get_info(self):
