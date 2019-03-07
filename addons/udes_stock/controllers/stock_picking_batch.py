@@ -6,6 +6,10 @@ from odoo.http import request
 
 from .main import UdesApi
 
+import logging
+
+_logger = logging.getLogger(__name__)
+
 
 #
 ## Helpers
@@ -99,7 +103,14 @@ class PickingBatchApi(UdesApi):
         """
         batch = _get_batch(request.env, ident)
 
-        return batch.get_next_task(skipped_product_ids=skipped_product_ids)
+
+        with batch.statistics() as stats:
+            task = batch.sudo().get_next_task(
+                skipped_product_ids=skipped_product_ids)
+        _logger.info("Get next task (user %s) in %.2fs, %d queries",
+                     request.env.uid, stats.elapsed, stats.count)
+
+        return task
 
     @http.route('/api/stock-picking-batch/assign/',
                 type='json', methods=['POST'], auth='user')
@@ -186,10 +197,13 @@ class PickingBatchApi(UdesApi):
         to false).
         """
         batch = _get_batch(request.env, ident)
-        updated_batch = batch.drop_off_picked(continue_batch,
-                                              move_line_ids,
-                                              location_barcode,
-                                              result_package_name)
+        with batch.statistics() as stats:
+            updated_batch = batch.sudo().drop_off_picked(continue_batch,
+                                                         move_line_ids,
+                                                         location_barcode,
+                                                         result_package_name)
+        _logger.info("Batch updated (user %s) in %.2fs, %d queries",
+                     request.env.uid, stats.elapsed, stats.count)
 
         return _get_single_batch_info(updated_batch)
 
