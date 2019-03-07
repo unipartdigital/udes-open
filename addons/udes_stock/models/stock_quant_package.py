@@ -62,7 +62,7 @@ class StockQuantPackage(models.Model):
         """ Return a list with the information of each package in self.
         """
         res = []
-        for pack in self:
+        for pack in self.sudo():
             res.append(pack._prepare_info(extended=extended, **kwargs))
 
         return res

@@ -354,7 +354,7 @@ class StockPickingBatch(models.Model):
         all batches.
         """
         return [batch._prepare_info(allowed_picking_states)
-                for batch in self]
+                for batch in self.sudo()]
 
     def _select_batch_to_assign(self, batches):
         """

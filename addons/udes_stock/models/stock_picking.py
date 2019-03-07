@@ -980,7 +980,7 @@ class StockPicking(models.Model):
         # to do it for each picking
         priorities = OrderedDict(self._fields['priority'].selection)
         res = []
-        for picking in self:
+        for picking in self.sudo():
             res.append(picking._prepare_info(priorities, **kwargs))
 
         return res
