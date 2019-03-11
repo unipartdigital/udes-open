@@ -764,9 +764,16 @@ class StockMoveLine(models.Model):
         return task
 
     def compute_grouping_key(self):
+        # The environment must include {'compute_key': True}
+        # to allow the keys to be computed.
+        if not self.env.context.get('compute_key', False):
+            return
         for ml in self:
-            ml_vals = {fname: getattr(ml, fname)
-                       for fname in ml._fields.keys()}
+            ml_vals = {
+                fname: getattr(ml, fname)
+                for fname in ml._fields.keys()
+                if fname != 'u_grouping_key'
+            }
             format_str = ml.picking_id.picking_type_id.u_move_line_key_format
 
             if format_str:
@@ -775,8 +782,6 @@ class StockMoveLine(models.Model):
                 ml.u_grouping_key = None
 
     def group_by_key(self):
-        # force recompute on u_grouping_key so we have an up-to-date key:
-        self._fields['u_grouping_key'].compute_value(self)
 
         if any(pt.u_move_line_key_format is False
                for pt in self.mapped('picking_id.picking_type_id')):
@@ -786,7 +791,8 @@ class StockMoveLine(models.Model):
         by_key = lambda ml: ml.u_grouping_key
         return {k: self.browse([ml.id for ml in g])
                 for k, g in
-                groupby(sorted(self, key=by_key), key=by_key)}
+                groupby(sorted(self.with_context(compute_key=True), key=by_key),
+                        key=by_key)}
 
     def write(self, values):
         """Extend write to catch preprocessed location update as constrains
