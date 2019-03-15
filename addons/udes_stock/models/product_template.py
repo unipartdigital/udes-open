@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from odoo import fields, models
+from odoo import api, fields, models
+from odoo.addons import decimal_precision as dp
+from odoo.exceptions import ValidationError
 
 
 class ProductTemplate(models.Model):
@@ -46,3 +48,16 @@ class ProductTemplate(models.Model):
         string='Product Category Speed',
         help="Product category speed to match with location speed.",
     )
+
+    u_pallet_qty = fields.Float(string="Pallet Quantity",
+                                default=0.0,
+                                digits=dp.get_precision('Product Unit of Measure'),
+                                help="Quantity of product per pallet")
+
+    @api.onchange('u_pallet_qty')
+    def disallow_negative_values(self):
+        """ Prevent values from going below 0.
+        """
+        if self.u_pallet_qty < 0:
+            raise ValidationError(
+                "Value for pallet quantity cannot be below 0.")
