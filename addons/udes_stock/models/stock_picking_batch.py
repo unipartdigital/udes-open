@@ -345,6 +345,7 @@ class StockPickingBatch(models.Model):
         return {'id': self.id,
                 'name': self.name,
                 'state': self.state,
+                'u_ephemeral': self.u_ephemeral,
                 'picking_ids': pickings.get_info(),
                 'result_package_names': pickings.get_result_packages_names()}
 
