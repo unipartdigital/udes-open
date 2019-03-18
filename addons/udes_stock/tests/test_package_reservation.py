@@ -130,4 +130,41 @@ class TestPackageReservation(common.BaseUDES):
             picking.update_picking(package_name=package.name)
         self.assertEqual(e.exception.name, 'Cannot mark as done a partially reserved package.')
 
+    def test04_multiple_pickings(self):
+        """Test the case when there is more than one picking in the set being reserved.
+        This caused a bug where a package in Pick02 would prevent Pick01 from being
+        rounded up, see #3453"""
+        Package = self.env['stock.quant.package']
 
+        # enable full package reservation
+        self.picking_type_pick.u_reserve_as_packages = True
+
+        # create stock of 2 products, in package, to reserve.
+        apple_pack = Package.get_package('test_package1', create=True)
+        apple_quant = self.create_quant(self.apple.id, self.test_location_01.id,
+                                        4, package_id=apple_pack.id)
+
+        banana_pack = Package.get_package('test_package2', create=True)
+        banana_quant = self.create_quant(self.banana.id, self.test_location_01.id,
+                                         4, package_id=banana_pack.id)
+        self.assertEqual(apple_quant.reserved_quantity, 0)
+        self.assertEqual(banana_quant.reserved_quantity, 0)
+
+        # create a two picks for 1 of each product
+        pick_1 = self.create_picking(self.picking_type_pick,
+                                     products_info=[{'product': self.apple,
+                                                     'qty': 1}],
+                                     confirm=True,
+                                     assign=False)
+        pick_2 = self.create_picking(self.picking_type_pick,
+                                     products_info=[{'product': self.banana,
+                                                     'qty': 1}],
+                                     confirm=True,
+                                     assign=False)
+
+        pickings = (pick_1 | pick_2).sudo(self.outbound_user)
+        pickings.action_assign()
+
+        # both quants should be fully reserved
+        self.assertEqual(apple_quant.reserved_quantity, 4)
+        self.assertEqual(banana_quant.reserved_quantity, 4)
