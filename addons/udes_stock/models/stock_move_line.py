@@ -764,10 +764,6 @@ class StockMoveLine(models.Model):
         return task
 
     def compute_grouping_key(self):
-        # The environment must include {'compute_key': True}
-        # to allow the keys to be computed.
-        if not self.env.context.get('compute_key', False):
-            return
         for ml in self:
             ml_vals = {
                 fname: getattr(ml, fname)
@@ -791,7 +787,7 @@ class StockMoveLine(models.Model):
         by_key = lambda ml: ml.u_grouping_key
         return {k: self.browse([ml.id for ml in g])
                 for k, g in
-                groupby(sorted(self.with_context(compute_key=True), key=by_key),
+                groupby(sorted(self, key=by_key),
                         key=by_key)}
 
     def write(self, values):
