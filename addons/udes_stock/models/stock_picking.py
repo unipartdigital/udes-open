@@ -1143,9 +1143,9 @@ class StockPicking(models.Model):
                     remaining_qtys = defaultdict(int)
 
                     # get all packages
-                    packages = self.mapped('move_line_ids.package_id')
+                    packages = picking.mapped('move_line_ids.package_id')
                     for package in packages:
-                        move_lines = self.mapped('move_line_ids').filtered(lambda ml: ml.package_id == package)
+                        move_lines = picking.mapped('move_line_ids').filtered(lambda ml: ml.package_id == package)
                         # TODO: merge with assert_reserved_full_package
                         pack_products = frozenset(package._get_all_products_quantities().items())
                         mls_products = frozenset(move_lines._get_all_products_quantities().items())
