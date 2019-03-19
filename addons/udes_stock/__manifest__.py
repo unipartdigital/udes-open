@@ -7,7 +7,6 @@
     'summary': 'Inventory, Logistics, Warehousing',
     'description': "Holds core functionality for UDES Modules",
     'depends': [
-        'sale_stock',
         'stock',
         'stock_picking_batch',
         'blocked_locations',

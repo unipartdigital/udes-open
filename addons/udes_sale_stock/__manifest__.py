@@ -18,6 +18,7 @@
     'data': [
         'security/ir.model.access.csv',
         'security/udes_sale_stock_security.xml',
+        'data/stock_config.xml',
         'views/sale_order_views.xml',
         'views/res_users_views.xml',
         'views/res_groups_views.xml',
