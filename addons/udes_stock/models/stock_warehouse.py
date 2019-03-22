@@ -111,6 +111,7 @@ class StockWarehouse(models.Model):
             'pick_type_id': self.pick_type_id.id,
             'int_type_id': self.int_type_id.id,
             'put_type_id': self._get_a_type('Putaway').id,
+            'replen_type_id': self._get_a_type('Replen').id,
             'u_missing_stock_location_id': self.u_missing_stock_location_id.id,
             'u_damaged_location_id': self.u_damaged_location_id.id,
             'u_temp_dangerous_location_id': self.u_temp_dangerous_location_id.id,

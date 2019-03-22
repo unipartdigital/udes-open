@@ -2,6 +2,13 @@
 <odoo>
   <data>
 
+    <!-- Create "Replen" sequence -->
+    <record id="sequence_replen" model="ir.sequence">
+      <field name="name">Replen</field>
+      <field name="prefix">REP</field>
+      <field name="padding" eval="5"/>
+    </record>
+
     <!-- Create "Goods In" sequence -->
     <record id="sequence_in" model="ir.sequence">
       <field name="name">Goods In</field>
@@ -134,6 +141,24 @@
       <field name="active">False</field>
       <field name="u_post_assign_action">group_by_move_line_key</field>
       <field name="u_move_line_key_format">{package_id.name}</field>
+    </record>
+
+    <record id="picking_type_replen" model="stock.picking.type">
+      <field name="name">Replen</field>
+      <field name="sequence" eval="19"/>
+      <field name="code">internal</field>
+      <field name="sequence_id" ref="sequence_replen"/>
+      <field name="use_existing_lots" eval="1"/>
+      <field name="default_location_src_id" ref="stock.stock_location_stock"/>
+      <field name="default_location_dest_id" ref="stock.stock_location_output"/>
+      <field name="u_reserve_as_packages" eval="True"/>
+      <field name="u_allow_swapping_packages" eval="True"/>
+      <field name="u_skip_allowed" eval="True"/>
+      <field name="u_target_storage_format">pallet_products</field>
+      <field name="u_user_scans">pallet</field>
+      <field name="u_create_procurement_group" eval="True"/>
+      <field name="show_operations" eval="1"/>
+      <field name="active">False</field>
     </record>
 
     <record id="picking_type_pick" model="stock.picking.type">
