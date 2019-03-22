@@ -281,6 +281,24 @@ class StockPickingType(models.Model):
              'picking is done in the case that they have more capacity.'
     )
 
+    u_num_reservable_pickings = fields.Integer(
+        string='Number of pickings to reserve',
+        default=0,
+        help='The number of pickings in the queue to reserve stock for. '
+             'If batch reservation is enabled, entire picking batches are '
+             'reserved in the order of their earliest picking in the queue '
+             'until at least this number of pickings are reserved. '
+             '0 indicates no pickings should be reserved. '
+             '-1 indicates all pickings should be reserved.'
+    )
+
+    u_reserve_batches = fields.Boolean(
+        string='Reserve picking batches atomically',
+        default=True,
+        help='Flag to indicate whether to reserve pickings by batches. '
+             'This is ignored if the number of pickings to reserve is 0.'
+    )
+
     def do_refactor_action(self, action, moves):
         """Resolve and call the method to be executed on the moves.
 
@@ -337,6 +355,8 @@ class StockPickingType(models.Model):
             - u_drop_location_constraint: string
             - u_drop_location_policy: string
             - u_new_package_policy: string
+            - u_num_reservable_pickings: int
+            - u_reserve_batches: boolean
         """
         self.ensure_one()
         Batch = self.env['stock.picking.batch']
@@ -383,6 +403,8 @@ class StockPickingType(models.Model):
                 'u_use_location_categories': self.u_use_location_categories,
                 'u_confirm_batch': self.u_confirm_batch,
                 'u_enable_confirmations': self.u_enable_confirmations,
+                'u_num_reservable_pickings': self.u_num_reservable_pickings,
+                'u_reserve_batches': self.u_reserve_batches,
                 }
 
     def get_info(self):
