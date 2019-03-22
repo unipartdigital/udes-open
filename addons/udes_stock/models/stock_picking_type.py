@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
+import logging
+
 from odoo import api, fields, models, _
-from odoo.exceptions import ValidationError
+from odoo.exceptions import UserError, ValidationError
+
+_logger = logging.getLogger(__name__)
+
 
 CORE_LIFECYCLE_ACTIONS = [
     ('group_by_move_line_key', 'Group by Move Line Key'),
@@ -428,3 +433,107 @@ class StockPickingType(models.Model):
 
     def get_action_picking_tree_draft(self):
         return self._get_action('udes_stock.action_picking_tree_draft')
+
+    def reserve_stock(self, picking=None):
+        """
+        Reserve stock according to the number of reservable pickings.
+
+        0 reservable pickings means this function should not reserve stock
+        -1 reservable picking means all reservable stock should be reserved.
+
+        Arguments:
+        picking -- optional; a single picking to be reserved.
+        """
+        # Reserve an individual picking.
+        if picking is not None:
+            picking_type = picking.picking_type_id
+            if picking_type.u_num_reservable_pickings == 0:
+                return
+            picking.action_assign()
+            if picking.state != 'assigned':
+                raise UserError('Unable to reserve stock.')
+            return
+
+        StockPickings = self.env['stock.picking']
+
+        picking_types = self.search([('active', '=', True),
+                                     ('u_num_reservable_pickings', '!=', 0)])
+
+        # We will either reserve up to the reservation limit or until all
+        # available picks have been reserved, depending on the value of
+        # u_num_reservable_pickings.
+        # However we must also take into account the atomic batch reservation
+        # flag (u_reserve_batches) and the handle partial flag
+        # (u_handle_partials).
+
+        for picking_type in picking_types:
+            _logger.debug('Handle partials: %s', picking_type.u_handle_partials)
+            _logger.debug('Reserve batches: %s',
+                          picking_type.u_reserve_batches)
+            _logger.debug('Pickings to reserve: %d',
+                          picking_type.u_num_reservable_pickings)
+
+            # We want to reserve batches atomically, that is we will
+            # reserve pickings until all pickings in a batch have been
+            # assigned, even if we exceed the number of reservable pickings.
+            # However, the value of the handle partial flag is false we
+            # should not reserve stock if the batch cannot be completely
+            # reserved.
+            to_reserve = picking_type.u_num_reservable_pickings
+            base_domain = [
+                ('picking_type_id', '=', picking_type.id),
+                ('state', 'not in', ['assigned', 'done', 'cancel'])]
+            limit = 1
+
+            processed = StockPickings.browse()
+            while to_reserve > 0:
+                domain = base_domain[:]
+                if processed:
+                    domain.append(('id', 'not in', processed.ids))
+                _logger.debug('Search domain: %r', domain)
+                stock_pickings = StockPickings.search(domain, limit=limit)
+                _logger.debug('Pickings: %r', stock_pickings)
+
+                if not stock_pickings:
+                    # No pickings left to process.
+                    # If u_num_reservable_pickings is -1, or there are
+                    # fewer available pickings that the limit, the loop must
+                    # terminate here.
+                    _logger.debug('No further pickings found for %r.',
+                                  picking_type)
+                    break
+
+                batch = stock_pickings.batch_id
+                if batch:
+                    _logger.debug('Batch state: %r', batch.state)
+                if batch and batch.state == 'draft':
+                    # Add to seen pickings so that we don't try to process
+                    # this batch again.
+                    processed |= batch.picking_ids
+                    continue
+
+                if batch and picking_type.u_reserve_batches:
+                    _logger.debug('Processing batch %d', batch.id)
+                    _logger.debug('Pickings for batch: %r', batch.picking_ids)
+                    stock_pickings = batch.picking_ids
+
+                # Assign at the move level because refactoring may change
+                # the pickings.
+                moves = stock_pickings.mapped('move_lines')
+                moves = moves._action_assign()
+                if moves:
+                    stock_pickings = moves.mapped('picking_ids')
+                processed |= stock_pickings
+
+                if not picking_type.u_handle_partials:
+                    if not all(x == 'assigned' for x in
+                               stock_pickings.mapped('state')):
+                        _logger.warning('Rolling back states: %r',
+                                        stock_pickings.mapped('state'))
+                        self._cr.rollback()
+                        continue
+
+                self._cr.commit()
+                if picking_type.u_num_reservable_pickings > 0:
+                    to_reserve -= len(stock_pickings)
+        return
