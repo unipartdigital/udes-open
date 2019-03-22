@@ -1664,3 +1664,114 @@ class StockPicking(models.Model):
             return None
 
         return picking
+
+    def reserve_stock(self):
+        """
+        Reserve stock according to the number of reservable pickings.
+
+        If this method is called on an empty recordset it will attempt to
+        reserve stock for all eligible picking types.  If the recordset is not
+        empty, it will reserve stock for the picks in the recordset.
+
+        In either scenario the picking type flags for reserving complete
+        batches and handling partial batches are respected.
+
+        The number of reservable pickings is defined on the picking type.
+        0 reservable pickings means this function should not reserve stock
+        -1 reservable picking means all reservable stock should be reserved.
+        """
+        Picking = self.env['stock.picking']
+        PickingType = self.env['stock.picking.type']
+
+        if self:
+            picking_types = self.mapped('picking_type_id')
+        else:
+            picking_types = PickingType.search(
+                [('active', '=', True),
+                 ('u_num_reservable_pickings', '!=', 0)])
+
+        # We will either reserve up to the reservation limit or until all
+        # available picks have been reserved, depending on the value of
+        # u_num_reservable_pickings.
+        # However we must also take into account the atomic batch reservation
+        # flag (u_reserve_batches) and the handle partial flag
+        # (u_handle_partials).
+
+        for picking_type in picking_types:
+            _logger.info('Reserving stock for picking type %r.', picking_type)
+
+            # We want to reserve batches atomically, that is we will
+            # reserve pickings until all pickings in a batch have been
+            # assigned, even if we exceed the number of reservable pickings.
+            # However, the value of the handle partial flag is false we
+            # should not reserve stock if the batch cannot be completely
+            # reserved.
+            to_reserve = picking_type.u_num_reservable_pickings
+            reserve_all = picking_type.u_num_reservable_pickings == -1
+            base_domain = [
+                ('picking_type_id', '=', picking_type.id),
+                ('state', '=', 'confirmed')]
+            limit = 1
+            processed = Picking.browse()
+            by_type = lambda x: x.picking_type_id == picking_type
+
+            while to_reserve > 0 or reserve_all:
+
+                if self:
+                    # Removed processed pickings from self
+                    pickings = self.filtered(by_type) - processed
+                else:
+                    domain = base_domain[:]
+                    if processed:
+                        domain.append(('id', 'not in', processed.ids))
+                    pickings = Picking.search(domain, limit=limit)
+
+                if not pickings:
+                    # No pickings left to process.
+                    # If u_num_reservable_pickings is -1, or there are
+                    # fewer available pickings that the limit, the loop must
+                    # terminate here.
+                    break
+
+                batch = pickings.mapped('batch_id')
+                if batch and batch.state == 'draft':
+                    # Add to seen pickings so that we don't try to process
+                    # this batch again.
+                    processed |= batch.picking_ids
+                    continue
+
+                if batch and picking_type.u_reserve_batches:
+                    pickings = batch.picking_ids
+
+                # Assign at the move level because refactoring may change
+                # the pickings.
+                moves = pickings.mapped('move_lines')
+                moves._action_assign()
+                pickings = moves.mapped('picking_id')
+                processed |= pickings
+
+                if not picking_type.u_handle_partials:
+                    unsatisfied = pickings.filtered(
+                        lambda x: x.state != 'assigned')
+                    if unsatisfied:
+                        if self:
+                            # we need to construct our error message before the
+                            # changes are rolled back.
+                            moves = unsatisfied.mapped('move_lines')
+                            products = moves.mapped('product_id.default_code')
+                            picks = moves.mapped('picking_id.name')
+                            fmt = ("Unable to reserve stock for products {} "
+                                   "for pickings {}.")
+                            msg = fmt.format(', '.join(products),
+                                             ', '.join(picks))
+                        self._cr.rollback()
+                        if self:
+                            raise UserError(msg)
+                        continue
+
+                self._cr.commit()
+                to_reserve -= len(pickings)
+
+                if self:
+                    break
+        return

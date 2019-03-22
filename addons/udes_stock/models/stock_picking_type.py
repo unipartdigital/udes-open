@@ -2,6 +2,7 @@
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
 
+
 CORE_LIFECYCLE_ACTIONS = [
     ('group_by_move_line_key', 'Group by Move Line Key'),
     ('group_by_move_key', 'Group by Move Key'),
