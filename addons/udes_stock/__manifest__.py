@@ -30,6 +30,7 @@
         'data/product_categories.xml',
         'data/product_packaging.xml',
         'data/picking_print.xml',
+        'data/scheduler.xml',
         'report/product_product_templates.xml',
         'report/report_stockpicking_operations.xml',
         'views/edi_menu_views.xml',
