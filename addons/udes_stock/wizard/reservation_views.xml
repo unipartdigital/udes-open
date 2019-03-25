@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Trigger reservation on pickings -->
+    <record id="stock_reserve_stock_form" model="ir.ui.view">
+        <field name="name">stock.reserve.stock.form</field>
+        <field name="model">stock.reserve.stock.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Reserve Stock">
+                <separator string="Are you sure?"/>
+                <footer>
+                    <button name="do_reservation" type="object" string="Do Reservation" class="btn-primary"/>
+                    <button string="Cancel" class="btn-default" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Trigger reservation on pickings action -->
+    <record id="stock_reserve_stock_action" model="ir.actions.act_window">
+        <field name="name">Reserve Stock</field>
+        <field name="res_model">stock.reserve.stock.wizard</field>
+        <field name="view_type">form</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="stock_reserve_stock_form"/>
+        <field name="target">new</field>
+    </record>
+
+    <act_window id="stock_reserve_stock_action_stock_picking"
+        multi="True"
+        key2="client_action_multi" name="Reserve Stock"
+        res_model="stock.reserve.stock.wizard" src_model="stock.picking"
+        view_mode="form" target="new" view_type="form"/>
+
+</odoo>
