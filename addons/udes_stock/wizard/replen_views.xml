@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Trigger refactor on pickings -->
+    <record id="stock_warehouse_orderpoint_replen_form" model="ir.ui.view">
+        <field name="name">stock.warehouse.orderpoint.replen.form</field>
+        <field name="model">stock.warehouse.orderpoint.replen.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Replen Pickings">
+                <separator string="Are you sure?"/>
+                <footer>
+                    <button name="do_replen" type="object" string="Do Replen" class="btn-primary"/>
+                    <button string="Cancel" class="btn-default" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Trigger replen on pickings action -->
+    <record id="stock_warehouse_orderpoint_replen_action" model="ir.actions.act_window">
+        <field name="name">Replen Pickings</field>
+        <field name="res_model">stock.warehouse.orderpoint.replen.wizard</field>
+        <field name="view_type">form</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="stock_warehouse_orderpoint_replen_form"/>
+        <field name="target">new</field>
+    </record>
+
+    <act_window id="stock_picking_replen_action_stock_picking"
+        multi="True"
+        key2="client_action_multi" name="Replen Pickings"
+        res_model="stock.warehouse.orderpoint.replen.wizard" src_model="stock.warehouse.orderpoint"
+        view_mode="form" target="new" view_type="form"/>
+
+</odoo>
