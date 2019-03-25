@@ -8,6 +8,7 @@
     'description': "Extension of sale_stock model for UDES",
     'depends': [
         'edi_sale',
+        'sale_order_dates',
         'sale_stock',
         'udes_stock',
     ],
