@@ -57,5 +57,59 @@
       </field>
     </record>
 
+    <!-- cancel orders without stock -->
+    <record id="cancel_orders_without_availability" model="ir.actions.server">
+      <field name="name">cancel_orders_without_availability</field>
+      <field name="type">ir.actions.server</field>
+      <field name="model_id" ref="model_sale_order" />
+      <field name="state">code</field>
+        <field name="code">
+          model.cancel_orders_without_availability()
+        </field>
+    </record>
+
+    <record id="view_cancel_orders_without_availability" model="ir.ui.view">
+      <field name="name">view_cancel_orders_without_availability</field>
+      <field name="model">sale.order</field>
+      <field name="arch" type="xml">
+        <form string="Cancel Lines">
+          <separator string="Cancel order lines without available stock?"/>
+          <footer>
+            <button type="object"
+                    name="cancel_unfulfillable_sales"
+                    string="Yes" class="btn-primary"/>
+            <button string="No" class="btn-default" special="cancel"/>
+          </footer>
+        </form>
+      </field>
+    </record>
+
+    <record id="confirm_cancel_orders_without_availability" model="ir.actions.act_window">
+      <field name="name">Cancel Unfulfillable Lines</field>
+      <field name="type">ir.actions.act_window</field>
+      <field name="res_model">sale.order.cancel.wizard</field>
+      <field name="view_mode">form</field>
+      <field name="view_id" ref="view_cancel_orders_without_availability" />
+      <field name="target">new</field>
+    </record>
+
+    <menuitem id="menu_cancel_orders_without_availability"
+      action="confirm_cancel_orders_without_availability"
+      parent="sale.sale_order_menu"
+      sequence="99" groups="sales_team.group_sale_salesman"/>
+
+    <record id="view_cancellation_result" model="ir.ui.view">
+      <field name="name">view_cancellation_result</field>
+      <field name="model">sale.order.cancel.wizard</field>
+      <field name="arch" type="xml">
+        <form string="Cancel Lines">
+          <field name="result" readonly="1" />
+          <footer>
+            <button string="Close" class="btn-primary" special="cancel"/>
+          </footer>
+        </form>
+      </field>
+    </record>
+
   </data>
 </odoo>

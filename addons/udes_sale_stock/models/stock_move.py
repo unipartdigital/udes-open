@@ -17,10 +17,7 @@ class StockMove(models.Model):
         return result
 
     def _action_cancel(self):
-
         location_customers = self.env.ref('stock.stock_location_customers')
-        now_date = datetime.now()
-
         from_sale = self.env.context.get('from_sale', False)
         result = True
         if not from_sale:
@@ -35,8 +32,7 @@ class StockMove(models.Model):
             lambda m: m.location_dest_id == location_customers) \
             .mapped('sale_line_id').filtered(
             lambda s: len(s.move_ids.filtered(not_cancelled_filter)) == 0)
-        lines_to_cancel.write({'is_cancelled': True,
-                               'cancel_date': fields.Datetime.to_string(now_date)})
-        lines_to_cancel.mapped('order_id').check_state_cancelled()
+        if lines_to_cancel:
+            lines_to_cancel.action_cancel()
 
         return result

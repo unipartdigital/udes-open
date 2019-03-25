@@ -13,6 +13,11 @@ class SaleOrderLine(models.Model):
     cancel_date = fields.Datetime(string='Cancel Date',
                                   help='Time of cancellation',
                                   readonly=True, index=True)
+    is_cancelled_due_shortage = fields.Boolean(
+        string='Cancelled due to a Shortage',
+        help='Whether the sale order line was cancelled due to a stock shortage',
+        default=False,
+        index=True)
 
     def _prepare_procurement_values(self, group_id=False):
         values = super()._prepare_procurement_values(group_id)
@@ -20,3 +25,17 @@ class SaleOrderLine(models.Model):
             'priority': self.order_id.priority,
         })
         return values
+
+    def action_cancel(self):
+        """ A cancelled SO line will also cancel move IDs """
+        to_cancel = self.filtered(lambda l: not l.is_cancelled)
+
+        if not to_cancel:
+            return False
+
+        now_date = datetime.now()
+        to_cancel.write({'is_cancelled': True,
+                         'cancel_date': fields.Datetime.to_string(now_date)})
+        to_cancel.mapped('move_ids').filtered(
+            lambda m: m.state not in ('done', 'cancel'))._action_cancel()
+        to_cancel.mapped('order_id').check_state_cancelled()
