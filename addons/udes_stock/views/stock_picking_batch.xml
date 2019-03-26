@@ -20,6 +20,9 @@
         <xpath expr="//button[@name='cancel_picking']" position="replace">
           <button name="cancel_picking" string="Cancel Batch" confirm="Cancelling the batch will cancel all its pickings. Are you sure you wish to cancel this Batch Picking?" type="object" states="ready,waiting,in_progress"/>
         </xpath>
+        <xpath expr="//button[@name='cancel_picking']" position="after">
+          <button name="mark_as_todo" string="Mark as Todo" confirm="Are you sure you want to mark this batch as todo?" type="object" states="draft"/>
+        </xpath>
         <xpath expr="//field[@name='state']" position="replace">
           <field name="state" widget="statusbar" statusbar_visible="waiting,ready,in_progress,done"/>
         </xpath>
