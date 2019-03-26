@@ -9,6 +9,7 @@
     'depends': [
         'purchase',
         'udes_security',
+        'udes_stock'
     ],
     'data': [
         'reports/reorder_alert_template.xml',
