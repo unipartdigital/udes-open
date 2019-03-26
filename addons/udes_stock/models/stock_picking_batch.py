@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from odoo import api, fields, models, _
-from odoo.exceptions import ValidationError
+from odoo.exceptions import UserError, ValidationError
 from .common import PRIORITIES
 
 import logging
@@ -899,3 +899,15 @@ class StockPickingBatch(models.Model):
             if picking_priority in priority_ids:
                 return priority_ids
         return None
+
+    def mark_as_todo(self):
+        """Changes state from draft to waiting.
+
+        This is done without calling action assign.
+        """
+        _logger.info("User %r has marked %r as todo.",
+                     self.env.uid, self)
+        if self.state != 'draft':
+            raise UserError('Only draft batches may be marked as "todo".')
+        self.state = 'waiting'
+        return
