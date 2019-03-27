@@ -56,6 +56,7 @@
         'report/report_goods_slip.xml',
         'wizard/change_quant_location_view.xml',
         'wizard/refactor_views.xml',
+        'wizard/replen_views.xml',
         'security/ir.model.access.csv',
         'security/ir_module_category.xml',
         'security/udes_stock_security.xml',
