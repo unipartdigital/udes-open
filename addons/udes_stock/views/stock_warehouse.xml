@@ -6,6 +6,10 @@
             <field name="model">stock.warehouse</field>
             <field name="inherit_id" ref="stock.view_warehouse"/>
             <field name="arch" type="xml">
+                <!-- Able to change delivery route -->
+                <xpath expr="//field[@name='resupply_wh_ids']" position="after">
+                    <field name="delivery_route_id" />
+                </xpath>
                 <xpath expr="//page[1]" position="after">
                     <page string="UDES Configuration" groups='base.group_no_one'>
                         <group name="picking_type" string="Picking types which handle damages">
