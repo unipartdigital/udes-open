@@ -910,4 +910,5 @@ class StockPickingBatch(models.Model):
         if self.state != 'draft':
             raise UserError('Only draft batches may be marked as "todo".')
         self.state = 'waiting'
+        self._compute_state()
         return
