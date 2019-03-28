@@ -107,7 +107,7 @@ class StockMoveLine(models.Model):
         elif target_storage_format == 'product':
             # Error when trying to mark_as_done a full package or setting result package
             # when result storage format is products
-            if result_package or (package and not products_info):
+            if result_package:
                 raise ValidationError(
                         _('Invalid parameters for products target'
                           ' storage format.'))

@@ -1121,7 +1121,9 @@ class StockPicking(models.Model):
             Override to avoid values at result_package_id when
             user scans products
         """
-        pickings = self.filtered(lambda p: p.picking_type_id.u_user_scans != 'product')
+        pickings = self.filtered(
+            lambda p: p.picking_type_id.u_user_scans != 'product' and
+                      p.picking_type_id.u_target_storage_format != 'product')
         super(StockPicking, pickings)._check_entire_pack()
 
     def _reserve_full_packages(self):
