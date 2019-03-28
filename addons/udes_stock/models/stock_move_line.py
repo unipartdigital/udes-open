@@ -68,6 +68,7 @@ class StockMoveLine(models.Model):
                     parent_package = Package.get_package(result_package,
                                                          create=True)
                 result_package = None
+                # MPS: maybe this if is not needed
                 if not package:
                     if products_info:
                         # Products are being packed
@@ -77,6 +78,10 @@ class StockMoveLine(models.Model):
                         # result_package for all the move lines
                         raise ValidationError(
                                 _("Some of the move lines don't have result package."))
+                else:
+                    # Products are being packed into a new package
+                    if products_info:
+                        result_package = Package.create({}).name
             elif products_info:
                 raise ValidationError(
                         _('Invalid parameters for target storage format,'
