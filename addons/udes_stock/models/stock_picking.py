@@ -1671,7 +1671,11 @@ class StockPicking(models.Model):
 
         If this method is called on an empty recordset it will attempt to
         reserve stock for all eligible picking types.  If the recordset is not
-        empty, it will reserve stock for the picks in the recordset.
+        empty, it will reserve stock for the picks in the recordset. If the
+        recordset is not empty, it is the callers responsibility to make sure
+        that the pickings belong to at most one batch, otherwise this method
+        cannot respect the priority order of pickings, in this case the
+        behaviour of this method is undefined.
 
         In either scenario the picking type flags for reserving complete
         batches and handling partial batches are respected.
@@ -1707,7 +1711,7 @@ class StockPicking(models.Model):
             # should not reserve stock if the batch cannot be completely
             # reserved.
             to_reserve = picking_type.u_num_reservable_pickings
-            reserve_all = picking_type.u_num_reservable_pickings == -1
+            reserve_all = to_reserve == -1
             base_domain = [
                 ('picking_type_id', '=', picking_type.id),
                 ('state', '=', 'confirmed')]
@@ -1715,7 +1719,7 @@ class StockPicking(models.Model):
             processed = Picking.browse()
             by_type = lambda x: x.picking_type_id == picking_type
 
-            while to_reserve > 0 or reserve_all:
+            while reserve_all or to_reserve > 0:
 
                 if self:
                     # Removed processed pickings from self
@@ -1746,7 +1750,8 @@ class StockPicking(models.Model):
                 # Assign at the move level because refactoring may change
                 # the pickings.
                 moves = pickings.mapped('move_lines')
-                moves._action_assign()
+                moves.with_context(lock_batch_state=True)._action_assign()
+                batch._compute_state()
                 pickings = moves.mapped('picking_id')
                 processed |= pickings
 
@@ -1768,10 +1773,13 @@ class StockPicking(models.Model):
                         if self:
                             raise UserError(msg)
                         continue
-
+                # Incrementally commit to release picks as soon as possible and
+                # allow serialisation error to propagate to respect priority
+                # order
                 self._cr.commit()
                 to_reserve -= len(pickings)
 
                 if self:
+                    # Only process the specified pickings
                     break
         return
