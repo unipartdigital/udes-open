@@ -17,6 +17,8 @@ class PurchaseOrder(models.Model):
         email_template = self.get_rfq_email_template()
         rfqs_to_send = RequestOrder.search([('state', '=', 'draft')])
 
+        print(rfqs_to_send)
+
         if rfqs_to_send:
             ctx = self.get_context_for_rfq_email()
 
@@ -27,6 +29,9 @@ class PurchaseOrder(models.Model):
                 rfq_by_mail_id[mail_id] = rfq
 
             mail = Mail.browse(rfq_by_mail_id.keys())
+
+            print(mail)
+
             # Actually sends it
             mail.send()
 
@@ -48,6 +53,7 @@ class PurchaseOrder(models.Model):
                 )
 
             if failed_rfqs:
+                print(failed_rfqs)
                 _logger.info(
                     _('Failed to send RFQ messages for RFQ ids (%s)')
                     % ', '.join(map(str, failed_rfqs.ids))
