@@ -49,6 +49,7 @@
                     <field name="u_enable_unpickable_items" />
                     <field name="u_confirm_batch" />
                     <field name="u_enable_confirmations" />
+                    <field name="u_use_part_pallets" />
                     <field name="u_num_reservable_pickings" />
                     <field name="u_reserve_batches" />
                 </group>
