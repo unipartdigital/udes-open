@@ -907,8 +907,12 @@ class StockPickingBatch(models.Model):
         """
         _logger.info("User %r has marked %r as todo.",
                      self.env.uid, self)
-        if self.state != 'draft':
-            raise UserError('Only draft batches may be marked as "todo".')
-        self.state = 'waiting'
+        not_draft = self.filtered(lambda b: b.state != 'draft')
+        if not_draft:
+            raise UserError(
+                _('Only draft batches may be marked as "todo": %s') % not_draft.ids
+            )
+        self.write({'state': 'waiting'})
         self._compute_state()
+
         return
