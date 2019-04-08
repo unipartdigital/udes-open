@@ -307,6 +307,20 @@ class BaseUDES(common.SavepointCase):
         return Product.create(vals)
 
     @classmethod
+    def create_orderpoint(cls, product, location, qty_min, qty_max, qty_multiple=1, **kwargs):
+        """ Create and return an orderpoint."""
+        Orderpoint = cls.env['stock.warehouse.orderpoint']
+        vals = {
+            'location_id': location.id,
+            'product_id': product.id,
+            'product_min_qty': qty_min,
+            'product_max_qty': qty_max,
+            'qty_multiple': qty_multiple,
+        }
+        vals.update(kwargs)
+        return Orderpoint.create(vals)
+
+    @classmethod
     def create_quant(cls, product_id, location_id, qty, serial_number=None, **kwargs):
         """ Create and return a quant of a product at location."""
         Quant = cls.env['stock.quant']
