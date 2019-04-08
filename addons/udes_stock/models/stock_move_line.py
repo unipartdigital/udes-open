@@ -831,7 +831,7 @@ class StockMoveLine(models.Model):
         # On other actions if this will be caught by odoo's code as you are not
         # allowed to place stock in a view.
         if set(location.mapped('usage')) == set(('view',)):
-            return True
+            return
 
         # iterating picking_id even if it's a many2one
         # because the constraint can be triggered anywhere
