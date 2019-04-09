@@ -1334,6 +1334,8 @@ class StockPicking(models.Model):
 
         group = Group.get_group(group_identifier=group_key,
                                 create=True)
+
+        # Look for an existing picking with the right group
         picking = self.search([
             ('picking_type_id', '=', picking_type.id),
             ('location_id', '=', src_loc.id),
@@ -1342,7 +1344,24 @@ class StockPicking(models.Model):
             # NB: only workable pickings
             ('state', 'in', ['assigned', 'confirmed', 'waiting']),
         ])
+
+        if not picking:
+            # Otherwise reuse the existing picking if all the moves
+            # already belong to it and it contains no other moves
+            # The picking_type_id, location_id and location_dest_id
+            # will match already
+            current_picking = moves.mapped('picking_id')
+            if (len(current_picking) == 1 and
+                current_picking.mapped('move_lines') == moves):
+                values = { 'group_id': group.id }
+                values.update(kwargs)
+
+                current_picking.write(values)
+                picking = current_picking
+
         if not picking or len(picking) > 1:
+            # There was no suitable picking to reuse.
+            # Create a new picking.
             values = {
                 'picking_type_id': picking_type.id,
                 'location_id': src_loc.id,
