@@ -9,6 +9,11 @@ _logger = logging.getLogger(__name__)
 class StockQuantPackage(models.Model):
     _inherit = "stock.quant.package"
 
+    # This is intended for when a pallet/package requires a second name to be
+    # presented externally, e.g. when a package's (external) barcode format is
+    # different to the internal one.
+    u_external_name = fields.Char(string="External Name")
+
     def new_package_name(self):
         Sequence = self.env['ir.sequence']
         return Sequence.next_by_code('stock.quant.package') or _('Unknown Pack')
