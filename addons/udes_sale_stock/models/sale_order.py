@@ -119,30 +119,32 @@ class SaleOrder(models.Model):
             batch = Order.search([('state', 'in', ['sale', 'draft'])],
                                  offset=offset, limit=limit)
 
+        return self.handle_unfulfillable_order_lines(cant_fulfill)
+
+    @api.model
+    def handle_unfulfillable_order_lines(self, cant_fulfill):
+        """Default beahviour is to cancel lines."""
         _logger.info("Cancelling %s unfulfillable order lines",
                      len(cant_fulfill))
-        if cant_fulfill:
-            # Cancel these lines
-            with self.statistics() as stats:
-                cant_fulfill.action_cancel()
-                cant_fulfill.write({'is_cancelled_due_shortage': True})
+        with self.statistics() as stats:
+            cant_fulfill.action_cancel()
+            cant_fulfill.write({'is_cancelled_due_shortage': True})
 
+        _logger.info(
+            "Sale lines on orders %s cancelled in %.2fs, %d queries, due to"
+            " stock shortage,",
+            ', '.join(cant_fulfill.mapped('order_id.name')),
+            stats.elapsed,
+            stats.count
+        )
+
+        cancelled_sales = cant_fulfill.mapped('order_id') \
+            .filtered(lambda x: x.state == 'cancel')
+        if cancelled_sales:
             _logger.info(
-                "Sale lines on orders %s cancelled in %.2fs, %d queries, due to"
-                " stock shortage,",
-                ', '.join(cant_fulfill.mapped('order_id.name')),
-                stats.elapsed,
-                stats.count
+                "Sales %s cancelling due to missing stock",
+                ', '.join(cancelled_sales.mapped('name'))
             )
-
-            cancelled_sales = cant_fulfill.mapped('order_id') \
-                .filtered(lambda x: x.state == 'cancel')
-            if cancelled_sales:
-                _logger.info(
-                    "Sales %s cancelling due to missing stock",
-                    ', '.join(cancelled_sales.mapped('name'))
-                )
-
         return cant_fulfill
 
     def check_delivered(self):
