@@ -70,21 +70,22 @@ class SaleOrder(models.Model):
         OrderLine = self.env['sale.order.line']
         Order = self.env['sale.order']
 
-        # Get order lines
-        orders = Order.search([('state', 'in', ['sale', 'draft'])])
-
+        _logger.info("Checking orders to cancel due to stock shortage")
         # Get unreserved stock for each product in locations
         locations = self.get_available_stock_locations()
         stock = defaultdict(int)
-        for product in orders.mapped('order_line.product_id'):
-                stock[product] = stock[product] + \
-                             self.get_available_quantity(product, locations)
 
         # Create empty record sets for SO lines
-        can_fulfill = OrderLine.browse()
         cant_fulfill = OrderLine.browse()
 
-        for r, batch in orders.batched(100):
+        # Get order lines
+        offset = 0
+        limit = 100
+        batch = Order.search([('state', 'in', ['sale', 'draft'])],
+                               offset=offset, limit=limit)
+
+        while batch:
+            _logger.info('Checking orders %s-%s', offset, offset+limit)
             # Cache stuff
             batch.mapped('order_line')
             batch.mapped('order_line.move_ids')
@@ -102,13 +103,24 @@ class SaleOrder(models.Model):
                         continue
 
                     product = line.product_id
+
+                    if product not in stock.keys():
+                        stock[product] = self.get_available_quantity(product,
+                                                                     locations)
                     qty_ordered = line.product_uom_qty
                     if stock[product] >= qty_ordered:
-                        can_fulfill |= line
                         stock[product] = stock[product]-qty_ordered
                     else:
                         cant_fulfill |= line
 
+            # Empty cached stuff
+            batch.invalidate_cache()
+            offset += limit
+            batch = Order.search([('state', 'in', ['sale', 'draft'])],
+                                 offset=offset, limit=limit)
+
+        _logger.info("Cancelling %s unfulfillable order lines",
+                     len(cant_fulfill))
         if cant_fulfill:
             # Cancel these lines
             with self.statistics() as stats:
