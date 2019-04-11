@@ -1794,8 +1794,12 @@ class StockPicking(models.Model):
                     if unsatisfied:
                         if self:
                             # we need to construct our error message before the
-                            # changes are rolled back.
-                            moves = unsatisfied.mapped('move_lines')
+                            # changes are rolled back, and report only products
+                            # that are unreservable.
+                            not_done = lambda x: x.state not in (
+                                'done', 'assigned', 'cancelled')
+                            moves = (unsatisfied.mapped('move_lines')
+                                                .filtered(not_done))
                             products = moves.mapped('product_id.default_code')
                             picks = moves.mapped('picking_id.name')
                             fmt = ("Unable to reserve stock for products {} "
