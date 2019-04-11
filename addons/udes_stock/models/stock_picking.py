@@ -115,8 +115,7 @@ class StockPicking(models.Model):
     )
 
     @api.depends('move_line_ids',
-                 'move_line_ids.location_id',
-                 'move_line_ids.location_id.u_location_category_id')
+                 'move_line_ids.location_id')
     @api.one
     def _compute_location_category(self):
         """ Compute location category from move lines"""
