@@ -385,7 +385,7 @@ class StockPicking(models.Model):
 
     def _create_moves(self, products_info, values=None,
                       confirm=False, assign=False,
-                      result_package=None, unexpected=False):
+                      result_package=None, unexpected=False, product_quantity=None):
         """ Creates moves from products_info and adds it to the picking
             in self. Where products_info is a dictionary mapped by
             product ids and the value are the quantities.
@@ -414,6 +414,9 @@ class StockPicking(models.Model):
             values['product_uom'] = default_uom_id
 
         for product_id, qty in products_info.items():
+            if product_quantity:
+                qty = product_quantity
+
             product_move = self.move_lines.filtered(lambda m: m.product_id.id == product_id)
             if product_move:
                 product_move.product_uom_qty += qty
@@ -456,6 +459,7 @@ class StockPicking(models.Model):
             move_parent_package=False,
             origin=None,
             group_id=None,
+            product_quantity=None,
     ):
         """ Creates a stock.picking and stock.moves for a given list
             of stock.quant ids
@@ -507,6 +511,7 @@ class StockPicking(models.Model):
             'location_dest_id': location_dest_id,
             'picking_type_id': picking_type.id,
         }
+
         if origin:
             values['origin'] = origin
         if group_id is not None:
@@ -516,7 +521,8 @@ class StockPicking(models.Model):
         # Create stock.moves
         picking._create_moves_from_quants(quant_ids, values=values.copy(),
                                           confirm=True, assign=True,
-                                          result_package=result_package_id)
+                                          result_package=result_package_id,
+                                          product_quantity=product_quantity,)
 
         # TODO: this might be in the package_hierarchy module, because odoo by default
         #       does not handle parent packages
@@ -599,6 +605,12 @@ class StockPicking(models.Model):
                 picking_info = transport_id
             else:
                 picking_info.update(transport_id)
+
+        if 'cancel' in kwargs:
+            cancel = kwargs.pop('cancel')
+
+            if cancel:
+                self.action_cancel()
 
         if validate_real_time is None:
             validate_real_time = self.picking_type_id.u_validate_real_time

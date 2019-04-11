@@ -104,14 +104,17 @@ class StockWarehouse(models.Model):
         """
         self.ensure_one()
 
+        put_away_type = self._get_a_type('Putaway')
+        replen_type = self._get_a_type('Replen')
+
         return {
             'in_type_id': self.in_type_id.id,
             'out_type_id': self.out_type_id.id,
             'pack_type_id': self.pack_type_id.id,
             'pick_type_id': self.pick_type_id.id,
             'int_type_id': self.int_type_id.id,
-            'put_type_id': self._get_a_type('Putaway').id,
-            'replen_type_id': self._get_a_type('Replen').id,
+            'put_type_id': put_away_type.id if put_away_type else None,
+            'replen_type_id': replen_type.id if replen_type else None,
             'u_missing_stock_location_id': self.u_missing_stock_location_id.id,
             'u_damaged_location_id': self.u_damaged_location_id.id,
             'u_temp_dangerous_location_id': self.u_temp_dangerous_location_id.id,
@@ -157,6 +160,6 @@ class StockWarehouse(models.Model):
             lambda pt: pt.name == picking_type_name)
 
         if not put:
-            put = self.int_type_id
+            put = None
 
         return put
