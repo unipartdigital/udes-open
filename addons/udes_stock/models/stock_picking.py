@@ -1788,16 +1788,19 @@ class StockPicking(models.Model):
                 pickings = moves.mapped('picking_id')
                 processed |= pickings
 
-                if not picking_type.u_handle_partials:
-                    unsatisfied = pickings.filtered(
-                        lambda x: x.state != 'assigned')
-                    if unsatisfied:
+                unsatisfied = pickings.filtered(
+                    lambda x: x.state != 'assigned')
+                mls = pickings.mapped('move_line_ids')
+                if unsatisfied:
+                    # Rollback if the picking type cannot handle partials or it
+                    # can but there is nothing allocated (no stock.move.lines)
+                    if not picking_type.u_handle_partials or not mls:
                         if self:
                             # we need to construct our error message before the
                             # changes are rolled back, and report only products
                             # that are unreservable.
                             not_done = lambda x: x.state not in (
-                                'done', 'assigned', 'cancelled')
+                                'done', 'assigned', 'cancel')
                             moves = (unsatisfied.mapped('move_lines')
                                                 .filtered(not_done))
                             products = moves.mapped('product_id.default_code')
@@ -1814,7 +1817,8 @@ class StockPicking(models.Model):
                 # allow serialisation error to propagate to respect priority
                 # order
                 self._cr.commit()
-                to_reserve -= len(pickings)
+                # Only count as reserved the number of pickings at mls
+                to_reserve -= len(mls.mapped('picking_id'))
 
                 if self:
                     # Only process the specified pickings
