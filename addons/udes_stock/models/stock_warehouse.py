@@ -160,6 +160,6 @@ class StockWarehouse(models.Model):
             lambda pt: pt.name == picking_type_name)
 
         if not put:
-            put = None
+            put = self.int_type_id
 
         return put
