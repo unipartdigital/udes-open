@@ -64,7 +64,8 @@ class TestAssignSplitting(common.BaseUDES):
         self.assertEqual(banana_ml.result_package_id, banana_pallet)
         self.assertEqual(banana_ml.product_id, self.banana)
 
-        self.assertFalse(self.picking.exists())
+        # Check that the original picking has been reused
+        self.assertTrue(self.picking.exists())
 
     def test02_split_move(self):
         """Reserve self.picking with two pallet of the same product and check it
@@ -108,7 +109,8 @@ class TestAssignSplitting(common.BaseUDES):
         self.assertEqual(p2_ml.result_package_id, cherry_pallet2)
         self.assertEqual(p2_ml.product_id, self.cherry)
 
-        self.assertFalse(self.picking.exists())
+        # Check that the original picking has been reused
+        self.assertTrue(self.picking.exists())
 
     def test03_two_products_in_pallet(self):
         """Reserve self.picking with a pallet containing two different products
@@ -146,7 +148,8 @@ class TestAssignSplitting(common.BaseUDES):
         self.assertEqual(grape_ml.package_id, mixed_pallet)
         self.assertEqual(grape_ml.result_package_id, mixed_pallet)
 
-        self.assertFalse(self.picking.exists())
+        # Check that the original picking has been reused
+        self.assertTrue(self.picking.exists())
 
     def test04_combine_two_pickings_at_reserve(self):
         """Create two pickings for two items on the same pallet. Reserve them
@@ -183,7 +186,9 @@ class TestAssignSplitting(common.BaseUDES):
         self.assertEqual(ml2.package_id, pallet)
         self.assertEqual(ml2.product_id, self.elderberry)
 
-        self.assertFalse(self.picking.exists())
+        # Check that neither picking has been reused
+        self.assertFalse(p1.exists())
+        self.assertFalse(p2.exists())
 
     def test05_add_to_existing_picking(self):
         """Create two pickings for two items on the same pallet. Reserve them
@@ -221,7 +226,9 @@ class TestAssignSplitting(common.BaseUDES):
         self.assertEqual(ml2.package_id, pallet)
         self.assertEqual(ml2.product_id, self.elderberry)
 
-        self.assertFalse(self.picking.exists())
+        # Check that the first picking has been reused
+        self.assertTrue(p1.exists())
+        self.assertFalse(p2.exists())
 
     def test06_persist_locations(self):
         """Reserve when the locations of the picking are not the defaults of
@@ -241,7 +248,7 @@ class TestAssignSplitting(common.BaseUDES):
         self.picking.action_assign()
 
         apple_pick = Picking.get_pickings(package_name=apple_pallet.name)
-        self.assertNotEqual(self.picking, apple_pick)
+        self.assertEqual(self.picking, apple_pick) # Check picking reuse
         self.assertEqual(apple_pick.state, 'assigned')
         self.assertEqual(apple_pick.location_id.id, self.test_location_01.id)
         self.assertEqual(apple_pick.location_dest_id.id, self.test_output_location_01.id)
@@ -295,11 +302,11 @@ class TestValidateSplitting(common.BaseUDES):
 
         self.picking.action_done()
 
-        # apple and banana moves are now in different pickings.
-        self.assertEqual(
-            len(self.picking | apple_move.picking_id | banana_move.picking_id),
-            3
-        )
+        # apple and banana moves are now in different pickings
+        # and the original picking has been reused.
+        self.assertNotEqual(apple_move.picking_id, banana_move.picking_id)
+        self.assertTrue(self.picking == apple_move.picking_id or
+                        self.picking == banana_move.picking_id)
 
     def test02_maintain_single_pick_extra_info(self):
         """ Check that when a move is split the picking's extra info is copied
@@ -307,7 +314,7 @@ class TestValidateSplitting(common.BaseUDES):
             Extra info:
             - origin
             - partner_id
-            - date_done (comes from move.date)
+            - date_done (comes from move.date when not reusing picking)
         """
         apple_pallet = self.create_package()
         self.create_quant(self.apple.id, self.test_location_01.id,
@@ -340,11 +347,11 @@ class TestValidateSplitting(common.BaseUDES):
 
         self.picking.action_done()
 
-        # apple and banana moves are now in different pickings.
-        self.assertEqual(
-            len(self.picking | apple_move.picking_id | banana_move.picking_id),
-            3
-        )
+        # apple and banana moves are now in different pickings
+        # and the original picking has been reused.
+        self.assertNotEqual(apple_move.picking_id, banana_move.picking_id)
+        self.assertTrue(self.picking == apple_move.picking_id or
+                        self.picking == banana_move.picking_id)
 
         # Check pick extra info
         self.assertEqual(origin, apple_move.picking_id.origin)
@@ -353,9 +360,15 @@ class TestValidateSplitting(common.BaseUDES):
                          apple_move.picking_id.partner_id)
         self.assertEqual(partner,
                          banana_move.picking_id.partner_id)
+
         # Date done of the picking is the date of the moves
-        self.assertEqual(apple_move.picking_id.date_done, apple_move.date)
-        self.assertEqual(banana_move.picking_id.date_done, banana_move.date)
+        # unless it's been reused
+        if self.picking == apple_move.picking_id:
+            self.assertGreaterEqual(apple_move.picking_id.date_done, apple_move.date)
+            self.assertEqual(banana_move.picking_id.date_done, banana_move.date)
+        else:
+            self.assertEqual(apple_move.picking_id.date_done, apple_move.date)
+            self.assertGreaterEqual(banana_move.picking_id.date_done, banana_move.date)
 
     def test02_maintain_two_picks_extra_info(self):
         """ Check that when a moves from different picks are split the pickings
@@ -467,10 +480,6 @@ class TestConfirmSplitting(common.BaseUDES):
         """Reserve self.picking with one pallet of each product and check it
            splits correctly when confirmed.
         """
-        Picking = self.env['stock.picking']
-
-        previous_picks = Picking.search([])
-
         apple_pallet = self.create_package()
         self.create_quant(
             self.apple.id,
@@ -489,13 +498,16 @@ class TestConfirmSplitting(common.BaseUDES):
         banana_move = self.create_move(self.banana, 10, self.picking)
         self.picking.action_confirm()
 
-        new_picks = Picking.search([('state', '=', 'confirmed')])
-        new_picks -= previous_picks
+        apple_pick = apple_move.picking_id
+        banana_pick = banana_move.picking_id
 
-        apple_pick = new_picks.filtered(lambda p: p.product_id == self.apple)
-        banana_pick = new_picks.filtered(lambda p: p.product_id == self.banana)
+        # apple and banana moves are now in different pickings
+        # and the original picking has been reused.
+        self.assertNotEqual(apple_pick, banana_pick)
+        self.assertTrue(self.picking == apple_pick or
+                        self.picking == banana_pick)
 
-        self.assertEqual(len(self.picking | apple_pick | banana_pick), 3)
         self.assertEqual(apple_pick.move_lines, apple_move)
         self.assertEqual(banana_pick.move_lines, banana_move)
         self.assertEqual(apple_pick.state, 'confirmed')
+        self.assertEqual(banana_pick.state, 'confirmed')
