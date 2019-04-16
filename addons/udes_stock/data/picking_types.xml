@@ -122,6 +122,7 @@
       <field name="u_target_storage_format">pallet_products</field>
       <field name="u_user_scans">pallet</field>
       <field name="show_operations" eval="1"/>
+      <field name="u_create_batch_for_user">False</field>
       <field name="active">True</field>
     </record>
 
