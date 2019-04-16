@@ -253,10 +253,16 @@ class StockPicking(models.Model):
         picks |= mls.mapped('picking_id.u_next_picking_ids')
         batches |= picks.mapped('batch_id')
         self._trigger_batch_state_recompute(batches=batches)
+        extra_context = {}
+
+        if hasattr(self, 'get_extra_printing_context'):
+            extra_context = picks.get_extra_printing_context()
 
         self.env.ref('udes_stock.picking_done').with_context(
             active_model=picks._name,
             active_ids=picks.ids,
+            action_filter='picking.action_done',
+            **extra_context
         ).run()
         self.unlink_empty()
         return res
