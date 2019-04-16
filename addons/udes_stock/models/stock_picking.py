@@ -1797,7 +1797,7 @@ class StockPicking(models.Model):
                 processed |= pickings
 
                 unsatisfied = pickings.filtered(
-                    lambda x: x.state != 'assigned')
+                    lambda x: x.state not in ['assigned', 'cancel', 'done'])
                 mls = pickings.mapped('move_line_ids')
                 if unsatisfied:
                     # Rollback if the picking type cannot handle partials or it
