@@ -370,7 +370,7 @@ class StockPicking(models.Model):
                 _('Number of quants provided %s does not match with '
                   'the number of quants found %s. Data received: %s') %
                 (n_quants_rec, n_quants, quant_ids))
-        if not allow_partial:
+        if not allow_partial and self.picking_type_id.u_target_storage_format != 'product':
             quants.assert_not_reserved()
             quants.assert_entire_packages()
         quants.assert_valid_location(self.location_id.id)

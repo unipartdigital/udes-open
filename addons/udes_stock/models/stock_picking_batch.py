@@ -210,6 +210,12 @@ class StockPickingBatch(models.Model):
             if confirmed_not_ready:
                 # Attempt to make confirmed picks ready
                 confirmed_not_ready.action_assign()
+                # TODO This has the undesired effect of having a cancelled
+                # picking with stock still assigned to it. When a picking is
+                # cancelled, this is fired before the relevant picking and batch
+                # state changes have all been made, resulting in the newly unreserved
+                # stock for the cancelled picking being reserved again via action_assign.
+                # Needs design and a rethink.
 
             # Filter again as we are possibly calling action_assign which
             # could make some of the previous not ready picks to now be ready
