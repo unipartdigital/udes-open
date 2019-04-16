@@ -15,14 +15,23 @@ class PrintStrategy(models.Model):
         'stock.picking.type', string='Picking Type',
         required=True,
     )
+    action_filter = fields.Char(
+        'Action Filter',
+        readonly=True,
+        index=True
+    )
 
     @api.model
     def strategies(self, picking):
         '''Return print strategies for the picking type of `picking`.'''
         picking.ensure_one()
-        return self.search([
-            ('picking_type_id', '=', picking.picking_type_id.id),
-        ])
+        action_filter = self.env.context.get('action_filter')
+        domain = [('picking_type_id', '=', picking.picking_type_id.id)]
+
+        if action_filter is not None:
+            domain.append(('action_filter', '=', action_filter))
+
+        return self.search(domain)
 
     @api.multi
     def records(self, picking, context):

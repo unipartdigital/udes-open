@@ -216,7 +216,8 @@ class StockMoveLine(models.Model):
             self.env.ref('udes_stock.picking_update_package').with_context(
                 active_model=picking._name,
                 active_ids=picking.ids,
-                print_records=result_package
+                print_records=result_package,
+                action_filter='move_lines.mark_as_done',
             ).run()
 
         if mls_done and picking is not None:
@@ -227,7 +228,8 @@ class StockMoveLine(models.Model):
             self.env.ref('udes_stock.picking_update_move_done').with_context(
                 active_model=picking._name,
                 active_ids=picking.ids,
-                print_records=print_mls
+                print_records=print_mls,
+                action_filter='move_lines.mark_as_done',
             ).run()
 
         return mls_done
