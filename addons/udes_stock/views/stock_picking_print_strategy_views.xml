@@ -11,6 +11,7 @@
       <field name="arch" type="xml">
         <xpath expr="//group[@name='basic']" position="inside">
           <field name="picking_type_id"/>
+          <field name="action_filter"/>
         </xpath>
       </field>
     </record>
@@ -24,6 +25,7 @@
       <field name="arch" type="xml">
         <xpath expr="//tree" position="inside">
           <field name="picking_type_id"/>
+          <field name="action_filter"/>
         </xpath>
       </field>
     </record>
@@ -37,6 +39,7 @@
       <field name="arch" type="xml">
         <xpath expr="//search" position="inside">
           <field name="picking_type_id"/>
+          <field name="action_filter"/>
         </xpath>
       </field>
     </record>
