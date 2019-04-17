@@ -392,7 +392,7 @@ class StockPickingBatch(models.Model):
             return batch
 
     @api.multi
-    def create_batch(self, picking_type_id, picking_priorities, user_id=None):
+    def create_batch(self, picking_type_id, picking_priorities, user_id=None, picking_id=None):
         """
         Creeate and return a batch for the specified user if pickings
         exist. Return None otherwise. Pickings are filtered based on
@@ -406,9 +406,9 @@ class StockPickingBatch(models.Model):
         user_id = self._check_user_id(user_id)
         self._check_user_batch_in_progress(user_id)
 
-        return self._create_batch(user_id, picking_type_id, picking_priorities)
+        return self._create_batch(user_id, picking_type_id, picking_priorities, picking_id=picking_id)
 
-    def _create_batch(self, user_id, picking_type_id, picking_priorities=None):
+    def _create_batch(self, user_id, picking_type_id, picking_priorities=None, picking_id=None):
         """
         Create a batch for the specified user by including only
         those pickings with the specified picking_type_id and picking
@@ -419,7 +419,10 @@ class StockPickingBatch(models.Model):
         PickingBatch = self.env['stock.picking.batch']
         Picking = self.env['stock.picking']
 
-        picking = Picking.search_for_pickings(picking_type_id, picking_priorities)
+        if picking_id:
+            picking = Picking.browse(picking_id)
+        else:
+            picking = Picking.search_for_pickings(picking_type_id, picking_priorities)
 
         if not picking:
             return None

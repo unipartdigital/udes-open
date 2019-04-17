@@ -538,7 +538,7 @@ class StockPicking(models.Model):
             pass
 
         if create_batch:
-            batch = PickingBatch.create_batch(picking_type_id,None)
+            batch = PickingBatch.create_batch(picking_type_id,None,picking_id=picking.id)
 
         return picking
 
