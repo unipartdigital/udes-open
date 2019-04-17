@@ -1761,7 +1761,7 @@ class StockPicking(models.Model):
                     lambda x: x.state not in ['assigned', 'cancel', 'done'])
                 mls = pickings.mapped('move_line_ids')
                 if unsatisfied:
-                    # Rollback if the picking type cannot handle partials or it
+                    # Unreserve if the picking type cannot handle partials or it
                     # can but there is nothing allocated (no stock.move.lines)
                     if not picking_type.u_handle_partials or not mls:
                         if self:
@@ -1778,7 +1778,7 @@ class StockPicking(models.Model):
                                    "for pickings {}.")
                             msg = fmt.format(', '.join(products),
                                              ', '.join(picks))
-                        self._cr.rollback()
+                        pickings.do_unreserve()
                         if self:
                             raise UserError(msg)
                         continue
