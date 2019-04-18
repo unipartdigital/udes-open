@@ -400,21 +400,24 @@ class StockMove(models.Model):
             create a new picking
             attach the stock.moves to the new picking.
         """
-        # TODO MTC: This can be refactored and abstracted at some point with
-        # this with the equivalent for move_line_key
-        # we need to think of how we want to do it
-
-        Picking = self.env['stock.picking']
-
         picking_type = self.mapped('picking_type_id')
         picking_type.ensure_one()
 
         if not picking_type.u_move_key_format:
             return
 
+        return self.refactor_by_move_groups(self.group_by_key())
+
+    def refactor_by_move_groups(self, groups):
+        """ Takes an iterator which produces key, move_group and moves
+        move_group into it's own picking
+        """
+        Move = self.env['stock.move']
+        Picking = self.env['stock.picking']
+
         pickings = self.mapped('picking_id')
 
-        for key, move_group in self.group_by_key():
+        for key, move_group in groups:
 
             if len(move_group.mapped('location_id')) > 1 or \
                     len(move_group.mapped('location_dest_id')) > 1:
@@ -451,8 +454,6 @@ class StockMove(models.Model):
                 group of stock.moves
             attach the stock.moves and stock.move.lines to the new picking.
         """
-        Move = self.env['stock.move']
-        Picking = self.env['stock.picking']
 
         picking_type = self.mapped('picking_type_id')
         picking_type.ensure_one()
@@ -460,22 +461,33 @@ class StockMove(models.Model):
         if not picking_type.u_move_line_key_format:
             return
 
-        pickings = self.mapped('picking_id')
         mls_by_key = self.mapped('move_line_ids').group_by_key()
+
+        return self.refactor_by_move_line_groups(mls_by_key.items())
+
+    def refactor_by_move_line_groups(self, groups):
+        """ Takes an iterator which produces key, ml_group and moves ml_group
+        into it's own picking
+        """
+        Move = self.env['stock.move']
+        Picking = self.env['stock.picking']
+
+        pickings = self.mapped('picking_id')
 
         result_moves = Move.browse()
 
-        for key, ml_group in mls_by_key.items():
+        for key, ml_group in groups:
             touched_moves = ml_group.mapped('move_id')
 
             if len(touched_moves.mapped('location_id')) > 1 or \
                     len(touched_moves.mapped('location_dest_id')) > 1:
-                raise UserError(_('Move Line grouping has generated a group of'
-                                  'moves that has more than one source or '
-                                  'destination location. Aborting. key: "%s", '
-                                  'location_ids: "%s", location_dest_ids: "%s"'
-                                  '') % (key, touched_moves.mapped('location_id'),
-                                         touched_moves.mapped('location_dest_id')))
+                raise UserError(_(
+                    'Move Line grouping has generated a group of moves that '
+                    'has more than one source or destination location. '
+                    'Aborting. key: "%s", location_ids: "%s", '
+                    'location_dest_ids: "%s"'
+                ) % (key, touched_moves.mapped('location_id'),
+                     touched_moves.mapped('location_dest_id')))
 
             group_moves = Move.browse()
             group_pickings = Picking.browse()
