@@ -1787,48 +1787,54 @@ class StockPicking(models.Model):
 
                 if batch and picking_type.u_reserve_batches:
                     pickings = batch.picking_ids
+                try:
+                    with self.env.cr.savepoint():
+                        # Assign at the move level because refactoring may change
+                        # the pickings.
+                        moves = pickings.mapped('move_lines')
+                        moves.with_context(lock_batch_state=True)._action_assign()
+                        batch._compute_state()
+                        pickings = moves.mapped('picking_id')
+                        processed |= pickings
 
-                # Assign at the move level because refactoring may change
-                # the pickings.
-                moves = pickings.mapped('move_lines')
-                moves.with_context(lock_batch_state=True)._action_assign()
-                batch._compute_state()
-                pickings = moves.mapped('picking_id')
-                processed |= pickings
+                        unsatisfied = pickings.filtered(
+                            lambda x: x.state not in ['assigned', 'cancel', 'done'])
+                        mls = pickings.mapped('move_line_ids')
+                        if unsatisfied:
+                            # Unreserve if the picking type cannot handle partials or it
+                            # can but there is nothing allocated (no stock.move.lines)
+                            if not picking_type.u_handle_partials or not mls:
+                                # construct error message, report only products
+                                # that are unreservable.
+                                not_done = lambda x: x.state not in (
+                                    'done', 'assigned', 'cancel')
+                                moves = (unsatisfied.mapped('move_lines')
+                                                    .filtered(not_done))
+                                products = moves.mapped('product_id.default_code')
+                                picks = moves.mapped('picking_id.name')
+                                fmt = ("Unable to reserve stock for products {} "
+                                       "for pickings {}.")
+                                msg = fmt.format(', '.join(products),
+                                                 ', '.join(picks))
+                                raise UserError(msg)
+                except UserError as e:
+                    self.invalidate_cache()
+                    # Only propagate the error if the function has been
+                    # manually triggered
+                    if self:
+                        raise e
+                    continue
 
-                unsatisfied = pickings.filtered(
-                    lambda x: x.state not in ['assigned', 'cancel', 'done'])
-                mls = pickings.mapped('move_line_ids')
-                if unsatisfied:
-                    # Rollback if the picking type cannot handle partials or it
-                    # can but there is nothing allocated (no stock.move.lines)
-                    if not picking_type.u_handle_partials or not mls:
-                        if self:
-                            # we need to construct our error message before the
-                            # changes are rolled back, and report only products
-                            # that are unreservable.
-                            not_done = lambda x: x.state not in (
-                                'done', 'assigned', 'cancel')
-                            moves = (unsatisfied.mapped('move_lines')
-                                                .filtered(not_done))
-                            products = moves.mapped('product_id.default_code')
-                            picks = moves.mapped('picking_id.name')
-                            fmt = ("Unable to reserve stock for products {} "
-                                   "for pickings {}.")
-                            msg = fmt.format(', '.join(products),
-                                             ', '.join(picks))
-                        self._cr.rollback()
-                        if self:
-                            raise UserError(msg)
-                        continue
                 # Incrementally commit to release picks as soon as possible and
                 # allow serialisation error to propagate to respect priority
                 # order
-                self._cr.commit()
+                self.env.cr.commit()
                 # Only count as reserved the number of pickings at mls
                 to_reserve -= len(mls.mapped('picking_id'))
 
                 if self:
                     # Only process the specified pickings
                     break
+            _logger.info('Reserving stock for picking type %r completed.',
+                         picking_type)
         return
