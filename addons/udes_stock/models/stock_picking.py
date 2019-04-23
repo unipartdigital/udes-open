@@ -370,7 +370,7 @@ class StockPicking(models.Model):
                 _('Number of quants provided %s does not match with '
                   'the number of quants found %s. Data received: %s') %
                 (n_quants_rec, n_quants, quant_ids))
-        if not allow_partial:
+        if not allow_partial and self.picking_type_id.u_target_storage_format != 'product':
             quants.assert_not_reserved()
             quants.assert_entire_packages()
         quants.assert_valid_location(self.location_id.id)
@@ -460,6 +460,7 @@ class StockPicking(models.Model):
             origin=None,
             group_id=None,
             product_quantity=None,
+            create_batch=False,
     ):
         """ Creates a stock.picking and stock.moves for a given list
             of stock.quant ids
@@ -481,12 +482,16 @@ class StockPicking(models.Model):
                 Value of the source document of the new picking
             @param (optional) group_id: int
                 ID of the group where the stock is being assigned to
-
+            @param (optional) product_quantity: int
+                Quantity to be moved during internal transfer of loose product rather than whole quant.
+            @param (optional) create_batch: Boolean
+                Used to assign the picking to a batch for the current user e.g. for internal transfer.
         """
         Picking = self.env['stock.picking']
         PickingType = self.env['stock.picking.type']
         Location = self.env['stock.location']
         Users = self.env['res.users']
+        PickingBatch = self.env['stock.picking.batch']
 
         # get picking_type from picking_type_id or internal transfer
         if picking_type_id:
@@ -531,6 +536,9 @@ class StockPicking(models.Model):
             # when false remove parent_id of the result_package_id ??
             # picking.move_line_ids.mapped('result_package_id').write({'package_id': False})
             pass
+
+        if create_batch:
+            batch = PickingBatch.create_batch(picking_type_id,None,picking_id=picking.id)
 
         return picking
 

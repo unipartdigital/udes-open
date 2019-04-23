@@ -159,7 +159,9 @@ class StockWarehouse(models.Model):
         put = self.get_picking_types().filtered(
             lambda pt: pt.name == picking_type_name)
 
+        # Restored to a non null default as some customer functionality may
+        # rely on defaulting to internal transfer instead of None
         if not put:
-            put = None
+            put = self.int_type_id
 
         return put
