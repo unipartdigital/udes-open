@@ -213,26 +213,41 @@ class StockMoveLine(models.Model):
 
         if result_package and picking is not None:
             # Print the package label
-            self.env.ref('udes_stock.picking_update_package').with_context(
+            self._trigger_print_for_pack_mark_as_done(
                 active_model=picking._name,
                 active_ids=picking.ids,
                 print_records=result_package,
                 action_filter='move_lines.mark_as_done',
-            ).run()
+            )
 
         if mls_done and picking is not None:
-            print_mls = MoveLine.search([
-                ('result_package_id', 'in', mls_done.mapped('result_package_id').ids),
-                ('product_id', 'in', mls_done.mapped('product_id').ids)])
             # Print the move line label
-            self.env.ref('udes_stock.picking_update_move_done').with_context(
+            print_mls = MoveLine.search([
+                ('result_package_id', 'in',
+                 mls_done.mapped('result_package_id').ids),
+                ('product_id', 'in', mls_done.mapped('product_id').ids),
+            ])
+            self._trigger_print_for_move_line_mark_as_done(
                 active_model=picking._name,
                 active_ids=picking.ids,
                 print_records=print_mls,
                 action_filter='move_lines.mark_as_done',
-            ).run()
+            )
 
         return mls_done
+
+    def _trigger_print_for_pack_mark_as_done(self, **pack_ctx):
+        """Extend here to modify printing"""
+        self.env.ref('udes_stock.picking_update_package') \
+            .with_context(**pack_ctx) \
+            .run()
+
+    def _trigger_print_for_move_line_mark_as_done(self, **move_ctx):
+        """Extend here to modify printing"""
+        self.env.ref('udes_stock.picking_update_move_done') \
+            .with_context(**move_ctx) \
+            .run()
+
 
     def _filter_by_products_info(self, products_info):
         """ Filter the move_lines in self by the products in product_ids.
