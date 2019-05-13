@@ -1110,6 +1110,14 @@ class TestBatchState(common.BaseUDES):
         if call_done:
             picking.action_done()
 
+    def assert_number_of_reserved_apples_is(self, expected_amount):
+        """Asserts the amount of apples reserved"""
+        quant = self.env['stock.quant']._gather(self.apple, self.test_location_01)
+        self.assertEqual(
+            quant.reserved_quantity, expected_amount, 
+            '{} apples should be reserved'.format(expected_amount)
+        )
+
     def test00_empty_simple_flow(self):
         """Create and try to go through the stages"""
 
@@ -1371,6 +1379,30 @@ class TestBatchState(common.BaseUDES):
         )
         self.batch01._compute_state()
         self.assertEqual(self.batch01.state, 'done')
+
+    def test13_unreserves_stock_after_cancel_pick(self):
+        """ Cancel pick and check that stock is unreserved"""
+        self.draft_to_ready()
+        self.assign_user()
+        self.assert_number_of_reserved_apples_is(4)
+        self.assertEqual(self.picking01.state, 'assigned', 'Picking 1 should be assigned')
+        # Cancel the pick and confirm we reach state done
+        self.picking01.action_cancel()
+        self.assert_number_of_reserved_apples_is(0)
+        self.assertEqual(self.batch01.state, 'done', 'Batch 1 should be done')
+        self.assertEqual(self.picking01.state, 'cancel', 'Picking 1 should be cancelled')
+
+    def test14_unreserves_stock_after_unreserve_pick(self):
+        """ Unreserve pick and check that stock is unreserved"""
+        self.draft_to_ready()
+        self.assign_user()
+        self.assert_number_of_reserved_apples_is(4)
+        self.assertEqual(self.picking01.state, 'assigned', 'Picking 1 should be assigned')
+        # Unreserve the pick and confirm we reach state done
+        self.picking01.do_unreserve()
+        self.assert_number_of_reserved_apples_is(0)
+        self.assertEqual(self.batch01.state, 'in_progress', 'Batch 1 should be inprogress')
+        self.assertEqual(self.picking01.state, 'confirmed', 'Picking 1 should be confirmed')
 
 
 class TestBatchMultiDropOff(common.BaseUDES):
