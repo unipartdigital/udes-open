@@ -2,6 +2,8 @@
 import logging
 
 from odoo import api, models
+from odoo.exceptions import ValidationError
+from odoo.tools.translate import _
 
 _logger = logging.getLogger(__name__)
 
@@ -13,7 +15,7 @@ class ReserveStockPicking(models.TransientModel):
     _description = 'Trigger reservation of stock from the UI'
 
     @api.multi
-    def do_reservation(self):
+    def do_reserve(self):
         """Reserves stock for each selected pick."""
         Picking = self.env['stock.picking']
         self.ensure_one()
@@ -32,3 +34,24 @@ class ReserveStockPicking(models.TransientModel):
                 for picking in group:
                     picking.reserve_stock()
         return
+
+    @api.multi
+    def do_unreserve(self):
+        """Unreserves stock for each selected pick."""
+        Picking = self.env['stock.picking']
+        self.ensure_one()
+        picking_ids = self.env.context.get('active_ids')
+
+        _logger.info("User %r has requested stock unreservation for pickings %r",
+                     self.env.uid, picking_ids)
+
+        pickings = Picking.browse(picking_ids)
+
+        done_pickings = pickings.filtered(lambda x: x.state == 'done')
+        if done_pickings:
+            raise ValidationError(
+                _('Pickings are already done and cannot be unreserved: %s')
+                % (','.join(done_pickings.mapped('name')),)
+            )
+
+        pickings.do_unreserve()
