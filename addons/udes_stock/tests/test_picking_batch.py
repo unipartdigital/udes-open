@@ -1272,17 +1272,8 @@ class TestBatchState(common.BaseUDES):
         self.draft_to_ready()
         self.assign_user()
 
-        # Cancel the pick and confirm we reach state done, compute state
-        with self.compute_patch as mocked_compute:
-            self.picking01.action_cancel()
-
-        mocked_compute.assert_called_with(self.batch01)
-        self.assertEqual(
-            mocked_compute.call_count, 2,
-            "The function that computes state wasn't invoked"
-        )
-
-        self.batch01._compute_state()
+        # Cancel the pick and confirm we reach state done,
+        self.picking01.action_cancel()
         self.assertEqual(self.batch01.state, 'done')
 
     def test10_check_computing_cancel(self):
@@ -1401,7 +1392,7 @@ class TestBatchState(common.BaseUDES):
         # Unreserve the pick and confirm we reach state done
         self.picking01.do_unreserve()
         self.assert_number_of_reserved_apples_is(0)
-        self.assertEqual(self.batch01.state, 'in_progress', 'Batch 1 should be inprogress')
+        self.assertEqual(self.batch01.state, 'done', 'Batch 1 should be done')
         self.assertEqual(self.picking01.state, 'confirmed', 'Picking 1 should be confirmed')
 
 

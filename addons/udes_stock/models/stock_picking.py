@@ -1844,3 +1844,32 @@ class StockPicking(models.Model):
             _logger.info('Reserving stock for picking type %r completed.',
                          picking_type)
         return
+
+    def handle_confirmed_not_ready(self):
+        """Method to return the 'confirmed' pickings that need to be retained in
+        a batch. Default behaviour is to remove all of these from the batch. Return
+        any pickings from self if the desired behaviour is to keep them in the batch.
+        E.G. Some clients may want to check for stock and only remove pickings for
+        which there is insufficient stock.
+        """
+        Picking = self.env['stock.picking']
+        picks_to_retain = Picking.browse()
+        return picks_to_retain
+
+    def handle_waiting_not_ready(self):
+        """Method to return the 'waiting' pickings that need to be retained in
+        a batch. Default behaviour is to remove all of these from the batch. Return
+        any pickings from self if the desired behaviour is to keep them in the batch.
+        """
+        Picking = self.env['stock.picking']
+        picks_to_retain = Picking.browse()
+        return picks_to_retain
+
+    def handle_draft_not_ready(self):
+        """Method to return the 'draft' pickings that need to be retained in
+        a batch. Default behaviour is to remove all of these from the batch. Return
+        any pickings from self if the desired behaviour is to keep them in the batch.
+        """
+        Picking = self.env['stock.picking']
+        picks_to_retain = Picking.browse()
+        return picks_to_retain

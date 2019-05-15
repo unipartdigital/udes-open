@@ -162,6 +162,14 @@ class StockPickingBatch(models.Model):
                         # We shouldn't have these check if we can make them ready
                         # otherwise remove them
                         batch._remove_unready_picks()
+                        ready_picks, other_picks = \
+                            batch._calculate_pick_groups(batch.picking_ids)
+                        if other_picks:
+                            batch.state = 'waiting'
+                        elif ready_picks and not other_picks:
+                            batch.state = 'in_progress'
+                        else:
+                            batch.state = 'done'
                 else:
                     _logger.error(_("Ignoring unexpected batch state: %s")
                                   % batch.state)
@@ -194,9 +202,12 @@ class StockPickingBatch(models.Model):
         return ready_picks, other_picks
 
     @api.multi
-    def _remove_unready_picks(self, picks=None):
-        if picks is None:
-            picks = self.mapped('picking_ids')
+    def _remove_unready_picks(self):
+        """Method to remove unready picks from the batch (self). Default behaviour
+        is to remove all of these from the batch/ batches, but provides hooks to 
+        allow specific client behaviour to return the pickings that are to remain
+        in the batch/ batches."""
+        picks = self.mapped('picking_ids')
 
         # first lets double check there are not ready
         not_ready_lam = lambda pick: pick.state in \
@@ -207,20 +218,29 @@ class StockPickingBatch(models.Model):
             confirmed_not_ready = not_ready.filtered(
                 lambda pick: pick.state == 'confirmed')
 
-            if confirmed_not_ready:
-                # Attempt to make confirmed picks ready
-                confirmed_not_ready.action_assign()
-                # TODO This has the undesired effect of having a cancelled
-                # picking with stock still assigned to it. When a picking is
-                # cancelled, this is fired before the relevant picking and batch
-                # state changes have all been made, resulting in the newly unreserved
-                # stock for the cancelled picking being reserved again via action_assign.
-                # Needs design and a rethink.
+            waiting_not_ready = not_ready.filtered(
+                lambda pick: pick.state == 'waiting')
 
-            # Filter again as we are possibly calling action_assign which
-            # could make some of the previous not ready picks to now be ready
-            not_ready.filtered(not_ready_lam).write({'batch_id': False})
-            self._compute_state()
+            draft_not_ready = not_ready.filtered(
+                lambda pick: pick.state == 'draft')
+
+            picks_to_retain = self.env['stock.picking'].browse()
+
+            if confirmed_not_ready:
+                # Handle confirmed_not_ready e.g. check for stock
+                picks_to_retain |= confirmed_not_ready.handle_confirmed_not_ready()
+
+            if waiting_not_ready:
+                # Handle waiting_not_ready
+                picks_to_retain |= waiting_not_ready.handle_waiting_not_ready()
+
+            if draft_not_ready:
+                # Handle draft_not_ready
+                picks_to_retain |= draft_not_ready.handle_draft_not_ready()
+
+            # Ensure only relevant picks are removed from the batch
+            picks_to_remove = not_ready - picks_to_retain
+            picks_to_remove.write({'batch_id': False})
 
     def _get_task_grouping_criteria(self):
         """
