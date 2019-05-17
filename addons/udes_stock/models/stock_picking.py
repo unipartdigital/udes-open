@@ -40,7 +40,12 @@ class StockPicking(models.Model):
 
     priority = fields.Selection(selection=common.PRIORITIES)
     sequence = fields.Integer("Sequence", default=0)
-    active = fields.Boolean("Active", default=True)
+
+    u_mark = fields.Boolean(
+        "Marked", default=True, oldname='active',
+        help='Pickings that are unused after refactoring are unmarked '
+             'and deleted'
+    )
 
     # compute previous and next pickings
     u_prev_picking_ids = fields.One2many(
@@ -1138,7 +1143,7 @@ class StockPicking(models.Model):
         """
         self.filtered(lambda p:
                       (len(p.move_lines) == 0
-                       and not p.active
+                       and not p.u_mark
                        and p.is_locked)).unlink()
         return self.exists()
 
