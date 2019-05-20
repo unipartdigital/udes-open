@@ -30,7 +30,8 @@
         multi="True"
         key2="client_action_multi" name="Refactor Pickings"
         res_model="stock.picking.refactor.wizard" src_model="stock.picking"
-        view_mode="form" target="new" view_type="form"/>
+        view_mode="form" target="new" view_type="form"
+        groups="udes_security.group_trusted_user"/>
 
     <!-- Trigger refactor on batches -->
     <record id="stock_picking_batch_refactor_form" model="ir.ui.view">

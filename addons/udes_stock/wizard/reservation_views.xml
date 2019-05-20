@@ -31,7 +31,8 @@
         key2="client_action_multi" name="Reserve Stock"
         res_model="stock.reserve.stock.wizard" src_model="stock.picking"
         view_mode="form" target="new" view_type="form"
-        view_id="stock_reserve_stock_form"/>
+        view_id="stock_reserve_stock_form"
+        groups="udes_security.group_trusted_user"/>
 
     <!-- Trigger unreservation on pickings -->
     <record id="stock_unreserve_stock_form" model="ir.ui.view">
