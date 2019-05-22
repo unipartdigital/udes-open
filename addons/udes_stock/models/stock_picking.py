@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from collections import OrderedDict, defaultdict
+from lxml import etree
 
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError, UserError
@@ -40,7 +41,12 @@ class StockPicking(models.Model):
 
     priority = fields.Selection(selection=common.PRIORITIES)
     sequence = fields.Integer("Sequence", default=0)
-    active = fields.Boolean("Active", default=True)
+
+    u_mark = fields.Boolean(
+        "Marked", default=True, oldname='active',
+        help='Pickings that are unused after refactoring are unmarked '
+             'and deleted'
+    )
 
     # compute previous and next pickings
     u_prev_picking_ids = fields.One2many(
@@ -215,6 +221,23 @@ class StockPicking(models.Model):
                 return
 
         super()._compute_state()
+
+    @api.model
+    def _fields_view_get(self, view_id=None, view_type='form', toolbar=False,
+                         submenu=False):
+        result = super(StockPicking, self)._fields_view_get(
+            view_id=view_id, view_type=view_type, toolbar=toolbar,
+            submenu=submenu)
+
+        # Disable the Delete button for untrusted users
+        group_trusted_user = self.env.ref('udes_security.group_trusted_user')
+        if group_trusted_user not in self.env.user.groups_id:
+            node = etree.fromstring(result['arch'])
+            if node.tag in ('kanban', 'tree', 'form', 'gantt'):
+                node.set('delete', 'false')
+                result['arch'] = etree.tostring(node, encoding='unicode')
+
+        return result
 
     def assert_not_pending(self):
         for picking in self:
@@ -1138,7 +1161,7 @@ class StockPicking(models.Model):
         """
         self.filtered(lambda p:
                       (len(p.move_lines) == 0
-                       and not p.active
+                       and not p.u_mark
                        and p.is_locked)).unlink()
         return self.exists()
 

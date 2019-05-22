@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Hide existing Add to Batch button from non-Trusted Users -->
+    <record id="stock_picking_batch.stock_picking_to_batch_action_stock_picking"
+        model="ir.actions.act_window">
+        <field name="groups_id"
+            eval="[(4, ref('udes_security.group_trusted_user'))]"/>
+    </record>
+
+</odoo>
