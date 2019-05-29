@@ -64,13 +64,13 @@ class SaleOrder(models.Model):
         return available_quantity
 
     @api.model
-    def cancel_orders_without_availability(self):
-        """ From the current list of unconfirmed SO lines, cancel lines that
+    def compute_orders_without_availability(self):
+        """ From the current list of unconfirmed SO lines, find lines that
         cannot be fulfilled with current stock holding """
         OrderLine = self.env['sale.order.line']
         Order = self.env['sale.order']
 
-        _logger.info("Checking orders to cancel due to stock shortage")
+        _logger.info("Checking unfulfillable orders due to stock shortage")
         # Get unreserved stock for each product in locations
         locations = self.get_available_stock_locations()
         stock = defaultdict(int)
@@ -119,31 +119,36 @@ class SaleOrder(models.Model):
             batch = Order.search([('state', 'in', ['sale', 'draft'])],
                                  offset=offset, limit=limit)
 
+        return cant_fulfill
+
+    @api.model
+    def cancel_orders_without_availability(self, lines_to_cancel=None):
+        if lines_to_cancel is None:
+            lines_to_cancel = self.compute_orders_without_availability()
+
         _logger.info("Cancelling %s unfulfillable order lines",
-                     len(cant_fulfill))
-        if cant_fulfill:
+                     len(lines_to_cancel))
+        if lines_to_cancel:
             # Cancel these lines
             with self.statistics() as stats:
-                cant_fulfill.action_cancel()
-                cant_fulfill.write({'is_cancelled_due_shortage': True})
+                lines_to_cancel.action_cancel()
+                lines_to_cancel.write({'is_cancelled_due_shortage': True})
 
             _logger.info(
                 "Sale lines on orders %s cancelled in %.2fs, %d queries, due to"
                 " stock shortage,",
-                ', '.join(cant_fulfill.mapped('order_id.name')),
+                ', '.join(lines_to_cancel.mapped('order_id.name')),
                 stats.elapsed,
                 stats.count
             )
 
-            cancelled_sales = cant_fulfill.mapped('order_id') \
+            cancelled_sales = lines_to_cancel.mapped('order_id') \
                 .filtered(lambda x: x.state == 'cancel')
             if cancelled_sales:
                 _logger.info(
                     "Sales %s cancelling due to missing stock",
                     ', '.join(cancelled_sales.mapped('name'))
                 )
-
-        return cant_fulfill
 
     def check_delivered(self):
         """ Update sale orders state based on the states of their related
