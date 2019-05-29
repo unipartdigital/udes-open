@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from collections import defaultdict
 from odoo import api, fields, models
 from odoo.addons.udes_stock.models import common
 import logging
@@ -73,7 +72,7 @@ class SaleOrder(models.Model):
         _logger.info("Checking unfulfillable orders due to stock shortage")
         # Get unreserved stock for each product in locations
         locations = self.get_available_stock_locations()
-        stock = defaultdict(int)
+        stock = {}
 
         # Create empty record sets for SO lines
         cant_fulfill = OrderLine.browse()
@@ -85,14 +84,15 @@ class SaleOrder(models.Model):
                                offset=offset, limit=limit)
 
         while batch:
-            _logger.info('Checking orders %s-%s', offset, offset+limit)
+            _logger.info('Checking orders %s-%s',
+                         offset, offset+min(limit, len(batch)))
             # Cache stuff
             batch.mapped('order_line')
             batch.mapped('order_line.move_ids')
 
             for order in batch:
-                # Loop SO lines and deduct from stock dict, add order lines to
-                # can or cant fulfill record sets
+                # Loop SO lines and deduct from stock dict, add unfulfillable
+                # order lines to the cant_fulfill record set
                 for line in order.order_line.filtered(lambda x:
                                                       not x.is_cancelled):
 
@@ -104,12 +104,12 @@ class SaleOrder(models.Model):
 
                     product = line.product_id
 
-                    if product not in stock.keys():
+                    if product not in stock:
                         stock[product] = self.get_available_quantity(product,
                                                                      locations)
                     qty_ordered = line.product_uom_qty
                     if stock[product] >= qty_ordered:
-                        stock[product] = stock[product]-qty_ordered
+                        stock[product] -= qty_ordered
                     else:
                         cant_fulfill |= line
 
