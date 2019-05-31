@@ -87,11 +87,18 @@ class TestLocationCategory(common.BaseUDES):
 
         batch.unlink()
 
-        # changing the category of the location is propagated to the pick
+        # changing the category of the location does not propagate to the pick
         self.test_location_01.u_location_category_id = self.location_category_super_high
-        # now ground_pick is super high pick
+        # now ground_pick is still ground pick
+        self.assertEqual(ground_pick.u_location_category_id,
+                         self.location_category_ground)
+        # unreserve and reserve again ground pick should update the category
+        # to super high pick
+        ground_pick.do_unreserve()
+        ground_pick.action_assign()
         self.assertEqual(ground_pick.u_location_category_id,
                          self.location_category_super_high)
+        # now ground_pick is super high pick
         super_high_pick = ground_pick
 
         # change user setting to high locations
