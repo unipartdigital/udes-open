@@ -363,6 +363,20 @@ Check that a package is not in use and hence is compatible with the stock pickin
 * @param id - the id of the stock.picking to check.
 * @param package_name - string with the name of the package.
 
+### Auto-batch a stock picking
+```
+URI: /api/stock-picking/:id/batch-it/
+HTTP Method: POST
+```
+
+Create a batch assigned to the current user for the picking if the auto batch flag is set at the picking type.. Raise an error if the picking type does not support auto batching or if the picking is already in a batch for a different user or without a user.
+
+Request:
+
+The request shall not contain any payload; the batch id must be given in the URI.
+
+Response (same as /api/stock-picking-batch GET) or None when flag is not true.
+
 ## Stock Location
 
 ### Stock Location (GET)

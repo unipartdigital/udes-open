@@ -25,9 +25,6 @@ class PickingApi(UdesApi):
 
         pickings = Picking.get_pickings(**kwargs)
 
-        if 'package_name' in kwargs and pickings.picking_type_id.u_auto_batch_pallet:
-            pickings.batch_to_user(request.env.user)
-
         return pickings.get_info(fields_to_fetch=fields_to_fetch)
 
     @http.route('/api/stock-picking/',
@@ -78,3 +75,21 @@ class PickingApi(UdesApi):
             raise ValidationError(_('Cannot find stock.picking with id %s') % ident)
 
         return picking.is_compatible_package(package_name)
+
+    @http.route('/api/stock-picking/<ident>/batch-it/',
+                type='json', methods=['POST'], auth='user')
+    def batch_to_user(self, ident):
+        """ Create a batch assigned to the current user for the picking if the
+            auto batch flag is set at the picking type.
+            If the picking is already in a batch raise an error if the user
+            of the batch is different or no user.
+        """
+        Picking = request.env['stock.picking']
+        picking = Picking.browse(int(ident))
+        res = None
+
+        if picking.picking_type_id.u_auto_batch_pallet:
+            picking.batch_to_user(request.env.user)
+            res = picking.batch_id.get_info(None)[0]
+
+        return res
