@@ -11,6 +11,7 @@
         'sale_order_dates',
         'sale_stock',
         'udes_stock',
+        'l10n_uk',
     ],
     'category': 'Warehouse',
     'sequence': 12,
