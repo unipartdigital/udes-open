@@ -332,26 +332,26 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
     def test15_unpickable_item_single_move_line_success_default_type(self):
         """
-        Tests that the picking is confirmed and an internal transfer is created
-        if a picking type is not specified. The picking remains confirmed
-        because there isn't more stock available.
+        Tests that the picking is confirmed and an stock investigation transfer 
+        is created if a picking type is not specified. The picking remains 
+        confirmed because there isn't more stock available.
         """
         picking, batch = self._create_valid_batch()
         move_line = picking.move_line_ids[0]
         reason = 'missing item'
         batch.unpickable_item(package_name=move_line.package_id.name,
                               reason=reason)
-        internal_picking = self.package_one.find_move_lines().picking_id
+        unpickable_picking = self.package_one.find_move_lines().picking_id
 
         self.assertEqual(picking.state, 'confirmed',
                          'picking was not confirmed')
         self.assertEqual(batch.state, 'done',
                          'batch state was not completed')
-        self.assertEqual(internal_picking.picking_type_id,
+        self.assertEqual(unpickable_picking.picking_type_id,
                          self.picking_type_internal,
-                         'internal picking type not set by unpickable_item')
-        self.assertEqual(internal_picking.state, 'assigned',
-                         'internal picking creation has not completed')
+                         'stock investigation picking type not set by unpickable_item')
+        self.assertEqual(unpickable_picking.state, 'assigned',
+                         'stock investigation picking creation has not completed')
 
     def test16_unpickable_item_package_not_found(self):
         """
@@ -1106,6 +1106,7 @@ class TestBatchState(common.BaseUDES):
                 'quantity_done': move.product_uom_qty,
                 'location_dest_id': cls.test_output_location_01.id,
             })
+        picking.move_line_ids.write({'location_dest_id': cls.test_output_location_01.id})
 
         if call_done:
             picking.action_done()
