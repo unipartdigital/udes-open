@@ -207,7 +207,7 @@ class StockQuantPackage(models.Model):
     @api.model
     def _check_allowed_package(self, values):
         wh = self.env.user.get_user_warehouse()
-        if values.get('name') in wh.forbidden_package_names:
+        if values.get('name') in wh.reserved_package_name:
             raise ValidationError(
                 _('The package name %s cannot be used to create a package.' %
                   values.get('name'))

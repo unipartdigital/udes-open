@@ -441,7 +441,7 @@ class StockLocation(models.Model):
             package_name = adj['package_name']
             package = None
             if NO_PACKAGE_TOKEN in package_name \
-                or package_name in wh.forbidden_package_names:
+                or package_name in wh.reserved_package_name:
                 pass
             elif NEW_PACKAGE_TOKEN in package_name:
                 if package_name in new_packages:
