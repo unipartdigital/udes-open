@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 from datetime import datetime
 
 from odoo import fields, models,  _, api
@@ -262,7 +262,6 @@ class StockLocation(models.Model):
         if INVENTORY_ADJUSTMENTS in request:
             pi_outcome.adjustment_inventory = \
                 self._process_inventory_adjustments(request[INVENTORY_ADJUSTMENTS])
-
             for pre_adjs_req in request.get(PRECEDING_INVENTORY_ADJUSTMENTS, []):
                 self._process_single_preceding_adjustments_request(
                     pre_adjs_req,
@@ -433,16 +432,50 @@ class StockLocation(models.Model):
         stock_drift = {}
         new_packages = {}
 
+        # Group quantities by product and reserved packages
+        no_package_vals = defaultdict(int)
+        adj_reqs = []
+        for adj in adjustments_request:
+            pn = adj['package_name']
+            if adj.get('lot_name'):
+                adj_reqs.append(adj)
+                continue
+            if NO_PACKAGE_TOKEN in pn or pn in wh.reserved_package_name:
+                no_package_vals[adj['product_id']] += adj['quantity']
+            else:
+                adj_reqs.append(adj)
+
+        # Replace requests with values passed through by reserved filter
+        adjustments_request = adj_reqs
+
+        # Readd them to adjustments_request
+        new_adjs = []
+        for product, quantity in no_package_vals.items():
+            new_adjs.append({
+            'product_id': product,
+            'package_name': 'NO_PACKAGE',
+            'quantity': quantity,
+            })
+        adjustments_request.extend(new_adjs)
+
+        # Look through all quants not in packages within location and index
+        # the quantities by product, as we have collected quantities by product
+        # for the adjustments without package this allows us to directly compare
+        # and skip unchanged loose product quantities
+        products_and_quantities = {}
+        for quant in self.mapped('quant_ids'):
+            if not quant.package_id:
+                products_and_quantities[quant.product_id] = quant.quantity
+
+        # Go through (potentially modified) adjustments_request
         for adj in adjustments_request:
             product = Product.get_product(int(adj['product_id']))
-
             # determine the package
-
             package_name = adj['package_name']
             package = None
-            if NO_PACKAGE_TOKEN in package_name \
-                or package_name in wh.reserved_package_name:
-                pass
+            if NO_PACKAGE_TOKEN in package_name:
+                if products_and_quantities.get(product) == adj['quantity']:
+                    continue
             elif NEW_PACKAGE_TOKEN in package_name:
                 if package_name in new_packages:
                     package = new_packages[package_name]
@@ -458,7 +491,6 @@ class StockLocation(models.Model):
             # determine the lot
 
             lot_id = False
-
             if product.tracking != 'none':
                 assert 'lot_name' in adj, "Request should contain lot_name"
                 lot = Lot.get_lot(adj['lot_name'], product.id, create=True)
