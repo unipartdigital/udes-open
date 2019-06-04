@@ -326,11 +326,12 @@ class StockLocation(models.Model):
         location_dest_id = int(count_move['location_dest_id'])
         quants = None
         quant_ids = []
-
+        package = False
         if 'package_id' in count_move:
+            package = Package.browse(int(count_move['package_id'])).exists()
+        if package:
             # NB: ignoring a possible 'quant_ids' entry, in case
             # there's no previous schema validation
-            package = Package.get_package(int(count_move['package_id']))
             quants = package._get_contained_quants()
             quant_ids = quants.ids
         elif 'quant_ids' in count_move:
