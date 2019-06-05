@@ -1873,7 +1873,7 @@ class StockPicking(models.Model):
                                          % errorcodes.lookup(e.pgcode))
                             raise
                         tries += 1
-                        wait_time = random.uniform(0.0, 2 ** tries)
+                        wait_time = 1
                         _logger.info("%s, retry %d/%d in %.04f sec..." % (
                             errorcodes.lookup(e.pgcode), tries,
                             MAX_TRIES_ON_CONCURRENCY_FAILURE, wait_time))
