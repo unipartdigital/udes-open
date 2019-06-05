@@ -1871,7 +1871,7 @@ class StockPicking(models.Model):
                         if tries >= MAX_TRIES_ON_CONCURRENCY_FAILURE:
                             _logger.info("%s, maximum number of tries reached"
                                          % errorcodes.lookup(e.pgcode))
-                            raise
+                            break
                         tries += 1
                         wait_time = 1
                         _logger.info("%s, retry %d/%d in %.04f sec..." % (
