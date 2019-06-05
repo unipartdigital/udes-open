@@ -1866,6 +1866,7 @@ class StockPicking(models.Model):
                         tries = -1
                         break
                     except OperationalError as e:
+                        self.invalidate_cache()
                         if e.pgcode not in PG_CONCURRENCY_ERRORS_TO_RETRY:
                             raise
                         if tries >= MAX_TRIES_ON_CONCURRENCY_FAILURE:
