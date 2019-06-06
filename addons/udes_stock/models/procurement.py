@@ -1,9 +1,14 @@
-from odoo import models, _
+from odoo import fields, models, _
 from odoo.exceptions import ValidationError
 
 
 class ProcurementGroup(models.Model):
     _inherit = 'procurement.group'
+
+    # Override the name field to add an index
+    name = fields.Char(
+        'Name', required=True, index=True, translate=True,
+        help="This field will fill the packing origin and the name of its moves")
 
     def get_group(self, group_identifier, create=False):
         """
