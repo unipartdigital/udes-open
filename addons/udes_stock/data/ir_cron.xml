@@ -19,5 +19,18 @@
       <field eval="False" name="active"/>
     </record>
 
+    <record id="unlink_empty_pickings_action" model="ir.cron">
+      <field name="name">Unlink empty pickings</field>
+      <field name="active" eval="False" />
+      <field name="user_id" ref="base.user_root" />
+      <field name="interval_number">30</field>
+      <field name="interval_type">minutes</field>
+      <field name="numbercall">-1</field>
+      <field name="doall">0</field>
+      <field name="model_id" ref="stock.model_stock_picking" />
+      <field name="state">code</field>
+      <field name="code">model.unlink_empty()</field>
+    </record>
+
   </data>
 </odoo>
