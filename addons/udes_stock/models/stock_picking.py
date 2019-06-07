@@ -49,7 +49,7 @@ class StockPicking(models.Model):
     sequence = fields.Integer("Sequence", default=0)
 
     u_mark = fields.Boolean(
-        "Marked", default=True, oldname='active',
+        "Marked", default=True, oldname='active', index=True,
         help='Pickings that are unused after refactoring are unmarked '
              'and deleted'
     )
@@ -1159,16 +1159,43 @@ class StockPicking(models.Model):
         self.unlink_empty()
         return res
 
+    def find_empty_pickings_to_unlink(self):
+        """ Finds empty pickings to unlink in self, when it is set, otherwise
+            searches for any empty picking.
+        """
+        domain = [
+                ('u_mark', '=', False),
+                ('is_locked', '=', True),
+            ]
+        if self:
+            domain.append(('id', 'in', self.ids))
+        while True:
+            records = self.search(domain, limit=1000)
+            if not records:
+                break
+            yield records
+
     def unlink_empty(self):
         """
-            Delete pickings in self that are empty, locked and cancelled
+            Delete pickings in self that are empty, locked and marked=False.
+            If self is empty, find and delete any picking with the previous
+            criterion.
             This is to prevent us leaving junk data behind when refactoring
         """
-        self.filtered(lambda p:
-                      (len(p.move_lines) == 0
-                       and not p.u_mark
-                       and p.is_locked)).unlink()
-        return self.exists()
+        records = self.browse()
+        for to_unlink in self.find_empty_pickings_to_unlink():
+            records |= to_unlink
+            _logger.info("Unlinking empty pickings %s", to_unlink)
+            moves = to_unlink.mapped('move_lines')
+            move_lines = to_unlink.mapped('move_line_ids')
+            non_empty_pickings = moves.mapped('picking_id') | \
+                                 move_lines.mapped('picking_id')
+            if non_empty_pickings:
+                raise ValidationError(_("Trying to unlink non empty pickings: "
+                                        "%s" % non_empty_pickings.ids))
+            to_unlink.unlink()
+
+        return self - records
 
     def _check_entire_pack(self):
         """
