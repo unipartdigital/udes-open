@@ -400,6 +400,9 @@ class StockMove(models.Model):
             create a new picking
             attach the stock.moves to the new picking.
         """
+        if len(self) == 0:
+            return # refactor empty moves by doing nothing
+
         picking_type = self.mapped('picking_type_id')
         picking_type.ensure_one()
 
