@@ -2,6 +2,7 @@
 
 from odoo import fields, models, _
 from odoo.exceptions import ValidationError
+from odoo.tools.func import lazy_property
 
 
 class StockWarehouse(models.Model):
@@ -80,6 +81,19 @@ class StockWarehouse(models.Model):
     )
     u_show_rpc_timing = fields.Boolean(string="Show RPC timing", default=False,
                                        help="Show RPC call times on mobile UI")
+
+    u_reserved_package_name = fields.Char(
+        'Reserved package name(s)',
+        default="UDES00000",
+        help="A comma seperated list of values which can't be used for package "
+             "names and are reserved for PI purposes.",
+    )
+
+    @lazy_property
+    def reserved_package_name(self):
+        return list(
+            map(lambda s: s.strip(), self.u_reserved_package_name.split(','))
+        ) if self.u_reserved_package_name else []
 
     def _prepare_info(self):
         """
