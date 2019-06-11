@@ -41,7 +41,7 @@ class no_absolute_redirect(object):
     @staticmethod
     def is_absolute_url(url):
         """Test if a URL is an absolute URL"""
-        return bool(urls.url_parse(url).scheme)
+        return True if bool(urls.url_parse(url).scheme) or bool(urls.url_parse(url).netloc) else False
 
 
 class Home(main.Home):
