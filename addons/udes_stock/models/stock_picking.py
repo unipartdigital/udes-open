@@ -1632,6 +1632,32 @@ class StockPicking(models.Model):
 
         return self._location_not_in_other_move_lines(candidate_locations)
 
+    def _get_suggested_location_by_orderpoint(self, move_line_ids):
+        """ Same as by product, but the locations are search from order points
+            and when there is no suggested location we don't return empty
+            locations, since products should only be dropped into locations
+            with order points of such products.
+        """
+        OrderPoint = self.env['stock.warehouse.orderpoint']
+
+        if not move_line_ids:
+            raise ValidationError(
+                _('Cannot determine the suggested location: missing move lines'))
+
+        self._check_picking_move_lines_suggest_location(move_line_ids)
+
+        products = move_line_ids.mapped('product_id')
+
+        orderpoints = OrderPoint.search([
+            ('product_id', 'in', products.ids),
+            ('location_id', 'child_of', self.location_dest_id.ids),
+            ('location_id.u_blocked', '=', False),
+            ('location_id.barcode', '!=', False),
+        ])
+        suggested_locations = orderpoints.mapped('location_id')
+
+        return suggested_locations
+
     def _location_not_in_other_move_lines(self, candidate_locations):
         MoveLines = self.env['stock.move.line']
 

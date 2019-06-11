@@ -226,6 +226,7 @@ class StockPickingType(models.Model):
         ('by_products', 'By Products'),
         ('by_packages', 'By Products in Packages'),
         ('by_height_speed', 'By Height and Speed Catagory'),
+        ('by_orderpoint', 'By Order Point'),
     ],
         string='Suggest Locations Policy',
         default='exactly_match_move_line',
