@@ -96,6 +96,13 @@ class StockLocation(models.Model):
              "equipment to pick from it.",
     )
 
+    u_limit_orderpoints = fields.Boolean(
+        index=True,
+        string="Limit Orderpoints",
+        help="If set, allow only one orderpoint on this location "
+        "and its descendants.",
+    )
+
     def _prepare_info(self, extended=False, load_quants=False):
         """
             Prepares the following info of the location in self:
@@ -532,3 +539,44 @@ class StockLocation(models.Model):
         for examine_location in examine_locations:
             if examine_location.quant_ids:
                 examine_location.apply_quant_policy()
+
+    def limits_orderpoints(self):
+        """ Determines whether this location, or an ancestor, permits only a
+        single orderpoint on itself.
+
+        Returns: a boolean: True if limited, False otherwise.
+        """
+        self.ensure_one()
+        limited = self.search([('u_limit_orderpoints', '=', True)])
+        return bool(self.search_count([('id', 'child_of', limited.ids),
+                                       ('id', '=', self.id)]))
+
+
+class Orderpoint(models.Model):
+
+    _inherit = 'stock.warehouse.orderpoint'
+
+    @api.onchange('location_id')
+    @api.constrains('location_id')
+    def _is_limited(self):
+        """Prevents creating a second order point on a location.
+
+        If the location or an ancestor is configured to only allow a single
+        order point.
+
+        Raises a ValidationError if the constraint is breached.
+        """
+        self.ensure_one()
+        Orderpoint = self.env['stock.warehouse.orderpoint']
+        orderpoints = Orderpoint.search([
+            ('location_id', '=', self.location_id.id),
+        ])
+        orderpoints -= self
+        if not orderpoints:
+            return
+        if not self.location_id.limits_orderpoints():
+            return
+        names = ', '.join(orderpoints.mapped('product_id.name'))
+        raise ValidationError(
+            _('An order point for location {} already exists on '
+              '{}.').format(self.location_id.name, names))

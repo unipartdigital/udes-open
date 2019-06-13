@@ -44,6 +44,7 @@ The warehouse is made up of various locations for storing stock. There are two m
 | u_blocked        | boolean | Whether the location has been blocked. If it has been blocked, stock should not be moved to/from this location. |
 | u_blocked_reason | string  | A descriptive reason why the location has been blocked. |
 | quant_ids | [{stock.quants}]  | A list of all the quants at the given location. |
+| u_limit_order_points | boolean | When True, permit only one orderpoint per location for this location and its descendants. |
 
 ## Quants (model: stock.quant)
 

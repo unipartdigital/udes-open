@@ -25,6 +25,7 @@
                     <field name="u_date_last_checked_correct"
                            attrs="{'readonly': [('u_date_last_checked_correct', '!=', False)]}"/>
                     <field name="u_quant_policy" readonly="1"/>
+                    <field name="u_limit_orderpoints" groups="udes_stock.group_stock_user"/>
                 </xpath>
 
                 <!-- Add a confirmation to the "Archive" button. -->

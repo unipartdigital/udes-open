@@ -101,9 +101,11 @@ class BaseUDES(common.SavepointCase):
             })
         cls.test_locations = cls.test_location_01 + cls.test_location_02
 
+        cls.warehouse_location = Location.create({'name': 'UPL'})
         cls.out_location = cls.picking_type_pick.default_location_dest_id.copy({
             'name': 'TEST_OUT',
             'active': True,
+            'location_id': cls.warehouse_location.id,
         })
         cls.test_output_location_01 = Location.create({
             'name': "Test output location 01",
