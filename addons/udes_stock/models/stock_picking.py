@@ -1162,13 +1162,24 @@ class StockPicking(models.Model):
     def find_empty_pickings_to_unlink(self):
         """ Finds empty pickings to unlink in self, when it is set, otherwise
             searches for any empty picking.
+
+            Filter out of the generic search when the picking type does not
+            have auto unlink empty enabled.
         """
+        PickingType = self.env['stock.picking.type']
+
         domain = [
                 ('u_mark', '=', False),
                 ('is_locked', '=', True),
             ]
         if self:
             domain.append(('id', 'in', self.ids))
+        else:
+            pts = PickingType.search([
+                ('u_auto_unlink_empty', '=', False)
+            ])
+            if pts:
+                domain.append(('picking_type_id', 'not in', pts.ids))
         while True:
             records = self.search(domain, limit=1000)
             if not records:

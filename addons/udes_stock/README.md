@@ -123,6 +123,7 @@ A lot of custom UDES functionality is specfied at the picking type level. This i
 | u_confirm_batch            | boolean | Flag to indicate if user has to confirm the batch to work with |
 | u_enable_confirmations     | boolean | Flag to indicate if user has to perform any confirmation after picking a product.|
 | u_use_part_pallets         | boolean | Flag to indicate if each pallet is validated and processed at goods in as oppose scanning the whole ASN.|
+| u_auto_unlink_empty        | boolean | Flag to indicate whether to unlink empty pickings when searching for any empty picking in the system.|
 
 More on the enumeration fields below.
 

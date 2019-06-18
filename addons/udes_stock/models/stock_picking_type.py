@@ -307,6 +307,13 @@ class StockPickingType(models.Model):
              'This is ignored if the number of pickings to reserve is 0.'
     )
 
+    u_auto_unlink_empty = fields.Boolean(
+        string='Auto Unlink Empty',
+        default=True,
+        help='Flag to indicate whether to unlink empty pickings when searching '
+             ' for any empty picking in the system.',
+    )
+
     def do_refactor_action(self, action, moves):
         """Resolve and call the method to be executed on the moves.
 

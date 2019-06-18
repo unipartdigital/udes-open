@@ -52,6 +52,7 @@
                     <field name="u_use_part_pallets" />
                     <field name="u_num_reservable_pickings" />
                     <field name="u_reserve_batches" />
+                    <field name="u_auto_unlink_empty" />
                 </group>
                 <group string="Pick Refactoring" groups='base.group_no_one'>
                     <field name="u_move_line_key_format" />
