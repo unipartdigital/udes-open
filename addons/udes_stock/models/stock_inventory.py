@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from odoo import api, models, fields, _
-from odoo.exceptions import ValidationError
+from odoo.exceptions import ValidationError, UserError
 
 
 class StockInventory(models.Model):
@@ -32,3 +32,10 @@ class StockInventory(models.Model):
                     _('There are undone preceding inventories.'))
 
         return super(StockInventory, self).action_done()
+
+    def write(self, values):
+        if self.state == 'done':
+            raise UserError(
+                _('Cannot write to an adjustment which has already been '
+                  'validated'))
+        return super(StockInventory, self).write(values)
