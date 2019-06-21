@@ -551,6 +551,15 @@ class StockLocation(models.Model):
         return bool(self.search_count([('id', 'child_of', limited.ids),
                                        ('id', '=', self.id)]))
 
+    def write(self, values):
+        """ Removing 'name' from values if it equals all names in self  """
+        if 'name' in values:
+            if all(name == values['name'] for name in self.mapped('name')):
+                del values['name']
+                if not values:
+                    return True
+        return super(StockLocation, self).write(values)
+
 
 class Orderpoint(models.Model):
 
