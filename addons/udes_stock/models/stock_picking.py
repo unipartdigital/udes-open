@@ -258,7 +258,8 @@ class StockPicking(models.Model):
         after a refactor
         """
         res = super(StockPicking, self).action_assign()
-        self.unlink_empty()
+        if self:
+            self.unlink_empty()
         return res
 
     def action_done(self):
@@ -292,7 +293,8 @@ class StockPicking(models.Model):
             action_filter='picking.action_done',
             **extra_context
         ).run()
-        self.unlink_empty()
+        if self:
+            self.unlink_empty()
         return res
 
     def action_cancel(self):
@@ -1156,7 +1158,8 @@ class StockPicking(models.Model):
                           and not p.group_id):
             pick._create_own_procurement_group()
         res = super(StockPicking, self).action_confirm()
-        self.unlink_empty()
+        if self:
+            self.unlink_empty()
         return res
 
     def find_empty_pickings_to_unlink(self):
