@@ -225,7 +225,7 @@ class StockPickingType(models.Model):
         ('exactly_match_move_line', 'Exactly Match The Move Line Destination Location'),
         ('by_products', 'By Products'),
         ('by_packages', 'By Products in Packages'),
-        ('by_height_speed', 'By Height and Speed Catagory'),
+        ('by_height_speed', 'By Height and Speed Category'),
         ('by_orderpoint', 'By Order Point'),
     ],
         string='Suggest Locations Policy',
