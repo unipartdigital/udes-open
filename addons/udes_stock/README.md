@@ -410,6 +410,33 @@ Returns `true` in case the request is successfully processed.
 The JSON schema for the `pi_request` object can be found
 [here](schemas/stock-location-pi-count.json).
 
+### Stock Location Package Compatibility Check
+```
+URI: /api/stock-location/is_compatible_package/
+Method: GET
+```
+
+Checks that the package is in the specified location, in case it exists.
+
+Request:
+
+JSON payload only, no URL parameters
+
+@param package_name - (String) name of the package that must be checked
+@param location_id - (Int - optional) the location id
+@param location_name - (String - optional) this is a string that entirely matches the name
+@param location_barcode - (String - optional) this is a string that entirely matches the barcode
+
+Response:
+
+Returns an error in case:
+ - the package name is not given;
+ - the location is not properly specified (i.e. in case none of the optional
+   args are given);
+ - the specified location does not exist.
+Returns `true` if 1) the package does not exist or 2) the package exists and is
+in the specified location; returns `false` otherwise.
+
 ### Stock Location Block
 ```
 URI: /api/stock-location/block/
@@ -750,7 +777,7 @@ Suggest drop off locations based on the configured `u_drop_location_policy`.
 Request:
 
 The payload should include a JSON object with a single `move_line_ids` entry
-that is an aray of numbers, containing the IDs of the move lines being dropped.
+that is an array of numbers, containing the IDs of the move lines being dropped.
 
 Response:
 

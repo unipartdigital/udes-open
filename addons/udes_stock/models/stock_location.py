@@ -551,6 +551,19 @@ class StockLocation(models.Model):
         return bool(self.search_count([('id', 'child_of', limited.ids),
                                        ('id', '=', self.id)]))
 
+    def is_compatible_package(self, package_name):
+        """ The package with name package_name is compatible
+            with the location in self if either:
+            - it does not exist;
+            - it is in the location represented by self.
+        """
+        Package = self.env['stock.quant.package']
+        self.ensure_one()
+        package = Package.get_package(package_name, no_results=True)
+        if package:
+            return package.location_id  == self
+        return True
+
 
 class Orderpoint(models.Model):
 
