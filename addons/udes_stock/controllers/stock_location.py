@@ -6,6 +6,15 @@ from .main import UdesApi
 from odoo.exceptions import ValidationError
 
 
+def _get_location(env, lid, lname, lbarcode):
+    Location = env['stock.location']
+    identifier = lid or lname or lbarcode
+    if not identifier:
+        raise ValidationError(
+            _('You need to provide an id, name or barcode for the location.'))
+    return Location.get_location(identifier)
+
+
 class Location(UdesApi):
 
     @http.route('/api/stock-location/', type='json', methods=['GET'], auth='user')
@@ -26,13 +35,8 @@ class Location(UdesApi):
                 When enabled, checks if the location is blocked, in which case
                 an error will be raise.
         """
-        Location = request.env['stock.location']
-        identifier = location_id or location_name or location_barcode
-        if not identifier:
-            raise ValidationError(
-                _('You need to provide an id, name or barcode for the location.'))
-
-        location = Location.get_location(identifier)
+        location = _get_location(request.env, location_id, location_name,
+                                 location_barcode)
 
         if check_blocked:
             location.check_blocked()
@@ -88,17 +92,11 @@ class Location(UdesApi):
             @param <ident>  location_id of the location to block
             @param reason   Reason for the location being blocked
         """
-        Location = request.env['stock.location']
         Picking = request.env['stock.picking']
         ResUsers = request.env['res.users']
 
-        identifier = location_id or location_name or location_barcode
-
-        if not identifier:
-            raise ValidationError(
-                _('You need to provide an id, name or barcode for the location.'))
-
-        location = Location.get_location(identifier)
+        location = _get_location(request.env, location_id, location_name,
+                                 location_barcode)
 
         # Raise if location is already blocked, as we can't raise
         # SI in a blocked location
@@ -121,3 +119,22 @@ class Location(UdesApi):
         })
 
         return True
+
+    @http.route('/api/stock-location/is_compatible_package/',
+                type='json', methods=['GET'], auth='user')
+    def is_compatible_package_to_location(self, package_name,
+                                          location_id=None,
+                                          location_name=None,
+                                          location_barcode=None):
+        """
+            Checks that the package is in the specified location,
+            in case it exists.
+            Refer to the API specs in the README for more details.
+        """
+        location = _get_location(request.env, location_id, location_name,
+                                 location_barcode)
+
+        if not package_name:
+            raise ValidationError(_('You need to provide a package name.'))
+
+        return location.is_compatible_package(package_name)
