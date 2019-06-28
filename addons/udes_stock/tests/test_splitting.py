@@ -186,7 +186,8 @@ class TestAssignSplitting(common.BaseUDES):
         self.assertEqual(ml2.package_id, pallet)
         self.assertEqual(ml2.product_id, self.elderberry)
 
-        # Check that neither picking has been reused
+        # Check that neither picking has been reused, empty pickings have been
+        # marked (u_mark = False) and deleted at the very end of the action
         self.assertFalse(p1.exists())
         self.assertFalse(p2.exists())
 
@@ -226,7 +227,9 @@ class TestAssignSplitting(common.BaseUDES):
         self.assertEqual(ml2.package_id, pallet)
         self.assertEqual(ml2.product_id, self.elderberry)
 
-        # Check that the first picking has been reused
+        # Check that the first picking has been reused and the second picking
+        # has been marked as empty (u_mark = False) and deleted at the very end
+        # of the action
         self.assertTrue(p1.exists())
         self.assertFalse(p2.exists())
 
@@ -468,7 +471,7 @@ class TestConfirmSplitting(common.BaseUDES):
         """
         super(TestConfirmSplitting, self).setUp()
 
-        # group by package post assign
+        # group by package post confirm
         self.picking_type_pick.write({
             'u_post_confirm_action': 'group_by_move_key',
             'u_move_key_format': "{product_id.default_code}",
@@ -511,3 +514,69 @@ class TestConfirmSplitting(common.BaseUDES):
         self.assertEqual(banana_pick.move_lines, banana_move)
         self.assertEqual(apple_pick.state, 'confirmed')
         self.assertEqual(banana_pick.state, 'confirmed')
+
+
+class TestAutoUnlinkEmpty(common.BaseUDES):
+    def setUp(self):
+        """ Setup picking type config
+        """
+        super(TestAutoUnlinkEmpty, self).setUp()
+
+        # group by product post confirm at goods-out
+        self.picking_type_out.write({
+            'u_post_confirm_action': 'group_by_move_key',
+            'u_move_key_format': "{product_id.default_code}",
+        })
+
+    def _count_out_pickings(self):
+        Picking = self.env['stock.picking']
+
+        return Picking.search_count([
+            ('picking_type_id', '=', self.picking_type_out.id)
+        ])
+
+    def test01_auto_unlink_empty_pickings(self):
+        """ Check that unlink_empty finds any picking in the system marked as
+            empty and that when auto unlink empty is disabled for goods-out any
+            empty picking is not deleted when searching for any picking.
+
+            Create two different picks for the same product, confirm them one
+            by one so the goods-out picking is reused leaving one empty picking
+            for the second picking.
+        """
+        Picking = self.env['stock.picking']
+
+        # Create first pick for apples
+        pick_1 = self.create_picking(self.picking_type_pick)
+        move_1 = self.create_move(self.apple, 5, pick_1)
+        # Action_confirm triggers push route which creates goods-out picking
+        pick_1.action_confirm()
+        out_1 = pick_1.u_next_picking_ids
+        self.assertTrue(out_1.exists())
+
+        # There is at least one out picking
+        n_out_pickings = self._count_out_pickings()
+        self.assertTrue(n_out_pickings > 0)
+
+        # Create second pick for apples
+        pick_2 = self.create_picking(self.picking_type_pick)
+        move_2 = self.create_move(self.apple, 5, pick_2)
+        # action_confirm triggers push route which creates goods-out picking
+        pick_2.action_confirm()
+        out_2 = pick_2.u_next_picking_ids
+
+        # The refactoring reuses out_1 because it is the same product
+        self.assertEqual(out_1, out_2)
+
+        # There is one more picking
+        self.assertEqual(n_out_pickings + 1, self._count_out_pickings())
+        # Disable auto unlink empty at out picking type
+        self.picking_type_out.u_auto_unlink_empty = False
+        Picking.unlink_empty()
+        # There is still only one more picking
+        self.assertEqual(n_out_pickings + 1, self._count_out_pickings())
+        # Enable auto unlink empty at out picking type
+        self.picking_type_out.u_auto_unlink_empty = True
+        Picking.unlink_empty()
+        # Empty picking has disappeared
+        self.assertEqual(n_out_pickings, self._count_out_pickings())
