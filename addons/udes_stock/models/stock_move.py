@@ -332,7 +332,10 @@ class StockMove(models.Model):
             created_moves |= self._create_moves_for_push(push, move_lines)
 
         confirmed_moves = created_moves._action_confirm()
+        pickings = confirmed_moves.mapped('picking_id')
         confirmed_moves._action_assign()
+        if pickings:
+            pickings.unlink_empty()
 
     @api.model
     def _create_moves_for_push(self, push, move_lines):
