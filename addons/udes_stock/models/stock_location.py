@@ -560,7 +560,7 @@ class StockLocation(models.Model):
         Package = self.env['stock.quant.package']
         self.ensure_one()
         package = Package.get_package(package_name, no_results=True)
-        if package:
+        if package and package.location_id:
             return package.location_id  == self
         return True
 
