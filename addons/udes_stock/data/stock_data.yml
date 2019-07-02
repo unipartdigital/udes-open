@@ -1,0 +1,25 @@
+-
+  !python {model: ir.model.data, id: False}: |
+    main_warehouse = self.env['stock.warehouse'].browse(ref('stock.warehouse0'))
+
+    # create xml id for main warehouse location which is the parent location
+    # of input, stock, output and pack locations
+    xml_record = {
+        'name': 'warehouse0_view_location',
+        'module': 'stock',
+        'model': 'stock.location',
+        'res_id': main_warehouse.view_location_id.id
+    }
+    xml_ids = self.search([
+        ('module', '=', xml_record['module']),
+        ('model', '=', xml_record['model']),
+        ('name', '=', xml_record['name'])
+    ]).ids
+    if not xml_ids:
+        self.create(xml_record)
+    # avoid the xml id and the associated resource being dropped by the orm by
+    # manually making a hit on it
+    self._update_dummy(
+      xml_record['model'],
+      xml_record['module'],
+      xml_record['name'])

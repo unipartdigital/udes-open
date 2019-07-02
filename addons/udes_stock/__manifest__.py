@@ -21,6 +21,7 @@
     'demo': [
     ],
     'data': [
+        'data/stock_data.yml',
         'security/ir.model.access.csv',
         'data/edi_quant_report_data.xml',
         'data/stock_config.xml',
