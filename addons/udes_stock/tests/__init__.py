@@ -1,7 +1,6 @@
-# -*- coding: utf-8 -*-
-
 from . import common
 from . import test_backorder_validate_real_time
+from . import test_batch_pickings
 from . import test_create_picking
 from . import test_create_procurement_group
 from . import test_edi_quant_report
