@@ -519,3 +519,56 @@ class StockMove(models.Model):
             })
 
         return result_moves
+
+    @api.multi
+    def refactor_action_batch_pickings_by_date_priority(self):
+        """Batch pickings by date and priority."""
+        self._refactor_action_batch_pickings_by(
+            lambda picking: (picking.scheduled_date.split()[0], picking.priority)
+        )
+
+    @api.multi
+    def refactor_action_batch_pickings_by_date(self):
+        """Batch pickings by date."""
+        self._refactor_action_batch_pickings_by(
+            lambda picking: (picking.scheduled_date.split()[0],)
+        )
+
+    def _refactor_action_batch_pickings_by(self, by_key):
+        """Group picks in batches.
+
+        Move the pickings of the moves in this StockMove into draft batches grouped by a
+        given key.
+
+        Args:
+            by_key (function): The function to generate the key to group pickings by.
+                Should return a :obj:`tuple`.
+        """
+        PickingBatch = self.env["stock.picking.batch"]
+
+        # Find existing draft batches.
+        picking_types = self.mapped("picking_type_id")
+        batches = PickingBatch.search(
+            [("state", "=", "draft"), ("picking_type_ids", "in", picking_types.ids)]
+        )
+        batches.mapped("picking_ids")
+
+        # Index coherent batches by key.
+        batches_by_key = {}
+        for batch in batches:
+            pickings = batch.mapped("picking_ids")
+            keys = set(by_key(picking) for picking in pickings)
+            if len(keys) == 1:
+                batches_by_key[next(iter(keys))] = batch
+
+        # Add to a batch using by_key.
+        for picking in self.mapped("picking_id"):
+            # Identify existing batch or create new batch.
+            key = by_key(picking)
+            batch = batches_by_key.get(key)
+            if not batch:
+                batch = PickingBatch.create({})
+                batches_by_key[key] = batch
+
+            # Associate picking to the batch.
+            picking.write({"batch_id": batch.id})

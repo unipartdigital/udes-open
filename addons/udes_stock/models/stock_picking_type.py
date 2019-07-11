@@ -256,6 +256,8 @@ class StockPickingType(models.Model):
     u_post_confirm_action = fields.Selection(
         selection=[
             ('group_by_move_key', 'Group by Move Key'),
+            ("batch_pickings_by_date", "Batch pickings by date"),
+            ("batch_pickings_by_date_priority", "Batch pickings by date and priority"),
         ],
         string='Post Confirm Action',
         help='Choose the action to be taken after confirming a picking.'
