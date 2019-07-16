@@ -62,7 +62,8 @@ class TestGoodsInPicking(common.BaseUDES):
                     'picking_type_id',
                     'priority',
                     'priority_name',
-                    'state'
+                    'state',
+                    'picking_guidance'
         ]
         # Sorted returns a list(or did when I wrote this)
         # so no need to type cast

@@ -1018,7 +1018,9 @@ class StockPicking(models.Model):
                 "state": lambda p: p.state,
                 "location_dest_id": lambda p: p.location_dest_id.id,
                 "picking_type_id": lambda p: p.picking_type_id.id,
-                "moves_lines": lambda p: p.move_lines.get_info()}
+                "moves_lines": lambda p: p.move_lines.get_info(),
+                "picking_guidance": lambda p: p.get_picking_guidance()
+                }
 
         # u_pending only included if we don't handle partials, otherwise field is irrelevant.
         if self.can_handle_partials() is False:
@@ -1028,6 +1030,14 @@ class StockPicking(models.Model):
             fields_to_fetch = info.keys()
 
         return {key: value(self) for key, value in info.items() if key in fields_to_fetch}
+
+    def get_picking_guidance(self):
+        """ Return dict of guidance info to aid user when picking """
+        info = {
+            'Priorities': dict(
+                self._fields['priority'].selection).get(self.priority)
+        }
+        return info
 
     def get_info(self, **kwargs):
         """ Return a list with the information of each picking in self.
