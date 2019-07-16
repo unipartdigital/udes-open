@@ -1840,6 +1840,8 @@ class StockPicking(models.Model):
         # flag (u_reserve_batches) and the handle partial flag
         # (u_handle_partials).
 
+        assigned_pickings = Picking.browse()
+
         for picking_type in picking_types:
             _logger.info('Reserving stock for picking type %r.', picking_type)
 
@@ -1954,10 +1956,12 @@ class StockPicking(models.Model):
                 self.env.cr.commit()
                 # Only count as reserved the number of pickings at mls
                 to_reserve -= len(mls.mapped('picking_id'))
+                assigned_pickings |= mls.mapped('picking_id')
 
                 if self:
                     # Only process the specified pickings
                     break
             _logger.info('Reserving stock for picking type %r completed.',
                          picking_type)
-        return
+
+        return assigned_pickings
