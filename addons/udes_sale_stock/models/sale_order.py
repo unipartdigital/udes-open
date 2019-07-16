@@ -13,8 +13,8 @@ class SaleOrder(models.Model):
     _order = "requested_date asc, priority desc, id asc"
 
     # Add index to origin as this field is frequently used in searches
-    origin = fields.Char(string='Source Document', 
-                         help="Reference of the document that generated this sales order request.", 
+    origin = fields.Char(string='Source Document',
+                         help="Reference of the document that generated this sales order request.",
                          index=True)
 
     # Rename states
@@ -64,6 +64,12 @@ class SaleOrder(models.Model):
         return available_quantity
 
     @api.model
+    def get_batches_for_availability_check(self, offset, limit):
+        return self.search([
+            ('state', 'in', ['sale', 'draft']),
+        ], offset=offset, limit=limit)
+
+    @api.model
     def cancel_orders_without_availability(self):
         """ From the current list of unconfirmed SO lines, cancel lines that
         cannot be fulfilled with current stock holding """
@@ -81,8 +87,10 @@ class SaleOrder(models.Model):
         # Get order lines
         offset = 0
         limit = 100
-        batch = Order.search([('state', 'in', ['sale', 'draft'])],
-                               offset=offset, limit=limit)
+        batch = Order.get_batches_for_availability_check(offset, limit)
+
+        if not batch:
+            return cant_fulfill
 
         while batch:
             _logger.info('Checking orders %s-%s', offset, offset+limit)
@@ -116,8 +124,7 @@ class SaleOrder(models.Model):
             # Empty cached stuff
             batch.invalidate_cache()
             offset += limit
-            batch = Order.search([('state', 'in', ['sale', 'draft'])],
-                                 offset=offset, limit=limit)
+            batch = Order.get_batches_for_availability_check(offset, limit)
 
         _logger.info("Cancelling %s unfulfillable order lines",
                      len(cant_fulfill))
