@@ -47,6 +47,7 @@
                     <field name="u_check_picking_priorities" />
                     <field name="u_use_location_categories" />
                     <field name="u_enable_unpickable_items" />
+                    <field name="u_enable_exception_handling" />
                     <field name="u_confirm_batch" />
                     <field name="u_enable_confirmations" />
                     <field name="u_use_part_pallets" />

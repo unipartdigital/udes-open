@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
 
@@ -176,6 +175,12 @@ class StockPickingType(models.Model):
         default=False,
         help='Flag to indicate if the current picking type has unpickable '
              'items enabled.',
+    )
+
+    u_enable_exception_handling = fields.Boolean(
+        string='Allow exception handling',
+        default=False,
+        help='Flag to indicate whether the user is shown exception handling options.'
     )
 
     u_confirm_batch = fields.Boolean(
@@ -366,6 +371,7 @@ class StockPickingType(models.Model):
             - u_create_batch_for_user: boolean
             - u_check_picking_priorities: boolean
             - u_use_location_categories: boolean
+            - u_enable_exception_handling: boolean
             - u_confirm_batch: boolean
             - u_enable_confirmations: boolean
             - u_use_part_pallets: boolean
@@ -419,6 +425,7 @@ class StockPickingType(models.Model):
                 'u_create_batch_for_user': self.u_create_batch_for_user,
                 'u_check_picking_priorities': self.u_check_picking_priorities,
                 'u_use_location_categories': self.u_use_location_categories,
+                'u_enable_exception_handling': self.u_enable_exception_handling,
                 'u_confirm_batch': self.u_confirm_batch,
                 'u_enable_confirmations': self.u_enable_confirmations,
                 'u_use_part_pallets': self.u_use_part_pallets,

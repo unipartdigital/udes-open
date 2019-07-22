@@ -178,6 +178,7 @@
       <field name="u_create_procurement_group" eval="True"/>
       <field name="show_operations" eval="1"/>
       <field name="active">False</field>
+      <field name="u_enable_exception_handling" eval="True"/>
     </record>
 
     <record id="picking_type_check" model="stock.picking.type">
