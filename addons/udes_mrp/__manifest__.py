@@ -25,7 +25,7 @@
     # always loaded
     'data': [
         'report/mrp_production_templates.xml',
-
+        'views/mrp_production_views.xml'
     ],
 
     # only loaded in demonstration mode
