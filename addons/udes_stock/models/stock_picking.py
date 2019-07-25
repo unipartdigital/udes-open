@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from contextlib import contextmanager
 from collections import OrderedDict, defaultdict
 from lxml import etree
 
@@ -38,6 +39,13 @@ def _update_move_lines_and_log_swap(move_lines, pack, other_pack):
 def allow_preprocess(func):
     func._allow_preprocess = True
     return func
+
+
+@contextmanager
+def log_stats(self, message, *args):
+    with self.statistics() as stats:
+        yield
+    _logger.info(message, *args, stats.elapsed, stats.count)
 
 
 class StockPicking(models.Model):
@@ -650,11 +658,8 @@ class StockPicking(models.Model):
             else:
                 picking_info.update(transport_id)
 
-        if 'cancel' in kwargs:
-            cancel = kwargs.pop('cancel')
-
-            if cancel:
-                self.action_cancel()
+        if kwargs.pop('cancel', False):
+            self.action_cancel()
 
         if validate_real_time is None:
             validate_real_time = self.picking_type_id.u_validate_real_time
@@ -663,7 +668,6 @@ class StockPicking(models.Model):
             self = self.with_context(
                 expected_package_name=kwargs.pop('expected_package_name'))
 
-        values = {}
 
         # Updates stock picking with generic picking info
         if picking_info:
@@ -676,6 +680,7 @@ class StockPicking(models.Model):
             # when adding only do this?
             return True
 
+        values = {}
         if location_dest_id or location_dest_barcode or location_dest_name:
             values['location_dest'] = location_dest_id or location_dest_barcode or location_dest_name
 

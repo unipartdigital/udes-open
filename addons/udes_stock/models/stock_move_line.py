@@ -39,14 +39,14 @@ class StockMoveLine(models.Model):
         """
         return self.filtered(lambda ml: ml.qty_done == ml.product_uom_qty)
 
-    def _prepare_result_packages(self, package, result_package, products_info):
+
+    def _prepare_result_packages(self, origin_package,
+                                 result_package_identifier, products_info):
         """ Compute result_package and result_parent based on the
             u_target_Storage_format of the picking type + the input
             parameters.
         """
         Package = self.env['stock.quant.package']
-
-        parent_package = None
 
         # atm mark_as_done is only called per picking
         picking = self.mapped('picking_id')
@@ -58,59 +58,63 @@ class StockMoveLine(models.Model):
 
         Package = Package.with_context(move_line_ids=self.ids)
 
-        if target_storage_format == 'pallet_packages':
-
-            if result_package or scan_parent_package_end:
-                # At pallet_packages, result_package parameter is expected
-                # to be the result_parent_package of the move_line
-                # It might be a new pallet id
-                if not scan_parent_package_end:
-                    parent_package = Package.get_package(result_package,
-                                                         create=True)
-                result_package = None
-                # MPS: maybe this if is not needed
-                if not package:
-                    if products_info:
-                        # Products are being packed
-                        result_package = Package.create({}).name
-                    elif not all([ml.result_package_id for ml in self]):
-                        # Setting result_parent_package expects to have
-                        # result_package for all the move lines
-                        raise ValidationError(
-                                _("Some of the move lines don't have result package."))
-                else:
-                    # Products are being packed into a new package
-                    if products_info:
-                        result_package = Package.create({}).name
-            elif products_info:
+        # Check parameters are sensible
+        if target_storage_format in ['pallet_packages', 'pallet_products']:
+            if (products_info and not result_package_identifier
+                    and not scan_parent_package_end):
                 raise ValidationError(
-                        _('Invalid parameters for target storage format,'
-                          ' expecting result package.'))
-
-        elif target_storage_format == 'pallet_products':
-            if result_package:
-                # Moving stock into a pallet of products, result_package
-                # might be new pallet id
-                result_package = Package.get_package(result_package, create=True).name
-            elif products_info and not result_package and not scan_parent_package_end:
-                raise ValidationError(
-                        _('Invalid parameters for target storage format,'
-                          ' expecting result package.'))
-
-        elif target_storage_format == 'package':
-            if products_info and not package and not result_package:
-                # Mark_as_done products without package or result_package
-                # Create result_package when packing products without
-                # result_package being set
-                result_package = Package.create({}).name
+                    _('Invalid parameters for target storage format,'
+                      ' expecting result package.'))
 
         elif target_storage_format == 'product':
             # Error when trying to mark_as_done a full package or setting result package
             # when result storage format is products
-            if result_package:
+            if result_package_identifier:
                 raise ValidationError(
-                        _('Invalid parameters for products target'
-                          ' storage format.'))
+                    _('Invalid parameters for products target'
+                      ' storage format.'))
+
+        # End of preconditions
+
+        parent_package = None
+        result_package = None
+
+        if target_storage_format == 'pallet_packages':
+
+            if (not products_info and not origin_package
+                    and not all([ml.result_package_id for ml in self])):
+                # Setting result_parent_package expects to have
+                # result_package for all the move lines
+                raise ValidationError(
+                    _("Some of the move lines don't have result package."))
+
+            # At pallet_packages, result_package parameter is expected
+            # to be the result_parent_package of the move_line
+            # It might be a new pallet id
+            if not scan_parent_package_end:
+                parent_package = Package.get_package(result_package_identifier,
+                                                     create=True)
+
+            if products_info:
+                # Products are being packed into a new package
+                result_package = Package.create({})
+
+        elif target_storage_format == 'pallet_products':
+            if result_package_identifier:
+                # Moving stock into a pallet of products, result_package
+                # might be new pallet id
+                result_package = Package.get_package(result_package_identifier,
+                                                     create=True)
+
+        elif target_storage_format == 'package':
+            if products_info and not origin_package and not result_package_identifier:
+                # Mark_as_done products without package or result_package
+                # Create result_package when packing products without
+                # result_package being set
+                result_package = Package.create({})
+            elif products_info and result_package_identifier:
+                result_package = Package.get_package(result_package_identifier,
+                                                     create=True)
 
         return (result_package, parent_package)
 
@@ -131,9 +135,10 @@ class StockMoveLine(models.Model):
         Location = self.env['stock.location']
         Package = self.env['stock.quant.package']
 
+        print('*'*10, package, result_package, product_ids)
         result_package, parent_package = \
             self._prepare_result_packages(package, result_package, product_ids)
-
+        print('*'*10, result_package, parent_package)
         move_lines = self
         values = {}
         loc_dest_instance = None
@@ -152,7 +157,6 @@ class StockMoveLine(models.Model):
 
         if result_package:
             # get the result package to check if it is valid
-            result_package = Package.get_package(result_package)
             values['result_package_id'] = result_package.id
 
         if package:
