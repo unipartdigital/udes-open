@@ -586,24 +586,77 @@ class StockPicking(models.Model):
 
         return picking
 
-    def update_picking(
-            self,
-            quant_ids=None,
-            force_validate=False,
-            validate=False,
-            create_backorder=False,
-            location_dest_id=None,
-            location_dest_name=None,
-            location_dest_barcode=None,
-            result_package_name=None,
-            package_name=None,
-            move_parent_package=False,
-            product_ids=None,
-            picking_info=None,
-            validate_real_time=None,
-            location_id=None,
-            **kwargs
-    ):
+    @staticmethod
+    def _update_for_transport(params):
+        transport_id = params.pop('u_transport_id', False)
+        # If transport data has been sent in kwargs, add it to picking_info
+        if transport_id:
+            # if picking_info already exists update with trailer info
+            picking_info = params.get('picking_info')
+            if not picking_info:
+                picking_info = params['picking_info'] = {}
+
+            picking_info.update(transport_id)
+        return transport_id
+
+    @staticmethod
+    def _update_for_location(values, params):
+        loc = (params.get('location_dest_id')
+               or params.get('location_dest_barcode')
+               or params.get('location_dest_name'))
+        if loc:
+            values['location_dest'] = loc
+        return loc
+
+    @staticmethod
+    def _update_for_result_package(values, params):
+        result_package_name = params.get('result_package_name')
+        if result_package_name:
+            values['result_package'] = result_package_name
+
+    @staticmethod
+    def _update_for_product_ids(values, params):
+        product_ids = params.get('product_ids')
+        if product_ids:
+            values['product_ids'] = product_ids
+        return product_ids
+
+    @staticmethod
+    def _update_for_package(values, params):
+        package_name = params.get('package_name')
+        if package_name:
+            values['package'] = package_name
+        return package_name
+
+    def _get_move_lines_to_validate(self, params):
+        Location = self.env['stock.location']
+        Package = self.env['stock.quant.package']
+
+        move_lines = self.move_line_ids
+
+        package_name = params.get('package_name')
+        product_ids = params.get('product_ids')
+
+        if package_name:
+            # a package is being marked as done
+            package = Package.get_package(package_name)
+            move_lines = move_lines.get_package_move_lines(package)
+            if not product_ids:
+                # a full package is being validated
+                # check if all parts have been reserved
+                package.assert_reserved_full_package(move_lines)
+
+        if product_ids:
+            # when updating products we migth want
+            # to filter by location
+            location_id = params.get('location_id')
+            if location_id:
+                location = Location.get_location(location_id)
+                move_lines = move_lines.filtered(lambda ml: ml.location_id ==
+                                                 location)
+        return move_lines
+
+    def update_picking(self, **kwargs):
         """ Update/mutate the stock picking in self
 
             @param quant_ids: Array (int)
@@ -643,98 +696,79 @@ class StockPicking(models.Model):
             @param (optional) location_id: int
                 Used when validating products from a location.
         """
-        Location = self.env['stock.location']
-        Package = self.env['stock.quant.package']
-
         self.assert_valid_state()
-
-        # If transport data has been sent in kwargs, add it to picking_info
-        if 'u_transport_id' in kwargs:
-            # retrieve transport info changes, and then remove them from kwargs
-            transport_id = kwargs.pop('u_transport_id')
-            # if picking_info already exists update with trailer info
-            if picking_info is None:
-                picking_info = transport_id
-            else:
-                picking_info.update(transport_id)
 
         if kwargs.pop('cancel', False):
             self.action_cancel()
 
-        if validate_real_time is None:
-            validate_real_time = self.picking_type_id.u_validate_real_time
-
-        if 'expected_package_name' in kwargs:
+        expected_package_name = kwargs.pop('expected_package_name', False)
+        if expected_package_name:
             self = self.with_context(
-                expected_package_name=kwargs.pop('expected_package_name'))
+                expected_package_name=expected_package_name)
 
+        self._update_for_transport(kwargs)
 
         # Updates stock picking with generic picking info
+        picking_info = kwargs.get('picking_info')
         if picking_info:
             self.write(picking_info)
 
+        quant_ids = kwargs.get('quant_ids')
         if quant_ids:
             # Create extra stock.moves to the picking
-            self._create_moves_from_quants(quant_ids, confirm=True, assign=True,
-                                           result_package=result_package_name)
+            self._create_moves_from_quants(
+                quant_ids,
+                confirm=True,
+                assign=True,
+                result_package=kwargs.get('result_package_name'))
             # when adding only do this?
             return True
 
+        # if not move_parent_package:
+        #     # not needed yet, move it outside udes_stock
+        #     # when false remove parent_id of the result_package_id ??
+        #     # picking.move_line_ids.mapped('result_package_id').write({'package_id': False})
+        #     pass
         values = {}
-        if location_dest_id or location_dest_barcode or location_dest_name:
-            values['location_dest'] = location_dest_id or location_dest_barcode or location_dest_name
 
-        if result_package_name:
-            values['result_package'] = result_package_name
+        self._update_for_location(values, kwargs)
+        product_ids = self._update_for_product_ids(values, kwargs)
+        package_name = self._update_for_package(values, kwargs)
+        self._update_for_result_package(values, kwargs)
 
-        if not move_parent_package:
-            # not needed yet, move it outside udes_stock
-            # when false remove parent_id of the result_package_id ??
-            # picking.move_line_ids.mapped('result_package_id').write({'package_id': False})
-            pass
+        move_lines = self._get_move_lines_to_validate(kwargs)
 
-        # get all the stock.move.lines
-        move_lines = self.move_line_ids
-
-        if package_name:
-            # a package is being marked as done
-            values['package'] = package_name
-            package = Package.get_package(package_name)
-            move_lines = move_lines.get_package_move_lines(package)
-            if not product_ids:
-                # a full package is being validated
-                # check if all parts have been reserved
-                package.assert_reserved_full_package(move_lines)
-
-        if product_ids:
-            values['product_ids'] = product_ids
-            # when updating products we migth want
-            # to filter by location
-            if location_id:
-                location = Location.get_location(location_id)
-                move_lines = move_lines.filtered(lambda ml: ml.location_id == location)
-
+        force_validate = kwargs.get('force_validate')
+        validate = kwargs.get('validate')
+        # Picking maybe changes if lines are split off
         picking = self
+
         if package_name or product_ids or force_validate:
             # mark_as_done the stock.move.lines
             mls_done = move_lines.mark_as_done(**values)
+
+            validate_real_time = kwargs.get(
+                'validate_r eal_time',
+                self.picking_type_id.u_validate_real_time)
 
             if validate_real_time:
                 picking = self._real_time_update(mls_done)
                 validate = True
 
         if force_validate or validate:
-            if picking.move_line_ids.get_lines_todo() and not create_backorder:
+            if (picking.move_line_ids.get_lines_todo()
+                    and not kwargs.get('create_backorder')):
                 raise ValidationError(
                     _('Cannot validate transfer because there'
                       ' are move lines todo'))
+
             # by default action_done will backorder the stock.move.lines todo
             # validate stock.picking
-            with self.statistics() as stats:
-                picking.sudo().with_context(tracking_disable=True).action_done()
-            _logger.info("%s (update_picking) action_done in %.2fs, %d queries",
-                         picking, stats.elapsed, stats.count)
-
+            _msg = "%s (update_picking) action_done in %.2fs, %d queries"
+            with log_stats(self, _msg, picking):
+                picking.sudo() \
+                       .with_context(tracking_disable=True) \
+                       .action_done()
 
     def _requires_backorder(self, mls):
         """ Checks if a backorder is required
