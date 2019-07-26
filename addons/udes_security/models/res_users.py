@@ -26,6 +26,9 @@ class Users(models.Model):
 
     def _check_trusted_user_grant(self, values):
         group_trusted_user = self.env.ref('udes_security.group_trusted_user')
+        self._check_is_admin(values, group_trusted_user)
+
+    def _check_is_admin(self, values, group):
 
         values = self._remove_reified_groups(values)
 
@@ -40,20 +43,28 @@ class Users(models.Model):
                     pass
                 elif act[0] in (3, 4):
                     # Remove and add group
-                    disallowed |= act[1] == group_trusted_user.id
+                    disallowed |= act[1] == group.id
                 elif act[0] == 5:
                     # Remove all groups
-                    disallowed |= group_trusted_user in self.mapped('groups_id')
+                    disallowed |= group in self.mapped('groups_id')
                 elif act[0] == 6:
                     # Replace all groups
                     for user in self:
-                        disallowed |= ((group_trusted_user in user.groups_id) !=
-                                       (group_trusted_user.id in act[2]))
+                        disallowed |= ((group in user.groups_id) !=
+                                       (group.id in act[2]))
                 else:
-                    raise ValueError('Unknown operation in many2many write for groups_id')
+                    raise ValueError(
+                        _('Unknown operation in many2many write for groups_id'))
 
                 if disallowed:
                     break
 
             if disallowed:
-                raise AccessError(_('Trusted Users cannot be added or removed due to security restrictions. Please contact your system administrator.'))
+                _logger.warning(
+                    'User %s tried to change %s group.' %
+                    (self.env.uid, group.name))
+                raise AccessError(
+                    _('%s cannot be added or removed due to security '
+                      'restrictions. Please contact your system '
+                      'administrator.') % group.name
+                )

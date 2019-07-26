@@ -15,10 +15,24 @@ class Groups(models.Model):
         group_trusted_user = self.env.ref('udes_security.group_trusted_user')
 
         # Only the root user can add or remove the Trusted User group
-        if (group_trusted_user in self and
-            self.env.uid != SUPERUSER_ID and
-            len(values.get('users', [])) > 0):
-            raise AccessError(_('Trusted Users cannot be added or removed due to security restrictions. Please contact your system administrator.'))
+        self._check_is_admin(values, group_trusted_user)
 
         res = super(Groups, self).write(values)
         return res
+
+    def _check_is_admin(self, values, group):
+        ''' To be used when only admin user is allowed to change add/remove
+            the security group.
+        '''
+
+        if (group in self and
+            self.env.uid != SUPERUSER_ID and
+            len(values.get('users', [])) > 0):
+            _logger.warning(
+                'User %s tried to change %s group for users %s.' %
+                (self.env.uid, group.name, values.get('users')))
+            raise AccessError(
+                _('%s cannot be added or removed due to security '
+                  'restrictions. Please contact your system administrator.') %
+                group.name
+            )
