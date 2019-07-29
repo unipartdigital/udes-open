@@ -11,6 +11,7 @@ Security enhancements used by UDES
         'web',
         'password_security',
         'auth_brute_force',
+        'auth_session_timeout',
     ],
     'category': "Authentication",
     'data': [
