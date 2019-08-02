@@ -28,7 +28,7 @@ RUN unzip -q -d /opt /opt/odoo-blocked-locations.zip ; \
 
 # Add modules
 #
-ADD addons /opt/odoo-addons
+ADD . /opt/odoo-addons
 
 # Module installation (without tests)
 #
