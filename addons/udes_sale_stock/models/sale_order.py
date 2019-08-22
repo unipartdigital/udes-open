@@ -13,8 +13,8 @@ class SaleOrder(models.Model):
     _order = "requested_date asc, priority desc, id asc"
 
     # Add index to origin as this field is frequently used in searches
-    origin = fields.Char(string='Source Document', 
-                         help="Reference of the document that generated this sales order request.", 
+    origin = fields.Char(string='Source Document',
+                         help="Reference of the document that generated this sales order request.",
                          index=True)
 
     # Rename states
@@ -148,18 +148,24 @@ class SaleOrder(models.Model):
     def check_delivered(self):
         """ Update sale orders state based on the states of their related
             pickings.
-            An order is considered done or cancelled when all its pickings are
-            done or cancelled respectively.
+            An order is considered cancelled when all its terminal pickings are
+            cancelled and is considered done when all terminal pickings are in a
+            terminal state (at least one of which is in state done).
         """
         for order in self:
-            done_pickings = order.picking_ids.filtered(
-                    lambda ml: ml.state == 'done')
-            cancel_pickings = order.picking_ids.filtered(
-                    lambda ml: ml.state == 'cancel')
-            if len(order.picking_ids) == len(done_pickings):
-                order.action_done()
-            if len(order.picking_ids) == len(cancel_pickings):
+            last_pickings = order.picking_ids.filtered(
+                lambda p: len(p.u_next_picking_ids) == 0
+            )
+            completed_last_pickings = last_pickings.filtered(
+                lambda p: p.state in ['done', 'cancel']
+            )
+            cancelled_last_pickings = last_pickings.filtered(
+                lambda p: p.state == 'cancel'
+            )
+            if last_pickings == cancelled_last_pickings:
                 order.with_context(from_sale=True).action_cancel()
+            elif last_pickings == completed_last_pickings:
+                order.action_done()
 
     def action_cancel(self):
         """Override to cancel by moves instead of by pickings"""
