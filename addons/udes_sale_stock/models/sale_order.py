@@ -4,6 +4,8 @@ from collections import defaultdict
 from odoo import api, fields, models
 from odoo.addons.udes_stock.models import common
 import logging
+from datetime import timedelta, date
+
 
 _logger = logging.getLogger(__name__)
 
@@ -175,6 +177,30 @@ class SaleOrder(models.Model):
             if len(non_cancelled) == 0:
                 to_cancel |= order
         to_cancel.write({'state': 'cancel'})
+
+    @api.model
+    def confirm_if_due(self):
+        """
+        Confirm sale orders in self that are due to be confirmed
+        If no orders passed into self, will confirm all unconfirmed orders
+
+        Returns recordset of orders where confirmation was attempted
+        """
+        days = self.env.ref('stock.warehouse0').u_so_auto_confirm_ahead_days
+        unconfirmed_states = ('draft', 'sent')
+        unconfirmed_so = self or self.search(
+            [('state', 'in', unconfirmed_states)]
+        )
+
+        # If ahead days set to -1, confirm all.
+        if days == -1:
+            return unconfirmed_so.action_confirm()
+
+        to_date = fields.Datetime.to_string(date.today() + timedelta(days=days))
+        so_to_confirm = unconfirmed_so.filtered(
+            lambda so: so.requested_date <= to_date
+        )
+        return so_to_confirm.action_confirm()
 
 
 class SaleOrderCancelWizard(models.TransientModel):
