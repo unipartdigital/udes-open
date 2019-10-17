@@ -208,6 +208,42 @@ class SaleOrder(models.Model):
         )
         return so_to_confirm.action_confirm()
 
+    def get_current_demand(self, products=None):
+        """ Get current demand created by confirmed Sale Orders
+        per product - regardless of expected delivery date
+
+        Returns defaultdict(int, {product.product(1,): 12.0})
+        """
+        OrderLine = self.env['sale.order.line']
+
+        # Get order lines
+        offset = 0
+        limit = 100
+        domain = [('state', '=', 'sale'),
+                  ('is_cancelled', '=', False)]
+        if products:
+            domain.append(('product_id', 'in', products.ids))
+        batch = OrderLine.search(domain, offset=offset, limit=limit)
+        demand = defaultdict(int)
+
+        while batch:
+            # Cache stuff
+            batch.mapped('move_ids')
+            for line in batch:
+                # If any of the moves are done or cancelled then skip this line
+                line_states = line.mapped('move_ids.state')
+                if any(x in line_states for x in ('done', 'cancel')):
+                    continue
+                product = line.product_id
+                demand[product] += line.product_uom_qty
+
+            # Empty cached stuff
+            batch.invalidate_cache()
+            offset += limit
+            batch = OrderLine.search(domain, offset=offset, limit=limit)
+
+        return demand
+
 
 class SaleOrderCancelWizard(models.TransientModel):
     """ This only exists to allow a confirm dialogue from a menu item """
