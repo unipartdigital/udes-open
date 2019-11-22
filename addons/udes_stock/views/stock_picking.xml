@@ -46,6 +46,12 @@
                 </group>
             </xpath>
 
+            <!-- Replace cancel button with clearer instruction -->
+            <xpath expr="//button[@name='action_cancel']" position="attributes">
+                <attribute name="confirm">Are you sure you wish to cancel this entire pick and all of the contained moves?</attribute>
+                <attribute name="string">Cancel Pick</attribute>
+            </xpath>
+
             <!-- Partner field filtered to only see suppliers -->
             <xpath expr="//field[@name='partner_id']" position="replace">
                 <field name="partner_id" domain="[('supplier', '=', True)]" options="{'no_create': True}"/>
