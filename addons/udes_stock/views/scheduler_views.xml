@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<odoo>
+  <data>
+
+     <menuitem 
+        id="stock.menu_procurement_compute" 
+        active="false"/>   
+
+  </data>
+</odoo>

@@ -46,10 +46,11 @@
                 </group>
             </xpath>
 
-             <!-- Replace cancel button with clearer instruction -->
-            <xpath expr="//button[@name='action_cancel']" position="replace">
-                <button name="action_cancel" confirm="Are you sure you wish to cancel this entire pick and all of the contained moves?" attrs="{'invisible': ['|', ('state', 'not in', ('assigned', 'confirmed', 'partially_available', 'draft', 'waiting')), ('is_locked', '=', False)]}" string="Cancel Pick" groups="base.group_user" type="object"/>
-            </xpath> 
+            <!-- Replace cancel button with clearer instruction -->
+            <xpath expr="//button[@name='action_cancel']" position="attributes">
+                <attribute name="confirm">Are you sure you wish to cancel this entire pick and all of the contained moves?</attribute>
+                <attribute name="string">Cancel Pick</attribute>
+            </xpath>
 
             <!-- Partner field filtered to only see suppliers -->
             <xpath expr="//field[@name='partner_id']" position="replace">

@@ -35,4 +35,8 @@
         </field>
     </record>
 
+    <menuitem 
+        id="stock.product_product_menu" 
+        active="false"/>
+
 </odoo>
