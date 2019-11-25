@@ -39,17 +39,3 @@ class ProcurementGroup(models.Model):
                 _('Too many groups found for '
                   'identifier %s') % str(group_identifier))
         return results
-
-    @api.model
-    def run(self, product_id, product_qty, product_uom, location_id, name,
-            origin, values):
-        """ Override run to clean up empty pickings in case any refactoring has
-            occurred.
-        """
-        Picking = self.env['stock.picking']
-
-        super().run(product_id, product_qty, product_uom, location_id, name,
-                    origin, values)
-        Picking.unlink_empty()
-
-        return True
