@@ -6,5 +6,9 @@
     <menuitem id="edi_record_menu" name="UDES"
 	      parent="edi.record_menu" sequence="500"/>
 
+    <!-- EDI move tracker menu item -->
+    <menuitem id="edi_stock.move_tracker_menu" action="edi_stock.move_tracker_action"
+	      parent="stock.menu_warehouse_report" sequence="900" groups="base.group_no_one"/>
+
   </data>
 </odoo>
