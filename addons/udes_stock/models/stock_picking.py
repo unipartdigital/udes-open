@@ -301,7 +301,10 @@ class StockPicking(models.Model):
         """
         Check if picking batch is now complete
         """
-        res = super(StockPicking, self).action_cancel()
+        batch = self.mapped('batch_id')
+        res = super(StockPicking, self.with_context(lock_batch_state=True))\
+            .action_cancel()
+        batch._compute_state()
         return res
 
     def write(self, vals):

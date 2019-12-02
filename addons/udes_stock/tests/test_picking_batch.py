@@ -1271,7 +1271,7 @@ class TestBatchState(common.BaseUDES):
 
         mocked_compute.assert_called_with(self.batch01)
         self.assertEqual(
-            mocked_compute.call_count, 2,
+            mocked_compute.call_count, 3,
             "The function that computes state wasn't invoked"
         )
 

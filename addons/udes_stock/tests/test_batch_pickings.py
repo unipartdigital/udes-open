@@ -322,3 +322,98 @@ class TestByDate(BaseUDES):
 
         picks.mapped("move_lines").action_refactor()
         self.assertFactorised()
+
+
+class TestCancelInBatch(BaseUDES):
+    """Tests for cancelling picks in a batch."""
+
+    @classmethod
+    def setUpClass(cls):
+        """Setup for test class."""
+        super().setUpClass()
+        PickingBatch = cls.env["stock.picking.batch"]
+        cls.batch = PickingBatch.create({"name": "batch001",
+                                         "user_id": cls.env.uid})
+        cls.create_quant(cls.apple.id, cls.test_location_01.id, 50)
+        cls.create_quant(cls.banana.id, cls.test_location_01.id, 50)
+        cls.pick1 = cls.create_picking(
+            picking_type=cls.picking_type_pick,
+            products_info=[{'product': cls.apple, 'qty': 2},
+                           {'product': cls.banana, 'qty': 4},
+                           ])
+        cls.pick2 = cls.create_picking(
+            picking_type=cls.picking_type_pick,
+            products_info=[{'product': cls.apple, 'qty': 6},
+                           {'product': cls.banana, 'qty': 8},
+                           ])
+        cls.pick3 = cls.create_picking(
+            picking_type=cls.picking_type_pick,
+            products_info=[{'product': cls.apple, 'qty': 10},
+                           {'product': cls.banana, 'qty': 12},
+                           ])
+        cls.picks = cls.pick1 | cls.pick2 | cls.pick3
+        cls.picks.action_confirm()
+
+    def assertReserved(self, pick, expected):
+        reserved = {move.product_id.name: move.product_qty for move in
+                    pick.move_line_ids}
+        self.assertEqual(reserved, expected)
+
+    def test01_cancel_in_batch(self):
+        """Verify that picks can be cancelled in a batch
+
+        Verify that a batch in state ready allows a pick to be cancelled, and
+        that it's reserved quants (and moves) are freed accordingly
+
+        """
+        # Search the quants that we know will be reserved
+        Quant = self.env['stock.quant']
+        apples = Quant.search([('location_id', '=', self.test_location_01.id),
+                               ('product_id', '=', self.apple.id)])
+        bananas = Quant.search([('location_id', '=', self.test_location_01.id),
+                                ('product_id', '=', self.banana.id)])
+
+        # Put test picks in a batch and confirm them
+        picks = self.pick1 | self.pick2 | self.pick3
+        picks.write({'batch_id': self.batch.id})
+        self.batch.confirm_picking()
+
+        # Confirm batch state
+        self.assertEqual(self.batch.state, 'in_progress')
+
+        # Confirm reserved stock
+        self.assertReserved(self.pick1, {self.banana.name: 4, self.apple.name: 2})
+        self.assertReserved(self.pick2, {self.banana.name: 8, self.apple.name: 6})
+        self.assertReserved(self.pick3, {self.banana.name: 12, self.apple.name: 10})
+        self.assertEqual(sum(bananas.mapped('reserved_quantity')), 24)
+        self.assertEqual(sum(apples.mapped('reserved_quantity')), 18)
+
+        # Cancel a pick
+        self.pick2.action_cancel()
+        self.assertEqual(self.pick2.state, 'cancel')
+
+        # Verify cancelled pick has stock unreserved, and others are left intact
+        self.assertReserved(self.pick1, {self.banana.name: 4, self.apple.name: 2})
+        self.assertEqual(len(self.pick2.move_line_ids), 0)
+        self.assertReserved(self.pick3, {self.banana.name: 12, self.apple.name: 10})
+        self.assertEqual(sum(bananas.mapped('reserved_quantity')), 16)
+        self.assertEqual(sum(apples.mapped('reserved_quantity')), 12)
+
+        # Confirm batch state
+        self.assertEqual(self.batch.state, 'in_progress')
+
+        # Cancel the rest
+        self.pick1.action_cancel()
+        self.pick3.action_cancel()
+
+        # Verify nothing is reserved anymore
+        self.assertEqual(sum(bananas.mapped('reserved_quantity')), 0)
+        self.assertEqual(sum(apples.mapped('reserved_quantity')), 0)
+
+        # Confirm batch state
+        self.assertEqual(self.batch.state, 'done')
+
+        # Confirm picking states
+        self.assertEqual(self.pick1.state, 'cancel')
+        self.assertEqual(self.pick2.state, 'cancel')
+        self.assertEqual(self.pick3.state, 'cancel')
