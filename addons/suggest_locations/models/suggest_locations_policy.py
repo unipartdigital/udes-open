@@ -1,31 +1,18 @@
 # -*- coding: utf-8 -*-
 
-from abc import ABCMeta, abstractmethod, abstractclassmethod
+from abc import abstractmethod, abstractclassmethod
+
+from odoo.addons.udes_common.tools import RegisterMeta
 
 SUGGEST_LOCATION_REGISTRY = dict()
 
 
-class RegisterMeta(ABCMeta):
-    def __init__(cls, name, bases, dict):
-        super(RegisterMeta, cls).__init__(name, bases, dict)
-        policy_name = cls.name()
+class SuggestRegisterMeta(RegisterMeta):
 
-        if not policy_name:
-            return
-
-        if (
-            policy_name in SUGGEST_LOCATION_REGISTRY
-            and SUGGEST_LOCATION_REGISTRY[policy_name] is not cls
-        ):
-            raise ValueError("Name ({}) is already taken".format(policy_name))
-
-        SUGGEST_LOCATION_REGISTRY[policy_name] = cls
-
-        # Check it has a valid interface
-        instance = cls(object, False)
+    udes_registry = SUGGEST_LOCATION_REGISTRY
 
 
-class SuggestLocationPolicy(metaclass=RegisterMeta):
+class SuggestLocationPolicy(metaclass=SuggestRegisterMeta):
     def __init__(self, env, _preprocessing):
         """Use preprocessing flag to raise error if policy should not be
         preprocessed
