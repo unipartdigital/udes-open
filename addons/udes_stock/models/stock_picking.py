@@ -278,6 +278,7 @@ class StockPicking(models.Model):
         batches = mls.mapped('picking_id.batch_id')
         res = super(StockPicking,
                     self.with_context(lock_batch_state=True)).action_done()
+        self.with_context(lock_batch_state=False)._trigger_batch_state_recompute()
 
         # just in case move lines change on action done, for instance cancelling
         # a picking
@@ -286,7 +287,6 @@ class StockPicking(models.Model):
         # batches of the following stage should also be recomputed
         picks |= mls.mapped('picking_id.u_next_picking_ids')
         batches |= picks.mapped('batch_id')
-        self._trigger_batch_state_recompute(batches=batches)
         extra_context = {}
 
         if hasattr(self, 'get_extra_printing_context'):
@@ -320,7 +320,7 @@ class StockPicking(models.Model):
         # removed in the write
         batches = self.mapped(lambda p: p.batch_id)
         context_vals = {'orig_batches': batches} if batches else {}
-        return super(StockPicking, self.with_context(**context_vals)) \
+        return super(StockPicking, self.with_context(**context_vals))\
             .write(vals)
 
     def button_validate(self):
@@ -1924,16 +1924,23 @@ class StockPicking(models.Model):
 
         return super(StockPicking, self)._put_in_pack()
 
-    @api.constrains('state', 'batch_id')
-    def _trigger_batch_state_recompute(self, batches=None):
-        """Batch state is dependant on picking state and batch_id"""
-        if batches is None:
-            batches = self.env.context.get('orig_batches') or \
-                self.mapped('batch_id')
+    @api.constrains('batch_id')
+    def _trigger_batch_confirm_and_remove(self):
+        """Batch may require new pickings to be auto confirmed or removed"""
+        for batches in self.env.context.get('orig_batches'), self.mapped('batch_id'):
+            if batches:
+                batches._assign_picks()
+                batches._remove_unready_picks()
+                batches._compute_state()
 
-        if batches:
-            batches._compute_state()
-        return True
+    @api.constrains('state')
+    def _trigger_batch_state_recompute(self):
+        """Changes to picking state cause batch state recompute, may also cause
+        unready pickings to be removed from the batch"""
+        for batches in self.env.context.get('orig_batches'), self.mapped('batch_id'):
+            if batches:
+                batches._remove_unready_picks()
+                batches._compute_state()
 
     def raise_stock_inv(self, reason, quants, location):
         """Unreserve stock create stock investigation for reserve_stock and

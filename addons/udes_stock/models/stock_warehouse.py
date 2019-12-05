@@ -82,6 +82,14 @@ class StockWarehouse(models.Model):
     u_show_rpc_timing = fields.Boolean(string="Show RPC timing", default=False,
                                        help="Show RPC call times on mobile UI")
 
+    u_remove_unready_batch = fields.Boolean(
+        string="Auto remove unready picks from a running batch", default=False,
+        help="Auto remove unready picks from a running batch on assign")
+
+    u_auto_assign_batch = fields.Boolean(
+        string="Auto assign picks when added to a running batch", default=False,
+        help="Auto assign picks when added to a running batch")
+
     u_reserved_package_name = fields.Char(
         'Reserved package name(s)',
         default="UDES00000",

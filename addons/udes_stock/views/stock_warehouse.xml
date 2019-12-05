@@ -42,6 +42,11 @@
                             <field name="u_show_rpc_timing" />
                             <field name="u_reserved_package_name" />
                         </group>
+                        <group name="udes_stock_batch_config" string="Batch Config">
+                            <field name="u_remove_unready_batch" />
+                            <field name="u_auto_assign_batch" />
+                        </group>
+
                     </page>
 
                 </xpath>
