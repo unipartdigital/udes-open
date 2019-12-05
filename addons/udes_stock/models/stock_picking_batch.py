@@ -79,7 +79,7 @@ class StockPickingBatch(models.Model):
         self.write({'state': 'waiting'})  # Get it out of draft
 
         try:
-            p = pickings_todo.action_assign()
+            p = pickings_todo.with_context(lock_batch_state=True).action_assign()
             self._compute_state()
 
             return p
@@ -114,6 +114,28 @@ class StockPickingBatch(models.Model):
                 batch.priority = new_priority
 
     @api.multi
+    @api.constrains("picking_ids")
+    def _assign_picks(self):
+        """If configured, attempt to assign all the relevant pickings in self"""
+        if self.env.context.get("lock_batch_state"):
+            # State is locked so don't do anything
+            return
+        if not self.env.user.get_user_warehouse().u_auto_assign_batch:
+            # Only do this if configured to
+            return
+
+        for batch in self:
+            if batch.state in ["waiting", "in_progress"]:
+                picks_to_assign = batch.picking_ids.filtered(
+                    lambda p: p.state == "confirmed"
+                    and p.mapped("move_lines").filtered(
+                        lambda move: move.state not in ("draft", "cancel", "done")
+                    )
+                )
+                if picks_to_assign:
+                    picks_to_assign.with_context(lock_batch_state=True).action_assign()
+
+    @api.multi
     @api.constrains('user_id')
     def _compute_state(self):
         """ Compute the state of a batch post confirm
@@ -130,91 +152,66 @@ class StockPickingBatch(models.Model):
             return
 
         for batch in self:
-            if batch.state in ['draft', 'done', 'cancel']:
+            if batch.state in ['draft', 'cancel']:
                 # Can not do anything with them don't bother trying
                 continue
 
-            ready_picks, other_picks = \
-                batch._calculate_pick_groups(batch.picking_ids)
+            picks = batch.picking_ids
+            if picks:
 
-            if batch.picking_ids and (ready_picks or other_picks):
-                # State-specific transitions
-                if batch.state == 'waiting':
-                    if other_picks:
-                        # Not all picks are ready
-                        pass
-                    elif batch.user_id:
+                ready_picks = batch.ready_picks()
+                done_picks = batch.done_picks()
+                unready_picks = batch.unready_picks()
+
+                # Figure out state
+                if ready_picks and not unready_picks:
+                    if batch.user_id:
                         batch.state = 'in_progress'
                     else:
                         batch.state = 'ready'
-                elif batch.state == 'ready':
-                    if other_picks:
-                        batch.state = 'waiting'
-                    elif batch.user_id:
+
+                if ready_picks and unready_picks:
+                    if batch.user_id:
                         batch.state = 'in_progress'
-                elif batch.state == 'in_progress':
-                    if ready_picks and not other_picks and not batch.user_id:
-                        # User is removed
-                        batch.state = 'ready'
-                    elif other_picks:
-                        # Not really a transition but a bit of batch pick managemnet
-                        # which has to be delt with
-                        # We shouldn't have these check if we can make them ready
-                        # otherwise remove them
-                        batch._remove_unready_picks()
-                else:
-                    _logger.error(_("Ignoring unexpected batch state: %s")
-                                  % batch.state)
+                    else:
+                        batch.state = 'waiting'
+
+                if done_picks and not ready_picks and not unready_picks:
+                    batch.state = 'done'
             else:
-                # Valid for all states; this accounts for all
-                # pickings being complete, canceled or all pickings
-                # get removed for some reason.
-                # The last two can happen in any state
                 batch.state = 'done'
 
-    def _calculate_pick_groups(self, picks):
-        """Collect picks into groups based on state - complete picks are ignored
-           Groups are
-                ready    : pick.state is assigned
-                other    : pick.state is in any other state than the ones above
-        """
-        Picking = self.env['stock.picking']
+    def done_picks(self):
+        """ Return done picks from picks or self.picking_ids """
+        picks = self.mapped("picking_ids")
+        return picks.filtered(
+            lambda pick: pick.state in ['done', 'cancel']
+        )
 
-        ready_picks = Picking.browse()
-        other_picks = Picking.browse()
+    def ready_picks(self):
+        """ Return ready picks from picks or self.picking_ids """
+        picks = self.mapped("picking_ids")
+        return picks.filtered(
+            lambda pick: pick.state == 'assigned'
+        )
 
-        for pick in picks:
-            if pick.state == 'assigned':
-                ready_picks |= pick
-            elif pick.state in ['done', 'cancel']:
-                continue
-            else:
-                other_picks |= pick
+    def unready_picks(self):
+        """ Return unready picks from picks or self.picking_ids """
+        picks = self.mapped("picking_ids")
+        return picks.filtered(
+            lambda pick: pick.state in ["draft", "waiting", "confirmed"]
+        )
 
-        return ready_picks, other_picks
-
-    @api.multi
-    def _remove_unready_picks(self, picks=None):
-        if picks is None:
-            picks = self.mapped('picking_ids')
-
-        # first lets double check there are not ready
-        not_ready_lam = lambda pick: pick.state in \
-            ['draft', 'waiting', 'confirmed']
-        not_ready = picks.filtered(not_ready_lam)
-
-        if not_ready:
-            confirmed_not_ready = not_ready.filtered(
-                lambda pick: pick.state == 'confirmed')
-
-            if confirmed_not_ready:
-                # Attempt to make confirmed picks ready
-                confirmed_not_ready.action_assign()
-
-            # Filter again as we are possibly calling action_assign which
-            # could make some of the previous not ready picks to now be ready
-            not_ready.filtered(not_ready_lam).write({'batch_id': False})
-            self._compute_state()
+    def _remove_unready_picks(self):
+        """ Remove unready picks from running batches in self, if configured """
+        if self.env.context.get('lock_batch_state'):
+            # State is locked so don't do anything
+            return
+        if not self.env.user.get_user_warehouse().u_remove_unready_batch:
+            # Only do this if configured to
+            return
+        for batch in self.filtered(lambda b: b.state in ['waiting', 'in_progress']):
+            batch.unready_picks().write({"batch_id": False})
 
     def _get_task_grouping_criteria(self):
         """
@@ -539,7 +536,6 @@ class StockPickingBatch(models.Model):
 
             _logger.info("%s action_done in %.2fs, %d queries",
                          picks_todo, stats.elapsed, stats.count)
-
         if not continue_batch:
             self.unassign()
 
@@ -805,6 +801,7 @@ class StockPickingBatch(models.Model):
                 moves.mapped('picking_id')\
                     .filtered(lambda p: p.state == 'assigned')\
                     .write({'batch_id': self.id})
+            self._remove_unready_picks()
             self._compute_state()
 
         else:
