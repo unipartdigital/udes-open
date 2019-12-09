@@ -39,7 +39,8 @@ class StockMoveLine(models.Model):
         """
         return self.filtered(lambda ml: ml.qty_done == ml.product_uom_qty)
 
-    def _prepare_result_packages(self, package, result_package, products_info):
+    def _prepare_result_packages(self, package, result_package,
+                                 result_parent_package, products_info):
         """ Compute result_package and result_parent based on the
             u_target_Storage_format of the picking type + the input
             parameters.
@@ -60,7 +61,14 @@ class StockMoveLine(models.Model):
 
         if target_storage_format == 'pallet_packages':
 
-            if result_package or scan_parent_package_end:
+            # CASE A: both package names given
+            if result_package and result_parent_package:
+                result_package = Package.get_package(
+                    result_package, create=True).name
+                parent_package = Package.get_package(
+                    result_parent_package, create=True)
+            # CASE B: only one of the package names is given as result_package
+            elif result_package or scan_parent_package_end:
                 # At pallet_packages, result_package parameter is expected
                 # to be the result_parent_package of the move_line
                 # It might be a new pallet id
@@ -82,6 +90,7 @@ class StockMoveLine(models.Model):
                     # Products are being packed into a new package
                     if products_info:
                         result_package = Package.create({}).name
+            # CASE C: wrong combination of package names given
             elif products_info:
                 raise ValidationError(
                         _('Invalid parameters for target storage format,'
@@ -114,7 +123,8 @@ class StockMoveLine(models.Model):
 
         return (result_package, parent_package)
 
-    def mark_as_done(self, location_dest=None, result_package=None, package=None, product_ids=None):
+    def mark_as_done(self, location_dest=None, result_package=None,
+                     result_parent_package=None, package=None, product_ids=None):
         """ Marks as done the move lines in self and updates location_dest_id
             and result_package_id if they are set.
 
@@ -132,7 +142,8 @@ class StockMoveLine(models.Model):
         Package = self.env['stock.quant.package']
 
         result_package, parent_package = \
-            self._prepare_result_packages(package, result_package, product_ids)
+            self._prepare_result_packages(
+                package, result_package, result_parent_package, product_ids)
 
         move_lines = self
         values = {}
