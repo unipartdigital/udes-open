@@ -4,10 +4,12 @@ from . import common
 from odoo.exceptions import ValidationError
 from collections import Counter
 
+
 class TestGoodsInTargetStorageTypes(common.BaseUDES):
 
     def validate_move_lines(self, move_lines, product, ordered_qty, qty_done, is_package=False,
-                            is_pallet=False, package_name=False, lot_names=False):
+                            is_pallet=False, package_name=False, lot_names=False,
+                            parent_package_name=False):
         """ Validates move lines based on the inputs"""
 
         self.assertTrue(len(move_lines) > 0)
@@ -27,7 +29,10 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
             self.assertTrue(all(ml.picking_id.picking_type_id.u_target_storage_format == 'pallet_packages' \
                                 for ml in move_lines))
             self.assertTrue(all(ml.result_package_id is not False for ml in move_lines))
-            self.assertTrue(all(ml.u_result_parent_package_id.name == package_name for ml in move_lines))
+            parent_package = parent_package_name or package_name
+            self.assertTrue(all(ml.u_result_parent_package_id.name == parent_package for ml in move_lines))
+            if parent_package_name:
+                self.assertTrue(all(ml.result_package_id.name == package_name for ml in move_lines))
         elif package_name and is_pallet:
             # pallet of products
             self.assertTrue(all(ml.picking_id.picking_type_id.u_target_storage_format == 'pallet_products' \
@@ -52,7 +57,7 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
             self.assertTrue(all(ml.u_result_parent_package_id.name == False for ml in move_lines))
 
     def validate_quants(self, quants=None, package=None, expected_quants=None, is_pallet=False, is_package=False,
-                        num_packages_expected=None, expected_location=None):
+                        num_packages_expected=None, expected_location=None, parent_package=None):
         """ Check that quants are as expected """
         self.assertTrue((quants is not None) ^ (package is not None))
         self.assertTrue(expected_quants is not None)
@@ -66,10 +71,10 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
             if is_package ^ is_pallet:
                 self.assertTrue(len(package.quant_ids) > 0)
             elif is_pallet and is_package:
-                self.assertEqual(len(package.quant_ids), 0)
-
                 self.assertTrue(num_packages_expected is not None)
-                self.assertEqual(len(package.children_ids), num_packages_expected)
+                package_to_check = parent_package or package
+                self.assertEqual(len(package_to_check.quant_ids), 0)
+                self.assertEqual(len(package_to_check.children_ids), num_packages_expected)
 
         self.assertTrue(len(quants) > 0)
         self.assertTrue(all(qnt.location_id == expected_location for qnt in quants))
@@ -262,7 +267,6 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         expected_quants = [{'product': self.apple, 'qty': 4}]
         self.validate_quants(package=package, expected_quants=expected_quants, **validation_args)
 
-
     def test07_target_storage_format_package_over_receive_pallet_products(self):
         """Tests over receiving for target_storage_format
            pallet_products
@@ -322,7 +326,6 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
                                 })
         expected_quants = [{'product': self.apple, 'qty': 4}]
         self.validate_quants(package=package, expected_quants=expected_quants, **validation_args)
-
 
     def test09_target_storage_format_package_serial_numbers_product(self):
         """Tests receiving tracked products for
@@ -421,7 +424,6 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         validation_args.update({'expected_location': self.picking_type_in.default_location_dest_id})
         expected_quants = [{'product': self.strawberry, 'qty': 1}, {'product': self.strawberry, 'qty': 1}]
         self.validate_quants(package=package, expected_quants=expected_quants, **validation_args)
-
 
     def test12_target_storage_format_package_serial_numbers_pallet_packages(self):
         """Tests receiving tracked products for
@@ -1026,3 +1028,45 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         self.assertEqual(e.exception.name,
                          expected_error,
                          'No/Incorrect error message was thrown')
+
+    def test26_target_storage_format_pallet_packages_result_parent_package(self):
+        """ Test for basic usage of target_storage_format pallet_packages but
+            defining both result package and result parent package
+        """
+        Package = self.env['stock.quant.package']
+
+        validation_args = {
+                            'is_pallet': True,
+                            'is_package': True
+                          }
+        create_info = [{'product': self.apple, 'qty': 4}]
+        picking = self.create_picking(self.picking_type_in,
+                                      products_info=create_info,
+                                      confirm=True)
+        picking = picking.sudo(self.inbound_user)
+
+        product_ids = [{'barcode': self.apple.barcode, 'qty': 4}]
+        self.picking_type_in.u_target_storage_format = 'pallet_packages'
+
+        self.validate_move_lines(picking.move_line_ids, self.apple, 4, 0)
+        with self.assertRaises(ValidationError) as e:
+            picking.update_picking(product_ids=product_ids)
+        self.assertEqual(e.exception.name, 'Invalid parameters for target storage format,'
+                                           ' expecting result package.',
+                         'No/Incorrect error message was thrown')
+        picking.update_picking(product_ids=product_ids,
+                               result_package_name='test_package',
+                               result_parent_package_name='test_pallet')
+        self.validate_move_lines(picking.move_line_ids, self.apple, 4, 4,
+                                 package_name='test_package', parent_package_name='test_pallet',
+                                 **validation_args)
+        picking.update_picking(validate=True)
+        validation_args.update({
+                                    'num_packages_expected': 1,
+                                    'expected_location': self.picking_type_in.default_location_dest_id,
+                                })
+        expected_quants = [{'product': self.apple, 'qty': 4}]
+        package = Package.get_package('test_package', create=True)
+        parent_package = Package.get_package('test_pallet', create=True)
+        self.validate_quants(package=package, expected_quants=expected_quants,
+                             parent_package=parent_package, **validation_args)
