@@ -621,6 +621,12 @@ class StockPicking(models.Model):
                 If it corresponds to an existing package/pallet that is not
                 in an other location, we will set it to the `result_package_id`
                 of the operations of the picking (i.e. transfer)
+                If the target storage format of the picking type is pallet of
+                packages it will set `u_result_parent_package_id` unless
+                result_parent_package_name is set, in such case it will be set
+                as `result_package_id`.
+            @param (optional) result_parent_package_name: string
+                name of the package to be set as `u_result_parent_package_id`
             @param (optional) move_parent_package: Boolean
                 Used in pallets/nested packages, to maintain the move of the entire pallet.
                 Defaults to False
@@ -684,6 +690,9 @@ class StockPicking(models.Model):
 
         if result_package_name:
             values['result_package'] = result_package_name
+
+        if 'result_parent_package_name' in kwargs:
+            values['result_parent_package'] = kwargs.pop('result_parent_package_name')
 
         if not move_parent_package:
             # not needed yet, move it outside udes_stock

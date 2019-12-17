@@ -333,7 +333,8 @@ Update/mutate the stock picking
 * @param (optional) location_dest_id - target destination
 * @param (optional) location_dest_name - target destination
 * @param (optional) location_dest_barcode - target destination
-* @param (optional) result_package_name - If it corresponds to an existing package/pallet that is not in an other location, we will set it to the `result_package_id` of the operations of the picking (i.e. transfer). If the target storage format of the picking type is pallet of packages it will set `result_parent_package_id`.
+* @param (optional) result_package_name - If it corresponds to an existing package/pallet that is not in an other location, we will set it to the `result_package_id` of the operations of the picking (i.e. transfer). If the target storage format of the picking type is pallet of packages it will set `u_result_parent_package_id` unless result_parent_package_name is set, in such case it will be set as `result_package_id`.
+* @param (optional) result_parent_package_name - Name of the package to be set as `u_result_parent_package_id`.
 * @param (optional) package_name - Name of the package of the picking that has been effectively scanned, to be marked as done.
 * @param (optional) expected_package_name - Name of the package that was expected to be scanned as part of the picking, to be swapped with the `package_name`.
 * @param (optional) product_ids - An array with the products information to be marked as done, where each dictionary contains: barcode, qty and lot numbers if needed
