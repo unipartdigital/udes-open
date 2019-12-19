@@ -91,6 +91,8 @@ class StockPickingType(models.Model):
         default=False,
         help="Flag to indicate reservations should be rounded up to entire packages."
     )
+
+    # u_scan_tracking maybe better?
     u_confirm_tracking = fields.Selection([
         ('no', 'No'),
         ('yes', 'Yes'),
