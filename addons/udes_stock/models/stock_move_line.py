@@ -777,10 +777,12 @@ class StockMoveLine(models.Model):
         user_scans = picking.picking_type_id.u_user_scans
 
         if user_scans == 'product':
-            quants = self.get_quants()
             task['type'] = 'product'
             task['pick_quantity'] = sum(self.mapped('product_qty'))
-            task['quant_id'] = quants.get_info()[0]
+            quants = self.get_quants()
+
+            # make changes here to facilitate passing all the quants
+            task['quant_ids'] = quants.get_info()
         else:
             package = self.mapped('package_id')
             package.ensure_one()
