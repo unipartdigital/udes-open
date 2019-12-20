@@ -768,7 +768,9 @@ class StockMoveLine(models.Model):
         if user_scans == 'product':
             task['pick_quantity'] = sum(self.mapped('product_qty'))
             quant = self.get_quants()
-            task['quant_id'] = quant.get_info()[0]
+
+            # make changes here to facilitate passing all the quants
+            task['quant_ids'] = quant.get_info()
         else:
             package = self.mapped('package_id')
             package.ensure_one()
