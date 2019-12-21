@@ -278,15 +278,16 @@ class StockPicking(models.Model):
         # just in case move lines change on action done, for instance cancelling
         # a picking
         mls = mls.exists()
-        picks = mls.exists().mapped('picking_id')
+        picks = mls.mapped('picking_id')
         # batches of the following stage should also be recomputed
-        picks |= mls.mapped('picking_id.u_next_picking_ids')
-        batches |= picks.mapped('batch_id')
+        all_picks = picks | picks.mapped('u_next_picking_ids')
+        batches |= all_picks.mapped('batch_id')
         extra_context = {}
 
         if hasattr(self, 'get_extra_printing_context'):
             extra_context = picks.get_extra_printing_context()
 
+        # Trigger print strategies for pickings done
         self.env.ref('udes_stock.picking_done').with_context(
             active_model=picks._name,
             active_ids=picks.ids,
