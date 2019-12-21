@@ -278,7 +278,6 @@ class StockPicking(models.Model):
         batches = mls.mapped('picking_id.batch_id')
         res = super(StockPicking,
                     self.with_context(lock_batch_state=True)).action_done()
-        self.with_context(lock_batch_state=False)._trigger_batch_state_recompute()
 
         # just in case move lines change on action done, for instance cancelling
         # a picking
@@ -286,9 +285,9 @@ class StockPicking(models.Model):
         picks = mls.mapped('picking_id')
         # batches of the following stage should also be recomputed
         all_picks = picks | picks.mapped('u_next_picking_ids')
-        batches |= all_picks.mapped('batch_id')
-        extra_context = {}
+        all_picks.with_context(lock_batch_state=False)._trigger_batch_state_recompute()
 
+        extra_context = {}
         if hasattr(self, 'get_extra_printing_context'):
             extra_context = picks.get_extra_printing_context()
 
