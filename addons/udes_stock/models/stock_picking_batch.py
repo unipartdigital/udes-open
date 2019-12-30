@@ -122,21 +122,27 @@ class StockPickingBatch(models.Model):
         if self.env.context.get("lock_batch_state"):
             # State is locked so don't do anything
             return
-        if not self.env.user.get_user_warehouse().u_auto_assign_batch:
-            # Only do this if configured to
-            return
 
-        for batch in self:
-            if batch.state in ["waiting", "in_progress"]:
-                picks_to_assign = batch.picking_ids.filtered(
-                    lambda p: p.state == "confirmed"
-                    and p.mapped("move_lines").filtered(
-                        lambda move: move.state not in ("draft", "cancel", "done")
-                    )
+        # Get active batches with pickings
+        batches = self.filtered(
+            lambda b: (
+                b.state in ['waiting', 'in_progress']
+                and b.picking_ids
+                and any(b.mapped('picking_type_ids.u_auto_assign_batch_pick'))
+            )
+        )
+
+        for batch in batches:
+            picks_to_assign = batch.picking_ids.filtered(
+                lambda p: p.state == "confirmed"
+                and p.picking_type_id.u_auto_assign_batch_pick
+                and p.mapped("move_lines").filtered(
+                    lambda move: move.state not in ("draft", "cancel", "done")
                 )
-                if picks_to_assign:
-                    picks_to_assign.with_context(lock_batch_state=True).action_assign()
-                    picks_to_assign.batch_id._compute_state()
+            )
+            if picks_to_assign:
+                picks_to_assign.with_context(lock_batch_state=True).action_assign()
+                picks_to_assign.batch_id._compute_state()
 
     @api.multi
     @api.constrains('user_id')
@@ -209,11 +215,20 @@ class StockPickingBatch(models.Model):
         if self.env.context.get('lock_batch_state'):
             # State is locked so don't do anything
             return
-        if not self.env.user.get_user_warehouse().u_remove_unready_batch:
-            # Only do this if configured to
+
+        # Get unready picks in running batches
+        unready_picks = self.filtered(
+            lambda b: b.state in ['waiting', 'in_progress']
+        ).unready_picks()
+
+        if not unready_picks:
+            # Nothing to do
             return
-        for batch in self.filtered(lambda b: b.state in ['waiting', 'in_progress']):
-            batch.unready_picks().write({"batch_id": False})
+
+        # Remove unready pick, if configured.
+        unready_picks.filtered(
+            lambda p: p.picking_type_id.u_remove_unready_batch
+        ).write({"batch_id": False})
 
     def _get_task_grouping_criteria(self):
         """

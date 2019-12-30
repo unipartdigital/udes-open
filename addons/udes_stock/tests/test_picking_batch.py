@@ -10,8 +10,6 @@ class TestGoodsInPickingBatch(common.BaseUDES):
     @classmethod
     def setUpClass(cls):
         super(TestGoodsInPickingBatch, cls).setUpClass()
-        cls.env.user.get_user_warehouse().u_remove_unready_batch = True
-        cls.env.user.get_user_warehouse().u_auto_assign_batch = True
         cls.pack_4apples_info = [{'product': cls.apple,
                                   'qty': 4}]
         # enable unpickable items by default
@@ -199,6 +197,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
                                       confirm=True,
                                       assign=True)
         batch = Batch.create_batch(self.picking_type_pick.id, None)
+        self.assertEqual(batch.picking_ids[0], picking)
         for ml in picking.move_line_ids:
             ml.qty_done = ml.product_qty
         # On drop off a backorder is created for the remaining 2 units,
@@ -333,8 +332,8 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
     def test15_unpickable_item_single_move_line_success_default_type(self):
         """
-        Tests that the picking is confirmed and an stock investigation transfer 
-        is created if a picking type is not specified. The picking remains 
+        Tests that the picking is confirmed and an stock investigation transfer
+        is created if a picking type is not specified. The picking remains
         confirmed because there isn't more stock available.
         """
         picking, batch = self._create_valid_batch()
@@ -1056,8 +1055,6 @@ class TestBatchState(common.BaseUDES):
     @classmethod
     def setUpClass(cls):
         super(TestBatchState, cls).setUpClass()
-        cls.env.user.get_user_warehouse().u_remove_unready_batch = True
-        cls.env.user.get_user_warehouse().u_auto_assign_batch = True
 
         Package = cls.env['stock.quant.package']
         cls.package_one = Package.get_package("test_package_one", create=True)
