@@ -49,6 +49,8 @@
                     <field name="u_enable_unpickable_items" />
                     <field name="u_enable_exception_handling" />
                     <field name="u_confirm_batch" />
+                    <field name="u_remove_unready_batch" />
+                    <field name="u_auto_assign_batch_pick" />
                     <field name="u_enable_confirmations" />
                     <field name="u_use_part_pallets" />
                     <field name="u_num_reservable_pickings" />

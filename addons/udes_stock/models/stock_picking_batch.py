@@ -120,7 +120,9 @@ class StockPickingBatch(models.Model):
         if self.env.context.get("lock_batch_state"):
             # State is locked so don't do anything
             return
-        if not self.env.user.get_user_warehouse().u_auto_assign_batch:
+
+        picking_type = self.picking_type_ids.ensure_one()
+        if not picking_type.u_auto_assign_batch_pick:
             # Only do this if configured to
             return
 
@@ -207,7 +209,8 @@ class StockPickingBatch(models.Model):
         if self.env.context.get('lock_batch_state'):
             # State is locked so don't do anything
             return
-        if not self.env.user.get_user_warehouse().u_remove_unready_batch:
+        picking_type = self.picking_type_ids.ensure_one()
+        if not picking_type.u_remove_unready_batch:
             # Only do this if configured to
             return
         for batch in self.filtered(lambda b: b.state in ['waiting', 'in_progress']):

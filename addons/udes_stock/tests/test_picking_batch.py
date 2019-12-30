@@ -10,12 +10,12 @@ class TestGoodsInPickingBatch(common.BaseUDES):
     @classmethod
     def setUpClass(cls):
         super(TestGoodsInPickingBatch, cls).setUpClass()
-        cls.env.user.get_user_warehouse().u_remove_unready_batch = True
-        cls.env.user.get_user_warehouse().u_auto_assign_batch = True
         cls.pack_4apples_info = [{'product': cls.apple,
                                   'qty': 4}]
         # enable unpickable items by default
         cls.picking_type_pick.u_enable_unpickable_items = True
+        cls.picking_type_pick.u_remove_unready_batch = True
+        cls.picking_type_pick.u_auto_assign_batch_pick = True
 
     def setUp(self):
         super(TestGoodsInPickingBatch, self).setUp()
@@ -333,8 +333,8 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
     def test15_unpickable_item_single_move_line_success_default_type(self):
         """
-        Tests that the picking is confirmed and an stock investigation transfer 
-        is created if a picking type is not specified. The picking remains 
+        Tests that the picking is confirmed and an stock investigation transfer
+        is created if a picking type is not specified. The picking remains
         confirmed because there isn't more stock available.
         """
         picking, batch = self._create_valid_batch()
@@ -1056,8 +1056,8 @@ class TestBatchState(common.BaseUDES):
     @classmethod
     def setUpClass(cls):
         super(TestBatchState, cls).setUpClass()
-        cls.env.user.get_user_warehouse().u_remove_unready_batch = True
-        cls.env.user.get_user_warehouse().u_auto_assign_batch = True
+        cls.picking_type_pick.u_remove_unready_batch = True
+        cls.picking_type_pick.u_auto_assign_batch_pick = True
 
         Package = cls.env['stock.quant.package']
         cls.package_one = Package.get_package("test_package_one", create=True)
