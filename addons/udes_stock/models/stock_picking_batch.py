@@ -121,21 +121,21 @@ class StockPickingBatch(models.Model):
             # State is locked so don't do anything
             return
 
-        picking_type = self.picking_type_ids.ensure_one()
-        if not picking_type.u_auto_assign_batch_pick:
-            # Only do this if configured to
-            return
+        batches = self.filtered(
+            lambda b: b.state in ['waiting', 'in_progress']
+                and b.picking_ids # Nothing to act on
+                and all(b.picking_type_ids.mapped("u_auto_assign_batch_pick")) # Is it configured to remove
+        )
 
-        for batch in self:
-            if batch.state in ["waiting", "in_progress"]:
-                picks_to_assign = batch.picking_ids.filtered(
-                    lambda p: p.state == "confirmed"
-                    and p.mapped("move_lines").filtered(
-                        lambda move: move.state not in ("draft", "cancel", "done")
-                    )
+        for batch in batches:
+            picks_to_assign = batch.picking_ids.filtered(
+                lambda p: p.state == "confirmed"
+                and p.mapped("move_lines").filtered(
+                    lambda move: move.state not in ("draft", "cancel", "done")
                 )
-                if picks_to_assign:
-                    picks_to_assign.with_context(lock_batch_state=True).action_assign()
+            )
+            if picks_to_assign:
+                picks_to_assign.with_context(lock_batch_state=True).action_assign()
 
     @api.multi
     @api.constrains('user_id')
@@ -209,11 +209,28 @@ class StockPickingBatch(models.Model):
         if self.env.context.get('lock_batch_state'):
             # State is locked so don't do anything
             return
-        picking_type = self.picking_type_ids.ensure_one()
-        if not picking_type.u_remove_unready_batch:
-            # Only do this if configured to
+
+        def check_remove_flag(b):
+            remove_unready = list(
+                set(b.picking_type_ids.mapped("u_remove_unready_batch"))
+            )
+            if len(remove_unready) > 1:
+                raise ValueError(
+                    _("Illegal mix of picking types with different values for "
+                      "u_remove_unready_batch"))
+            return remove_unready[0]
+
+
+        batches = self.filtered(
+            lambda b: b.state in ['waiting', 'in_progress']
+                      and b.picking_ids # Nothing to act on
+                      and check_remove_flag(b) # Is it configured to remove
+        )
+        if not batches:
+            # Nothing to do
             return
-        for batch in self.filtered(lambda b: b.state in ['waiting', 'in_progress']):
+
+        for batch in batches:
             batch.unready_picks().write({"batch_id": False})
 
     def _get_task_grouping_criteria(self):
