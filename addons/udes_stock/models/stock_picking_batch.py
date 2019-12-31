@@ -122,9 +122,11 @@ class StockPickingBatch(models.Model):
             return
 
         batches = self.filtered(
-            lambda b: b.state in ['waiting', 'in_progress']
+            lambda b: (
+                b.state in ['waiting', 'in_progress']
                 and b.picking_ids # Nothing to act on
                 and all(b.picking_type_ids.mapped("u_auto_assign_batch_pick")) # Is it configured to remove
+            )
         )
 
         for batch in batches:
