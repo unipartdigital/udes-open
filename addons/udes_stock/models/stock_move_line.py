@@ -336,7 +336,7 @@ class StockMoveLine(models.Model):
     def get_package_move_lines(self, package):
         """ Get move lines of package when package is a package or
             a parent package, and to handle swapping packages in
-            case the expected_package_name entry is included in
+            case the expected_package_names entry is included in
             the context.
 
         """
@@ -344,13 +344,16 @@ class StockMoveLine(models.Model):
 
         package.ensure_one()
         move_lines = None
-        expected_package_name = self.env.context.get('expected_package_name')
+        expected_package_names = self.env.context.get('expected_package_names')
         picking = self.mapped('picking_id')
 
-        if expected_package_name is not None \
-           and expected_package_name != package.name:
-            expected_package = Package.get_package(expected_package_name)
-            move_lines = picking.maybe_swap(package, expected_package)
+        if expected_package_names is not None \
+           and package.name not in expected_package_names:
+
+            expected_packages = Package.search([
+                ("name", "in", expected_package_names),
+            ])
+            move_lines = picking.maybe_swap(package, expected_packages)
 
         if move_lines is None:
             if package.children_ids:
