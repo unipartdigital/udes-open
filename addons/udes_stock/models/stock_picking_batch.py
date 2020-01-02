@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 
-from odoo import api, fields, models, _
-from odoo.exceptions import UserError, ValidationError
-from .common import PRIORITIES
-
 import logging
+from itertools import chain
+
+from odoo import _, api, fields, models
+from odoo.exceptions import UserError, ValidationError
+
+from .common import PRIORITIES
 
 _logger = logging.getLogger(__name__)
 
@@ -218,13 +220,24 @@ class StockPickingBatch(models.Model):
 
     def _get_task_grouping_criteria(self):
         """
-        Return a function for sorting by package, product, and
-        location.
+        Return a function for sorting by picking, package(maybe), product, and
+        location. The package is not included if the picking type allows for
+        the swapping of packages (`u_allow_swapping_packages`) and picks by
+        product (`u_user_scans`)
         """
-        return lambda ml: (ml.picking_id.id,
-                           ml.package_id.id,
-                           ml.product_id.id,
-                           ml.location_id.id)
+        batch_pt = self.mapped('picking_ids.picking_type_id')
+        batch_pt.ensure_one()
+
+        parts = [lambda ml: (ml.picking_id.id,)]
+
+        if not (batch_pt.u_allow_swapping_packages
+                and batch_pt.u_user_scans == "product"):
+            parts.append(lambda ml: (ml.package_id.id,))
+
+        parts.append(lambda ml: (ml.product_id.id, ml.location_id.id))
+
+        return lambda ml: tuple(chain(*[part(ml) for part in parts]))
+
 
     def get_next_task(self, skipped_product_ids=None,
                             task_grouping_criteria=None):
