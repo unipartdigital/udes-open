@@ -6,6 +6,7 @@ from odoo.exceptions import ValidationError, UserError
 import logging
 _logger = logging.getLogger(__name__)
 
+
 class StockQuantPackage(models.Model):
     _inherit = "stock.quant.package"
 
@@ -117,6 +118,25 @@ class StockQuantPackage(models.Model):
         return frozenset(self._get_all_products_quantities().items()) == \
                frozenset(other._get_all_products_quantities().items())
 
+    def mls_can_fulfil(self, mls):
+        """Returns mls which the package can fulfil. If the product_qty of the
+        mls is larger than in the package (i.e. in self) the mls will be split.
+        """
+        MoveLines = self.env["stock.move.line"]
+        pack_quantities = self._get_all_products_quantities()
+        can_fulfil_mls = MoveLines.browse()
+        excess_mls = MoveLines.browse()
+        for prod, mls_grp in mls.groupby("product_id"):
+            pack_qty = pack_quantities.get(prod, 0)
+            if pack_qty == 0:
+                # just skip over
+                continue
+            fulfil_mls, excess_ml, _ = mls_grp.move_lines_for_qty(pack_qty)
+            can_fulfil_mls |= fulfil_mls
+            if excess_ml:
+                excess_mls |= excess_ml
+        return can_fulfil_mls, excess_mls
+
     def assert_reserved_full_package(self, move_lines):
         """ Check that a package is fully reserved at move_lines.
         """
@@ -167,10 +187,9 @@ class StockQuantPackage(models.Model):
             Returns a recordset with the move lines.
 
         """
-        self.ensure_one()
         MoveLine = self.env['stock.move.line']
 
-        domain = [('package_id', '=', self.id),
+        domain = [('package_id', 'in', self.ids),
                   ('state', 'not in', ['done', 'cancel'])]
 
         if aux_domain is not None:
