@@ -1,12 +1,12 @@
 from abc import ABCMeta
 
 
-class RegisterMeta(ABCMeta):
+class RegistryMeta(ABCMeta):
 
     udes_registry = {}
 
     def __init__(cls, name, bases, dict):
-        super(RegisterMeta, cls).__init__(name, bases, dict)
+        super(RegistryMeta, cls).__init__(name, bases, dict)
         policy_name = cls.name()
 
         if not policy_name:

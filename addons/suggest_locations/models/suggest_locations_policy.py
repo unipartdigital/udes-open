@@ -2,17 +2,17 @@
 
 from abc import abstractmethod, abstractclassmethod
 
-from odoo.addons.udes_common.tools import RegisterMeta
+from odoo.addons.udes_common.tools import RegistryMeta
 
 SUGGEST_LOCATION_REGISTRY = dict()
 
 
-class SuggestRegisterMeta(RegisterMeta):
+class SuggestRegistryMeta(RegistryMeta):
 
     udes_registry = SUGGEST_LOCATION_REGISTRY
 
 
-class SuggestLocationPolicy(metaclass=SuggestRegisterMeta):
+class SuggestLocationPolicy(metaclass=SuggestRegistryMeta):
     def __init__(self, env, _preprocessing):
         """Use preprocessing flag to raise error if policy should not be
         preprocessed
@@ -28,7 +28,7 @@ class SuggestLocationPolicy(metaclass=SuggestRegisterMeta):
     @abstractmethod
     def get_values_from_dict(self, values):
         """Find values based on the dict passed from
-            stock.move._prepare_move_line_vals
+        stock.move._prepare_move_line_vals
         """
         return dict()
 
