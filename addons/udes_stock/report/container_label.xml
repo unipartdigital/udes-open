@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <!-- Container Label Report -->
+        <report id="report_container_label"
+                model="stock.quant.package"
+                name="udes_stock.report_container_labels_cpcl"
+                report_type="qweb-cpcl"
+                file="udes_stock.report_container_labels_cpcl"
+                string="Container Label"/>
+
+        <!-- Container Label Template (Many) -->
+        <template id="report_container_labels_cpcl">
+            <cpcl xmlns="http://www.fensystems.co.uk/xmlns/cpcl">
+                <t t-foreach="docs" t-as="doc">
+                    <t t-call="udes_stock.report_container_label_cpcl" />
+                </t>
+            </cpcl>
+        </template>
+
+        <!-- Single Container Label -->
+        <template id="report_container_label_cpcl">
+            <print height="250">
+                <in-millimeters/>
+                <page-width>100</page-width>
+                <page-height>100</page-height>
+                <center/>
+                <box x0="0" y0="5" x1="95" y1="42" width="0" />
+                <barcode-text size="2" offset="1" />
+                <barcode type="128" y="8" width="0.2" height="25"
+                         t-esc="doc.name"/>
+            </print>
+        </template>
+
+    </data>
+</odoo>
+
