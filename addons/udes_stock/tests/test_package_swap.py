@@ -706,3 +706,44 @@ class TestPackageContentsSwap(common.BaseUDES):
             expected_package_names=reserved_packs.mapped("name"),
             product_ids=product_ids
         )
+
+    def test08_swap_quantity_within_expected(self):
+        """Part swap packages"""
+        self._make_pack3_quant()
+        self._make_pack4_quant()
+
+        picking = self.create_picking(self.picking_type_pick,
+                                      products_info=self._make_info(4),
+                                      confirm=True,
+                                      assign=True)
+
+        picking.update_picking(
+            package_name=self.pack4.name,
+            expected_package_names=[self.pack3.name, self.pack4.name],
+            product_ids=[{"barcode": self.apple.barcode, "qty": 4}]
+        )
+        self.assertFalse(self.pack3.is_reserved())
+        self._check_reserved(self.pack4, 4)
+
+    def test09_swap_quantity_within_expected_reserved_for_other_as_well(self):
+        """Part swap packages"""
+        self._make_pack3_quant()
+        self._make_pack4_quant()
+
+        picking = self.create_picking(self.picking_type_pick,
+                                      products_info=self._make_info(4),
+                                      confirm=True,
+                                      assign=True)
+
+        self.create_picking(self.picking_type_pick,
+                            products_info=self._make_info(3),
+                            confirm=True,
+                            assign=True)
+
+        picking.update_picking(
+            package_name=self.pack4.name,
+            expected_package_names=[self.pack3.name, self.pack4.name],
+            product_ids=[{"barcode": self.apple.barcode, "qty": 4}]
+        )
+        self.assertTrue(self.pack3.is_reserved())
+        self._check_reserved(self.pack4, 4)

@@ -676,6 +676,9 @@ class StockPicking(models.Model):
         if 'expected_package_names' in kwargs:
             self = self.with_context(
                 expected_package_names=kwargs.pop('expected_package_names'))
+            if product_ids:
+                # product_ids name kept for consistency
+                self = self.with_context(product_ids=product_ids)
 
         values = {}
 
@@ -1390,6 +1393,12 @@ class StockPicking(models.Model):
 
     def _swap_package_contents(self, scanned_package, expected_packages,
                                scanned_pack_mls, exp_pack_mls):
+
+        if scanned_pack_mls and exp_pack_mls and scanned_pack_mls & exp_pack_mls:
+            # Remove move lines in exp_pack_mls to see if we can
+            # treat the scanned pack as unreserved
+            scanned_pack_mls -= exp_pack_mls
+
         if scanned_pack_mls and exp_pack_mls:
             # Swap expected packs for scanned pack
             _update_move_lines_and_log_swap(exp_pack_mls,
