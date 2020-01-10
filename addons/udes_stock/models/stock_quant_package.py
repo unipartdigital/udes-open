@@ -181,9 +181,6 @@ class StockQuantPackage(models.Model):
             A further aux domain can be specified for searching
             move lines.
 
-            Raises a ValidationError in case multiple pickings
-            are associated with the found move lines.
-
             Returns a recordset with the move lines.
 
         """
@@ -196,14 +193,6 @@ class StockQuantPackage(models.Model):
             domain += aux_domain
 
         move_lines = MoveLine.search(domain)
-        picking_names = move_lines.mapped('picking_id.name')
-
-        if len(picking_names) > 1:
-            pick_names_txt = ", ".join(picking_names)
-            raise ValidationError(
-                _('Package %s found in multiple pickings (%s).')
-                % (self.name, pick_names_txt))
-
         return move_lines
 
     def action_print_goods_slip(self):

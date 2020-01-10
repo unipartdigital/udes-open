@@ -333,6 +333,25 @@ class StockMoveLine(models.Model):
 
         return move_lines
 
+    def _requires_pack_swapping(self, pack, expected_packages, product_ids):
+        if not expected_packages:
+            return False
+        elif pack not in expected_packages:
+            return True
+        elif product_ids:
+            # this pack is expected but we need to check if it had the quantity
+            # required reserved for this pick to fulfill the request
+            pick_mls_qtys = self.mapped('picking_id.move_line_ids') \
+                                .filtered(lambda ml: ml.package_id == pack) \
+                                ._get_all_products_quantities()
+
+            product_quantities = self._prepare_products_info(deepcopy(product_ids))
+            for prod, values in product_quantities.items():
+                if pick_mls_qtys[prod] < int(values['qty']):
+                    return True
+        else:
+            return False
+
     def get_package_move_lines(self, package):
         """ Get move lines of package when package is a package or
             a parent package, and to handle swapping packages in
@@ -347,13 +366,16 @@ class StockMoveLine(models.Model):
         expected_package_names = self.env.context.get('expected_package_names')
         picking = self.mapped('picking_id')
 
-        if expected_package_names is not None \
-           and package.name not in expected_package_names:
+        if expected_package_names is not None:
 
             expected_packages = Package.search([
                 ("name", "in", expected_package_names),
             ])
-            move_lines = picking.maybe_swap(package, expected_packages)
+
+            product_ids = self.env.context.get('product_ids')
+            if self._requires_pack_swapping(package, expected_packages,
+                                            product_ids):
+                move_lines = picking.maybe_swap(package, expected_packages)
 
         if move_lines is None:
             if package.children_ids:
