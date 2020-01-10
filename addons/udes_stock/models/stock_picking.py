@@ -1560,19 +1560,23 @@ class StockPicking(models.Model):
                     _("Packages have different picking types and cannot be "
                       "swapped"))
 
-            if self.batch_id and mls_picking.batch_id == self.batch_id:
-                # The scanned package and the expected are in
-                # the same batch; don't need to be swapped -
-                # simply return the move lines of the scanned
-                # package
-                return scanned_pack_mls
-
         if self.picking_type_id.u_user_scans == "product":
             return self._swap_package_contents(scanned_package,
                                                expected_packages,
                                                scanned_pack_mls,
                                                exp_pack_mls)
         else:
+            if (
+                scanned_pack_mls
+                and self.batch_id
+                and mls_picking.batch_id == self.batch_id
+            ):
+                # The scanned package and the expected are in
+                # the same batch; don't need to be swapped -
+                # simply return the move lines of the scanned
+                # package
+                return scanned_pack_mls
+
             return self._swap_entire_package(scanned_package,
                                              expected_packages,
                                              scanned_pack_mls,
