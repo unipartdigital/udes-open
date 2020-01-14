@@ -212,6 +212,23 @@ class StockQuantPackage(models.Model):
         else:
             raise UserError(_("Label failed to print"))
 
+    def action_print_container_label(self):
+        """
+        Print label for package
+        """
+        Printer = self.env['print.printer']
+        self.ensure_one()
+
+        _logger.info(_("User %d requested print of container label "
+                       "for %s") % (self.env.uid, self.name))
+
+        spool = Printer.spool_report(docids=[self.id],
+                                     report_name='udes_stock.report_container_label')
+        if spool:
+            return True
+        else:
+            raise UserError(_("Label failed to print"))
+
     @api.model
     def _check_allowed_package(self, values):
         wh = self.env.user.get_user_warehouse()
