@@ -262,11 +262,12 @@ class StockMoveLine(models.Model):
 
     def _filter_by_products_info(self, products_info):
         """ Filter the move_lines in self by the products in product_ids.
-            When a product is tracked by lot number:
+            When a product is tracked by lot/serial number:
             - when they have lot_id set, they are also filtered by
               lot number and check that they are not done
             - when they have lot_name, it is checked to avoid repeated
-              lot numbers
+              lot numbers (except for lot based tracking where this is
+              allowed)
         """
         # get all move lines of the products in products_info
         move_lines = self.filtered(lambda ml: ml.product_id in products_info)
@@ -297,14 +298,14 @@ class StockMoveLine(models.Model):
                 if len(product_mls_in_lot_numbers) != len(lot_numbers):
                     mls_lot_numbers = product_mls_in_lot_numbers.mapped('lot_id.name')
                     diff = set(lot_numbers) - set(mls_lot_numbers)
-                    raise ValidationError(
-                        _('Lot numbers %s for product %s not found in '
-                          'picking %s') %
-                        (' '.join(diff), product.name,
-                         product_mls.mapped('picking_id').name))
+                    if product.tracking == 'serial' and set(lot_numbers) != set(mls_lot_numbers):
+                        raise ValidationError(_('Lot numbers %s for product %s not found in '
+                                              'picking %s') %
+                                              (' '.join(diff), product.name,
+                                              product_mls.mapped('picking_id').name))
 
                 done_mls = product_mls_in_lot_numbers.filtered(lambda ml: ml.qty_done > 0)
-                if done_mls:
+                if product.tracking == 'serial' and done_mls == product_mls_in_lot_numbers:
                     raise ValidationError(
                         _("Operations for product %s with lot numbers %s are "
                           "already done.") %
