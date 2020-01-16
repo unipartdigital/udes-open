@@ -411,10 +411,14 @@ class StockMoveLine(models.Model):
 
     def generate_lot_name(self, lot_names, product):
         """ If required, create a lot and return it's name in a list """
-        confirm_tracking = self.mapped('picking_id.picking_type_id').u_confirm_tracking
+        picking_type = self.mapped('picking_id.picking_type_id')
+        picking_type.ensure_one()
+        confirm_tracking = picking_type.u_scan_tracking
         if confirm_tracking == 'no':
             if len(lot_names) == 0:
                 return [self._generate_lot_name(product)]
+            else:
+                return lot_names
         elif confirm_tracking == 'first_last':
             raise ValidationError(_('Not implemented'))
         else:

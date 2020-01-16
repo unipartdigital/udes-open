@@ -335,7 +335,7 @@ class StockPicking(models.Model):
     def update_lot_names(self):
         """ Create lot names for move lines where user is not required to provide them """
         picking_type = self.picking_type_id
-        if (picking_type.use_create_lots or picking_type.use_existing_lots) and picking_type.u_confirm_tracking == 'no':
+        if (picking_type.use_create_lots or picking_type.use_existing_lots) and picking_type.u_scan_tracking == 'no':
             lines_to_check = self.move_line_ids.filtered(lambda ml: ml.product_id.tracking != 'none')
             for line in lines_to_check:
                 product = line.product_id

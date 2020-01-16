@@ -10,9 +10,9 @@ class TestGenerateLot(common.BaseUDES):
 
     def test01_update_picking_missing_lot(self):
         """ Update picking of a tracked product without lot_name should raise
-            a ValidationError when u_confirm_tracking is yes.
+            a ValidationError when u_scan_tracking is yes.
         """
-        self.picking_type_in.u_confirm_tracking = 'yes'
+        self.picking_type_in.u_scan_tracking = 'yes'
         create_info = [{'product': self.tangerine, 'qty': 4}]
         picking = self.create_picking(self.picking_type_in,
                                       products_info=create_info,
@@ -29,10 +29,10 @@ class TestGenerateLot(common.BaseUDES):
 
     def test02_update_picking_generate_lot(self):
         """ Update picking of a tracked product without lot_name shouldn't raise
-            any error when u_confirm_tracking is no, and a lot name should be
+            any error when u_scan_tracking is no, and a lot name should be
             automatically generated.
         """
-        self.picking_type_in.u_confirm_tracking = 'no'
+        self.picking_type_in.u_scan_tracking = 'no'
 
         create_info = [{'product': self.tangerine, 'qty': 4}]
         picking = self.create_picking(self.picking_type_in,
@@ -50,9 +50,9 @@ class TestGenerateLot(common.BaseUDES):
 
     def test03_button_validate_generate_lot(self):
         """ Calling button_validate on a picking generates lot names if they
-            are not set and u_confirm_tracking is no.
+            are not set and u_scan_tracking is no.
         """
-        self.picking_type_in.u_confirm_tracking = 'no'
+        self.picking_type_in.u_scan_tracking = 'no'
 
         create_info = [{'product': self.tangerine, 'qty': 4}]
         picking = self.create_picking(self.picking_type_in,
