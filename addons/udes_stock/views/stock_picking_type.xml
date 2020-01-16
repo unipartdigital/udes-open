@@ -37,6 +37,7 @@
                     <field name="u_new_package_policy" />
                     <field name="u_drop_location_preprocess"/>
                     <field name="u_confirm_tracking" />
+                    <field name="u_scan_tracking" />
                     <field name="u_confirm_expiry_date" />
                     <field name="u_auto_batch_pallet" />
                     <field name="u_continue_picking" />
