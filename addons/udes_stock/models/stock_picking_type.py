@@ -92,16 +92,16 @@ class StockPickingType(models.Model):
         help="Flag to indicate reservations should be rounded up to entire packages."
     )
 
-    # u_scan_tracking maybe better?
-    u_confirm_tracking = fields.Selection([
+    u_scan_tracking = fields.Selection([
         ('no', 'No'),
         ('yes', 'Yes'),
         ('first_last', 'First/Last'),
     ],
         required=True,
         default='yes',
-        string='Confirm Tracked Products',
-        help='Confirm tracked products: yes; no; first and last serial number.',
+        string='Scan Tracked Products',
+        help='Scan tracked products: yes; no; first and last serial number.',
+        oldname='u_confirm_tracking',
     )
 
     u_confirm_expiry_date = fields.Boolean(
@@ -412,7 +412,7 @@ class StockPickingType(models.Model):
                 'u_reserve_as_packages': self.u_reserve_as_packages,
                 'u_handle_partials': self.u_handle_partials,
                 'u_create_procurement_group': self.u_create_procurement_group,
-                'u_confirm_tracking': self.u_confirm_tracking,
+                'u_scan_tracking': self.u_scan_tracking,
                 'u_confirm_expiry_date': self.u_confirm_expiry_date,
                 'u_drop_criterion': self.u_drop_criterion,
                 'drop_criterion_instructions': drop_off_instructions,
