@@ -728,3 +728,42 @@ class TestLocationPI(common.BaseUDES):
         self.assertEquals(prec_inv.u_next_inventory_id.id, inv_id,
                           "The preceding adjustments inventory is not linked "
                           "correctly to the next inventory adjustments")
+
+    def test26_validate_pi_request_lot_with_untracked_product_zero_quantity(self):
+        """
+        No error raised if the request contains an inventory adjustment entry
+        for an untracked product with a lot name specified if quantity == 0
+        """
+        req = {
+            'location_id': self.test_location_01.id,
+            'inventory_adjustments': [
+                {
+                    'product_id': self.apple.id,
+                    'package_name': self.package_one.name,
+                    'quantity': 0,
+                    'lot_name': 'awesome_lot'
+                }
+            ]
+        }
+
+        self.test_location_01._validate_perpetual_inventory_request(req)
+        self.assertTrue(True)
+
+    def test27_validate_pi_request_tracked_product_without_lot_zero_quantity(self):
+        """
+        No error raised if the request contains an inventory adjustment entry
+        for a tracked product without a lot name specified if quantity == 0
+        """
+        req = {
+            'location_id': self.test_location_01.id,
+            'inventory_adjustments': [
+                {
+                    'product_id': self.strawberry.id,
+                    'package_name': self.package_one.name,
+                    'quantity': 0
+                }
+            ]
+        }
+
+        self.test_location_01._validate_perpetual_inventory_request(req)
+        self.assertTrue(True)
