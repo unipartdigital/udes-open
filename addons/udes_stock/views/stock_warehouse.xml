@@ -43,7 +43,6 @@
                             <field name="u_reserved_package_name" />
                         </group>
                     </page>
-
                 </xpath>
             </field>
         </record>
