@@ -3,6 +3,7 @@
 from odoo import api, fields, models
 from odoo.addons import decimal_precision as dp
 from odoo.exceptions import ValidationError
+from odoo.tools.translate import _
 
 
 class ProductTemplate(models.Model):
@@ -61,3 +62,13 @@ class ProductTemplate(models.Model):
         if self.u_pallet_qty < 0:
             raise ValidationError(
                 "Value for pallet quantity cannot be below 0.")
+
+    @api.onchange('tracking')
+    def _confirm_lot_trackng_change(self):
+        """ Prevent accidental changes to lot tracking number.
+        """
+        if self.qty_available > 0:
+            return  {'warning': {
+                        'title': _('Change Tracking Type'),
+                        'message': _('Products already existing in locations will need to be stock checked.')
+                    }}
