@@ -64,7 +64,7 @@ class ProductTemplate(models.Model):
                 "Value for pallet quantity cannot be below 0.")
 
     @api.onchange('tracking')
-    def _confirm_lot_trackng_change(self):
+    def _confirm_lot_tracking_change(self):
         """ Prevent accidental changes to lot tracking number.
         """
         if self.qty_available > 0:
