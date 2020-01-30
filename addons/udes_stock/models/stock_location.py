@@ -198,6 +198,11 @@ class StockLocation(models.Model):
 
         product = Product.get_product(int(request['product_id']))
 
+        # Ignore conflicts of tracked vs untracked if we are removing existing
+        # stock
+        if request['quantity'] == 0:
+            return
+
         if 'lot_name' not in request:
             if product.tracking != 'none':
                 raise ValidationError(
@@ -455,7 +460,7 @@ class StockLocation(models.Model):
         # Replace requests with values passed through by reserved filter
         adjustments_request = adj_reqs
 
-        # Readd them to adjustments_request
+        # Read them to adjustments_request
         new_adjs = []
         for product, quantity in no_package_vals.items():
             new_adjs.append({
@@ -464,7 +469,6 @@ class StockLocation(models.Model):
             'quantity': quantity,
             })
         adjustments_request.extend(new_adjs)
-
         # Look through all quants not in packages within location and index
         # the quantities by product, as we have collected quantities by product
         # for the adjustments without package this allows us to directly compare
@@ -498,8 +502,7 @@ class StockLocation(models.Model):
             # determine the lot
 
             lot_id = False
-            if product.tracking != 'none':
-                assert 'lot_name' in adj, "Request should contain lot_name"
+            if 'lot_name' in adj:
                 lot = Lot.get_lot(adj['lot_name'], product.id, create=True)
                 lot_id = lot.id
 
