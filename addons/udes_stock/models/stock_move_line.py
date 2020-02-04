@@ -972,3 +972,12 @@ class StockMoveLine(models.Model):
                                               int(sum(prod_mls.mapped('qty_done'))),
                                               product_speed)
         return summary
+
+    @api.constrains('product_id', 'location_id', 'location_dest_id',
+                    'package_id', 'result_package_id', 'lot_id', 'lot_name',
+                    'qty_done')
+    def _prevent_write_after_done(self):
+        done_lines = self.filtered(lambda x: x.state == 'done')
+        if done_lines:
+            raise ValidationError(
+                _("Cannot update move lines that are already 'done'."))
