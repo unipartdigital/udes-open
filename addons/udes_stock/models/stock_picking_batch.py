@@ -468,7 +468,7 @@ class StockPickingBatch(models.Model):
         if not pickings:
             return None
 
-        new_name = get_next_name(self, 'Batch Picking')
+        new_name = get_next_name(self, 'picking.batch')
         batch = self.sudo().copy({'name': new_name})
         _logger.info('Created continuation batch %r, %s', batch, batch.name)
 
@@ -976,7 +976,7 @@ class StockPickingBatch(models.Model):
         return
 
 
-def get_next_name(obj, name):
+def get_next_name(obj, code):
     """
     Get the next name for an object.
 
@@ -986,16 +986,23 @@ def get_next_name(obj, name):
 
     Arguments:
         obj - the source object for the name
-        name - the name for the object's model in the ir_sequence table
+        code - the code for the object's model in the ir_sequence table
 
     Returns:
         The generated name, a string.
     """
     IrSequence = obj.env['ir.sequence']
 
+    # Get the sequence for the object type.
+    obj.check_access_rights('read')
+    force_company = obj._context.get('force_company')
+    if not force_company:
+        force_company = obj.env.user.company_id.id
+    seq_id = IrSequence.seq_by_code(code, force_company)
+    ir_sequence = IrSequence.browse(seq_id)
+
     # Name pattern for continuation object.
     # Is two digits enough?
-    ir_sequence = IrSequence.search([('name', '=', name)], limit=1)
     name_pattern = r'({}\d+)-(\d{{2}})'.format(re.escape(ir_sequence.prefix))
 
     match = re.match(name_pattern, obj.name)
