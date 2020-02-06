@@ -22,6 +22,12 @@ class EdiDocument(models.Model):
     def action_execute(self):
         """Extend action execute to call notifiers"""
         super().action_execute()
-        if self.doc_type_id.notifier_ids:
-            _logger.info("Calling notifiers")
-            self.doc_type_id.notifier_ids.notify(self)
+        for doc_type, docs in self.groupby("doc_type_id"):
+            if doc_type.notifier_ids:
+                _logger.info(
+                    "Calling notifiers {} on records: {}".format(
+                        ", ".join(doc_type.notifier_ids.ids),
+                        "{} ({})".format(doc_type.name, ", ".join(docs.ids)),
+                    )
+                )
+                doc_type.notifier_ids.notify(docs)
