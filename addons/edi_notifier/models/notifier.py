@@ -23,9 +23,8 @@ class IrModel(models.Model):
 
     def _reflect_model_params(self, model):
         vals = super()._reflect_model_params(model)
-        vals["is_edi_notifier"] = (
-            model._name not in NOT_SELECTABLE and 
-            issubclass(type(model), self.pool["edi.notifier.model"])
+        vals["is_edi_notifier"] = model._name not in NOT_SELECTABLE and issubclass(
+            type(model), self.pool["edi.notifier.model"]
         )
         if vals["is_edi_notifier"] and vals["name"] == vals["model"]:
             vals["name"] = " ".join([x.capitalize() for x in vals["name"].split(".")])

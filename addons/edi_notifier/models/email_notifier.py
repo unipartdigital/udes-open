@@ -1,10 +1,6 @@
-import logging
 from datetime import datetime
 
 from odoo import fields, api, models
-
-
-_logger = logging.getLogger(__name__)
 
 
 class EdiEmailNotifier(models.AbstractModel):
@@ -14,7 +10,6 @@ class EdiEmailNotifier(models.AbstractModel):
     _description = "Edi Notifier Email Base Model"
 
     def _should_notify(self, notifier, rec):
-        print("!" * 100, rec._name != notifier.template_id.model_id.model)
         if rec._name != notifier.template_id.model_id.model:
             return False
         return True
@@ -67,7 +62,6 @@ class EdiEmailMissingNotifier(models.AbstractModel):
         )
 
     def _should_notify(self, notifier, rec):
-
         res = super()._should_notify(notifier, rec)
         if res:
             last_reported = fields.Datetime.from_string(
