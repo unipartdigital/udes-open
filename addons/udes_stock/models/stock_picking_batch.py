@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import re
 from itertools import chain
 
 from odoo import _, api, fields, models
@@ -453,6 +454,29 @@ class StockPickingBatch(models.Model):
 
         return batch
 
+    def _copy_continuation_batch(self, pickings):
+        """
+        Copy a batch and add the provided pickings.
+
+        The new batch will be named BATCH/nnnnn-XX where XX is a sequence number
+        which will be incremented or set to '01'.
+        The batch will not be marked as ephemeral.
+        In case no pickings exist, return None.
+        """
+        self.ensure_one()
+
+        if not pickings:
+            return None
+
+        new_name = get_next_name(self, 'Batch Picking')
+        batch = self.sudo().copy({'name': new_name})
+        _logger.info('Created continuation batch %r, %s', batch, batch.name)
+
+        pickings.write({'batch_id': batch.id})
+        batch._compute_state()
+
+        return batch
+
     def add_extra_pickings(self, picking_type_id):
         """ Get the next available picking and add it to the current users batch """
         Picking = self.env['stock.picking']
@@ -866,14 +890,20 @@ class StockPickingBatch(models.Model):
         """ Unassign user from batches, in case of an ephemeral batch then
         also unassign incomplete pickings from the batch
         """
-        # Unassign user from batch
-        self.sudo().write({'user_id': False})
-
         # Unassign batch_id from incomplete stock pickings on ephemeral batches
         self.filtered(lambda b: b.u_ephemeral)\
             .mapped('picking_ids')\
             .filtered(lambda sp: sp.state not in ('done', 'cancel'))\
             .write({'batch_id': False})
+
+        # Assign incomplete pickings to new batch
+        _logger.info('Creating continuation batch from %r.', self.name)
+        pickings = self.filtered(lambda b: not b.u_ephemeral)\
+                       .mapped('picking_ids')\
+                       .filtered(lambda sp: sp.state not in ('done', 'cancel'))
+        _logger.info('Picking ids continuation %r', pickings)
+
+        self._copy_continuation_batch(pickings)
 
     def remove_unfinished_work(self):
         """
@@ -944,3 +974,36 @@ class StockPickingBatch(models.Model):
         self._compute_state()
 
         return
+
+
+def get_next_name(obj, name):
+    """
+    Get the next name for an object.
+
+    For when we want to create an object whose name links back to a previous
+    object.  For example BATCH/00001-02.
+    Assumes original names are of the form `r".*\d{5}"`.
+
+    Arguments:
+        obj - the source object for the name
+        name - the name for the object's model in the ir_sequence table
+
+    Returns:
+        The generated name, a string.
+    """
+    IrSequence = obj.env['ir.sequence']
+
+    # Name pattern for continuation object.
+    # Is two digits enough?
+    ir_sequence = IrSequence.search([('name', '=', name)], limit=1)
+    name_pattern = r'({}\d{{5}})-(\d{{2}})'.format(re.escape(ir_sequence.prefix))
+
+    match = re.match(name_pattern, obj.name)
+    if match:
+        root = match.group(1)
+        new_sequence = int(match.group(2)) + 1
+    else:
+        # This must be the original object.
+        root = obj.name
+        new_sequence = 1
+    return '{}-{:0>2}'.format(root, new_sequence)
