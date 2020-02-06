@@ -1,0 +1,65 @@
+<?xml version="1.0"?>
+<odoo>
+  <data>
+
+    <!-- Form view -->
+    <record id="notifier_timeslot_form" model="ir.ui.view">
+      <field name="name">edi.notifier.timeslot.form</field>
+      <field name="model">edi.notifier.timeslot</field>
+      <field name="arch" type="xml">
+        <form string="EDI notifier.timeslot">
+          <sheet>
+            <group name="basic">
+              <field name="time_float" widget="float_time"/>
+            </group>
+          </sheet>
+        </form>
+      </field>
+    </record>
+
+    <!-- Tree view -->
+    <record id="notifier_timeslot_tree" model="ir.ui.view">
+      <field name="name">edi.notifier.timeslot.tree</field>
+      <field name="model">edi.notifier.timeslot</field>
+      <field name="arch" type="xml">
+        <tree string="EDI notifier timeslots">
+          <field name="time_float" widget="float_time" attrs="{'text-align': 'left'}"/>
+        </tree>
+      </field>
+    </record>
+
+    <!-- Search filter -->
+    <record id="notifier_timeslot_search" model="ir.ui.view">
+      <field name="name">edi.notifier.timeslot.search</field>
+      <field name="model">edi.notifier.timeslot</field>
+      <field name="arch" type="xml">
+        <search string="Search EDI notifier timeslot">
+          <field name="time_float" widget="float_time"/>
+        </search>
+      </field>
+    </record>
+
+    <!-- Action window -->
+    <record id="notifier_timeslot_action" model="ir.actions.act_window">
+      <field name="name">EDI notifier timeslots</field>
+      <field name="type">ir.actions.act_window</field>
+      <field name="res_model">edi.notifier.timeslot</field>
+      <field name="view_type">form</field>
+      <field name="view_id" ref="notifier_timeslot_tree"/>
+      <field name="search_view_id" ref="notifier_timeslot_search"/>
+      <field name="help" type="html">
+        <p class="oe_view_nocontent_create">
+Click to create an EDI notifier timeslot.
+        </p>
+        <p>
+Electronic Data Interchange (EDI) notifier timeslots are used to
+automate the sending of noitifications.
+        </p>
+      </field>
+    </record>
+
+    <!-- Menu item -->
+    <menuitem id="notifier_timeslot_menu" name="Notifier timeslots" action="notifier_timeslot_action" parent="edi.config_menu" sequence="40"/>
+
+  </data>
+</odoo>
