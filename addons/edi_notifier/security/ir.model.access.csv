@@ -1,2 +1,2 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_edi_notifier_edi_notifier,edi_notifier.edi_notifier,model_edi_notifier_edi_notifier,udes_security.group_trusted_user,1,0,0,0
+access_edi_notifier_edi_notifier,edi_notifier.edi_notifier,model_edi_notifier,udes_security.group_trusted_user,1,0,0,0
