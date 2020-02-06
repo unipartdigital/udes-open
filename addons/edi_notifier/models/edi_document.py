@@ -26,8 +26,8 @@ class EdiDocument(models.Model):
             if doc_type.notifier_ids:
                 _logger.info(
                     "Calling notifiers {} on records: {}".format(
-                        ", ".join(doc_type.notifier_ids.ids),
-                        "{} ({})".format(doc_type.name, ", ".join(docs.ids)),
+                        ", ".join(map(str, doc_type.notifier_ids.ids)),
+                        "{} ({})".format(doc_type.name, ", ".join(map(str, docs.ids))),
                     )
                 )
                 doc_type.notifier_ids.notify(docs)
