@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import re
 from itertools import chain
 
 from odoo import _, api, fields, models
@@ -453,6 +454,50 @@ class StockPickingBatch(models.Model):
 
         return batch
 
+    def _create_continuation_batch(self, picking_id):
+        """
+        Create a batch for the specified user by including only
+        the specified picking ids.
+
+        The batch will not be marked as ephemeral.
+        In case no pickings exist, return None.
+        """
+        IrSequence = self.env['ir.sequence']
+        PickingBatch = self.env['stock.picking.batch']
+        Picking = self.env['stock.picking']
+
+        self.ensure_one()
+
+        if picking_id:
+            picking = Picking.browse(picking_id)
+        else:
+            return None
+
+        # Name pattern for continuation batch
+        # Is two digits enough?
+        prefix = IrSequence.search(['code', '=', 'picking.batch'])
+        name_pattern = r'({}\d{{5}})-(\d{{2}})'.format(re.escape(prefix))
+
+        match = re.match(name_pattern, self.name)
+        if match:
+            root = match.group(1)
+            new_sequence = int(match.group(2)) + 1
+        else:
+            # This must be the first continuation batch.
+            root = self.name
+            new_sequence = 1
+        new_name = '{}-{:0>2}'.format(root, new_sequence)
+
+        batch = PickingBatch.sudo().create({'name': new_name})
+        _logger.info('Created continuation batch %r, %s', batch, batch.name)
+        _logger.info('Batch id %d', batch.id)
+
+        picking.write({'batch_id': batch.id})
+        batch.write({'u_ephemeral': False})
+        batch.confirm_picking()
+
+        return batch
+
     def add_extra_pickings(self, picking_type_id):
         """ Get the next available picking and add it to the current users batch """
         Picking = self.env['stock.picking']
@@ -874,6 +919,15 @@ class StockPickingBatch(models.Model):
             .mapped('picking_ids')\
             .filtered(lambda sp: sp.state not in ('done', 'cancel'))\
             .write({'batch_id': False})
+
+        # Assign incomplete pickings to new batch
+        _logger.info('Creating continuation batch from %r.', self.name)
+        picking_ids = self.filtered(lambda b: not b.u_ephemeral)\
+            .mapped('picking_ids')\
+            .filtered(lambda sp: sp.state not in ('done', 'cancel')).ids
+        _logger.info('Picking ids continuation %r', picking_ids)
+
+        self._create_continuation_batch(picking_ids)
 
     def remove_unfinished_work(self):
         """
