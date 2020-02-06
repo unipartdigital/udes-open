@@ -47,7 +47,7 @@ class ServerActions(models.Model):
         """Run EDI Notifer server action"""
         # pylint: disable=unused-argument
         if action.edi_notifier_id:
-            _logger.info("Running notifier {} via cron".format(action.edi_notifier_id))
+            _logger.info("Running notifier {} via cron".format(action.edi_notifier_id.id))
             action.edi_notifier_id.notify()
 
 
