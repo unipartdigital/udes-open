@@ -1,8 +1,4 @@
-import logging
-
 from odoo import fields, api, models
-
-_logger = logging.getLogger(__name__)
 
 
 class EmailTemplate(models.Model):
