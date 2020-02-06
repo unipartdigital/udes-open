@@ -15,11 +15,11 @@
     "depends": ["base", "edi", "mail", "udes_security"],
     # always loaded
     "data": [
-        # 'security/ir.model.access.csv',
+        "data/mail_templates.xml",
+        "security/ir.model.access.csv",
         "views/notifiers.xml",
         "views/edi_document_type.xml",
         "views/mail_template.xml",
-        # "views/timeslots.xml",
         "views/ir_cron_view.xml",
         "views/ir_actions_view.xml",
     ],
