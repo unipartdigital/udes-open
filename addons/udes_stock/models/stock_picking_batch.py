@@ -982,7 +982,7 @@ def get_next_name(obj, name):
 
     For when we want to create an object whose name links back to a previous
     object.  For example BATCH/00001-02.
-    Assumes original names are of the form `r".*\d{5}"`.
+    Assumes original names are of the form `r".*\d+"`.
 
     Arguments:
         obj - the source object for the name
@@ -996,7 +996,7 @@ def get_next_name(obj, name):
     # Name pattern for continuation object.
     # Is two digits enough?
     ir_sequence = IrSequence.search([('name', '=', name)], limit=1)
-    name_pattern = r'({}\d{{5}})-(\d{{2}})'.format(re.escape(ir_sequence.prefix))
+    name_pattern = r'({}\d+)-(\d{{2}})'.format(re.escape(ir_sequence.prefix))
 
     match = re.match(name_pattern, obj.name)
     if match:
