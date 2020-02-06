@@ -154,7 +154,8 @@ class EdiNotifier(models.Model):
     @api.multi
     def notify(self, recs=None):
         for notifier in self:
-            self.env[notifier.model_id.model].notify(notifier, recs)
+            if notifier.active:
+                self.env[notifier.model_id.model].notify(notifier, recs)
 
 
 class EdiNotifierModel(models.AbstractModel):
