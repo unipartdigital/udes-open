@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from odoo import fields, api, models
 
@@ -46,8 +46,18 @@ class EdiEmailMissingNotifier(models.AbstractModel):
     can_use_crons = True
     _timestamp_field = "x_last_not_received_notification"
 
+    def _get_time_today(self, cron):
+        time = fields.Datetime.from_string(cron.nextcall).time()
+        return datetime.now().replace(
+            hour=time.hour, minute=time.minute, second=0, microsecond=0,
+        )
+
     def _get_transfers(self, rec, time_today, last_reported):
-        today = datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
+
+        # To account for time truncation and goal post problems
+        time_today += timedelta(minutes=1)
+
+        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
         if last_reported is not None and last_reported > today:
             date_lower_bound = last_reported
         else:
@@ -67,14 +77,10 @@ class EdiEmailMissingNotifier(models.AbstractModel):
             last_reported = fields.Datetime.from_string(
                 getattr(rec, self._timestamp_field)
             )
+            # this needed for times when the it isn't triggered by a cron
             for timeslot in notifier.cron_ids:
-                time = fields.Datetime.from_string(timeslot.nextcall).time()
-                time_today = datetime.now().replace(
-                    hour=time.hour, minute=time.minute, second=0, microsecond=0,
-                )
-                if time <= datetime.now().time() and (
-                    last_reported is None or last_reported < time_today
-                ):
+                time_today = self._get_time_today(timeslot)
+                if last_reported is None or last_reported < time_today:
                     return not self._get_transfers(rec, time_today, last_reported)
         return False
 
