@@ -14,6 +14,13 @@
 
 <p>${object.doc_type_id.name} ${object.name} has been successfully received at ${format_tz(object.create_date)} and is now being processed.</p>
 <br/>
+<p>The files attached are:
+  <ul>
+  % for file in object.input_ids:
+    <li>${file.datas_fname}</li>
+  % endfor
+  </ul>
+</p>
 <p>This is an automated email and replies will not be monitored.</p>
 </div>
       ]]></field>
