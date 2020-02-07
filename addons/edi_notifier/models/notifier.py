@@ -60,7 +60,7 @@ class EdiNotifier(models.Model):
     name = fields.Char(string="Name", required=True, index=True)
     model_id = fields.Many2one(
         "ir.model",
-        string="Document Model",
+        string="Notifier type",
         domain=[("is_edi_notifier", "=", True)],
         required=True,
         index=True,
