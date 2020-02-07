@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from odoo import fields
 from odoo.exceptions import ValidationError
 from odoo.addons.edi.tests.common import EdiCase
+from odoo.tools import mute_logger
 
 
 class EdiNotifierCase(EdiCase):
@@ -105,12 +106,57 @@ class TestSuccess(EdiNotifierCase):
         self.assertTrue(self.doc.action_execute())
         self.assertEqual(self.doc.state, "done")
         self.send_mail_mock.assert_called_once()
-        self.send_mail_mock.assert_called_with(self.email_template, self.doc.id)
+        self.send_mail_mock.assert_called_with(
+            self.email_template, self.doc.id, force_send=True
+        )
 
     def test_dont_send_if_not_active(self):
         self.notifier.active = False
         self.assertTrue(self.doc.action_execute())
         self.assertEqual(self.doc.state, "done")
+        self.send_mail_mock.assert_not_called()
+
+    def test_dont_send_on_failure(self):
+        self.doc.doc_type_id = self.doc_type_unknown
+        self.notifier.doc_type_ids = [(6, False, self.doc_type_unknown.ids)]
+        with mute_logger("odoo.addons.edi.models.edi_issues"):
+            self.doc.action_execute()
+        self.send_mail_mock.assert_not_called()
+
+
+class TestFailed(EdiNotifierCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        EdiNotifier = cls.env["edi.notifier"]
+        IrModel = cls.env["ir.model"]
+
+        cls.email_template = cls.env.ref(
+            "edi_notifier.email_template_edi_document_failed"
+        )
+        cls.doc.doc_type_id = cls.doc_type_unknown
+        cls.notifier = EdiNotifier.create(
+            {
+                "name": "Email on test doc failed",
+                "model_id": IrModel._get_id("edi.notifier.email.failed"),
+                "doc_type_ids": [(6, False, cls.doc_type_unknown.ids)],
+                "template_id": cls.email_template.id,
+                "active": True,
+            }
+        )
+
+    def test_send_on_failure(self):
+        with mute_logger("odoo.addons.edi.models.edi_issues"):
+            self.doc.action_execute()
+        self.assertNotEqual(self.doc.state, "done")
+        self.send_mail_mock.assert_called_with(
+            self.email_template, self.doc.id, force_send=True
+        )
+
+    def test_dont_send_on_success(self):
+        self.doc.doc_type_id = self.doc_type
+        self.notifier.doc_type_ids = [(6, False, self.doc_type.ids)]
+        self.doc.action_execute()
         self.send_mail_mock.assert_not_called()
 
 
@@ -164,7 +210,9 @@ class TestMissing(EdiNotifierCase):
         self.setup_cron(datetime.now() - timedelta(hours=1))
         self.cron.method_direct_trigger()
         self.send_mail_mock.assert_called_once()
-        self.send_mail_mock.assert_called_with(self.email_template, self.doc_type.id)
+        self.send_mail_mock.assert_called_with(
+            self.email_template, self.doc_type.id, force_send=True
+        )
 
     def test_cron_trigger_missing_already_reported(self):
         dtime = datetime.now() - timedelta(hours=1)
