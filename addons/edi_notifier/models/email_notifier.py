@@ -38,6 +38,17 @@ class EdiEmailSuccessNotifier(models.AbstractModel):
         return super()._should_notify(notifier, rec)
 
 
+class EdiEmailFailedNotifier(models.AbstractModel):
+
+    _name = "edi.notifier.email.failed"
+    _inherit = "edi.notifier.email"
+
+    def _should_notify(self, notifier, rec):
+        if rec.state == "done":
+            return False
+        return super()._should_notify(notifier, rec)
+
+
 class EdiEmailMissingNotifier(models.AbstractModel):
 
     _name = "edi.notifier.email.missing"
