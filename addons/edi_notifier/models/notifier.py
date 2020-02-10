@@ -11,6 +11,7 @@ _logger = logging.getLogger(__name__)
 NOT_SELECTABLE = {
     "edi.notifier.model",
     "edi.notifier.email",
+    "edi.notifier.email.state",
 }
 
 
