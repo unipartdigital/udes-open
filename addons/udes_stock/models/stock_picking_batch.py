@@ -473,7 +473,7 @@ class StockPickingBatch(models.Model):
         _logger.info('Created continuation batch %r, %s', batch, batch.name)
 
         pickings.write({'batch_id': batch.id})
-        batch._compute_state()
+        batch.mark_as_todo()
 
         return batch
 
