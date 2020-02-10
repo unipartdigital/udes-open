@@ -55,7 +55,7 @@ class EdiEmailMissingNotifier(models.AbstractModel):
     _inherit = "edi.notifier.email"
 
     can_use_crons = True
-    _timestamp_field = "x_last_not_received_notification"
+    _timestamp_field = "x_last_checked_not_received"
 
     def _get_time_today(self, cron):
         time = fields.Datetime.from_string(cron.nextcall).time()
@@ -63,17 +63,24 @@ class EdiEmailMissingNotifier(models.AbstractModel):
             hour=time.hour, minute=time.minute, second=0, microsecond=0,
         )
 
-    def _get_transfers(self, rec, time_today, last_reported):
+    def _start_of_day(self):
+        return datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
 
+    def _get_last_checked(self, rec):
+        return fields.Datetime.from_string(getattr(rec, self._timestamp_field))
+
+    def _get_date_lower_bound(self, rec):
+        """Gets when it was lasted checked or the start of the day """
+        start_of_day = self._start_of_day()
+        date_lower_bound = self._get_last_checked(rec)
+        if not date_lower_bound or start_of_day < start_of_day:
+            date_lower_bound = start_of_day
+        return date_lower_bound
+
+    def _get_transfers(self, cron, rec):
         # To account for time truncation and goal post problems
-        time_today += timedelta(minutes=1)
-
-        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        if last_reported is not None and last_reported > today:
-            date_lower_bound = last_reported
-        else:
-            date_lower_bound = today
-
+        time_today = self._get_time_today(cron) + timedelta(minutes=1)
+        date_lower_bound = self._get_date_lower_bound(rec)
         return self.env["edi.transfer"].search(
             [
                 ("create_date", ">", fields.Datetime.to_string(date_lower_bound)),
@@ -85,14 +92,12 @@ class EdiEmailMissingNotifier(models.AbstractModel):
     def _should_notify(self, notifier, rec):
         res = super()._should_notify(notifier, rec)
         if res:
-            last_reported = fields.Datetime.from_string(
-                getattr(rec, self._timestamp_field)
-            )
-            # this needed for times when the it isn't triggered by a cron
+            last_checked = self._get_last_checked(rec)
+            # this needed for times when it isn't triggered by a cron
             for timeslot in notifier.cron_ids:
                 time_today = self._get_time_today(timeslot)
-                if last_reported is None or last_reported < time_today:
-                    return not self._get_transfers(rec, time_today, last_reported)
+                if last_checked is None or last_checked < time_today:
+                    return not self._get_transfers(timeslot, rec)
         return False
 
     @api.multi
