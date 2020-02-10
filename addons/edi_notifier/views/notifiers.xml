@@ -17,10 +17,10 @@
             </div>
             <div name="button_box" class="oe_button_box">
               <div>
-                <button name="action_view_cron" 
+                <button name="action_view_cron"
                   type="object"
-                  class="oe_stat_button" 
-                  icon="fa-clock-o" 
+                  class="oe_stat_button"
+                  icon="fa-clock-o"
                   attrs="{'invisible': ['!', ('can_use_crons', '=', True)]}">
                   <field name="cron_count" widget="statinfo"
                     string="Schedules"/>
@@ -32,16 +32,16 @@
                 <field name="model_id"/>
                 <field name="model_name"  invisible="1"/>
                 <field name="can_use_crons"  invisible="1"/>
-
                 <field name="doc_type_ids" widget="many2many_tags" />
+                <field name="lookback_hours" attrs="{'invisible': ['!', ('model_name', 'ilike', 'In Range')]}"/>
                 <field name="active"/>
               </group>
             </group>
             <notebook>
               <page name="email" string="Email" attrs="{'invisible': ['!', ('model_name', 'ilike', 'Email')]}">
                 <group>
-                  <field name="template_id" 
-                         context="{'default_is_edi_template': True}" 
+                  <field name="template_id"
+                         context="{'default_is_edi_template': True}"
                          attrs="{'required': [('model_name', 'ilike', 'Email')]}"/>
                 </group>
               </page>
@@ -98,10 +98,10 @@ automate the sending of notifications.
     </record>
 
     <!-- Menu item -->
-    <menuitem id="notifier_menu" 
-              name="Notifiers" action="notifier_action" 
-              parent="edi.communication_menu" 
-              sequence="40" 
+    <menuitem id="notifier_menu"
+              name="Notifiers" action="notifier_action"
+              parent="edi.communication_menu"
+              sequence="40"
               groups="udes_security.group_trusted_user"/>
 
   </data>

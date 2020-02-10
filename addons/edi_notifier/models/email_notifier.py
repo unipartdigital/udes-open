@@ -77,7 +77,7 @@ class EdiEmailMissingNotifier(models.AbstractModel):
     def _get_last_checked(self, rec):
         return fields.Datetime.from_string(getattr(rec, self._timestamp_field))
 
-    def _get_date_lower_bound(self, rec):
+    def _get_date_lower_bound(self, _notifier, _cron, rec):
         """Gets when it was lasted checked or the start of the day """
         start_of_day = self._start_of_day()
         date_lower_bound = self._get_last_checked(rec)
@@ -85,10 +85,10 @@ class EdiEmailMissingNotifier(models.AbstractModel):
             date_lower_bound = start_of_day
         return date_lower_bound
 
-    def _get_transfers(self, cron, rec):
+    def _get_transfers(self, notifier, cron, rec):
         # To account for time truncation and goal post problems
         time_today = self._get_time_today(cron) + timedelta(minutes=1)
-        date_lower_bound = self._get_date_lower_bound(rec)
+        date_lower_bound = self._get_date_lower_bound(notifier, cron, rec)
         return self.env["edi.transfer"].search(
             [
                 ("create_date", ">", fields.Datetime.to_string(date_lower_bound)),
@@ -105,10 +105,22 @@ class EdiEmailMissingNotifier(models.AbstractModel):
             for timeslot in notifier.cron_ids:
                 time_today = self._get_time_today(timeslot)
                 if last_checked is None or last_checked < time_today:
-                    return not self._get_transfers(timeslot, rec)
+                    return not self._get_transfers(notifier, timeslot, rec)
         return False
 
     @api.multi
     def _notify(self, notifier, recs):
         super()._notify(notifier, recs)
         recs.write({self._timestamp_field: datetime.now()})
+
+
+class EdiEmailMissingInRangeNotifier(models.AbstractModel):
+
+    _name = "edi.notifier.email.missing.in.range"
+    _inherit = "edi.notifier.email.missing"
+
+    can_use_crons = True
+
+    def _get_date_lower_bound(self, notifier, cron, _rec):
+        return self._get_time_today(cron) - timedelta(hours=notifier.lookback_hours)
+

@@ -41,6 +41,31 @@ class EdiNotifierCase(EdiCase):
         cls.patch_send_mail.stop()
         super().tearDownClass()
 
+    def create_transfer(self, doc):
+        IrModel = self.env["ir.model"]
+        EdiGateway = self.env["edi.gateway"]
+        EdiTransfer = self.env["edi.transfer"]
+
+        self.gateway = EdiGateway.create(
+            {
+                "name": "Test gateway",
+                "model_id": IrModel._get_id("edi.connection.model"),
+            }
+        )
+        # Create transfers
+        self.transfer = EdiTransfer.create({"gateway_id": self.gateway.id,})
+        self.transfer.doc_ids += doc
+
+    def setup_cron(self, nextcall_time):
+        IrCron = self.env["ir.cron"]
+        action = self.notifier.action_view_cron()
+        self.cron = IrCron.with_context(action["context"]).create(
+            {"name": "Test cron job", "nextcall": self._convert_time(nextcall_time),}
+        )
+
+    def _convert_time(self, time):
+        return fields.Datetime.to_string(time)
+
 
 class TestNotifier(EdiNotifierCase):
     """EDI generic notifier tests"""
@@ -181,31 +206,6 @@ class TestMissing(EdiNotifierCase):
             }
         )
 
-    def create_transfer(self, doc):
-        IrModel = self.env["ir.model"]
-        EdiGateway = self.env["edi.gateway"]
-        EdiTransfer = self.env["edi.transfer"]
-
-        self.gateway = EdiGateway.create(
-            {
-                "name": "Test gateway",
-                "model_id": IrModel._get_id("edi.connection.model"),
-            }
-        )
-        # Create transfers
-        self.transfer = EdiTransfer.create({"gateway_id": self.gateway.id,})
-        self.transfer.doc_ids += doc
-
-    def setup_cron(self, nextcall_time):
-        IrCron = self.env["ir.cron"]
-        action = self.notifier.action_view_cron()
-        self.cron = IrCron.with_context(action["context"]).create(
-            {"name": "Test cron job", "nextcall": self._convert_time(nextcall_time),}
-        )
-
-    def _convert_time(self, time):
-        return fields.Datetime.to_string(time)
-
     def test_cron_trigger_missing_not_reported(self):
         self.setup_cron(datetime.now() - timedelta(hours=1))
         self.cron.method_direct_trigger()
@@ -230,3 +230,53 @@ class TestMissing(EdiNotifierCase):
         self.cron.method_direct_trigger()
         self.send_mail_mock.assert_not_called()
 
+
+class TestMissingInRange(EdiNotifierCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        EdiNotifier = cls.env["edi.notifier"]
+        IrModel = cls.env["ir.model"]
+        cls.doc_type_raw = cls.env.ref("edi.raw_document_type")
+        cls.email_template = cls.env.ref(
+            "edi_notifier.email_template_edi_document_not_received"
+        )
+        cls.notifier = EdiNotifier.create(
+            {
+                "name": "Email on test doc missing",
+                "model_id": IrModel._get_id("edi.notifier.email.missing.in.range"),
+                "doc_type_ids": [(6, False, cls.doc_type.ids)],
+                "template_id": cls.email_template.id,
+                "lookback_hours": 3,
+                "active": True,
+            }
+        )
+
+    def test_dont_send_if_recived(self):
+        raw_doc = self.create_document(self.doc_type_raw)
+        self.create_transfer(raw_doc)
+        self.create_input_attachment(raw_doc, "res.users.csv")
+        self.notifier.doc_type_ids = [(6, False, self.doc_type_raw.ids)]
+        self.setup_cron(datetime.now())
+        self.cron.method_direct_trigger()
+        self.send_mail_mock.assert_not_called()
+
+    def test_send_if_recived_out_of_timeframe(self):
+        raw_doc = self.create_document(self.doc_type_raw)
+        self.create_transfer(raw_doc)
+        self.create_input_attachment(raw_doc, "res.users.csv")
+        self.notifier.doc_type_ids = [(6, False, self.doc_type_raw.ids)]
+        self.setup_cron(datetime.now() + timedelta(hours=4))
+        self.cron.method_direct_trigger()
+        self.send_mail_mock.assert_called_with(
+            self.email_template, self.doc_type_raw.id, force_send=True
+        )
+
+    def test_dont_send_if_recived_within_timeframe(self):
+        raw_doc = self.create_document(self.doc_type_raw)
+        self.create_transfer(raw_doc)
+        self.create_input_attachment(raw_doc, "res.users.csv")
+        self.notifier.doc_type_ids = [(6, False, self.doc_type_raw.ids)]
+        self.setup_cron(datetime.now() + timedelta(hours=1))
+        self.cron.method_direct_trigger()
+        self.send_mail_mock.assert_not_called()
