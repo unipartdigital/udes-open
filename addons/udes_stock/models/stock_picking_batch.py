@@ -56,6 +56,12 @@ class StockPickingBatch(models.Model):
         store=True,
     )
 
+    u_original_name = fields.Char(
+        string='Original batch name', default='',
+        copy=True, required=False,
+        help=('Name of the batch from which this batch was derived')
+    )
+
     @api.depends('picking_ids',
                  'picking_ids.u_location_category_id')
     @api.one
@@ -373,7 +379,8 @@ class StockPickingBatch(models.Model):
                 'state': self.state,
                 'u_ephemeral': self.u_ephemeral,
                 'picking_ids': pickings.get_info(),
-                'result_package_names': pickings.get_result_packages_names()}
+                'result_package_names': pickings.get_result_packages_names(),
+                'u_original_name': self.u_original_name}
 
     def get_info(self, allowed_picking_states):
         """
@@ -471,6 +478,8 @@ class StockPickingBatch(models.Model):
         new_name = get_next_name(self, 'picking.batch')
         batch = self.sudo().copy({'name': new_name, 'user_id': None})
         _logger.info('Created continuation batch %r, %s', batch, batch.name)
+        if not self.u_original_name:
+            batch.write({'u_original_name': self.name})
 
         pickings.write({'batch_id': batch.id})
         batch.mark_as_todo()
