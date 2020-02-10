@@ -83,14 +83,12 @@ class EdiEmailMissingNotifier(models.AbstractModel):
             date_lower_bound = start_of_day
         return date_lower_bound
 
-    def _get_transfers(self, notifier, cron, rec):
+    def _get_transfers(self, lower_bound, upper_bound, rec):
         # To account for time truncation and goal post problems
-        time_today = self._get_time_today(cron) + timedelta(minutes=1)
-        date_lower_bound = self._get_date_lower_bound(notifier, cron, rec)
         return self.env["edi.transfer"].search(
             [
-                ("create_date", ">", fields.Datetime.to_string(date_lower_bound)),
-                ("create_date", "<=", fields.Datetime.to_string(time_today)),
+                ("create_date", ">", fields.Datetime.to_string(lower_bound)),
+                ("create_date", "<=", fields.Datetime.to_string(upper_bound)),
                 ("doc_ids.doc_type_id", "=", rec.id),
             ]
         )
@@ -103,7 +101,11 @@ class EdiEmailMissingNotifier(models.AbstractModel):
             for timeslot in notifier.cron_ids:
                 time_today = self._get_time_today(timeslot)
                 if last_checked is None or last_checked < time_today:
-                    return not self._get_transfers(notifier, timeslot, rec)
+                    return not self._get_transfers(
+                        self._get_date_lower_bound(notifier, timeslot, rec),
+                        time_today + timedelta(minutes=1),  # for goal post errors
+                        rec,
+                    )
         return False
 
     @api.multi
