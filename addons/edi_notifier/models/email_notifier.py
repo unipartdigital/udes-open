@@ -27,26 +27,34 @@ class EdiEmailNotifier(models.AbstractModel):
         self._notify(notifier, self.filter_records(notifier, recs))
 
 
-class EdiEmailSuccessNotifier(models.AbstractModel):
+class EdiEmailStateNotifier(models.AbstractModel):
 
-    _name = "edi.notifier.email.success"
+    _name = "edi.notifier.email.state"
     _inherit = "edi.notifier.email"
 
     def _should_notify(self, notifier, rec):
-        if rec.state != "done":
-            return False
-        return super()._should_notify(notifier, rec)
+        return super()._should_notify(notifier, rec) and self._check_state(rec)
+
+    def _check_state(self, rec):
+        raise NotImplementedError
+
+
+class EdiEmailSuccessNotifier(models.AbstractModel):
+
+    _name = "edi.notifier.email.success"
+    _inherit = "edi.notifier.email.state"
+
+    def _check_state(self, rec):
+        return rec.state == "done"
 
 
 class EdiEmailFailedNotifier(models.AbstractModel):
 
     _name = "edi.notifier.email.failed"
-    _inherit = "edi.notifier.email"
+    _inherit = "edi.notifier.email.state"
 
-    def _should_notify(self, notifier, rec):
-        if rec.state == "done":
-            return False
-        return super()._should_notify(notifier, rec)
+    def _check_state(self, rec):
+        return rec.state != "done"
 
 
 class EdiEmailMissingNotifier(models.AbstractModel):
