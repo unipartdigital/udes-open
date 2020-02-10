@@ -67,6 +67,11 @@ class EdiNotifier(models.Model):
         index=True,
     )
 
+    lookback_hours = fields.Integer(
+        string="Look back hours",
+        help="The number of hours in the past for checking transfer arrival",
+    )
+
     @api.depends("model_id")
     def _compute_model_name(self):
         self.model_name = self.model_id.name or ""
