@@ -48,7 +48,9 @@ class ServerActions(models.Model):
         """Run EDI Notifer server action"""
         # pylint: disable=unused-argument
         if action.edi_notifier_id:
-            _logger.info("Running notifier {} via cron".format(action.edi_notifier_id.id))
+            _logger.info(
+                "Running notifier {} via cron".format(action.edi_notifier_id.id)
+            )
             action.edi_notifier_id.notify()
 
 
@@ -119,7 +121,7 @@ class EdiNotifier(models.Model):
     @api.constrains("doc_type_ids")
     def check_for_not_doc_type(self):
         if len(self.doc_type_ids) == 0:
-            self.write({"active": False})
+            self.active = False
 
     @api.constrains("active")
     def _check_if_can_set_active(self):
