@@ -12,7 +12,7 @@ class EdiDocumentType(models.Model):
         "edi.notifier", column1="doc_id", column2="notifier_id", string="Notifiers"
     )
 
-    x_last_not_received_notification = fields.Datetime("Last not received notification")
+    x_last_checked_not_received = fields.Datetime("Last not recived check")
 
 
 class EdiDocument(models.Model):

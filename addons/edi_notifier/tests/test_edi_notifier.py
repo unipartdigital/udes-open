@@ -216,7 +216,7 @@ class TestMissing(EdiNotifierCase):
 
     def test_cron_trigger_missing_already_reported(self):
         dtime = datetime.now() - timedelta(hours=1)
-        self.doc_type.x_last_not_received_notification = self._convert_time(dtime)
+        self.doc_type.x_last_checked_not_received = self._convert_time(dtime)
         self.setup_cron(dtime)
         self.cron.method_direct_trigger()
         self.send_mail_mock.assert_not_called()
