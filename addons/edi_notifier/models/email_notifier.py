@@ -10,9 +10,7 @@ class EdiEmailNotifier(models.AbstractModel):
     _description = "Edi Notifier Email Base Model"
 
     def _should_notify(self, notifier, rec):
-        if rec._name != notifier.template_id.model_id.model:
-            return False
-        return True
+        return rec._name == notifier.template_id.model_id.model
 
     @api.multi
     def _notify(self, notifier, recs):
