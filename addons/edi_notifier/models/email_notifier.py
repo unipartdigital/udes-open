@@ -7,7 +7,7 @@ class EdiEmailNotifier(models.AbstractModel):
 
     _name = "edi.notifier.email"
     _inherit = "edi.notifier.model"
-    _description = "Edi Notifier Email Base Model"
+    _description = "EDI Notifier Email Base Model"
 
     def _should_notify(self, notifier, rec):
         return rec._name == notifier.template_id.model_id.model

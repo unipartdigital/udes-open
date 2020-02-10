@@ -28,7 +28,9 @@ class IrModel(models.Model):
             type(model), self.pool["edi.notifier.model"]
         )
         if vals["is_edi_notifier"] and vals["name"] == vals["model"]:
-            vals["name"] = " ".join([x.capitalize() for x in vals["name"].split(".")])
+            vals["name"] = " ".join(
+                ["EDI"] + [x.capitalize() for x in vals["name"].split(".")[1:]]
+            )
 
         return vals
 
@@ -56,9 +58,7 @@ class ServerActions(models.Model):
 
 class EdiNotifier(models.Model):
     _name = "edi.notifier"
-    _description = "Edi Notifier"
-
-    _uses_timeslots = False
+    _description = "EDI Notifier"
 
     name = fields.Char(string="Name", required=True, index=True)
     model_id = fields.Many2one(
@@ -169,7 +169,7 @@ class EdiNotifier(models.Model):
 
 class EdiNotifierModel(models.AbstractModel):
     _name = "edi.notifier.model"
-    _description = "Edi Notifier Base Model"
+    _description = "EDI Notifier Base Model"
 
     is_edi_notifier = True
     can_use_crons = False
