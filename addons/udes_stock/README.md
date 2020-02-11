@@ -560,7 +560,7 @@ Old method(s): generate_wave_for_user
 Create a new batch and assign it to the requester user.
 The batch will be in the `in_progress` state and will have its `ephemeral`
 field flagged. As a consequence of that, the batch pickings will be unlinked
-when the user logs out or when the `unassign` endpoint is invoked against such
+when the user logs out or when the `close` endpoint is invoked against such
 batch.
 
 Request:
@@ -577,15 +577,20 @@ response will contain a JSON object with the same format as the above `get`
 endpoint that will represent the new batch. Otherwise it will include an empty
 JSON object.
 
-### Unassign picking batch
+### Close picking batch
 ```
-URI: /api/stock-picking-batch/:id/unassign/
+URI: /api/stock-picking-batch/:id/close/
 HTTP Method: POST
 ```
-Clears the `user_id` field of the batch (specified by ID).
-In case the batch is `in_progress`, its state will be set back to `ready`.
-In case of "ephemeral" batch, all the included pickings will be unliked (i.e.
-their `batch_id` fields will be cleared).
+Closes the batch.  
+For ephemeral batches, any outstanding pickings will be
+unlinked from the batch (i.e. their `batch_id` fields will be cleared).  
+For non-ephemeral batches, outstanding pickings will be split out into a
+new batch named BATCH/NNNNN-XX where BATCH/NNNNN is the name of the original
+batch and XX is a sequence counter, eg. '01'. If `u_confirm_batch` on the
+picking type is `True`, the name of the original batch will be stored in
+`u_original_name`.  
+After this call succeeds, the batch will be `done`.
 
 Request:
 

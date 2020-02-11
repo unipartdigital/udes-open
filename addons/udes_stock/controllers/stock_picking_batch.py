@@ -129,11 +129,11 @@ class PickingBatchApi(UdesApi):
         else:
             return {}
 
-    @http.route('/api/stock-picking-batch/<ident>/unassign',
+    @http.route('/api/stock-picking-batch/<ident>/close',
                 type='json', methods=['POST'], auth='user')
-    def unassign_batch(self, ident):
+    def close_batch(self, ident):
         """
-        Unassign the specified batch (see API specs).
+        Close the specified batch (see API specs).
 
         Raise a ValidationError in case:
          - the specified batch does not exist;
@@ -147,7 +147,7 @@ class PickingBatchApi(UdesApi):
                 raise ValidationError(
                     _("The specified batch is not assigned to you."))
 
-            batch.unassign()
+            batch.close()
 
         return True
 
