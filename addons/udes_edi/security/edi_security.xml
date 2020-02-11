@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <data>
+    
+        <record id="hide_edi_document_type" model="ir.rule">
+            <field name="name">Hide EDI Raw Import Document Type</field>
+            <field name="model_id" search="[('model','=','edi.document.type')]" model="ir.model"/>
+            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+            <field name="domain_force">[('name', '!=', 'Raw Import')]</field>
+        </record>
+
+        <record id="hide_edi_document" model="ir.rule">
+            <field name="name">Hide EDI Raw Import Documents</field>
+            <field name="model_id" search="[('model','=','edi.document')]" model="ir.model"/>
+            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+            <field name="domain_force">[('doc_type_id.name', '!=', 'Raw Import')]</field>
+        </record>
+
+        <record id="show_edi_document_type" model="ir.rule">
+            <field name="name">Show EDI Raw Import Document Type for Trusted Users</field>
+            <field name="model_id" search="[('model','=','edi.document.type')]" model="ir.model"/>
+            <field name="groups" eval="[(4, ref('udes_security.group_trusted_user'))]"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+        </record>
+
+        <record id="show_edi_document" model="ir.rule">
+            <field name="name">Show EDI Raw Import Documents for Trusted Users</field>
+            <field name="model_id" search="[('model','=','edi.document')]" model="ir.model"/>
+            <field name="groups" eval="[(4, ref('udes_security.group_trusted_user'))]"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+        </record>
+
+    </data>
+</odoo>
+
