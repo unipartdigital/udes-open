@@ -9,6 +9,9 @@ class EdiEmailNotifier(models.AbstractModel):
     _inherit = "edi.notifier.model"
     _description = "EDI Notifier Email Base Model"
 
+    def get_email_model(self):
+        return self.env.ref("edi.model_edi_document")
+
     def _should_notify(self, notifier, rec):
         return rec._name == notifier.template_id.model_id.model
 
@@ -59,6 +62,9 @@ class EdiEmailMissingNotifier(models.AbstractModel):
 
     _name = "edi.notifier.email.missing"
     _inherit = "edi.notifier.email"
+
+    def get_email_model(self):
+        return self.env.ref("edi.model_edi_document_type")
 
     can_use_crons = True
     _timestamp_field = "x_last_checked_not_received"
