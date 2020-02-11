@@ -166,6 +166,21 @@ class EdiNotifier(models.Model):
             if notifier.active:
                 self.env[notifier.model_id.model].notify(notifier, recs)
 
+    @api.onchange("model_id")
+    @api.depends("model_id")
+    def set_mail_template_domain(self):
+        if self.model_id:
+            notifier = self.env[self.model_id.model]
+            if hasattr(notifier, "get_email_model"):
+                return {
+                    "domain": {
+                        "template_id": [
+                            ("is_edi_template", "=", True),
+                            ("model", "=", notifier.get_email_model().model),
+                        ],
+                    }
+                }
+
 
 class EdiNotifierModel(models.AbstractModel):
     _name = "edi.notifier.model"
