@@ -523,7 +523,7 @@ class StockPickingBatch(models.Model):
         Validate the move lines of the batch (expects a singleton)
         by moving them to the specified location.
 
-        In case continue_batch is not flagged, unassign the batch.
+        In case continue_batch is not flagged, close the batch.
         """
         self.ensure_one()
 
@@ -598,7 +598,7 @@ class StockPickingBatch(models.Model):
             _logger.info("%s action_done in %.2fs, %d queries",
                          picks_todo, stats.elapsed, stats.count)
         if not continue_batch:
-            self.unassign()
+            self.close()
 
         return self
 
@@ -889,15 +889,16 @@ class StockPickingBatch(models.Model):
                                       ('state', '=', 'in_progress')])
         return batches
 
-    def unassign_user_batches(self):
-        """ Get batches for user and unassign them
+    def close_user_batches(self):
+        """ Get batches for user and close them
         """
         # Get user batches
-        self.get_user_batches().unassign()
+        self.get_user_batches().close()
 
-    def unassign(self):
-        """ Unassign user from batches, in case of an ephemeral batch then
-        also unassign incomplete pickings from the batch
+    def close(self):
+        """ Unassign incomplete pickings from batches. In case of a
+        non-ephemeral batch then incomplete pickings are moved into a new
+        batch.
         """
         # Unassign batch_id from incomplete stock pickings on ephemeral batches
         self.filtered(lambda b: b.u_ephemeral)\

@@ -37,7 +37,7 @@ class Session(controllers.main.Session):
         PickingBatch = request.env['stock.picking.batch']
         Users = request.env['res.users']
 
-        _batches = PickingBatch.unassign_user_batches()
+        _batches = PickingBatch.close_user_batches()
         _res = Users.set_user_location_categories([])
 
         return super().logout(*args, **kwargs)
