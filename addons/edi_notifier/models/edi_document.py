@@ -12,7 +12,10 @@ class EdiDocumentType(models.Model):
         "edi.notifier", column1="doc_id", column2="notifier_id", string="Notifiers"
     )
 
-    x_last_checked_not_received = fields.Datetime("Last not recived check")
+    x_last_checked_not_received = fields.Datetime(
+        string="Time of last missing check",
+        help="The time of the last check for a missing file",
+    )
 
 
 class EdiDocument(models.Model):
