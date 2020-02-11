@@ -523,7 +523,7 @@ class StockPickingBatch(models.Model):
         Validate the move lines of the batch (expects a singleton)
         by moving them to the specified location.
 
-        In case continue_batch is flagged, unassign the batch.
+        In case continue_batch is not flagged, unassign the batch.
         """
         self.ensure_one()
 
