@@ -19,14 +19,10 @@
       <field name="view_type">form</field>
       <field name="view_mode">tree,form</field>
       <field name="domain">[('is_edi_template', '=', True)]</field>
-  </record>
+      <field name="context">{'default_is_edi_template': True}</field>
+    </record>
 
-    <menuitem id="mail_template_menu" 
-              name="Email Templates" 
-              action="mail_template_action" 
-              parent="edi.communication_menu" 
-              sequence="50"
-              groups="udes_security.group_trusted_user"/>
+    <menuitem id="mail_template_menu" name="Email Templates" action="mail_template_action" parent="edi.communication_menu" sequence="50" groups="udes_security.group_trusted_user"/>
 
   </data>
 </odoo>
