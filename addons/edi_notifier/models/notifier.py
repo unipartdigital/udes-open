@@ -172,13 +172,24 @@ class EdiNotifier(models.Model):
         if self.model_id:
             notifier = self.env[self.model_id.model]
             if hasattr(notifier, "get_email_model"):
+                model = notifier.get_email_model().model
+                if self.template_id and self.template_id.model != model:
+                    self.template_id = False
                 return {
+                    "reload": True,
+                    "nodestroy": True,
                     "domain": {
                         "template_id": [
                             ("is_edi_template", "=", True),
                             ("model", "=", notifier.get_email_model().model),
                         ],
-                    }
+                    },
+                }
+            elif self.template_id:
+                self.template_id = False
+                return {
+                    "reload": True,
+                    "nodestroy": True,
                 }
 
 
