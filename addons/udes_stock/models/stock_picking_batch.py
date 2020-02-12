@@ -478,7 +478,7 @@ class StockPickingBatch(models.Model):
         new_name = get_next_name(self, 'picking.batch')
         batch = self.sudo().copy({'name': new_name, 'user_id': None})
         _logger.info('Created continuation batch %r, %s', batch, batch.name)
-        if self.picking_type_ids.u_confirm_batch and not self.u_original_name:
+        if not self.u_original_name:
             batch.write({'u_original_name': self.name})
 
         pickings.write({'batch_id': batch.id})
