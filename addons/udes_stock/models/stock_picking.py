@@ -1250,6 +1250,11 @@ class StockPicking(models.Model):
             lambda p: p.picking_type_id.u_user_scans != 'product' and
                       p.picking_type_id.u_target_storage_format != 'product')
         super(StockPicking, pickings)._check_entire_pack()
+        package_move_lines = pickings \
+            .filtered(lambda p: p.picking_type_id.u_target_storage_format == 'package') \
+            .mapped("move_line_ids")
+        if package_move_lines:
+            package_move_lines.write({'u_result_parent_package_id': False})
 
     def _reserve_full_packages(self):
         """
