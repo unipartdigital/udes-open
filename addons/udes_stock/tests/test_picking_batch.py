@@ -1591,3 +1591,71 @@ class TestBatchMultiDropOff(common.BaseUDES):
         self.assertEqual(len(drop_mls.exists()), 0)
         self.assertEqual(len(summary), 0)
         self.assertTrue(last)
+
+
+class TestContinuationBatchProcessing(common.BaseUDES):
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.pack_4apples_info = [{'product': cls.apple, 'qty': 4}]
+
+    def test01_preserves_user_id_on_closed_batch(self):
+        batch = self.create_batch(user=self.outbound_user, u_ephemeral=False)
+        batch = batch.sudo(self.outbound_user)
+        batch.close()
+        self.assertEqual(batch.user_id, self.outbound_user)
+
+    def test02_moves_outstanding_pickings_to_continuation_batch(self):
+        self.create_quant(self.apple.id, self.test_location_01.id, 4,)
+
+        batch = self.create_batch(user=self.outbound_user)
+        picking = self.create_picking(self.picking_type_pick,
+                                      products_info=self.pack_4apples_info,
+                                      confirm=True,
+                                      assign=True,
+                                      batch_id=batch.id)
+        batch.state = 'in_progress'
+        batch.close()
+        self.assertNotEqual(picking.batch_id, batch)
+
+    def test03_adds_sequence_to_original_batch_name(self):
+        self.create_quant(self.apple.id, self.test_location_01.id, 4,)
+
+        batch = self.create_batch(user=self.outbound_user)
+        picking = self.create_picking(self.picking_type_pick,
+                                      products_info=self.pack_4apples_info,
+                                      confirm=True,
+                                      assign=True,
+                                      batch_id=batch.id)
+        batch.state = 'in_progress'
+        batch.close()
+        self.assertRegex(picking.batch_id.name, r'BATCH/\d+-01')
+
+    def test04_increments_sequence_for_continuation_batch(self):
+        self.create_quant(self.apple.id, self.test_location_01.id, 4,)
+
+        batch01 = self.create_batch(user=self.outbound_user)
+        picking = self.create_picking(self.picking_type_pick,
+                                      products_info=self.pack_4apples_info,
+                                      confirm=True,
+                                      assign=True,
+                                      batch_id=batch01.id)
+        batch01.state = 'in_progress'
+        batch01.close()
+        batch02 = picking.batch_id
+        batch02.close()
+        self.assertRegex(picking.batch_id.name, r'BATCH/\d+-02')
+
+    def test05_sets_original_name(self):
+        self.create_quant(self.apple.id, self.test_location_01.id, 4,)
+
+        batch = self.create_batch(user=self.outbound_user)
+        picking = self.create_picking(self.picking_type_pick,
+                                      products_info=self.pack_4apples_info,
+                                      confirm=True,
+                                      assign=True,
+                                      batch_id=batch.id)
+        batch.state = 'in_progress'
+        batch.close()
+        self.assertEqual(picking.batch_id.u_original_name, batch.name)
