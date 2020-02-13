@@ -757,7 +757,7 @@ class StockMoveLine(models.Model):
                 "create_date": self.create_date,
                 "location_id": self.location_id.get_info()[0],
                 "location_dest_id": self.location_dest_id.get_info()[0],
-                #"lot_id": self.lot_id.id,
+                "lot_id": self.lot_id.name,
                 "package_id": package_info,
                 "result_package_id": result_package_info,
                 "u_result_parent_package_id": result_parent_package_info,
