@@ -12,15 +12,25 @@
       <field name="body_html"><![CDATA[
 <div style="font-family: 'Lucica Grande', Ubuntu, Arial, Verdana, sans-serif; font-size: 12px; color: rgb(34, 34, 34); background-color: rgb(255, 255, 255); ">
 
-<p>${object.doc_type_id.name} ${object.name} has been successfully received at ${format_tz(object.create_date)} and is now being processed.</p>
+<p>${object.doc_type_id.name | safe} ${object.name | safe} has been successfully received at ${format_tz(object.create_date)} and is now being processed.</p>
 <br/>
 <p>The files attached are:
   <ul>
   % for file in object.input_ids:
-    <li>${file.datas_fname}</li>
+    <li>${file.datas_fname | safe}</li>
   % endfor
   </ul>
 </p>
+% if ctx.get("notes"):
+<p>The notes attched to the documents are:
+  <ul>
+  %for note in ctx.get("notes"):
+    <il>${note.body | safe}</il>
+  % endfor
+  </ul>
+</p>
+</br>
+% endif
 <p>This is an automated email and replies will not be monitored.</p>
 </div>
       ]]></field>
@@ -37,15 +47,36 @@
       <field name="body_html"><![CDATA[
 <div style="font-family: 'Lucica Grande', Ubuntu, Arial, Verdana, sans-serif; font-size: 12px; color: rgb(34, 34, 34); background-color: rgb(255, 255, 255); ">
 
-<p>${object.doc_type_id.name} ${object.name} has been received but could not be processed at ${format_tz(object.create_date)} and is now being processed.</p>
+<p>${object.doc_type_id.name | safe} ${object.name | safe} has been received but could not be processed at ${format_tz(object.create_date)} and is now being processed.</p>
 <br/>
 <p>The files attached are:
   <ul>
   % for file in object.input_ids:
-    <li>${file.datas_fname}</li>
+    <li>${file.datas_fname | safe}</li>
+  % endfor
+  </ul>
+  </br>
+</p>
+% if ctx.get("issues"):
+<p>The issues are:
+  <ul>
+  %for issue in ctx.get("issues"):
+    <il>${issue.name | safe}</il>
   % endfor
   </ul>
 </p>
+</br>
+% endif
+% if ctx.get("notes"):
+<p>The notes attched to the documents are:
+  <ul>
+  %for note in ctx.get("notes"):
+    <il>${note.body | safe}</il>
+  % endfor
+  </ul>
+</p>
+</br>
+% endif
 <p>This is an automated email and replies will not be monitored.</p>
 </div>
       ]]></field>
@@ -62,7 +93,7 @@
         <field name="body_html"><![CDATA[
 <div style="font-family: 'Lucica Grande', Ubuntu, Arial, Verdana, sans-serif; font-size: 12px; color: rgb(34, 34, 34); background-color: rgb(255, 255, 255); ">
 
-<p>No ${object.name} has been received today.</p>
+<p>No ${object.name  | safe} has been received today.</p>
 <br/>
 <p>This is an automated email and replies will not be monitored.</p>
 </div>

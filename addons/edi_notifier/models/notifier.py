@@ -97,6 +97,8 @@ class EdiNotifier(models.Model):
         domain=[("state", "=", "edi_notifier")],
         string="Schedule",
     )
+    include_issues = fields.Boolean(string="Include issues", default=False)
+    include_notes = fields.Boolean(string="Include notes", default=False)
 
     @api.depends("cron_ids")
     def _compute_cron_count(self):
@@ -212,6 +214,21 @@ class EdiNotifierModel(models.AbstractModel):
     def _notify(self, notifier, _recs):
         """Does the action of notifying"""
         raise NotImplementedError
+
+    @api.multi
+    def _get_notes(self, rec):
+        """Get notes related to a record"""
+        rec.ensure_one()
+        return self.env["mail.message"].search([("model", "=", rec._name), ("res_id", "=", rec.id)])
+
+
+    @api.multi
+    def _get_issues(self, rec):
+        """Get issues from a record"""
+        try:
+            return rec.issue_ids
+        except AttributeError:
+            return None
 
     @api.multi
     def notify(self, notifier, recs):

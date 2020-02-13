@@ -34,6 +34,8 @@
                 <field name="can_use_crons"  invisible="1"/>
                 <field name="doc_type_ids" widget="many2many_tags" />
                 <field name="lookback_hours" attrs="{'invisible': ['!', ('model_name', 'ilike', 'In Range')]}"/>
+                <field name="include_notes" attrs="{'invisible': ['!', '|', ('model_name', 'ilike', 'Failed'), ('model_name', 'ilike', 'Success')]}"/>
+                <field name="include_issues" attrs="{'invisible': ['!', ('model_name', 'ilike', 'Failed')]}"/>
                 <field name="active"/>
               </group>
             </group>
