@@ -18,7 +18,12 @@ class EdiEmailNotifier(models.AbstractModel):
     @api.multi
     def _notify(self, notifier, recs):
         for rec in recs:
-            notifier.template_id.send_mail(rec.id, force_send=True)
+            template =  notifier.template_id
+            if notifier.include_issues:
+                template = template.with_context(issues=self._get_issues(rec))
+            if notifier.include_notes:
+                template = template.with_context(notes=self._get_notes(rec))
+            template.send_mail(rec.id, force_send=True)
 
     @api.multi
     def notify(self, notifier, recs):
