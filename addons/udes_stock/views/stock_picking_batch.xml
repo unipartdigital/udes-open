@@ -15,6 +15,7 @@
           <field name="u_ephemeral"/>
           <field name="priority"/>
           <field name="u_location_category_id"/>
+          <field name="u_last_reserved_pallet_name" groups="udes_security.group_trusted_user"/>
         </xpath>
         <xpath expr="//button[@name='action_cancel']" position="replace" />
         <xpath expr="//button[@name='cancel_picking']" position="replace">
@@ -57,6 +58,7 @@
           <field name="picking_type_ids"/>
           <field name="priority"/>
           <field name="u_location_category_id"/>
+          <field name="u_last_reserved_pallet_name" groups="udes_security.group_trusted_user"/>
         </xpath>
         <xpath expr="//group" position="inside">
           <filter name="by_scheduled_date" string="Scheduled Date"
