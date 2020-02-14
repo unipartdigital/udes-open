@@ -112,7 +112,7 @@ class TestSuccess(EdiNotifierCase):
         IrModel = cls.env["ir.model"]
 
         cls.email_template = cls.env.ref(
-            "edi_notifier.email_template_edi_document_received"
+            "edi_notifier.email_template_edi_document_success"
         )
         cls.notifier = EdiNotifier.create(
             {
