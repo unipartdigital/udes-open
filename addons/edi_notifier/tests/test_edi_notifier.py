@@ -28,10 +28,16 @@ class EdiNotifierCase(EdiCase):
             {"name": "ToDo list", "doc_type_id": cls.doc_type.id, "state": "draft",}
         )
 
+    def mute_issues(self):
+        return mute_logger("odoo.addons.edi.models.edi_issues")
+
     def mock_send_mail(self):
         return patch.object(
             self.env["mail.template"].__class__, "send_mail", autospec=True
         )
+
+    def mock_send(self):
+        return patch.object(self.env["mail.mail"].__class__, "send", autospec=True)
 
     def create_transfer(self, doc):
         IrModel = self.env["ir.model"]
@@ -143,11 +149,31 @@ class TestSuccess(EdiNotifierCase):
     def test_dont_send_on_failure(self):
         self.doc.doc_type_id = self.doc_type_unknown
         self.notifier.doc_type_ids = [(6, False, self.doc_type_unknown.ids)]
-        with mute_logger(
-            "odoo.addons.edi.models.edi_issues"
-        ), self.mock_send_mail() as send_mail_mock:
+        with self.mute_issues(), self.mock_send_mail() as send_mail_mock:
             self.doc.action_execute()
         send_mail_mock.assert_not_called()
+
+    def test_send_notes_on_success(self):
+        self.notifier.include_notes = True
+        note_text = "Note for testing!"
+        self.make_note(self.doc, note_text)
+        with self.mock_send() as send_mock:
+            self.assertTrue(self.doc.action_execute())
+        self.assertEqual(self.doc.state, "done")
+        send_mock.assert_called_once()
+        message = send_mock.call_args[0][0]
+        self.assertIn(note_text, message.body_html)
+
+    def test_dont_send_notes_on_success(self):
+        self.notifier.include_notes = False
+        note_text = "Note for testing!"
+        self.make_note(self.doc, note_text)
+        with self.mock_send() as send_mock:
+            self.assertTrue(self.doc.action_execute())
+        self.assertEqual(self.doc.state, "done")
+        send_mock.assert_called_once()
+        message = send_mock.call_args[0][0]
+        self.assertNotIn(note_text, message.body_html)
 
 
 class TestFailed(EdiNotifierCase):
@@ -172,9 +198,7 @@ class TestFailed(EdiNotifierCase):
         )
 
     def test_send_on_failure(self):
-        with mute_logger(
-            "odoo.addons.edi.models.edi_issues"
-        ), self.mock_send_mail() as send_mail_mock:
+        with self.mute_issues(), self.mock_send_mail() as send_mail_mock:
             self.doc.action_execute()
         self.assertNotEqual(self.doc.state, "done")
         send_mail_mock.assert_called_with(
@@ -187,6 +211,61 @@ class TestFailed(EdiNotifierCase):
         with self.mock_send_mail() as send_mail_mock:
             self.doc.action_execute()
         send_mail_mock.assert_not_called()
+
+    def test_send_issues_on_failure(self):
+        self.notifier.include_issues = True
+        with self.mute_issues(), self.mock_send() as send_mock:
+            self.assertFalse(self.doc.action_execute())
+        self.assertNotEqual(self.doc.state, "done")
+
+        send_mock.assert_called_once()
+        message = send_mock.call_args[0][0]
+        self.assertIn("Unknown document type", message.body_html)
+
+    def test_dont_send_issues_on_failure(self):
+        self.notifier.include_issues = False
+        with self.mute_issues(), self.mock_send() as send_mock:
+            self.assertFalse(self.doc.action_execute())
+        self.assertNotEqual(self.doc.state, "done")
+        send_mock.assert_called_once()
+        message = send_mock.call_args[0][0]
+        self.assertNotIn("Unknown document type", message.body_html)
+
+    def test_send_notes_on_failure(self):
+        self.notifier.include_notes = True
+        note_text = "Note for testing!"
+        self.make_note(self.doc, note_text)
+        with self.mute_issues(), self.mock_send() as send_mock:
+            self.assertFalse(self.doc.action_execute())
+        self.assertNotEqual(self.doc.state, "done")
+        send_mock.assert_called_once()
+        message = send_mock.call_args[0][0]
+        self.assertIn(note_text, message.body_html)
+
+    def test_dont_send_notes_on_failure(self):
+        self.notifier.include_notes = False
+        note_text = "Note for testing!"
+        self.make_note(self.doc, note_text)
+        with self.mute_issues(), self.mock_send() as send_mock:
+            self.assertFalse(self.doc.action_execute())
+        self.assertNotEqual(self.doc.state, "done")
+        send_mock.assert_called_once()
+        message = send_mock.call_args[0][0]
+        self.assertNotIn(note_text, message.body_html)
+
+    def test_send_notes_and_issues_on_failure(self):
+        self.notifier.write(
+            {"include_notes": True, "include_issues": True,}
+        )
+        note_text = "Note for testing!"
+        self.make_note(self.doc, note_text)
+        with self.mute_issues(), self.mock_send() as send_mock:
+            self.assertFalse(self.doc.action_execute())
+        self.assertNotEqual(self.doc.state, "done")
+        send_mock.assert_called_once()
+        message = send_mock.call_args[0][0]
+        self.assertIn(note_text, message.body_html)
+        self.assertIn("Unknown document type", message.body_html)
 
 
 class TestMissing(EdiNotifierCase):
