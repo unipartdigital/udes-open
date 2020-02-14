@@ -603,6 +603,24 @@ Returns true on success otherwise an error indicating the failure (e.g. the
 batch was not in the `in_progress` state; the batch was not assigned to the
 current user).
 
+### Reserve pallet for batch
+```
+URI: /api/stock-picking-batch/:id/reserve-pallet
+HTTP Method: POST
+```
+Reserves a pallet for use in a batch.
+Fails if the pallet is already reserved for a different batch.
+
+Request:
+
+A JSON object containing:
+
+* @param pallet_name - Barcode of the pallet to be reserved.
+
+Response:
+
+Returns true on success and an error otherwise.
+
 ### Update picking batch
 ```
 URI: /api/stock-picking-batch/:id

@@ -177,6 +177,34 @@ class PickingBatchApi(UdesApi):
 
         return _get_single_batch_info(batch)
 
+    @http.route('/api/stock-picking-batch/<ident>/reserve-pallet',
+                type='json', methods=['POST'], auth='user')
+    def reserve_pallet(self, ident, pallet_name):
+        """
+        Reserves a pallet for use in a batch.
+
+        Only one pallet can be reserved per batch. The pallet is automatically
+        considered unreserved when another pallet is reserved or the batch is
+        done.
+
+        Raises a ValidationError if the pallet is already reserved for another
+        batch.
+
+        @param pallet_name - Barcode of the pallet to be reserved.
+        """
+        batch = _get_batch(request.env, ident)
+
+        if batch.state != 'in_progress':
+            raise ValidationError(_("The specified batch is not in progress."))
+
+        if batch.user_id.id != request.env.user.id:
+            raise ValidationError(
+                _("The specified batch is not assigned to you."))
+
+        batch.reserve_pallet(pallet_name)
+
+        return True
+
     @http.route('/api/stock-picking-batch/<ident>',
                 type='json', methods=['POST'], auth='user')
     def update_batch(self, ident,
