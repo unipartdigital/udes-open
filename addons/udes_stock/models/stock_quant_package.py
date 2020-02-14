@@ -15,6 +15,13 @@ class StockQuantPackage(models.Model):
     # different to the internal one.
     u_external_name = fields.Char(string="External Name")
 
+    u_last_assigned_batch = fields.Many2one(
+        comodel_name='stock.picking.batch',
+        string='Assigned to batch',
+        help="Used to prevent pallets from being used in more than one "
+             "batch simultaneously.",
+    )
+
     def new_package_name(self):
         Sequence = self.env['ir.sequence']
         return Sequence.next_by_code('stock.quant.package') or _('Unknown Pack')
@@ -194,6 +201,23 @@ class StockQuantPackage(models.Model):
 
         move_lines = MoveLine.search(domain)
         return move_lines
+
+    def assign_to_batch(self, batch):
+        """ Associates a pallet with an In Progress batch.
+
+            Raises a ValidationError if the pallet is already assigned to
+            another batch that is In Progress.
+        """
+        self.ensure_one()
+
+        if (self.u_last_assigned_batch and
+            self.u_last_assigned_batch.state == 'in_progress' and
+            self.u_last_assigned_batch != batch):
+            raise ValidationError(
+                _("This pallet is already being used for batch %s.") %
+                self.u_last_assigned_batch.name)
+
+        self.write({ 'u_last_assigned_batch': batch.id })
 
     def action_print_goods_slip(self):
         """

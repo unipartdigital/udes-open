@@ -482,6 +482,7 @@ Returns true if location categories of the user have been updated.
 
 ## Packages
 
+### Get package
 ```
 URI: /api/stock-quant-package
 HTTP Method: GET
@@ -493,6 +494,17 @@ If no package can be found then this will return an empty array
 * @param package_id - (optional) the package's id
 * @param package_name - (optional) this is a string that entirely matches the name
 * @param check_reserved - (optional, default = false) When enabled, checks if the package has stock reserved, in which case an error will be raise.
+
+### Assign pallet to batch
+```
+URI: /api/stock-quant-package/:id/assign-to-batch
+HTTP Method: POST
+```
+Assigns a pallet (package) to the specified batch.  
+Fails if the pallet is already assigned to another batch in progress.  
+Returns true on success and an error otherwise.
+
+* @param batch_id - (int) the batch's id
 
 ## Products
 
