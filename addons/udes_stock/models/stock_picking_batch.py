@@ -62,6 +62,16 @@ class StockPickingBatch(models.Model):
         help=('Name of the batch from which this batch was derived')
     )
 
+    # This is a barcode and not a One2one to allow pallets that aren't
+    # in the system yet (because they are empty) to be reserved.
+    u_last_reserved_pallet_name = fields.Char(
+        string='Last Pallet Used',
+        index=True,
+        help="Barcode of the last pallet used for this batch. "
+             "If the batch is in progress, indicates the pallet currently in "
+             "use.",
+    )
+
     @api.depends('picking_ids',
                  'picking_ids.u_location_category_id')
     @api.one
@@ -985,6 +995,33 @@ class StockPickingBatch(models.Model):
         self._compute_state()
 
         return
+
+    def reserve_pallet(self, pallet_name):
+        """
+        Reserves a pallet for use in a batch.
+
+        Only one pallet can be reserved per batch. The pallet is automatically
+        considered unreserved when another pallet is reserved or the batch is
+        done.
+
+        Raises a ValidationError if the pallet is already reserved for another
+        batch.
+        """
+        PickingBatch = self.env['stock.picking.batch']
+
+        self.ensure_one()
+
+        conflicting_batch = PickingBatch.search([
+            ('id', '!=', self.id),
+            ('state', '=', 'in_progress'),
+            ('u_last_reserved_pallet_name', '=', pallet_name),
+        ])
+        if conflicting_batch:
+            raise ValidationError(
+                _("This pallet is already being used for batch %s.") %
+                conflicting_batch[0].name)
+
+        self.write({ 'u_last_reserved_pallet_name': pallet_name })
 
 
 def get_next_name(obj, code):
