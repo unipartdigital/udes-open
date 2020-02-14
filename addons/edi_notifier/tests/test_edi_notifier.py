@@ -14,7 +14,6 @@ class EdiNotifierCase(EdiCase):
         EdiDocumentType = cls.env["edi.document.type"]
         EdiDocument = cls.env["edi.document"]
         IrModel = cls.env["ir.model"]
-        Mail = cls.env["mail.template"]
 
         # Create document type
         cls.doc_type = EdiDocumentType.create(
@@ -29,17 +28,10 @@ class EdiNotifierCase(EdiCase):
             {"name": "ToDo list", "doc_type_id": cls.doc_type.id, "state": "draft",}
         )
 
-        cls.patch_send_mail = patch.object(Mail.__class__, "send_mail", autospec=True)
-        cls.send_mail_mock = cls.patch_send_mail.start()
-
-    def setUp(self):
-        super().setUp()
-        self.send_mail_mock.reset_mock()
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.patch_send_mail.stop()
-        super().tearDownClass()
+    def mock_send_mail(self):
+        return patch.object(
+            self.env["mail.template"].__class__, "send_mail", autospec=True
+        )
 
     def create_transfer(self, doc):
         IrModel = self.env["ir.model"]
@@ -65,6 +57,11 @@ class EdiNotifierCase(EdiCase):
 
     def _convert_time(self, time):
         return fields.Datetime.to_string(time)
+
+    def make_note(self, res, text):
+        self.env["mail.message"].create(
+            {"model": res._name, "res_id": res.id, "body": text,}
+        )
 
 
 class TestNotifier(EdiNotifierCase):
@@ -128,25 +125,29 @@ class TestSuccess(EdiNotifierCase):
         )
 
     def test_send_mail_on_success(self):
-        self.assertTrue(self.doc.action_execute())
+        with self.mock_send_mail() as send_mail_mock:
+            self.assertTrue(self.doc.action_execute())
         self.assertEqual(self.doc.state, "done")
-        self.send_mail_mock.assert_called_once()
-        self.send_mail_mock.assert_called_with(
+        send_mail_mock.assert_called_once()
+        send_mail_mock.assert_called_with(
             self.email_template, self.doc.id, force_send=True
         )
 
     def test_dont_send_if_not_active(self):
         self.notifier.active = False
-        self.assertTrue(self.doc.action_execute())
+        with self.mock_send_mail() as send_mail_mock:
+            self.assertTrue(self.doc.action_execute())
         self.assertEqual(self.doc.state, "done")
-        self.send_mail_mock.assert_not_called()
+        send_mail_mock.assert_not_called()
 
     def test_dont_send_on_failure(self):
         self.doc.doc_type_id = self.doc_type_unknown
         self.notifier.doc_type_ids = [(6, False, self.doc_type_unknown.ids)]
-        with mute_logger("odoo.addons.edi.models.edi_issues"):
+        with mute_logger(
+            "odoo.addons.edi.models.edi_issues"
+        ), self.mock_send_mail() as send_mail_mock:
             self.doc.action_execute()
-        self.send_mail_mock.assert_not_called()
+        send_mail_mock.assert_not_called()
 
 
 class TestFailed(EdiNotifierCase):
@@ -171,18 +172,21 @@ class TestFailed(EdiNotifierCase):
         )
 
     def test_send_on_failure(self):
-        with mute_logger("odoo.addons.edi.models.edi_issues"):
+        with mute_logger(
+            "odoo.addons.edi.models.edi_issues"
+        ), self.mock_send_mail() as send_mail_mock:
             self.doc.action_execute()
         self.assertNotEqual(self.doc.state, "done")
-        self.send_mail_mock.assert_called_with(
+        send_mail_mock.assert_called_with(
             self.email_template, self.doc.id, force_send=True
         )
 
     def test_dont_send_on_success(self):
         self.doc.doc_type_id = self.doc_type
         self.notifier.doc_type_ids = [(6, False, self.doc_type.ids)]
-        self.doc.action_execute()
-        self.send_mail_mock.assert_not_called()
+        with self.mock_send_mail() as send_mail_mock:
+            self.doc.action_execute()
+        send_mail_mock.assert_not_called()
 
 
 class TestMissing(EdiNotifierCase):
@@ -208,9 +212,10 @@ class TestMissing(EdiNotifierCase):
 
     def test_cron_trigger_missing_not_reported(self):
         self.setup_cron(datetime.now() - timedelta(hours=1))
-        self.cron.method_direct_trigger()
-        self.send_mail_mock.assert_called_once()
-        self.send_mail_mock.assert_called_with(
+        with self.mock_send_mail() as send_mail_mock:
+            self.cron.method_direct_trigger()
+        send_mail_mock.assert_called_once()
+        send_mail_mock.assert_called_with(
             self.email_template, self.doc_type.id, force_send=True
         )
 
@@ -218,8 +223,9 @@ class TestMissing(EdiNotifierCase):
         dtime = datetime.now() - timedelta(hours=1)
         self.doc_type.x_last_checked_not_received = self._convert_time(dtime)
         self.setup_cron(dtime)
-        self.cron.method_direct_trigger()
-        self.send_mail_mock.assert_not_called()
+        with self.mock_send_mail() as send_mail_mock:
+            self.cron.method_direct_trigger()
+        send_mail_mock.assert_not_called()
 
     def test_cron_trigger_recived(self):
         raw_doc = self.create_document(self.doc_type_raw)
@@ -227,8 +233,9 @@ class TestMissing(EdiNotifierCase):
         self.create_input_attachment(raw_doc, "res.users.csv")
         self.notifier.doc_type_ids = [(6, False, self.doc_type_raw.ids)]
         self.setup_cron(datetime.now())
-        self.cron.method_direct_trigger()
-        self.send_mail_mock.assert_not_called()
+        with self.mock_send_mail() as send_mail_mock:
+            self.cron.method_direct_trigger()
+        send_mail_mock.assert_not_called()
 
 
 class TestMissingInRange(EdiNotifierCase):
@@ -258,8 +265,9 @@ class TestMissingInRange(EdiNotifierCase):
         self.create_input_attachment(raw_doc, "res.users.csv")
         self.notifier.doc_type_ids = [(6, False, self.doc_type_raw.ids)]
         self.setup_cron(datetime.now())
-        self.cron.method_direct_trigger()
-        self.send_mail_mock.assert_not_called()
+        with self.mock_send_mail() as send_mail_mock:
+            self.cron.method_direct_trigger()
+        send_mail_mock.assert_not_called()
 
     def test_send_if_recived_out_of_timeframe(self):
         raw_doc = self.create_document(self.doc_type_raw)
@@ -267,8 +275,9 @@ class TestMissingInRange(EdiNotifierCase):
         self.create_input_attachment(raw_doc, "res.users.csv")
         self.notifier.doc_type_ids = [(6, False, self.doc_type_raw.ids)]
         self.setup_cron(datetime.now() + timedelta(hours=4))
-        self.cron.method_direct_trigger()
-        self.send_mail_mock.assert_called_with(
+        with self.mock_send_mail() as send_mail_mock:
+            self.cron.method_direct_trigger()
+        send_mail_mock.assert_called_with(
             self.email_template, self.doc_type_raw.id, force_send=True
         )
 
@@ -278,5 +287,6 @@ class TestMissingInRange(EdiNotifierCase):
         self.create_input_attachment(raw_doc, "res.users.csv")
         self.notifier.doc_type_ids = [(6, False, self.doc_type_raw.ids)]
         self.setup_cron(datetime.now() + timedelta(hours=1))
-        self.cron.method_direct_trigger()
-        self.send_mail_mock.assert_not_called()
+        with self.mock_send_mail() as send_mail_mock:
+            self.cron.method_direct_trigger()
+        send_mail_mock.assert_not_called()
