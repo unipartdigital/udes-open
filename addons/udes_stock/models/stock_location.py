@@ -72,7 +72,7 @@ class StockLocation(models.Model):
         string='Location Policy',
         selection=[('all', 'Allow all'),
                    ('single_product_id', 'One product per location'),
-                   ('single_lot_id_single_product_id', 'One lot/product per locations')])
+                   ('single_lot_id_single_product_id_per_package', 'One lot/product per package')])
 
     u_height_category_id = fields.Many2one(
         comodel_name='product.category',
@@ -535,18 +535,13 @@ class StockLocation(models.Model):
             raise ValidationError(
                 _('Location %s cannot contain more than one product.' % loc.name))
 
-    def _apply_quant_policy_single_lot_id_single_product_id(self, policy, loc):
-        import ipdb; ipdb.set_trace()
-        if policy == 'single_lot_id_single_product_id':
-            move_lines = loc.quant_ids.mapped('package_id').mapped('move_line_ids')
-            for move_line in move_lines:
-                if len(move_line.mapped('lot_id')) > 1 or \
-                    len(move_line.mapped('product_id')) >1:
+    def _apply_quant_policy_single_lot_id_single_product_id_per_package(self, policy, loc):
+        if policy == 'single_lot_id_single_product_id_per_package':
+            loc.quant_ids.mapped('package_id')
+            for package, quants in loc.quant_ids.groupby('package_id'):
+                if len(quants.mapped('lot_id')) > 1 or len(quants.mapped('product_id')) > 1:
                     raise ValidationError(
-                        _('Location %s cannot contain more than one '
-                        'lot or product in the same package %s' 
-                        % loc.name, move_line.package_id.name
-                        )
+                        _('Package %s cannot contain more than one lot or product') % package.name
                     )
 
     @api.constrains('u_quant_policy', 'location_id')
