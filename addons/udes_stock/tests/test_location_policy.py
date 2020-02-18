@@ -1,6 +1,7 @@
 from . import common
 from odoo.exceptions import ValidationError
 
+
 class TestLocationPolicy(common.BaseUDES):
     @classmethod
     def setUpClass(cls):
@@ -136,3 +137,38 @@ class TestLocationPolicy(common.BaseUDES):
                                 % self.test_location_middle_child_stock.name):
             self.test_location_first_child_stock.u_quant_policy =\
                                                              'single_product_id'
+
+
+class TestLocationPolicySingleLotAndProductPerPackage(common.BaseUDES):
+    @classmethod
+    def setUpClass(cls):
+        super(TestLocationPolicySingleLotAndProductPerPackage, cls).setUpClass()
+        Location = cls.env['stock.location']
+        Package = cls.env['stock.quant.package']
+
+        cls.test_location = Location.create({
+                'name': "Test location",
+                'barcode': "LTESTLOCATION",
+                'location_id': cls.stock_location.id,
+                'u_quant_policy': 'single_lot_id_single_product_id_per_package'
+            })
+        cls.test_package = Package.create({})
+
+    def _create_lot_quant_in_package(self, product_id, lot_name=None):
+        self.create_quant(
+            product_id, self.test_location.id, 10,
+            serial_number=lot_name, package_id=self.test_package.id)
+
+    def test01_error_multiple_lots_in_package(self):
+        self._create_lot_quant_in_package(self.tangerine.id, "TLOT01")
+        with self.assertRaisesRegex(ValidationError,
+                        'Package %s cannot contain more than one lot or product'
+                                % self.test_package.name):
+            self._create_lot_quant_in_package(self.tangerine.id, "TLOT02")
+
+    def test012error_multiple_products_in_package(self):
+        self._create_lot_quant_in_package(self.tangerine.id, "TLOT01")
+        with self.assertRaisesRegex(ValidationError,
+                        'Package %s cannot contain more than one lot or product'
+                                % self.test_package.name):
+            self._create_lot_quant_in_package(self.apple.id)
