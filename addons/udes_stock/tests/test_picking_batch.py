@@ -1659,3 +1659,49 @@ class TestContinuationBatchProcessing(common.BaseUDES):
         batch.state = 'in_progress'
         batch.close()
         self.assertEqual(picking.batch_id.u_original_name, batch.name)
+
+class TestPalletReservation(common.BaseUDES):
+    def test01_conflicting_reservation(self):
+        batch1 = self.create_batch(user=self.outbound_user)
+        batch1.state = 'in_progress'
+        batch1.reserve_pallet('UDES11111')
+
+        batch2 = self.create_batch(user=self.outbound_user)
+        batch2.state = 'in_progress'
+        expected_error = 'This pallet is already being used for batch %s.' % \
+                         batch1.name
+        with self.assertRaisesRegex(ValidationError, expected_error,
+                                    msg='Incorrect error thrown'):
+            batch2.reserve_pallet('UDES11111')
+
+    def test02_reservation_expiry_when_done(self):
+        batch1 = self.create_batch(user=self.outbound_user)
+        batch1.state = 'in_progress'
+        batch1.reserve_pallet('UDES11111')
+        batch1.state = 'done'
+
+        batch2 = self.create_batch(user=self.outbound_user)
+        batch2.state = 'in_progress'
+        batch2.reserve_pallet('UDES11111')
+
+    def test03_reservation_switch(self):
+        batch1 = self.create_batch(user=self.outbound_user)
+        batch1.state = 'in_progress'
+        batch1.reserve_pallet('UDES11111')
+        batch1.reserve_pallet('UDES11112')
+
+        batch2 = self.create_batch(user=self.outbound_user)
+        batch2.state = 'in_progress'
+        batch2.reserve_pallet('UDES11111')
+        expected_error = 'This pallet is already being used for batch %s.' % \
+                         batch1.name
+        with self.assertRaisesRegex(ValidationError, expected_error,
+                                    msg='Incorrect error thrown'):
+            batch2.reserve_pallet('UDES11112')
+
+    def test04_rereservation_for_same_batch(self):
+        batch = self.create_batch(user=self.outbound_user)
+        batch.state = 'in_progress'
+
+        batch.reserve_pallet('UDES11111')
+        batch.reserve_pallet('UDES11111')
