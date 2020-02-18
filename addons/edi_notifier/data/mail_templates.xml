@@ -22,7 +22,7 @@
   </ul>
 </p>
 % if ctx.get("notes"):
-<p>The notes attched to the documents are:
+<p>The notes attached to the documents are:
   <ul>
   %for note in ctx.get("notes"):
     % if note.body:
@@ -70,7 +70,7 @@
 </br>
 % endif
 % if ctx.get("notes"):
-<p>The notes attched to the documents are:
+<p>The notes attached to the documents are:
   <ul>
   %for note in ctx.get("notes"):
     % if note.body:
