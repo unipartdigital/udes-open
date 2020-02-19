@@ -1244,17 +1244,24 @@ class StockPicking(models.Model):
     def _check_entire_pack(self):
         """
             Override to avoid values at result_package_id when
-            user scans products
+            user scans products/avoid _check_entire_pack of products
         """
         pickings = self.filtered(
             lambda p: p.picking_type_id.u_user_scans != 'product' and
                       p.picking_type_id.u_target_storage_format != 'product')
         super(StockPicking, pickings)._check_entire_pack()
-        package_move_lines = pickings \
-            .filtered(lambda p: p.picking_type_id.u_target_storage_format == 'package') \
-            .mapped("move_line_ids")
-        if package_move_lines:
-            package_move_lines.write({'u_result_parent_package_id': False})
+
+    def _set_u_result_parent_package_id(self):
+        """
+            Override function to avoid setting result_package_id when
+            the storage format is product/package/pallet of products
+        """
+        pallet_package_pickings = self \
+            .filtered(
+                lambda p: p.picking_type_id.u_target_storage_format not in
+                ('product', 'pallet_products', 'package')
+            )
+        super(StockPicking, pallet_package_pickings)._set_u_result_parent_package_id()
 
     def _reserve_full_packages(self):
         """
