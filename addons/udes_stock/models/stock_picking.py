@@ -1297,18 +1297,10 @@ class StockPicking(models.Model):
             Override function to avoid setting result_package_id when
             the storage format is product/package/pallet of products
         """
-<<<<<<< HEAD
         pallet_package_pickings = self.filtered(
             lambda p: p.picking_type_id.u_target_storage_format
             not in ("product", "pallet_products", "package")
         )
-=======
-        pallet_package_pickings = self \
-            .filtered(
-                lambda p: p.picking_type_id.u_target_storage_format not in
-                ('product', 'pallet_products', 'package')
-            )
->>>>>>> 7ec070f... [IMP] udes_stock: Override _set_u_result_parent_package_id
         super(StockPicking, pallet_package_pickings)._set_u_result_parent_package_id()
 
     def _reserve_full_packages(self):
