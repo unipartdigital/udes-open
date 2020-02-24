@@ -16,6 +16,30 @@ class TestGoodsInPicking(common.BaseUDES):
                                               confirm=True)
         cls.SudoPicking = Picking.sudo(cls.inbound_user)
         cls.test_picking = cls.test_picking.sudo(cls.inbound_user)
+        cls.tangerine_lot = cls.create_lot(cls.tangerine.id, 1)
+
+    def picks_by_storage_type(self, storage_type=False):
+        """
+            Generate and return picks and pallets for different storage formats
+        """
+        Package = self.env['stock.quant.package']
+        self.picking_type_in.u_target_storage_format = storage_type
+        mummy_pallet = Package.get_package('mummy_pallet', create=True)
+        baby_pallet = Package.get_package('baby_pallet', create=True)
+        baby_pallet.package_id = mummy_pallet.id
+        pick_product_info = [{'product': self.tangerine, 'qty': 10}]
+        pick = self.create_picking(
+            self.picking_type_in,
+            origin="test_picking_origin",
+            products_info=pick_product_info,
+            confirm=True
+        )
+        pick.move_line_ids.result_package_id = baby_pallet.id
+        pick.move_line_ids.qty_done = 10
+        pick.move_line_ids.lot_id = self.tangerine_lot.id
+        pick._check_entire_pack()
+
+        return mummy_pallet, pick 
 
     def test01_get_pickings_by_package_name_fail(self):
         """ Tests get_pickings by package_name
@@ -102,3 +126,39 @@ class TestGoodsInPicking(common.BaseUDES):
         self.assertEqual(pick_a.u_first_picking_ids, pick_a)
         self.assertEqual(pick_b.u_first_picking_ids, (pick_a | pick_b))
         self.assertEqual(pick_d.u_first_picking_ids, (pick_a | pick_b | pick_c))
+
+    def test09_pallets_of_packages_have_parent_package(self):
+        """
+            Test that only pallets of packages have a parent package added by
+           _check_entire_pack/_set_u_result_parent_package_id
+        """
+
+        pallet, pick = self.picks_by_storage_type("pallet_packages")
+        self.assertEqual(pallet, pick.move_line_ids.u_result_parent_package_id)
+
+    def test10_product_packages_has_no_parent_package(self):
+        """
+            Test that only product have a parent package added by
+           _check_entire_pack/_set_u_result_parent_package_id
+        """
+
+        _, pick = self.picks_by_storage_type("product")
+        self.assertFalse(pick.move_line_ids.u_result_parent_package_id)
+
+    def test11_pallet_of_products_has_no_parent_package(self):
+        """
+            Test that only product have a parent package added by
+           _check_entire_pack/_set_u_result_parent_package_id
+        """
+
+        _, pick = self.picks_by_storage_type("pallet_products")
+        self.assertFalse(pick.move_line_ids.u_result_parent_package_id)
+
+    def test12_package_has_no_parent_package(self):
+        """
+            Test that only product have a parent package added by
+           _check_entire_pack/_set_u_result_parent_package_id
+        """
+
+        _, pick = self.picks_by_storage_type("package")
+        self.assertFalse(pick.move_line_ids.u_result_parent_package_id)
