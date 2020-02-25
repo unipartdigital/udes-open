@@ -1037,3 +1037,51 @@ class StockMoveLine(models.Model):
         done_lines = self.filtered(lambda x: x.state == "done")
         if done_lines:
             raise ValidationError(_("Cannot update move lines that are already 'done'."))
+
+    @api.constrains("result_package_id", "u_result_parent_package_id")
+    @api.onchange("result_package_id", "u_result_parent_package_id")
+    def _check_resultant_package_level(self):
+        MoveLine = self.env["stock.move.line"]
+        # Collect move lines with packages related to those being checked which are in progress
+        package_ids = self.mapped("result_package_id") | self.mapped("u_result_parent_package_id")
+        package_mls = MoveLine.search(
+            [
+                ("state", "=", "assigned"),
+                "|",
+                ("result_package_id", "in", package_ids.mapped("id")),
+                ("u_result_parent_package_id", "in", package_ids.mapped("id")),
+            ]
+        )
+
+        for ml in self:
+            storage_format = ml.u_picking_type_id.u_target_storage_format
+            result_package_is_parent = package_mls.filtered(
+                lambda package_ml: ml.result_package_id == package_ml.u_result_parent_package_id
+            )
+            if storage_format == "product" and (
+                ml.u_result_parent_package_id or ml.result_package_id
+            ):
+                raise ValidationError(_("Pickings stored by product cannot be inside packages."))
+            elif storage_format in ["package", "pallet_products"] and (
+                result_package_is_parent
+                or ml.u_result_parent_package_id
+                or ml.result_package_id.u_package_depth >= 2
+            ):
+                raise ValidationError(
+                    _(
+                        "Pickings stored by package or pallet of products cannot have a parent package."
+                    )
+                )
+            elif storage_format == "pallet_packages" and (
+                (
+                    result_package_is_parent
+                    or (
+                        package_mls.filtered(
+                            lambda package_ml: ml.u_result_parent_package_id
+                            == package_ml.result_package_id
+                        )
+                    )
+                    or ml.result_package_id.u_package_depth >= 2
+                )
+            ):
+                raise ValidationError(_("Maximum package depth exceeded."))
