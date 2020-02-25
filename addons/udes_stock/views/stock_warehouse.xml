@@ -41,6 +41,7 @@
                             <field name="u_package_barcode_regex" />
                             <field name="u_show_rpc_timing" />
                             <field name="u_reserved_package_name" />
+                            <field name="u_max_package_depth" />
                         </group>
                     </page>
                 </xpath>
