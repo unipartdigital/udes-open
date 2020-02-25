@@ -15,6 +15,24 @@ class StockQuantPackage(models.Model):
     # different to the internal one.
     u_external_name = fields.Char(string="External Name")
 
+    u_package_depth = fields.Integer(string="Package Depth",
+        help="The maxmium number of package levels within a package hierarchy. I.e. 2 would denote a single level of packages(each with no subpackage) within a parent package",
+        compute="_compute_package_depth",
+        store=True,
+    )
+
+    @api.constrains('u_package_depth')
+    @api.depends('children_ids.u_package_depth')
+    def _compute_package_depth(self):
+        wh = self.env.user.get_user_warehouse()
+        max_package_depth = wh.u_max_package_depth
+        for package in self:
+            new_package_depth = max(package.children_ids.mapped('u_package_depth')) + 1 if package.children_ids else 1
+            if new_package_depth != package.u_package_depth:
+                package.u_package_depth = new_package_depth
+            if package.u_package_depth > max_package_depth:
+                raise ValidationError("Maximum package depth exceeded.")
+
     def new_package_name(self):
         Sequence = self.env['ir.sequence']
         return Sequence.next_by_code('stock.quant.package') or _('Unknown Pack')
