@@ -89,6 +89,12 @@ class StockWarehouse(models.Model):
              "names and are reserved for PI purposes.",
     )
 
+    u_max_package_depth = fields.Integer(
+        "Maximum Package Recursion",
+        default=2,
+        help="Maximum depth for package hierarchy. I.e. a value of 2 would limit the number of levels in hierarchy to 2, one level of packages(with no subpackages) inside an outer package."
+    )
+
     @lazy_property
     def reserved_package_name(self):
         return list(
