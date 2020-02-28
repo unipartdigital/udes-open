@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from . import common
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 
 class TestGoodsInPicking(common.BaseUDES):
 
@@ -142,9 +142,9 @@ class TestGoodsInPicking(common.BaseUDES):
         """
 
         self.picking_type_in.u_target_storage_format = "product"
-        _, pick = self.generate_picks_and_pallets_for_check_entire_pack()
-        pick._check_entire_pack()
-        self.assertFalse(pick.move_line_ids.u_result_parent_package_id)
+        with self.assertRaises(ValidationError) as e:
+            _, pick = self.generate_picks_and_pallets_for_check_entire_pack()
+            self.assertEqual(e.exception.name, "Pickings stored by product cannot be inside packages.")
 
     def test11_pallet_of_products_has_no_parent_package(self):
         """
