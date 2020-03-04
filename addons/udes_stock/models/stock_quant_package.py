@@ -278,3 +278,9 @@ class StockQuantPackage(models.Model):
     def write(self, values):
         self._check_allowed_package(values)
         return super(StockQuantPackage, self).write(values)
+
+    def get_move_lines(self, aux_domain=None):
+        MoveLine = self.env["stock.move.line"]
+        domain = [("package_id", "child_of", self.ids)]
+        domain.extend(aux_domain)
+        return MoveLine.search(domain)
