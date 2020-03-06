@@ -12,7 +12,7 @@ class TestPackageHierarchy(common.BaseUDES):
         pack_child.package_id = pack_parent.id
         with self.assertRaises(ValidationError) as e:
             pack_parent.package_id = pack_grandparent.id
-            self.assertEqual(e.exception.name, 'Maximum package depth exceeded.')
+        self.assertEqual(e.exception.name, 'Maximum package depth exceeded.')
 
     def test2_max_package_depth_violation_tail(self):
         """Test Non-Branching Maximum Package Depth Tail Insertion"""
@@ -22,7 +22,7 @@ class TestPackageHierarchy(common.BaseUDES):
         pack_child.package_id = pack_parent.id
         with self.assertRaises(ValidationError) as e:
             pack_grandparent.package_id = pack_child.id
-            self.assertEqual(e.exception.name, 'Maximum package depth exceeded.')
+        self.assertEqual(e.exception.name, 'Maximum package depth exceeded.')
 
     def test3_max_package_depth_violation_middle(self):
         """Test Non-Branching Maximum Package Depth Middle Insertion"""
@@ -43,7 +43,7 @@ class TestPackageHierarchy(common.BaseUDES):
         # Increase length of middle child to create 4 level package
         with self.assertRaises(ValidationError) as e:
             pack_middle_child.package_id = pack_child_b.id
-            self.assertEqual(e.exception.name, 'Maximum package depth exceeded.')
+        self.assertEqual(e.exception.name, 'Maximum package depth exceeded.')
 
     def test4_max_package_depth_violation_branch_top(self):
         """Test Branching Maximum Package Depth Top Insertion"""
@@ -68,7 +68,7 @@ class TestPackageHierarchy(common.BaseUDES):
         # Add a 4 level package to grandparent
         with self.assertRaises(ValidationError) as e:
             pack_parent_1.package_id = pack_grandparent.id
-            self.assertEqual(e.exception.name, 'Maximum package depth exceeded.')
+        self.assertEqual(e.exception.name, 'Maximum package depth exceeded.')
 
     def test5_max_package_depth_violation_branch_tail(self):
         """Test Branching Maximum Package Depth Tail Insertion"""
@@ -100,7 +100,7 @@ class TestPackageHierarchy(common.BaseUDES):
         # Add a 5th level to grandparent as inner child
         with self.assertRaises(ValidationError) as e:
             pack_child_1_c.package_id = pack_child_1_a.id
-            self.assertEqual(e.exception.name, 'Maximum package depth exceeded.')
+        self.assertEqual(e.exception.name, 'Maximum package depth exceeded.')
 
     def test6_max_package_depth_violation_branch_middle(self):
         """Test Branching Maximum Package Depth Middle Insertion"""
@@ -135,7 +135,7 @@ class TestPackageHierarchy(common.BaseUDES):
         # Increase length of shorter chain middle child to create 5 level package
         with self.assertRaises(ValidationError) as e:
             pack_middle_child_b.package_id = pack_child_2.id
-            self.assertEqual(e.exception.name, 'Maximum package depth exceeded.')
+        self.assertEqual(e.exception.name, 'Maximum package depth exceeded.')
 
     def test7_max_package_depth_violation_branch_middle(self):
         """Test Adding Child Package To Parent Already Possessing Multiple Children"""
@@ -173,4 +173,4 @@ class TestPackageHierarchy(common.BaseUDES):
         # Add 4 level package to grandparent - 5 level grandparent
         with self.assertRaises(ValidationError) as e:
             pack_parent_2.package_id = pack_grandparent.id
-            self.assertEqual(e.exception.name, 'Maximum package depth exceeded.')
+        self.assertEqual(e.exception.name, 'Maximum package depth exceeded.')
