@@ -1029,7 +1029,7 @@ class StockPicking(models.Model):
                     )
 
         if PickingBatch.get_user_batches():
-            raise ValidationError(_("User %s already has an in progress batch") % user.name)
+            raise ValidationError(_("You (%s) already have a batch in progess") % user.name)
 
         if not self.batch_id:
             batch = PickingBatch.create({"user_id": user.id, "u_ephemeral": True,})
