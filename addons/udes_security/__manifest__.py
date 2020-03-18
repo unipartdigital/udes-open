@@ -15,6 +15,7 @@ Security enhancements used by UDES
     ],
     'category': "Authentication",
     'data': [
+        'views/res_users_views.xml',
         'data/auth_brute_force.xml',
         'data/res_groups.xml',
         'data/res_users.xml',

@@ -1,14 +1,35 @@
 # -*- coding: utf-8 -*-
 import logging
 
-from odoo import api, models, SUPERUSER_ID
+from odoo import api, models, fields, SUPERUSER_ID
 from odoo.exceptions import AccessError
 from odoo.tools.translate import _
+from odoo.http import root, request
 
+_store = root.session_store
 _logger = logging.getLogger(__name__)
+
 
 class Users(models.Model):
     _inherit = 'res.users'
+
+    u_restrict_to_single_session = fields.Boolean(
+        string="Restrict user account to single login session",
+        default=False
+    )
+
+    @classmethod
+    def authenticate(cls, db, *args, **kwargs):
+        """ Override to clear all previous sessions if authenticated """
+        uid = super().authenticate(db, *args, **kwargs)
+        if uid and request.env['res.users'].browse(uid).u_restrict_to_single_session:
+            sessions = {sid: _store.get(sid) for sid in _store.list()}
+            for sid, session in filter(
+                    lambda x: x[1].uid == uid and x[1].db == db,
+                    sessions.items()
+            ):
+                _store.delete(session)
+        return uid
 
     @api.model
     def create(self, values):
