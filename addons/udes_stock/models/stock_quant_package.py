@@ -4,6 +4,7 @@ from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError, UserError
 
 import logging
+
 _logger = logging.getLogger(__name__)
 
 
@@ -15,15 +16,24 @@ class StockQuantPackage(models.Model):
     # different to the internal one.
     u_external_name = fields.Char(string="External Name")
     u_top_parent = fields.Many2one(
-        'stock.quant.package', string='Top parent Package', readonly=True, store=True,
-        help="Highest level package in this stack", compute='_compute_top_parent')
-    u_package_depth = fields.Integer(string="Package Depth",
-        help="The maximum number of package levels within a package hierarchy. I.e. 2 would denote a single level of packages (each with no subpackage) within a parent package",
+        "stock.quant.package",
+        string="Top parent Package",
+        readonly=True,
+        store=True,
+        help="Highest level package in this stack",
+        compute="_compute_top_parent",
+    )
+    u_package_depth = fields.Integer(
+        string="Package Depth",
+        help=(
+            "The maximum number of package levels within a package hierarchy. I.e. 2 would "
+            "denote a single level of packages (each with no subpackage) within a parent package"
+        ),
         compute="_compute_package_depth",
         store=False,
     )
 
-    @api.depends('package_id')
+    @api.depends("package_id")
     def _compute_top_parent(self):
         """ Finds the top level parent package """
         for package in self:
@@ -32,7 +42,7 @@ class StockQuantPackage(models.Model):
             else:
                 package.u_top_parent = package
 
-    @api.constrains('package_id')
+    @api.constrains("package_id")
     def _check_package_depth(self):
         wh = self.env.user.get_user_warehouse()
         max_package_depth = wh.u_max_package_depth
@@ -41,19 +51,23 @@ class StockQuantPackage(models.Model):
             if patriarch.u_package_depth > max_package_depth:
                 raise ValidationError(_("Maximum package depth exceeded."))
 
-    @api.depends('children_ids.u_package_depth')
+    @api.depends("children_ids.u_package_depth")
     def _compute_package_depth(self):
         for package in self:
-            package.u_package_depth = max(package.children_ids.mapped('u_package_depth')) + 1 if package.children_ids else 1
+            package.u_package_depth = (
+                max(package.children_ids.mapped("u_package_depth")) + 1
+                if package.children_ids
+                else 1
+            )
 
     def new_package_name(self):
-        Sequence = self.env['ir.sequence']
-        return Sequence.next_by_code('stock.quant.package') or _('Unknown Pack')
+        Sequence = self.env["ir.sequence"]
+        return Sequence.next_by_code("stock.quant.package") or _("Unknown Pack")
 
     def _default_package_name(self):
-        MoveLine = self.env['stock.move.line']
+        MoveLine = self.env["stock.move.line"]
 
-        move_line_ids = self.env.context.get('move_line_ids')
+        move_line_ids = self.env.context.get("move_line_ids")
         if move_line_ids:
             move_lines = MoveLine.browse(move_line_ids)
             name = move_lines.new_package_name()
@@ -80,18 +94,17 @@ class StockQuantPackage(models.Model):
         """
         self.ensure_one()
 
-        info = {"id": self.id,
-                "name": self.name}
+        info = {"id": self.id, "name": self.name}
 
         if self.package_id:
-            info['package_id'] = self.package_id.id
+            info["package_id"] = self.package_id.id
         if self.children_ids:
-            info['children_ids'] = self.children_ids.get_info(extended=extended, **kwargs)
+            info["children_ids"] = self.children_ids.get_info(extended=extended, **kwargs)
 
         if extended:
             location_info = self.location_id.get_info()
-            info['location_id'] = location_info[0] if location_info else {}
-            info['quant_ids'] = self.quant_ids.get_info()
+            info["location_id"] = location_info[0] if location_info else {}
+            info["quant_ids"] = self.quant_ids.get_info()
 
         return info
 
@@ -117,20 +130,27 @@ class StockQuantPackage(models.Model):
         """
         name = None
         if isinstance(package_identifier, int):
-            domain = [('id', '=', package_identifier)]
+            domain = [("id", "=", package_identifier)]
         elif isinstance(package_identifier, str):
-            domain = [('name', '=', package_identifier)]
+            domain = [("name", "=", package_identifier)]
             name = package_identifier
         else:
-            raise ValidationError(_('Unable to create domain for package search from identifier of type %s') % type(package_identifier))
+            raise ValidationError(
+                _("Unable to create domain for package search from identifier of type %s")
+                % type(package_identifier)
+            )
 
         results = self.search(domain)
         if not results and not no_results:
             if not create or name is None:
-                raise ValidationError(_('Package not found for identifier %s') % str(package_identifier))
-            results = self.create({'name': name})
+                raise ValidationError(
+                    _("Package not found for identifier %s") % str(package_identifier)
+                )
+            results = self.create({"name": name})
         if len(results) > 1:
-            raise ValidationError(_('Too many packages found for identifier %s') % str(package_identifier))
+            raise ValidationError(
+                _("Too many packages found for identifier %s") % str(package_identifier)
+            )
 
         return results
 
@@ -139,15 +159,16 @@ class StockQuantPackage(models.Model):
             case raise an error.
         """
         self.ensure_one()
-        quants = self.mapped('quant_ids') | self.mapped('children_quant_ids')
+        quants = self.mapped("quant_ids") | self.mapped("children_quant_ids")
         quants.assert_not_reserved()
 
     def has_same_content(self, other):
         """ Compare the content of current package with the content of another package.
         """
         self.ensure_one()
-        return frozenset(self._get_all_products_quantities().items()) == \
-               frozenset(other._get_all_products_quantities().items())
+        return frozenset(self._get_all_products_quantities().items()) == frozenset(
+            other._get_all_products_quantities().items()
+        )
 
     def mls_can_fulfil(self, mls):
         """Returns mls which the package can fulfil. If the product_qty of the
@@ -171,7 +192,7 @@ class StockQuantPackage(models.Model):
     def assert_reserved_full_package(self, move_lines):
         """ Check that a package is fully reserved at move_lines.
         """
-        MoveLine = self.env['stock.move.line']
+        MoveLine = self.env["stock.move.line"]
 
         self.ensure_one()
 
@@ -179,21 +200,19 @@ class StockQuantPackage(models.Model):
         mls_products = frozenset(move_lines._get_all_products_quantities().items())
         if pack_products != mls_products:
             # move_lines do not match the quants
-            picking = move_lines.mapped('picking_id')
+            picking = move_lines.mapped("picking_id")
             picking.ensure_one()
-            pack_mls = MoveLine.search([('package_id', 'child_of', self.id),
-                                        ('state', 'not in', ['done', 'cancel'])
-                                        ])
-            other_pickings = pack_mls.mapped('picking_id') - picking
+            pack_mls = MoveLine.search(
+                [("package_id", "child_of", self.id), ("state", "not in", ["done", "cancel"])]
+            )
+            other_pickings = pack_mls.mapped("picking_id") - picking
             if other_pickings:
                 raise ValidationError(
-                    _('The package is reserved in other pickings:') %
-                    ','.join(other_pickings.mapped('name'))
+                    _("The package is reserved in other pickings:")
+                    % ",".join(other_pickings.mapped("name"))
                 )
             # other_pickings == False means partially reserved,
-            raise ValidationError(
-                _('Cannot mark as done a partially reserved package.')
-            )
+            raise ValidationError(_("Cannot mark as done a partially reserved package."))
 
     @api.multi
     def is_reserved(self):
@@ -215,10 +234,9 @@ class StockQuantPackage(models.Model):
             Returns a recordset with the move lines.
 
         """
-        MoveLine = self.env['stock.move.line']
+        MoveLine = self.env["stock.move.line"]
 
-        domain = [('package_id', 'in', self.ids),
-                  ('state', 'not in', ['done', 'cancel'])]
+        domain = [("package_id", "in", self.ids), ("state", "not in", ["done", "cancel"])]
 
         if aux_domain is not None:
             domain += aux_domain
@@ -230,14 +248,16 @@ class StockQuantPackage(models.Model):
         """
         Print label for package
         """
-        Printer = self.env['print.printer']
+        Printer = self.env["print.printer"]
         self.ensure_one()
 
-        _logger.info(_("User %d requested print of goods slip "
-                       "for %s") % (self.env.uid, self.name))
+        _logger.info(
+            _("User %d requested print of goods slip " "for %s") % (self.env.uid, self.name)
+        )
 
-        spool = Printer.spool_report(docids=[self.id],
-                                     report_name='udes_stock.report_package_goods_slip')
+        spool = Printer.spool_report(
+            docids=[self.id], report_name="udes_stock.report_package_goods_slip"
+        )
         if spool:
             return True
         else:
@@ -247,14 +267,16 @@ class StockQuantPackage(models.Model):
         """
         Print label for package
         """
-        Printer = self.env['print.printer']
+        Printer = self.env["print.printer"]
         self.ensure_one()
 
-        _logger.info(_("User %d requested print of container label "
-                       "for %s") % (self.env.uid, self.name))
+        _logger.info(
+            _("User %d requested print of container label " "for %s") % (self.env.uid, self.name)
+        )
 
-        spool = Printer.spool_report(docids=[self.id],
-                                     report_name='udes_stock.report_container_label')
+        spool = Printer.spool_report(
+            docids=[self.id], report_name="udes_stock.report_container_label"
+        )
         if spool:
             return True
         else:
@@ -263,10 +285,9 @@ class StockQuantPackage(models.Model):
     @api.model
     def _check_allowed_package(self, values):
         wh = self.env.user.get_user_warehouse()
-        if values.get('name') in wh.reserved_package_name:
+        if values.get("name") in wh.reserved_package_name:
             raise ValidationError(
-                _('The package name %s cannot be used to create a package.' %
-                  values.get('name'))
+                _("The package name %s cannot be used to create a package." % values.get("name"))
             )
 
     @api.model
