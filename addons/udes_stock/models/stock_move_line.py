@@ -652,9 +652,10 @@ class StockMoveLine(models.Model):
             # - bypass_reservation_update:
             #   avoids to execute code specific for Odoo UI at stock.move.line.write()
             self.with_context(bypass_reservation_update=True).write(
-                {"product_uom_qty": done_to_keep, "qty_done": qty_done,}
+                {"product_uom_qty": done_to_keep, "qty_done": qty_done, "ordered_qty": ordered_qty}
             )
-            self.ordered_qty = ordered_qty
+            # TODO check why was outside
+            #self.ordered_qty = ordered_qty
             res = new_ml
 
         return res
@@ -919,7 +920,15 @@ class StockMoveLine(models.Model):
             location = self.env["stock.location"].browse(values["location_dest_id"])
             self._validate_location_dest(location=location)
 
-        return super(StockMoveLine, self).write(values)
+        if 'bypass_reservation_update' not in self.env.context:
+            bypass_reservation_update = True
+        else:
+            bypass_reservation_update = self.env.context.get('bypass_reservation_update')
+
+        return super(
+            StockMoveLine,
+            self.with_context(bypass_reservation_update=bypass_reservation_update)
+        ).write(values)
 
     ## Drop Location Constraint
 
