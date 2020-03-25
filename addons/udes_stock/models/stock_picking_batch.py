@@ -110,7 +110,11 @@ class StockPickingBatch(models.Model):
     @api.depends('picking_ids', 'picking_ids.picking_type_id')
     def _compute_picking_type(self):
         for batch in self:
-            batch.picking_type_ids = batch.picking_ids.mapped('picking_type_id')
+            if batch.picking_ids:
+                batch.picking_type_ids = batch.picking_ids.mapped('picking_type_id')
+            else:
+                # If the picking ids are empty use the stored picking type ids
+                batch.picking_type_ids = batch.read(['picking_type_ids'])[0]['picking_type_ids']
 
     @api.multi
     @api.depends('picking_ids', 'picking_ids.scheduled_date')
@@ -125,11 +129,15 @@ class StockPickingBatch(models.Model):
     @api.depends('picking_ids.priority')
     def _compute_priority(self):
         for batch in self:
-            new_priority = False
+            # Get the old priority of the batch
+            old_priority = batch.read(['priority'])[0]['priority']
             if batch.mapped('picking_ids'):
                 priorities = batch.mapped('picking_ids.priority')
                 new_priority = max(priorities)
-            if new_priority != batch.priority:
+            else:
+                # If the picking is empty keep the old priority
+                new_priority = old_priority
+            if new_priority != old_priority:
                 batch.priority = new_priority
 
     @api.multi
