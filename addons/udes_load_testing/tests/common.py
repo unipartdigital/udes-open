@@ -18,9 +18,9 @@ def time_func(func):
         func.__dict__.update({'duration': [None]})
 
     @wraps(func)
-    def _wrapper(self, *args, **kwargs):
+    def _wrapper(*args, **kwargs):
         start = time.time()
-        result = func(self, *args, **kwargs)
+        result = func(*args, **kwargs)
         func.duration[0] = (time.time() - start)
         return result
     return _wrapper
