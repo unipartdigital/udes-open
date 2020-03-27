@@ -9,7 +9,7 @@ from functools import wraps
 from parameterized import parameterized
 from odoo.addons.udes_stock.tests import common
 from odoo.exceptions import UserError
-from odoo.tests.common import at_install, post_install
+from odoo.tests.common import SavepointCase, at_install, post_install
 from .config import config
 
 def time_func(func):
@@ -28,7 +28,7 @@ def time_func(func):
 
 @at_install(False)
 @post_install(True)
-class LoadRunner(common.BaseUDES):
+class LoadRunner(SavepointCase):
 
     xlabel = 'I should be replaced'
     ylabel = 'Time taken/s'
@@ -107,7 +107,7 @@ class LoadRunner(common.BaseUDES):
 
 
 
-class BackgroundDataRunner(LoadRunner):
+class BackgroundDataRunner(LoadRunner, common.BaseUDES):
 
     @classmethod
     def setUpClass(cls):
