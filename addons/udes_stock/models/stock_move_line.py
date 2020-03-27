@@ -919,7 +919,14 @@ class StockMoveLine(models.Model):
             location = self.env["stock.location"].browse(values["location_dest_id"])
             self._validate_location_dest(location=location)
 
-        return super(StockMoveLine, self).write(values)
+        # By default bypass reservation update
+        if 'bypass_reservation_update' not in self.env.context:
+            bypass = True
+        else:
+            bypass = self.env.context.get('bypass_reservation_update')
+
+        return super(StockMoveLine,
+                     self.with_context(bypass_reservation_update=bypass)).write(values)
 
     ## Drop Location Constraint
 
