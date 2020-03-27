@@ -173,8 +173,7 @@ class StockMove(models.Model):
             # Adding context variables to avoid any change to be propagated to
             # the following moves and do not unreserve any quant related to the
             # move being split.
-            self.with_context(bypass_reservation_update=True,
-                              do_not_propagate=True,
+            self.with_context(do_not_propagate=True,
                               do_not_unreserve=True).write({
                 'ordered_qty': self.ordered_qty - total_ordered_qty,
                 'product_uom_qty': self.product_uom_qty - total_initial_qty,

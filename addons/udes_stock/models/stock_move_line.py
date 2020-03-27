@@ -648,10 +648,7 @@ class StockMoveLine(models.Model):
             )
             # updated ordered_qty otherwise odoo will use product_uom_qty
             # new_ml.ordered_qty = ordered_quantity_left_todo
-            # update self move line quantity to do
-            # - bypass_reservation_update:
-            #   avoids to execute code specific for Odoo UI at stock.move.line.write()
-            self.with_context(bypass_reservation_update=True).write(
+            self.write(
                 {"product_uom_qty": done_to_keep, "qty_done": qty_done,}
             )
             self.ordered_qty = ordered_qty
@@ -708,10 +705,7 @@ class StockMoveLine(models.Model):
             )
             # updated ordered_qty otherwise odoo will use product_uom_qty
             # new_ml.ordered_qty = ordered_quantity_left_todo
-            # update self move line quantity to do
-            # - bypass_reservation_update:
-            #   avoids to execute code specific for Odoo UI at stock.move.line.write()
-            self.with_context(bypass_reservation_update=True).write(
+            self.write(
                 {"product_uom_qty": old_ml_qty_todo, "ordered_qty": old_ml_ordered_qty,}
             )
             # self.ordered_qty = old_ml_ordered_qty
@@ -919,7 +913,8 @@ class StockMoveLine(models.Model):
             location = self.env["stock.location"].browse(values["location_dest_id"])
             self._validate_location_dest(location=location)
 
-        # By default bypass reservation update
+        # By default bypass reservation update:
+        #   avoids to execute code specific for Odoo UI at stock.move.line.write()
         if 'bypass_reservation_update' not in self.env.context:
             bypass = True
         else:
