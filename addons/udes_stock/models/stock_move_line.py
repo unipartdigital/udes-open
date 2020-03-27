@@ -649,9 +649,8 @@ class StockMoveLine(models.Model):
             # updated ordered_qty otherwise odoo will use product_uom_qty
             # new_ml.ordered_qty = ordered_quantity_left_todo
             self.write(
-                {"product_uom_qty": done_to_keep, "qty_done": qty_done,}
+                {"product_uom_qty": done_to_keep, "qty_done": qty_done, "ordered_qty": ordered_qty,}
             )
-            self.ordered_qty = ordered_qty
             res = new_ml
 
         return res
@@ -708,7 +707,6 @@ class StockMoveLine(models.Model):
             self.write(
                 {"product_uom_qty": old_ml_qty_todo, "ordered_qty": old_ml_ordered_qty,}
             )
-            # self.ordered_qty = old_ml_ordered_qty
             res = new_ml
 
         return res
