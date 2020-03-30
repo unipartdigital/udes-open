@@ -18,10 +18,20 @@ class Users(models.Model):
     )
 
     @classmethod
+    def is_user_only_allowed_one_session(cls, uid):
+        if request and request.db:
+            return request.env["res.users"].browse(uid).u_restrict_to_single_session
+
+        with cls.pool.cursor() as cr:
+            self = api.Environment(cr, uid, {})[cls._name]
+            return self.env["res.users"].browse(uid).u_restrict_to_single_session
+
+    @classmethod
     def authenticate(cls, db, *args, **kwargs):
         """ Override to clear all previous sessions if authenticated """
         uid = super().authenticate(db, *args, **kwargs)
-        if uid and request.env["res.users"].browse(uid).u_restrict_to_single_session:
+
+        if uid and cls.is_user_only_allowed_one_session(uid):
             sessions = {sid: _store.get(sid) for sid in _store.list()}
             for sid, session in filter(
                 lambda x: x[1].uid == uid and x[1].db == db, sessions.items()
