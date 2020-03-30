@@ -11,22 +11,20 @@ _logger = logging.getLogger(__name__)
 
 
 class Users(models.Model):
-    _inherit = 'res.users'
+    _inherit = "res.users"
 
     u_restrict_to_single_session = fields.Boolean(
-        string="Restrict user account to single login session",
-        default=False
+        string="Restrict user account to single login session", default=False
     )
 
     @classmethod
     def authenticate(cls, db, *args, **kwargs):
         """ Override to clear all previous sessions if authenticated """
         uid = super().authenticate(db, *args, **kwargs)
-        if uid and request.env['res.users'].browse(uid).u_restrict_to_single_session:
+        if uid and request.env["res.users"].browse(uid).u_restrict_to_single_session:
             sessions = {sid: _store.get(sid) for sid in _store.list()}
             for sid, session in filter(
-                    lambda x: x[1].uid == uid and x[1].db == db,
-                    sessions.items()
+                lambda x: x[1].uid == uid and x[1].db == db, sessions.items()
             ):
                 _store.delete(session)
         return uid
@@ -46,7 +44,7 @@ class Users(models.Model):
         return res
 
     def _check_trusted_user_grant(self, values):
-        group_trusted_user = self.env.ref('udes_security.group_trusted_user')
+        group_trusted_user = self.env.ref("udes_security.group_trusted_user")
         self._check_is_admin(values, group_trusted_user)
 
     def _check_is_admin(self, values, group):
@@ -54,12 +52,11 @@ class Users(models.Model):
         values = self._remove_reified_groups(values)
 
         # Only the root user can add or remove the Trusted User group
-        if (self.env.uid != SUPERUSER_ID and
-           'groups_id' in values):
+        if self.env.uid != SUPERUSER_ID and "groups_id" in values:
             # Validate the many2many write to check that the
             # Trusted User group is not being added or removed.
             disallowed = False
-            for act in values['groups_id']:
+            for act in values["groups_id"]:
                 if act[0] in (0, 1, 2):
                     pass
                 elif act[0] in (3, 4):
@@ -67,25 +64,24 @@ class Users(models.Model):
                     disallowed |= act[1] == group.id
                 elif act[0] == 5:
                     # Remove all groups
-                    disallowed |= group in self.mapped('groups_id')
+                    disallowed |= group in self.mapped("groups_id")
                 elif act[0] == 6:
                     # Replace all groups
                     for user in self:
-                        disallowed |= ((group in user.groups_id) !=
-                                       (group.id in act[2]))
+                        disallowed |= (group in user.groups_id) != (group.id in act[2])
                 else:
-                    raise ValueError(
-                        _('Unknown operation in many2many write for groups_id'))
+                    raise ValueError(_("Unknown operation in many2many write for groups_id"))
 
                 if disallowed:
                     break
 
             if disallowed:
-                _logger.warning(
-                    'User %s tried to change %s group.' %
-                    (self.env.uid, group.name))
+                _logger.warning("User %s tried to change %s group." % (self.env.uid, group.name))
                 raise AccessError(
-                    _('%s cannot be added or removed due to security '
-                      'restrictions. Please contact your system '
-                      'administrator.') % group.name
+                    _(
+                        "%s cannot be added or removed due to security "
+                        "restrictions. Please contact your system "
+                        "administrator."
+                    )
+                    % group.name
                 )
