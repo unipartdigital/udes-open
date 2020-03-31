@@ -6,6 +6,8 @@ from odoo.exceptions import AccessError
 from odoo.tools.translate import _
 from odoo.http import root, request
 
+from . import res_groups
+
 _store = root.session_store
 _logger = logging.getLogger(__name__)
 
@@ -41,21 +43,22 @@ class Users(models.Model):
 
     @api.model
     def create(self, values):
-        self._check_trusted_user_grant(values)
+        self._check_user_group_grant(values)
 
         user = super(Users, self).create(values)
         return user
 
     @api.multi
     def write(self, values):
-        self._check_trusted_user_grant(values)
+        self._check_user_group_grant(values)
 
         res = super(Users, self).write(values)
         return res
 
-    def _check_trusted_user_grant(self, values):
-        group_trusted_user = self.env.ref("udes_security.group_trusted_user")
-        self._check_is_admin(values, group_trusted_user)
+    def _check_user_group_grant(self, values):
+        for group in res_groups.security_groups:
+            group_user = self.env.ref(group)
+            self._check_is_admin(values, group_user)
 
     def _check_is_admin(self, values, group):
 
