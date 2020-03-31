@@ -50,7 +50,7 @@ class LoadRunner(SavepointCase):
             return None
 
         if not hasattr(cls, '_filename'):
-            cls._filename = '%s_times.csv' % cls.__name__.lstrip('Test')
+            cls._filename = '%s_times.csv' % re.sub('^Test', '', cls.__name__)
 
         try:
             cls._fw = open(cls._filename, 'a')
@@ -79,7 +79,7 @@ class LoadRunner(SavepointCase):
         """ Process the durations of the functions into results"""
         total = 0
         for i, f in enumerate(funcs):
-            func_name = f.__name__.lstrip('time_')
+            func_name = re.sub('^time_', '', f.__name__)
             self.results[(i, func_name)][n].append(f.duration[0])
             self.write_line(func_name, n, f.duration[0])
             total += f.duration[0]
