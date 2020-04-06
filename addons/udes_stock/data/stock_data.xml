@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- avoid the xml id and the associated resource being dropped by the orm by manually making a hit on it -->
+        <function model="ir.model.data" name="_update_xmlids">
+            <value model="base" eval="[{
+                'xml_id': 'stock.warehouse0_view_location',
+                'record': obj().env.ref('stock.warehouse0').view_location_id,
+                'noupdate': True,
+            }]"/>
+        </function>
+
+    </data>
+</odoo>

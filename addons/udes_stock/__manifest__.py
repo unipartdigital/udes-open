@@ -13,6 +13,7 @@
         'stock_picking_batch',
     ],
     'data': [
+        'data/stock_data.xml',
         'data/warehouse.xml',
         'data/stock_config.xml',
         'data/locations.xml',
