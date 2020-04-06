@@ -16,5 +16,6 @@
         'data/warehouse.xml',
         'data/stock_config.xml',
         'data/locations.xml',
+        'data/picking_types.xml',
     ],
 }

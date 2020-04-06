@@ -1,0 +1,146 @@
+<?xml version="1.0"?>
+<odoo>
+  <data>
+
+    <!-- Create "Internal" sequence -->
+    <record id="sequence_internal" model="ir.sequence">
+      <field name="name">Internal Transfer</field>
+      <field name="code">stock.picking</field>
+      <field name="prefix">INT</field>
+      <field name="padding">5</field>
+    </record>
+
+    <!-- Create "Putaway" sequence -->
+    <record id="sequence_putaway" model="ir.sequence">
+      <field name="name">Putaway</field>
+      <field name="code">stock.picking</field>
+      <field name="prefix">PUT</field>
+      <field name="padding">5</field>
+      <field name="company_id" eval="False"/>
+    </record>
+
+    <!-- Create "Goods In" sequence -->
+    <record id="sequence_in" model="ir.sequence">
+      <field name="name">Goods In</field>
+      <field name="prefix">IN</field>
+      <field name="padding" eval="5"/>
+      <field name="code">stock.picking</field>
+    </record>
+
+    <!-- Create "Pick" sequence -->
+    <record id="sequence_pick" model="ir.sequence">
+      <field name="name">Pick</field>
+      <field name="prefix">PICK</field>
+      <field name="padding" eval="5"/>
+      <field name="code">stock.picking</field>
+    </record>
+
+    <!-- Create "Goods Out" sequence -->
+    <record id="sequence_out" model="ir.sequence">
+      <field name="name">Goods Out</field>
+      <field name="prefix">OUT</field>
+      <field name="padding" eval="5"/>
+      <field name="code">stock.picking</field>
+    </record>
+
+    <!-- Create "Trailer Dispatch" sequence -->
+    <record id="sequence_dispatch" model="ir.sequence">
+      <field name="name">Trailer Dispatch</field>
+      <field name="prefix">DIS</field>
+      <field name="padding" eval="5"/>
+      <field name="code">stock.picking</field>
+    </record>
+
+    <!-- Update "Goods In" picking type -->
+    <record id="stock.picking_type_in" model="stock.picking.type">
+      <field name="name">Goods In</field>
+      <field name="sequence" eval="10"/>
+      <field name="code">incoming</field>
+      <field name="sequence_id" ref="sequence_in"/>
+      <field name="sequence_code">In</field>
+      <field name="use_create_lots" eval="1"/>
+      <field name="default_location_src_id" ref="stock.stock_location_suppliers"/>
+      <field name="default_location_dest_id" ref="location_input_received"/>
+      <field name="show_operations" eval="1"/>
+      <field name="show_reserved" eval="1" />
+      <field name="active">True</field>
+      <field name="warehouse_id" ref="stock.warehouse0"/>
+    </record>
+
+    <!-- Create "Putaway" picking type -->
+    <record id="picking_type_putaway" model="stock.picking.type">
+      <field name="name">Putaway</field>
+      <field name="sequence" eval="13"/>
+      <field name="code">internal</field>
+      <field name="sequence_id" ref="sequence_putaway"/>
+      <field name="sequence_code">Putaway</field>
+      <field name="use_existing_lots" eval="1"/>
+      <field name="default_location_src_id" ref="location_input_received"/>
+      <field name="default_location_dest_id" ref="stock.stock_location_stock"/>
+      <field name="show_operations" eval="1"/>
+      <field name="active">True</field>
+      <field name="warehouse_id" ref="stock.warehouse0"/>
+    </record>
+
+    <!-- Create "Pick" picking type -->
+    <record id="picking_type_pick" model="stock.picking.type">
+      <field name="name">Pick</field>
+      <field name="sequence" eval="20"/>
+      <field name="code">internal</field>
+      <field name="sequence_id" ref="sequence_pick"/>
+      <field name="sequence_code">Pick</field>
+      <field name="use_existing_lots" eval="1"/>
+      <field name="default_location_src_id" ref="stock.stock_location_stock"/>
+      <field name="default_location_dest_id" ref="location_goods_out_lane"/>
+      <field name="show_operations" eval="1"/>
+      <field name="active">True</field>
+      <field name="warehouse_id" ref="stock.warehouse0"/>
+    </record>
+
+    <!-- Update "Goods Out" picking type -->
+    <record id="stock.picking_type_out" model="stock.picking.type">
+      <field name="name">Goods Out</field>
+      <field name="sequence" eval="20"/>
+      <field name="code">internal</field>
+      <field name="sequence_id" ref="sequence_out"/>
+      <field name="sequence_code">Out</field>
+      <field name="use_existing_lots" eval="1"/>
+      <field name="default_location_src_id" ref="location_goods_out_lane"/>
+      <field name="default_location_dest_id" ref="location_trailer"/>
+      <field name="show_operations" eval="1"/>
+      <field name="active">True</field>
+      <field name="warehouse_id" ref="stock.warehouse0"/>
+    </record>
+
+    <!-- Create "Trailer Dispatch" picking type -->
+    <record id="picking_type_trailer" model="stock.picking.type">
+      <field name="name">Trailer Dispatch</field>
+      <field name="sequence" eval="20"/>
+      <field name="code">outgoing</field>
+      <field name="sequence_id" ref="sequence_dispatch"/>
+      <field name="sequence_code">Dispatch</field>
+      <field name="use_existing_lots" eval="1"/>
+      <field name="default_location_src_id" ref="location_trailer"/>
+      <field name="default_location_dest_id" ref="stock.stock_location_customers"/>
+      <field name="show_operations" eval="1"/>
+      <field name="active">True</field>
+      <field name="warehouse_id" ref="stock.warehouse0"/>
+    </record>
+
+    <!-- Update "Internal Transfer" picking type -->
+    <record id="stock.picking_type_internal" model="stock.picking.type">
+      <field name="name">Internal Transfer</field>
+      <field name="sequence" eval="30"/>
+      <field name="code">internal</field>
+      <field name="sequence_id" ref="sequence_internal"/>
+      <field name="use_existing_lots" eval="1"/>
+      <field name="default_location_src_id" ref="stock.stock_location_stock"/>
+      <field name="default_location_dest_id" ref="stock.stock_location_stock"/>
+      <field name="show_operations" eval="1"/>
+      <field name="active">True</field>
+    </record>
+
+  </data>
+</odoo>
+
+
