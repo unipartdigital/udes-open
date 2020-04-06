@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
-
 from odoo import fields, models, _
-from odoo.exceptions import ValidationError
+
 
 class ProductProduct(models.Model):
-    _inherit = "product.product"
+    _name = 'product.product'
+    _inherit = ['product.product', 'mixin.stock.model']
+
+    # Allow to search via both name and barcode
+    MSM_STR_DOMAIN = ('name', 'barcode')
 
     # Add tracking for archiving.
     active = fields.Boolean(track_visibility='onchange')
