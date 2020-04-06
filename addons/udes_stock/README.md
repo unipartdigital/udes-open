@@ -18,3 +18,8 @@
     - Lots and serial
     - Display lots serial on the delivery slip
     - Multi-step Route
+- data/locations.xml
+    - Warehouse → Input / Stock / Output
+    - Input → Received
+    - Stock → Normal Locations
+    - Output → Goods Out Lane / Trailers

@@ -15,5 +15,6 @@
     'data': [
         'data/warehouse.xml',
         'data/stock_config.xml',
+        'data/locations.xml',
     ],
 }
