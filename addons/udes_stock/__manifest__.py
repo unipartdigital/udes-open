@@ -9,6 +9,9 @@
     "version": "0.1",
     "depends": [
         'base',
+        'stock',
     ],
-    'data': [],
+    'data': [
+        'data/warehouse.xml',
+    ],
 }
