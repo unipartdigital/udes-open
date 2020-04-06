@@ -18,5 +18,6 @@
         'data/locations.xml',
         'data/picking_types.xml',
         'data/routes.xml',
+        'data/company.xml',
     ],
 }
