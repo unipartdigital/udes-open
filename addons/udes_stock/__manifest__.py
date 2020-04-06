@@ -10,8 +10,10 @@
     "depends": [
         'base',
         'stock',
+        'stock_picking_batch',
     ],
     'data': [
         'data/warehouse.xml',
+        'data/stock_config.xml',
     ],
 }
