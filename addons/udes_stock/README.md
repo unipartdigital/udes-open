@@ -23,3 +23,7 @@
     - Input → Received
     - Stock → Normal Locations
     - Output → Goods Out Lane / Trailers
+- data/routes.xml
+    - Goods in → Putaway
+    - Pick → Goods Out → Trailer Despatch
+ 
