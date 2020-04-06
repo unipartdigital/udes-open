@@ -1,27 +1,30 @@
 from odoo import tools
 import ast
 
-DEFAULT_PARAMS = [(10,), (50,), (100,), (150,), (200,)]
-DEFAULT_REPEATS = 3
-DEFAULT_BACKGROUND = 100
 
 
 class Config(object):
 
+    CONFIG_KEY = 'udes_load_test'
+
+    DEFAULT_PARAMS = [(10,), (50,), (100,), (150,), (200,)]
+    DEFAULT_REPEATS = 3
+    DEFAULT_BACKGROUND = 100
+
     def __init__(self):
         super(Config, self).__init__()
 
-        self._options = tools.config.misc.get('udes_load_test', {})
+        self._options = tools.config.misc.get(self.CONFIG_KEY, {})
 
-        self.repeats = int(self._options.get('repeats', DEFAULT_REPEATS))
+        self.repeats = int(self._options.get('repeats', self.DEFAULT_REPEATS))
 
-        self.params = self._options.get('default', DEFAULT_PARAMS)
+        self.params = self._options.get('default', self.DEFAULT_PARAMS)
         if isinstance(self.params, str):
             self.params = ast.literal_eval(self.params)
         self.params *= self.repeats
 
         self.background = int(self._options.get('background',
-                                                DEFAULT_BACKGROUND))
+                                                self.DEFAULT_BACKGROUND))
 
     def __getattribute__(self, attr_name, *args):
         try:
