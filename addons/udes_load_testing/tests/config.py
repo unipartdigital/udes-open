@@ -23,6 +23,8 @@ class Config(object):
             self.params = ast.literal_eval(self.params)
         self.params *= self.repeats
 
+        self.default = self.params
+
         self.background = int(self._options.get('background',
                                                 self.DEFAULT_BACKGROUND))
 
@@ -43,7 +45,8 @@ class Config(object):
                 self.__setattr__(attr_name, value)
                 return value
             else:
-                return self.params
+                # It's up to the caller to pick the default it wants
+                return None
         else:
             # If we can find it in options raise origonal error
             raise e
