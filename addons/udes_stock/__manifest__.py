@@ -11,6 +11,7 @@
         'base',
         'stock',
         'stock_picking_batch',
+        'udes_common',
     ],
     'data': [
         'data/stock_data.xml',
