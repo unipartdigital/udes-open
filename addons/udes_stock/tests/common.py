@@ -365,7 +365,7 @@ class BaseUDES(common.SavepointCase):
     def create_picking(
         cls,
         picking_type,
-        products_info=False,
+        products_info=None,
         confirm=False,
         assign=False,
         create_batch=False,
@@ -373,30 +373,12 @@ class BaseUDES(common.SavepointCase):
     ):
         """ Create and return a picking for the given picking_type """
         Picking = cls.env['stock.picking']
-        vals = {
-            'picking_type_id': picking_type.id,
-            'location_id': picking_type.default_location_src_id.id,
-            'location_dest_id': picking_type.default_location_dest_id.id,
-        }
-
-        vals.update(kwargs)
-        picking = Picking.create(vals)
-
-        if products_info:
-            for product_info in products_info:
-                product_info.update(picking=picking)
-                move = cls.create_move(**product_info)
-
-        if confirm:
-            picking.action_confirm()
-
-        if assign:
-            picking.action_assign()
-
-        if create_batch:
-            cls.create_batch()
-
-        return picking
+        return Picking.create_picking(picking_type,
+            products_info=products_info,
+            confirm=confirm,
+            assign=assign,
+            create_batch=create_batch,
+            **kwargs)
 
     @classmethod
     def create_company(cls, name, **kwargs):
@@ -423,24 +405,6 @@ class BaseUDES(common.SavepointCase):
         user.partner_id.email = login
 
         return user
-
-    @classmethod
-    def create_move(cls, product, qty, picking, **kwargs):
-        """ Create and return a move for the given product and qty """
-        Move = cls.env['stock.move']
-        vals = {
-            'product_id': product.id,
-            'name': product.name,
-            'product_uom': product.uom_id.id,
-            'product_uom_qty': qty,
-            'location_id': picking.location_id.id,
-            'location_dest_id': picking.location_dest_id.id,
-            'picking_id': picking.id,
-            'priority': picking.priority,
-            'picking_type_id': picking.picking_type_id.id,
-        }
-        vals.update(kwargs)
-        return Move.create(vals)
 
     @classmethod
     def update_move(cls, move, qty_done, **kwargs):
