@@ -46,7 +46,7 @@ These can be accessed through `from .config import config` then `config.TestPick
 New tests can be made from inheriting from LoadRunner or one of its children. Then write methods (whose names begin with `time_`) for each step of your process.
 By adding `time_` to you method name it will be wrapped in a timing decorator.
 Then create a test method which calls your `time_` methods and then passes them through to `_process_results`.
-This will then add the time it took too run your method into a file called `<classname without Test>_time.csv` which is a tab delimited csv.
+This will then add the time it took too run your method into a file called `<classname without Test>_time.tsv` which is a tab delimited csv.
 N.B: files will be appended.
 The filename can be specified directly by setting the _filename attribute before calling `super().setUpClass()`
 
