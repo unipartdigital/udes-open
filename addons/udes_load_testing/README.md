@@ -50,6 +50,6 @@ This will then add the time it took too run your method into a file called `<cla
 N.B: files will be appended.
 The filename can be specified directly by setting the _filename attribute before calling `super().setUpClass()`
 
-If you wish to view your results in an ASCII plot, call the `_report` method - this should be done in another test
+If you wish to view your results in an ASCII plot, call the `_report` method - this should be done in the TestCase's `tearDown` method
 When using `parameterized`.
 
