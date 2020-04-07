@@ -13,5 +13,10 @@
       <field name="route_ids" eval="[(5,)]"/>
     </record>
 
+    <!-- Update the Pack name to UDES -->
+    <record id="stock.seq_quant_package" model="ir.sequence">
+        <field name="prefix">UDES</field>
+    </record>
+
   </data>
 </odoo>

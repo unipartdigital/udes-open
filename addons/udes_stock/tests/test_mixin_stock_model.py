@@ -132,13 +132,13 @@ class TestMixinModel(BaseUDES):
         id = 1001
         with self.assertRaises(ValidationError) as e:
             self.Package.get_or_create(id)
-        self.assertEqual(e.exception.name, f'Packages not found for identifier {id}')
+        self.assertEqual(e.exception.name, f'Package not found for identifier {id}')
         # Try to create package
         with self.assertRaises(ValidationError) as e:
             self.Package.get_or_create(id, create=True)
         self.assertEqual(
             e.exception.name,
-            f'Cannot create a new Packages for stock.quant.package with identifier of type {type(id)}',
+            f'Cannot create a new Package for stock.quant.package with identifier of type {type(id)}',
         )
 
     def test14_error_on_multiple_instances_group(self):
