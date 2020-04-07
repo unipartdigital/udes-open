@@ -50,7 +50,7 @@ class LoadRunner(SavepointCase):
             return None
 
         if not hasattr(cls, '_filename'):
-            cls._filename = '%s_times.csv' % re.sub('^Test', '', cls.__name__)
+            cls._filename = '%s_times.tsv' % re.sub('^Test', '', cls.__name__)
 
         try:
             cls._fw = open(cls._filename, 'a')
