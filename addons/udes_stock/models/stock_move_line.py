@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from itertools import groupby
-from odoo import api, fields, models, _
+from odoo import api, fields, models, tools, _
 from odoo.exceptions import UserError, ValidationError
 from odoo.tools.float_utils import float_compare, float_round
 from copy import deepcopy
@@ -1037,6 +1037,25 @@ class StockMoveLine(models.Model):
         done_lines = self.filtered(lambda x: x.state == "done")
         if done_lines:
             raise ValidationError(_("Cannot update move lines that are already 'done'."))
+
+    @api.model_cr
+    def init(self):
+        """ Creates indexes for _check_resultant_package_level
+        """
+        super(StockMoveLine, self).init()
+
+        tools.create_index(
+            self._cr,
+            "stock_move_line_state_result_package_id_index",
+            self._table,
+            ["state", "result_package_id"],
+        )
+        tools.create_index(
+            self._cr,
+            "stock_move_line_state_u_result_parent_package_id_index",
+            self._table,
+            ["state", "u_result_parent_package_id"],
+        )
 
     @api.constrains("result_package_id", "u_result_parent_package_id")
     @api.onchange("result_package_id", "u_result_parent_package_id")
