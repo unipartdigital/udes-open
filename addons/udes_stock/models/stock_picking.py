@@ -679,7 +679,7 @@ class StockPicking(models.Model):
                 Generic picking information to update the stock picking with
             @param (optional) validate_real_time: Boolean
                 Used to specify if the update should be should be processed
-                imidately or on confirmation of the picking.
+                immediately or on confirmation of the picking.
             @param (optional) location_id: int
                 Used when validating products from a location.
         """
@@ -759,7 +759,7 @@ class StockPicking(models.Model):
 
         if product_ids:
             values["product_ids"] = product_ids
-            # when updating products we migth want
+            # when updating products we might want
             # to filter by location
             if location_id:
                 location = Location.get_location(location_id)
