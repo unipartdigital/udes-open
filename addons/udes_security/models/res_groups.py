@@ -7,15 +7,22 @@ from odoo.tools.translate import _
 
 _logger = logging.getLogger(__name__)
 
+
+security_groups = [
+    'udes_security.group_trusted_user',
+    'udes_security.group_debug_user',
+]
+
 class Groups(models.Model):
     _inherit = 'res.groups'
 
     @api.multi
     def write(self, values):
-        group_trusted_user = self.env.ref('udes_security.group_trusted_user')
+        for group in security_groups:
+            group_user = self.env.ref(group)
 
-        # Only the root user can add or remove the Trusted User group
-        self._check_is_admin(values, group_trusted_user)
+            # Only the root user can add or remove the Trusted User group
+            self._check_is_admin(values, group_user)
 
         res = super(Groups, self).write(values)
         return res

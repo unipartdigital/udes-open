@@ -1,11 +1,13 @@
 """Open redirect filter"""
 
 import logging
+import werkzeug
 from werkzeug import urls
 from werkzeug.exceptions import BadRequest
 from odoo import http
 from odoo.tools.translate import _
 from odoo.addons.web.controllers import main
+from odoo.http import request
 
 _logger = logging.getLogger(__name__)
 
@@ -50,7 +52,12 @@ class Home(main.Home):
     @http.route()
     @no_absolute_redirect
     def web_client(self, *args, **kwargs):
-        """Prevent absolute redirects on /web"""
+        """Prevent absolute redirects on /web/login,
+           also redirects requests from users without debug rights
+           to non-debug session"""
+        if request.debug and not request.env.user.browse(request.session.uid)\
+            .has_group('udes_security.group_debug_user'):
+                return werkzeug.utils.redirect('/web')
         return super().web_client(*args, **kwargs)
 
     @http.route()
