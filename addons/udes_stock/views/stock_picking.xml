@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Change the Dashboard -->
+    <record id="stock_picking_type_kanban_items" model="ir.ui.view">
+        <field name="name">stock_picking_type_kanban drafts</field>
+        <field name="model">stock.picking.type</field>
+        <field name="inherit_id" ref="stock.stock_picking_type_kanban"/>
+        <field name="arch" type="xml">
+
+            <!-- Add Draft option to right panel-->
+            <xpath expr="//div[@t-if='record.count_picking_waiting.raw_value > 0']" position="before">
+                <div t-if="record.count_picking_draft.raw_value > 0" class="row">
+                    <div class="col-9">
+                        <a name="get_action_picking_tree_draft" type="object">Draft</a>
+                    </div>
+                    <div class="col-3">
+                        <field name="count_picking_draft"/>
+                    </div>
+                </div>
+            </xpath>
+            <!-- Add 'Draft' option in dropdown menu-->
+            <xpath expr="//div[@class='col-6 o_kanban_card_manage_section o_kanban_manage_view']">
+                <div role="menuitem">
+                    <a name="get_action_picking_tree_draft" type="object">Draft</a>
+                </div>
+            </xpath>
+
+        </field>
+    </record>
+
+    <!-- Define the action for clicking on the Drafts item at the dashboard. -->
+    <record id="action_picking_tree_draft" model="ir.actions.act_window">
+        <field name="name">Draft Transfers</field>
+        <field name="res_model">stock.picking</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="view_mode">tree,kanban,form,calendar</field>
+        <field name="domain"></field>
+        <field name="context">{'contact_display': 'partner_address', 'search_default_draft': 1}</field>
+        <field name="search_view_id" ref="stock.view_picking_internal_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create a new transfer
+            </p><p>
+                You can either do it immediately or mark it as Todo for future processing
+            </p>
+        </field>
+    </record>
+
+</odoo>

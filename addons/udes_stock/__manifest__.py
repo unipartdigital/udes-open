@@ -21,5 +21,6 @@
         'data/picking_types.xml',
         'data/routes.xml',
         'data/company.xml',
+        'views/stock_picking.xml',
     ],
 }
