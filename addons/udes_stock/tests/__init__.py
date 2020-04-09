@@ -6,3 +6,5 @@ from . import test_stock_move_line
 from . import test_stock_quant_package
 from . import test_stock_picking
 from . import test_stock_move
+from . import test_stock_move_line
+from . import test_res_users
