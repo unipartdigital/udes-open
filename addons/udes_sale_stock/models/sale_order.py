@@ -81,13 +81,10 @@ class SaleOrder(models.Model):
         cant_fulfill = OrderLine.browse()
 
         # Get order lines
-        offset = 0
-        limit = 100
-        batch = Order.search([('state', 'in', ['sale', 'draft'])],
-                               offset=offset, limit=limit)
+        orders = Order.search([('state', 'in', ['sale', 'draft'])])
 
-        while batch:
-            _logger.info('Checking orders %s-%s', offset, offset+limit)
+        for r, batch in orders.batched(size=100):
+            _logger.info('Checking orders %d-%d', r[0], r[-1])
             # Cache the needed fields and only the needed fields
             # This code has to process tens of thousands of sale order lines
             # and hundreds of thousands of stock moves.
@@ -144,9 +141,6 @@ class SaleOrder(models.Model):
 
             # Empty cached stuff
             batch.invalidate_cache()
-            offset += limit
-            batch = Order.search([('state', 'in', ['sale', 'draft'])],
-                                 offset=offset, limit=limit)
 
         _logger.info("Cancelling %s unfulfillable order lines",
                      len(cant_fulfill))
