@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<odoo>
+  <data>
+
+    <!-- Redefine main warehouse to override initial "WH" data.
+
+         Note that this will take effect only on module initialisation
+         (not on module update), since this is a "noupdate" record.
+    -->
+    <record id="stock.warehouse0" model="stock.warehouse">
+      <field name="name">Warehouse</field>
+      <field name="code">WH</field>
+      <field name="route_ids" eval="[(5,)]"/>
+    </record>
+
+  </data>
+</odoo>
