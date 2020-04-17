@@ -83,7 +83,7 @@ class SaleOrder(models.Model):
         # Get order lines
         orders = Order.search([('state', 'in', ['sale', 'draft'])])
 
-        for r, batch in orders.batched(size=100):
+        for r, batch in orders.batched(size=1000):
             _logger.info('Checking orders %d-%d', r[0], r[-1])
             # Cache the needed fields and only the needed fields
             # This code has to process tens of thousands of sale order lines
