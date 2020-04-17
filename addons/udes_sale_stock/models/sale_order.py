@@ -248,8 +248,12 @@ class SaleOrder(models.Model):
         demand = defaultdict(int)
 
         while batch:
-            # Cache stuff
+            # Cache the needed fields and only the needed fields
+            # See cancel_sale_orders_without_availability for details
+            batch.read(['is_cancelled', 'product_id', 'product_uom_qty'],
+                       load='_classic_write')
             batch.mapped('move_ids')
+            batch.mapped('move_ids').read(['state'], load='_classic_write')
             for line in batch:
                 # If any of the moves are done or cancelled then skip this line
                 line_states = line.mapped('move_ids.state')
