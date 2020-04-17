@@ -1941,7 +1941,7 @@ class StockPicking(models.Model):
             # remove locations which are already used in move lines
             valid_locations -= MoveLines.search(
                 [
-                    ("picking_id.state", "=", "assigned"),
+                    ("state", "=", "assigned"),
                     ("location_dest_id", "in", valid_locations.ids),
                 ]
             ).mapped("location_dest_id")
