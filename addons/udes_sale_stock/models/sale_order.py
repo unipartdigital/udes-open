@@ -238,16 +238,14 @@ class SaleOrder(models.Model):
         OrderLine = self.env['sale.order.line']
 
         # Get order lines
-        offset = 0
-        limit = 100
         domain = [('state', '=', 'sale'),
                   ('is_cancelled', '=', False)]
         if products:
             domain.append(('product_id', 'in', products.ids))
-        batch = OrderLine.search(domain, offset=offset, limit=limit)
+        order_lines = OrderLine.search(domain)
         demand = defaultdict(int)
 
-        while batch:
+        for r, batch in order_lines.batched(size=100):
             # Cache the needed fields and only the needed fields
             # See cancel_sale_orders_without_availability for details
             batch.read(['is_cancelled', 'product_id', 'product_uom_qty'],
@@ -264,8 +262,6 @@ class SaleOrder(models.Model):
 
             # Empty cached stuff
             batch.invalidate_cache()
-            offset += limit
-            batch = OrderLine.search(domain, offset=offset, limit=limit)
 
         return demand
 
