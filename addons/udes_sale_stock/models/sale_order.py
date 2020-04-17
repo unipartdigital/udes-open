@@ -245,7 +245,7 @@ class SaleOrder(models.Model):
         order_lines = OrderLine.search(domain)
         demand = defaultdict(int)
 
-        for r, batch in order_lines.batched(size=100):
+        for r, batch in order_lines.batched(size=1000):
             # Cache the needed fields and only the needed fields
             # See cancel_sale_orders_without_availability for details
             batch.read(['is_cancelled', 'product_id', 'product_uom_qty'],
