@@ -26,6 +26,8 @@
                            attrs="{'readonly': [('u_date_last_checked_correct', '!=', False)]}"/>
                     <field name="u_quant_policy" readonly="1"/>
                     <field name="u_limit_orderpoints" groups="udes_stock.group_stock_user"/>
+                    <field name="u_is_zone" groups="udes_security.group_trusted_user"/>
+                    <field name="u_zone_id" groups="udes_security.group_trusted_user"/>
                 </xpath>
 
                 <!-- Add a confirmation to the "Archive" button. -->

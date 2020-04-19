@@ -1,12 +1,22 @@
 # -*- coding: utf-8 -*-
 
-from odoo import models, _, api
+from odoo import models, _, api, fields
 from odoo.exceptions import ValidationError
 
 from collections import defaultdict
 
 class StockQuant(models.Model):
     _inherit = 'stock.quant'
+
+    u_zone_id = fields.Many2one(
+        comodel_name="stock.location",
+        index=True,
+        readonly=True,
+        store=True,
+        related="location_id.u_zone_id",
+        string="Zone location",
+        help="Zone where the quant resides in.",
+    )
 
     def assert_not_reserved(self):
         """Ensure all quants in the recordset are unreserved."""

@@ -104,6 +104,62 @@ class StockLocation(models.Model):
         "and its descendants.",
     )
 
+    u_is_zone = fields.Boolean(
+        string="Is Zone Location",
+        help="A Zone Location will",
+        inverse="_set_u_is_zone",
+    )
+    u_zone_id = fields.Many2one(
+        comodel_name="stock.location",
+        index=True,
+        readonly=True,
+        string="Zone location",
+        help="Nearest ancestor location flagged as a zone",
+        compute="_compute_u_zone_id",
+        store=True,
+    )
+
+    @api.depends("location_id")
+    @api.one
+    def _compute_u_zone_id(self):
+        """ Compute the zone of the location """
+        location = self
+        zone = False
+        while location and not zone:
+            if location.u_is_zone:
+                zone = location
+            location = location.location_id
+        self.u_zone_id = zone
+
+    @api.one
+    def _set_u_is_zone(self):
+        """ Propagate is zone changes to its children """
+        Location = self.env['stock.location']
+        if self.u_is_zone:
+            zone_children = Location.search([
+                ('id', 'child_of', self.ids),
+                ('u_is_zone', '=', True),
+                ('id', '!=', self.id)
+            ])
+            children = Location.search([
+                ('id', 'child_of', self.ids),
+                '!', ('id', 'child_of', zone_children.ids),
+                ('id', '!=', self.id)
+            ])
+            if children:
+                children.write({'u_zone_id': self.id})
+            if self.u_zone_id:
+                self.u_zone_id = False
+        else:
+            children = Location.search([
+                ('id', 'child_of', self.ids),
+                ('u_zone_id', '=', self.id),
+                ('id', '!=', self.id)
+            ])
+            if children:
+                children.write({'u_zone_id': False})
+            (self | children)._compute_u_zone_id()
+
     def _prepare_info(self, extended=False, load_quants=False):
         """
             Prepares the following info of the location in self:
