@@ -242,7 +242,9 @@ class SaleOrder(models.Model):
                   ('is_cancelled', '=', False)]
         if products:
             domain.append(('product_id', 'in', products.ids))
-        order_lines = OrderLine.search(domain)
+        # Override the search order since the default model order can involve
+        # joins, which perform poorly, and the order does not matter here.
+        order_lines = OrderLine.search(domain, order='id')
         demand = defaultdict(int)
 
         for r, batch in order_lines.batched(size=1000):
