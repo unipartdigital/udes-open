@@ -53,7 +53,7 @@ class ServerActions(models.Model):
             _logger.info(
                 "Running notifier {} via cron".format(action.edi_notifier_id.id)
             )
-            action.edi_notifier_id.notify()
+            action.edi_notifier_id.notify("cron")
 
 
 class EdiNotifier(models.Model):
@@ -163,10 +163,12 @@ class EdiNotifier(models.Model):
         return action
 
     @api.multi
-    def notify(self, recs=None):
+    def notify(self, event_type, recs=None):
         for notifier in self:
             if notifier.active:
-                self.env[notifier.model_id.model].notify(notifier, recs)
+                self.env[notifier.model_id.model].notify(
+                    notifier, event_type, recs
+                )
 
     @api.onchange("model_id")
     @api.depends("model_id")
@@ -202,16 +204,18 @@ class EdiNotifierModel(models.AbstractModel):
     is_edi_notifier = True
     can_use_crons = False
 
-    def _should_notify(self, notifier, _rec):
+    def _should_notify(self, notifier, event_type, _rec):
         """Returns if the notifier should handle record"""
         raise NotImplementedError
 
-    def filter_records(self, notifier, recs):
+    def filter_records(self, notifier, event_type, recs):
         """Yields only records that should be handled"""
-        return recs.filtered(lambda x: self._should_notify(notifier, x))
+        return recs.filtered(
+            lambda x: self._should_notify(notifier, event_type, x)
+        )
 
     @api.multi
-    def _notify(self, notifier, _recs):
+    def _notify(self, notifier, event_type, _recs):
         """Does the action of notifying"""
         raise NotImplementedError
 
@@ -231,6 +235,7 @@ class EdiNotifierModel(models.AbstractModel):
             return None
 
     @api.multi
-    def notify(self, notifier, recs):
+    def notify(self, notifier, event_type, recs):
         """Filter records and send them for notification"""
-        self._notify(notifier, self.filter_records(notifier, recs))
+        recs = self.filter_records(notifier, event_type, recs)
+        self._notify(notifier, event_type, recs)

@@ -33,5 +33,5 @@ class EdiDocument(models.Model):
                         "{} ({})".format(doc_type.name, ", ".join(map(str, docs.ids))),
                     )
                 )
-                doc_type.notifier_ids.notify(docs)
+                doc_type.notifier_ids.notify("execute", docs)
         return res
