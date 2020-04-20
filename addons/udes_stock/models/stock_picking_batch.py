@@ -112,7 +112,7 @@ class StockPickingBatch(models.Model):
         for batch in self:
             if batch.picking_ids:
                 batch.picking_type_ids = batch.picking_ids.mapped('picking_type_id')
-            else:
+            elif not isinstance(batch.id, models.NewId):
                 # If the picking ids are empty use the stored picking type ids
                 batch.picking_type_ids = batch.read(['picking_type_ids'])[0]['picking_type_ids']
 
@@ -130,7 +130,9 @@ class StockPickingBatch(models.Model):
     def _compute_priority(self):
         for batch in self:
             # Get the old priority of the batch
-            old_priority = batch.read(['priority'])[0]['priority']
+            old_priority = False
+            if not isinstance(batch.id, models.NewId):
+                old_priority = batch.read(['priority'])[0]['priority']
             if batch.mapped('picking_ids'):
                 priorities = batch.mapped('picking_ids.priority')
                 new_priority = max(priorities)
