@@ -12,11 +12,11 @@ class EdiEmailNotifier(models.AbstractModel):
     def get_email_model(self):
         return self.env.ref("edi.model_edi_document")
 
-    def _should_notify(self, notifier, rec):
+    def _should_notify(self, notifier, event_type, rec):
         return rec._name == notifier.template_id.model_id.model
 
     @api.multi
-    def _notify(self, notifier, recs):
+    def _notify(self, notifier, event_type, recs):
         for rec in recs:
             template =  notifier.template_id
             if notifier.include_issues:
@@ -26,11 +26,12 @@ class EdiEmailNotifier(models.AbstractModel):
             template.send_mail(rec.id, force_send=True)
 
     @api.multi
-    def notify(self, notifier, recs):
+    def notify(self, notifier, event_type, recs):
         """Filter records and send them for notification"""
         if not recs:
             recs = notifier.doc_type_ids
-        self._notify(notifier, self.filter_records(notifier, recs))
+        recs = self.filter_records(notifier, event_type, recs)
+        self._notify(notifier, event_type, recs)
 
 
 class EdiEmailStateNotifier(models.AbstractModel):
@@ -38,10 +39,12 @@ class EdiEmailStateNotifier(models.AbstractModel):
     _name = "edi.notifier.email.state"
     _inherit = "edi.notifier.email"
 
-    def _should_notify(self, notifier, rec):
-        return super()._should_notify(notifier, rec) and self._check_state(rec)
+    def _should_notify(self, notifier, event_type, rec):
+        return super()._should_notify(
+            notifier, event_type, rec
+        ) and self._check_state(event_type, rec)
 
-    def _check_state(self, rec):
+    def _check_state(self, event_type, rec):
         raise NotImplementedError
 
 
@@ -50,7 +53,7 @@ class EdiEmailSuccessNotifier(models.AbstractModel):
     _name = "edi.notifier.email.success"
     _inherit = "edi.notifier.email.state"
 
-    def _check_state(self, rec):
+    def _check_state(self, event_type, rec):
         return rec.state == "done"
 
 
@@ -59,7 +62,7 @@ class EdiEmailFailedNotifier(models.AbstractModel):
     _name = "edi.notifier.email.failed"
     _inherit = "edi.notifier.email.state"
 
-    def _check_state(self, rec):
+    def _check_state(self, event_type, rec):
         return rec.state != "done"
 
 
@@ -104,8 +107,8 @@ class EdiEmailMissingNotifier(models.AbstractModel):
             ]
         )
 
-    def _should_notify(self, notifier, rec):
-        res = super()._should_notify(notifier, rec)
+    def _should_notify(self, notifier, event_type, rec):
+        res = super()._should_notify(notifier, event_type, rec)
         if res:
             last_checked = self._get_last_checked(rec)
             # this needed for times when it isn't triggered by a cron
@@ -120,8 +123,8 @@ class EdiEmailMissingNotifier(models.AbstractModel):
         return False
 
     @api.multi
-    def _notify(self, notifier, recs):
-        super()._notify(notifier, recs)
+    def _notify(self, notifier, event_type, recs):
+        super()._notify(notifier, event_type, recs)
         recs.write({self._timestamp_field: datetime.now()})
 
 
