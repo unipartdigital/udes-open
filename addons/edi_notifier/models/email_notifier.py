@@ -63,7 +63,9 @@ class EdiEmailFailedNotifier(models.AbstractModel):
     _inherit = "edi.notifier.email.state"
 
     def _check_state(self, event_type, rec):
-        return rec.state != "done"
+        # Look for failed action_prepares and failed action_executes
+        return ((event_type == "prepare" and rec.state == "draft") or
+                (event_type == "execute" and rec.state == "prep"))
 
 
 class EdiEmailMissingNotifier(models.AbstractModel):
