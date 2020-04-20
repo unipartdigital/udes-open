@@ -197,10 +197,41 @@ class TestFailed(EdiNotifierCase):
             }
         )
 
-    def test_send_on_failure(self):
+    def rig_execute_to_fail(self, doc):
+        return patch.object(
+            doc.__class__,
+            "execute_records",
+            autospec=True,
+            side_effect=ValidationError,
+        )
+
+    def test_send_on_prepare_failure(self):
+        with self.mute_issues(), self.mock_send_mail() as send_mail_mock:
+            self.doc.action_prepare()
+        self.assertEqual(self.doc.state, "draft")
+        send_mail_mock.assert_called_once()
+        send_mail_mock.assert_called_with(
+            self.email_template, self.doc.id, force_send=True
+        )
+
+    def test_send_on_prepare_failure_within_execute(self):
         with self.mute_issues(), self.mock_send_mail() as send_mail_mock:
             self.doc.action_execute()
-        self.assertNotEqual(self.doc.state, "done")
+        self.assertEqual(self.doc.state, "draft")
+        send_mail_mock.assert_called_once()
+        send_mail_mock.assert_called_with(
+            self.email_template, self.doc.id, force_send=True
+        )
+
+    def test_send_on_execute_failure(self):
+        self.doc.doc_type_id = self.doc_type
+        self.notifier.write({"doc_type_ids": [(6, False, self.doc_type.ids)]})
+
+        with self.mute_issues(), self.mock_send_mail() as send_mail_mock, \
+             self.rig_execute_to_fail(self.doc):
+            self.doc.action_execute()
+        self.assertEqual(self.doc.state, "prep")
+        send_mail_mock.assert_called_once()
         send_mail_mock.assert_called_with(
             self.email_template, self.doc.id, force_send=True
         )
@@ -216,7 +247,7 @@ class TestFailed(EdiNotifierCase):
         self.notifier.include_issues = True
         with self.mute_issues(), self.mock_send() as send_mock:
             self.assertFalse(self.doc.action_execute())
-        self.assertNotEqual(self.doc.state, "done")
+        self.assertEqual(self.doc.state, "draft")
 
         send_mock.assert_called_once()
         message = send_mock.call_args[0][0]
@@ -226,7 +257,7 @@ class TestFailed(EdiNotifierCase):
         self.notifier.include_issues = False
         with self.mute_issues(), self.mock_send() as send_mock:
             self.assertFalse(self.doc.action_execute())
-        self.assertNotEqual(self.doc.state, "done")
+        self.assertEqual(self.doc.state, "draft")
         send_mock.assert_called_once()
         message = send_mock.call_args[0][0]
         self.assertNotIn("Unknown document type", message.body_html)
@@ -237,7 +268,7 @@ class TestFailed(EdiNotifierCase):
         self.make_note(self.doc, note_text)
         with self.mute_issues(), self.mock_send() as send_mock:
             self.assertFalse(self.doc.action_execute())
-        self.assertNotEqual(self.doc.state, "done")
+        self.assertEqual(self.doc.state, "draft")
         send_mock.assert_called_once()
         message = send_mock.call_args[0][0]
         self.assertIn(note_text, message.body_html)
@@ -248,7 +279,7 @@ class TestFailed(EdiNotifierCase):
         self.make_note(self.doc, note_text)
         with self.mute_issues(), self.mock_send() as send_mock:
             self.assertFalse(self.doc.action_execute())
-        self.assertNotEqual(self.doc.state, "done")
+        self.assertEqual(self.doc.state, "draft")
         send_mock.assert_called_once()
         message = send_mock.call_args[0][0]
         self.assertNotIn(note_text, message.body_html)
@@ -261,7 +292,7 @@ class TestFailed(EdiNotifierCase):
         self.make_note(self.doc, note_text)
         with self.mute_issues(), self.mock_send() as send_mock:
             self.assertFalse(self.doc.action_execute())
-        self.assertNotEqual(self.doc.state, "done")
+        self.assertEqual(self.doc.state, "draft")
         send_mock.assert_called_once()
         message = send_mock.call_args[0][0]
         self.assertIn(note_text, message.body_html)

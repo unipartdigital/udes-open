@@ -22,9 +22,20 @@ class EdiDocument(models.Model):
     _inherit = "edi.document"
 
     @api.multi
+    def action_prepare(self):
+        """Extend action prepare to call notifiers"""
+        res = super().action_prepare()
+        self._run_notifiers("prepare")
+        return res
+
+    @api.multi
     def action_execute(self):
         """Extend action execute to call notifiers"""
         res = super().action_execute()
+        self._run_notifiers("execute")
+        return res
+
+    def _run_notifiers(self, event_type):
         for doc_type, docs in self.groupby("doc_type_id"):
             if doc_type.notifier_ids:
                 _logger.info(
@@ -33,5 +44,4 @@ class EdiDocument(models.Model):
                         "{} ({})".format(doc_type.name, ", ".join(map(str, docs.ids))),
                     )
                 )
-                doc_type.notifier_ids.notify("execute", docs)
-        return res
+                doc_type.notifier_ids.notify(event_type, docs)
