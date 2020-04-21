@@ -550,6 +550,9 @@ class StockMoveLine(models.Model):
         """ Updates values with the proper quantity done and optionally
             with a serial number, and updates products_info according
             to it by decreasing the remaining quantity to be done
+            There is an assumption that if using lot numbers/serial numbers
+            that the lot names of move lines are included in the list of lot
+            numbers
         """
         # TODO: extend for damaged in a different module
         self.ensure_one()
@@ -574,16 +577,11 @@ class StockMoveLine(models.Model):
             # lot_id is set when it already exists in the system
             ml_lot_name = self.lot_id.name
             if ml_lot_name:
-                # check that is in the serial numbers list
                 if ml_lot_name not in info["lot_names"]:
                     raise ValidationError(
                         _("Cannot find lot number %s in the list" " of lot numbers to validate")
                         % ml_lot_name
                     )
-                i = info["lot_names"].index(ml_lot_name)
-                # remove it from the list, no need to set lot_name because
-                # the move line already has a lot_id
-                info["lot_names"].pop(i)
             else:
                 values["lot_name"] = info["lot_names"].pop()
 
