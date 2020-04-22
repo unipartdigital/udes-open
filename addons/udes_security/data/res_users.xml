@@ -1,5 +1,5 @@
 <odoo>
-  <data noupdate="1">
+  <data noupdate="0">
     <record id="base.user_root" model="res.users">
       <field name="groups_id" eval="[(4, ref('udes_security.group_trusted_user')), (4, ref('udes_security.group_debug_user'))]"/>
     </record>
