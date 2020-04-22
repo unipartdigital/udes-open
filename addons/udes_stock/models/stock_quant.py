@@ -41,4 +41,18 @@ class StockQuant(models.Model):
                 value -= quant.reserved_quantity
             products[get_key(quant)] += value
         return products
-        
+
+    def create_picking(self, picking_type, **kwargs):
+        """ Create a picking from quants
+            Uses stock.picking create_picking functionality
+            :args:
+                - picking_type
+            :kwargs:
+                - Extra args for the create picking
+            :returns:
+                - picking
+        """
+        Picking = self.env['stock.picking']
+        product_quantities = self.get_quantities_by_key()
+        products_info = [{'product': key, 'qty': val} for key, val in product_quantities.items()]
+        return Picking.create_picking(picking_type, products_info, **kwargs)

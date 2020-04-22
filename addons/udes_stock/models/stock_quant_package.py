@@ -71,3 +71,15 @@ class StockQuantPackage(models.Model):
     def get_reserved_quantity(self):
         """ Returns the quantity in package that is reserved """
         return sum(self._get_contained_quants().mapped('reserved_quantity'))
+
+    def create_picking(self, picking_type, **kwargs):
+        """ Create a picking from package
+            Uses stock.quant create_picking from stock.quant model
+            :args:
+                - picking_type
+            :kwargs:
+                - Extra args for the create picking
+            :returns:
+                - picking
+        """
+        return self._get_contained_quants().create_picking(picking_type, **kwargs)

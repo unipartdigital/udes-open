@@ -122,6 +122,55 @@ class TestStockQuantPackageModel(BaseUDES):
         )
         self.assertEqual(self.test_package.get_reserved_quantity(), 15)
 
+    def test07_create_simple_picking_from_package(self):
+        """ Create a picking from a single quant """
+        pick = self.test_package.create_picking(self.picking_type_goods_out)
+        # Confirm made in state draft
+        self.assertEqual(pick.state, 'draft')
+        # Confirm default location used if non specified
+        self.assertEqual(pick.location_id, self.out_location)
+        # Confirm default dest location used if non specified
+        self.assertEqual(pick.location_dest_id, self.trailer_location)
+        # Confirm correct picking type id associated
+        self.assertEqual(pick.picking_type_id, self.picking_type_goods_out)
+        # Check default priority is 1 = 'Normal'
+        self.assertEqual(pick.priority, '1')
+        #  Check picking has correct quantities associated to it
+        self.assertEqual(pick.move_lines.mapped('product_id'), (self.apple | self.banana))
+        self.assertEqual(pick.move_lines.mapped('product_qty'), [10, 5])
+
+    def test08_create_picking_from_package_extra_kwargs(self):
+        """ Create a picking from a single package
+            - confirm
+            - priority
+            - assign_user
+            - non-default location_id
+            - non-default location_dest_id
+        """
+        pick = self.test_package.create_picking(
+            self.picking_type_goods_out,
+            confirm=True,
+            priority='2',
+            user_id=self.test_user.id,
+            location_id=self.test_received_location_01.id,
+            location_dest_id=self.test_goodsout_location_02.id,
+        )
+        # Confirm in state assigned
+        self.assertEqual(pick.state, 'confirmed')
+        # Check user is assigned
+        self.assertEqual(pick.user_id, self.test_user)
+        # Confirm default location used if non specified
+        self.assertEqual(pick.location_id, self.test_received_location_01)
+        # Confirm default dest location used if non specified
+        self.assertEqual(pick.location_dest_id, self.test_goodsout_location_02)
+        # Confirm correct picking type id associated
+        self.assertEqual(pick.picking_type_id, self.picking_type_goods_out)
+        # Check priority is 2 = 'Urgent'
+        self.assertEqual(pick.priority, '2')
+        #  Check picking has correct quantities associated to it
+        self.assertEqual(pick.move_lines.mapped('product_id'), (self.apple | self.banana))
+        self.assertEqual(pick.move_lines.mapped('product_qty'), [10, 5])
+
     def test09_find_move_lines_simple(self):
         """ Find move lines of package """
         # Create a picking from test package
