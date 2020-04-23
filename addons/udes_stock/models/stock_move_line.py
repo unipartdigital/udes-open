@@ -1060,6 +1060,8 @@ class StockMoveLine(models.Model):
     def _check_resultant_package_level(self):
         MoveLine = self.env["stock.move.line"]
         # Collect move lines with packages related to those being checked which are in progress
+        if not self.mapped("result_package_id"):
+            return
         package_ids = self.mapped("result_package_id") | self.mapped("u_result_parent_package_id")
         package_mls = MoveLine.search(
             [
