@@ -15,7 +15,7 @@ class StockQuantPackage(models.Model):
     # different to the internal one.
     u_external_name = fields.Char(string="External Name")
     u_top_parent = fields.Many2one(
-        'stock.quant.package', string='Top parent Package', readonly=True,
+        'stock.quant.package', string='Top parent Package', readonly=True, store=True,
         help="Highest level package in this stack", compute='_compute_top_parent')
     u_package_depth = fields.Integer(string="Package Depth",
         help="The maximum number of package levels within a package hierarchy. I.e. 2 would denote a single level of packages (each with no subpackage) within a parent package",
