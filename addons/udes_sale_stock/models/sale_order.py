@@ -81,20 +81,44 @@ class SaleOrder(models.Model):
         cant_fulfill = OrderLine.browse()
 
         # Get order lines
-        offset = 0
-        limit = 100
-        batch = Order.search([('state', 'in', ['sale', 'draft'])],
-                               offset=offset, limit=limit)
+        orders = Order.search([('state', 'in', ['sale', 'draft'])])
 
-        while batch:
-            _logger.info('Checking orders %s-%s', offset, offset+limit)
-            # Cache stuff
+        for r, batch in orders.batched(size=1000):
+            _logger.info('Checking orders %d-%d', r[0], r[-1])
+            # Cache the needed fields and only the needed fields
+            # This code has to process tens of thousands of sale order lines
+            # and hundreds of thousands of stock moves.
+            # Caching too much is expensive here because of the sheer number of
+            # records processed: Odoo's field loading becomes a bottleneck and
+            # memory usage skyrockets.
+            # Caching too little is also expensive since:
+            #  * cache misses cause unused fields to be loaded in due to
+            #    prefetching, which leads to overcaching, described above
+            #  * cache misses for stock move fields result in hundreds of small
+            #    loads per batch, which is inefficient due to overheads
+            # For non-relational fields, read() is used instead of mapped()
+            # because it allows for loading of specific fields, whereas
+            # mapped() will load in as many fields as it can due to prefetching.
+            # with_context(prefetch_fields=False) could be used with mapped()
+            # but is limited to a single column at a time.
             batch.mapped('order_line')
+            batch.mapped('order_line').read(['is_cancelled',
+                                             'product_id',
+                                             'product_uom_qty'],
+                                            load='_classic_write')
             batch.mapped('order_line.move_ids')
+            batch.mapped('order_line.move_ids').read(['state'],
+                                                     load='_classic_write')
+            # NB: Using with_context(prefetch_fields=False) then
+            #     mapped('order_line.move_ids.state') results in unwanted
+            #     extra SQL queries. mapped('order_line.move_ids') followed by
+            #     with_context and mapped('state') does not.
 
             for order in batch:
                 # Loop SO lines and deduct from stock dict, add order lines to
                 # can or cant fulfill record sets
+                # If this code is modified, the caching above needs to be
+                # kept up to date to ensure good performance
                 for line in order.order_line.filtered(lambda x:
                                                       not x.is_cancelled):
 
@@ -117,9 +141,6 @@ class SaleOrder(models.Model):
 
             # Empty cached stuff
             batch.invalidate_cache()
-            offset += limit
-            batch = Order.search([('state', 'in', ['sale', 'draft'])],
-                                 offset=offset, limit=limit)
 
         _logger.info("Cancelling %s unfulfillable order lines",
                      len(cant_fulfill))
@@ -217,18 +238,22 @@ class SaleOrder(models.Model):
         OrderLine = self.env['sale.order.line']
 
         # Get order lines
-        offset = 0
-        limit = 100
         domain = [('state', '=', 'sale'),
                   ('is_cancelled', '=', False)]
         if products:
             domain.append(('product_id', 'in', products.ids))
-        batch = OrderLine.search(domain, offset=offset, limit=limit)
+        # Override the search order since the default model order can involve
+        # joins, which perform poorly, and the order does not matter here.
+        order_lines = OrderLine.search(domain, order='id')
         demand = defaultdict(int)
 
-        while batch:
-            # Cache stuff
+        for r, batch in order_lines.batched(size=1000):
+            # Cache the needed fields and only the needed fields
+            # See cancel_sale_orders_without_availability for details
+            batch.read(['is_cancelled', 'product_id', 'product_uom_qty'],
+                       load='_classic_write')
             batch.mapped('move_ids')
+            batch.mapped('move_ids').read(['state'], load='_classic_write')
             for line in batch:
                 # If any of the moves are done or cancelled then skip this line
                 line_states = line.mapped('move_ids.state')
@@ -239,8 +264,6 @@ class SaleOrder(models.Model):
 
             # Empty cached stuff
             batch.invalidate_cache()
-            offset += limit
-            batch = OrderLine.search(domain, offset=offset, limit=limit)
 
         return demand
 
