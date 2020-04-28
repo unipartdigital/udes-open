@@ -5,6 +5,16 @@ from odoo import api, fields, models
 from odoo.addons.udes_stock.models import common
 import logging
 from datetime import timedelta, date
+import time
+
+from psycopg2 import OperationalError, errorcodes
+
+PG_CONCURRENCY_ERRORS_TO_RETRY = (
+    errorcodes.LOCK_NOT_AVAILABLE,
+    errorcodes.SERIALIZATION_FAILURE,
+    errorcodes.DEADLOCK_DETECTED,
+)
+MAX_TRIES_ON_CONCURRENCY_FAILURE = 5
 
 
 _logger = logging.getLogger(__name__)
@@ -266,6 +276,55 @@ class SaleOrder(models.Model):
             batch.invalidate_cache()
 
         return demand
+
+    def confirm_orders(self):
+        """Process sale and cancel, confirm or ignore sale orders according to
+           order processing configuration.
+        """
+        to_confirm = self.search([('state', '=', 'draft')])
+
+        for _, batch in to_confirm.batched(size=1000):
+            tries = 0
+            while True:
+                try:
+                    with self.env.cr.savepoint():
+                        batch.action_confirm()
+                        break
+                except OperationalError as e:
+                    self.invalidate_cache()
+                    if e.pgcode not in PG_CONCURRENCY_ERRORS_TO_RETRY:
+                        # don't do this
+                        raise
+                    if tries >= MAX_TRIES_ON_CONCURRENCY_FAILURE:
+                        _logger.info(
+                            "%s, maximum number of tries reached" % errorcodes.lookup(e.pgcode)
+                        )
+                        break
+                    tries += 1
+                    wait_time = 1
+                    _logger.info(
+                        "%s, retry %d/%d in %.04f sec..."
+                        % (
+                            errorcodes.lookup(e.pgcode),
+                            tries,
+                            MAX_TRIES_ON_CONCURRENCY_FAILURE,
+                            wait_time,
+                        )
+                    )
+                    time.sleep(wait_time)
+                except Exception:
+                    _logger.exception('Error confirming orders.')
+                    self.invalidate_cache()
+                    break
+            if tries >= MAX_TRIES_ON_CONCURRENCY_FAILURE:
+                break
+
+            # Incrementally commit to confirm orders as soon as possible and
+            # allow serialisation error to propagate.
+            self.env.cr.commit()
+            self.invalidate_cache()
+
+        return True
 
 
 class SaleOrderCancelWizard(models.TransientModel):
