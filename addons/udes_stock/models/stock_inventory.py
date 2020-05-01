@@ -33,8 +33,9 @@ class StockInventory(models.Model):
 
         return super(StockInventory, self).action_done()
 
+    @api.multi
     def write(self, values):
-        if self.state == 'done':
+        if 'done' in self.mapped('state'):
             raise UserError(
                 _('Cannot write to an adjustment which has already been '
                   'validated'))
