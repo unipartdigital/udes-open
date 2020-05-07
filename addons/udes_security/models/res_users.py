@@ -22,7 +22,8 @@ class Users(models.Model):
     @classmethod
     def is_user_only_allowed_one_session(cls, uid):
         if request and request.db:
-            return request.env["res.users"].browse(uid).u_restrict_to_single_session
+            user = request.env["res.users"].browse(uid)
+            return user.sudo().u_restrict_to_single_session
 
         with cls.pool.cursor() as cr:
             self = api.Environment(cr, uid, {})[cls._name]
