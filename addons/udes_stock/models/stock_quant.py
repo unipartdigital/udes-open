@@ -4,8 +4,8 @@ from collections import defaultdict
 
 
 class StockQuant(models.Model):
-    _inherit = 'stock.quant'
-    _description = 'Quant'
+    _inherit = "stock.quant"
+    _description = "Quant"
 
     def _gather(self, product_id, location_id, **kwargs):
         """ Call default _gather function, if quant_ids context variable
@@ -15,14 +15,14 @@ class StockQuant(models.Model):
             Context variable quant_ids might contain quants of different products.
         """
         quants = super(StockQuant, self)._gather(product_id, location_id, **kwargs)
-        quant_ids = self.env.context.get('quant_ids')
+        quant_ids = self.env.context.get("quant_ids")
         if quant_ids:
             quants = quants.filtered(lambda q: q.id in quant_ids)
         return quants
 
     def get_quantity(self):
         """ Returns the total quantity of the quants in self """
-        return sum(self.mapped('quantity'))
+        return sum(self.mapped("quantity"))
 
     def get_quantities_by_key(self, get_key=lambda q: q.product_id, only_available=False):
         """ Returns a dictionary with the total quantity per product, mapped by product_id.
@@ -52,7 +52,7 @@ class StockQuant(models.Model):
             :returns:
                 - picking
         """
-        Picking = self.env['stock.picking']
+        Picking = self.env["stock.picking"]
         product_quantities = self.get_quantities_by_key()
-        products_info = [{'product': key, 'qty': val} for key, val in product_quantities.items()]
+        products_info = [{"product": key, "qty": val} for key, val in product_quantities.items()]
         return Picking.create_picking(picking_type, products_info, **kwargs)

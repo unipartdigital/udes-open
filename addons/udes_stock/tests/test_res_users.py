@@ -7,14 +7,14 @@ class TestGetUserWarehouse(common.BaseUDES):
     @classmethod
     def setUpClass(cls):
         super(TestGetUserWarehouse, cls).setUpClass()
-        Warehouse = cls.env['stock.warehouse']
-        cls.User = cls.env['res.users']
+        Warehouse = cls.env["stock.warehouse"]
+        cls.User = cls.env["res.users"]
         # Create new company so there is more than one warehouse
-        cls.test_company = cls.create_company('test_company')
-        cls.test_warehouse = Warehouse.search([('company_id', '=', cls.test_company.id)])
+        cls.test_company = cls.create_company("test_company")
+        cls.test_warehouse = Warehouse.search([("company_id", "=", cls.test_company.id)])
         cls.test_user = cls.create_user(
-            'test_user',
-            'test_user_login',
+            "test_user",
+            "test_user_login",
             company_id=cls.test_company.id,
             company_ids=[(6, 0, cls.test_company.ids)],
         )
@@ -25,7 +25,7 @@ class TestGetUserWarehouse(common.BaseUDES):
         self.test_user.active = False
         with self.assertRaises(ValidationError) as e:
             self.User.with_user(self.test_user).get_user_warehouse()
-        self.assertEqual(e.exception.name, 'Cannot find user')
+        self.assertEqual(e.exception.name, "Cannot find user")
 
     def test02_get_user_warehouse_no_warehouse(self):
         """ Checking that when a user has no warehouse the correct error is raised """
@@ -33,13 +33,13 @@ class TestGetUserWarehouse(common.BaseUDES):
         self.test_warehouse.active = False
         with self.assertRaises(ValidationError) as e:
             self.User.with_user(self.test_user).get_user_warehouse()
-        self.assertEqual(e.exception.name, 'Cannot find a warehouse for user')
+        self.assertEqual(e.exception.name, "Cannot find a warehouse for user")
 
     def test03_get_user_warehouse_multiple_warehouse(self):
         """ Checking that when a user has multiple warehouses that all the warehouse are returned """
         # Create new warehouse by copying current one and changing
         # the required fields
-        warehouse2 = self.test_warehouse.copy({'name': 'test_company_2', 'code': '123'})
+        warehouse2 = self.test_warehouse.copy({"name": "test_company_2", "code": "123"})
         warehouses = self.test_warehouse | warehouse2
         whs = self.User.with_user(self.test_user).get_user_warehouse()
         self.assertEqual(whs, warehouses)
@@ -55,9 +55,9 @@ class TestGetUserWarehouse(common.BaseUDES):
         """
         # Create new warehouse by copying current one and changing
         # the required fields
-        warehouse2 = self.test_warehouse.copy({'name': 'test_company_2', 'code': '123'})
+        warehouse2 = self.test_warehouse.copy({"name": "test_company_2", "code": "123"})
         whs = self.User.with_user(self.test_user).get_user_warehouse(
-            aux_domain=[('name', '=', 'test_company_2')]
+            aux_domain=[("name", "=", "test_company_2")]
         )
         self.assertEqual(whs, warehouse2)
 
@@ -66,14 +66,14 @@ class TestGetUserWarehouse(common.BaseUDES):
             a subset """
         # Create new warehouse by copying current one and changing
         # the required fields
-        self.test_warehouse.copy({'name': 'test_company_2', 'code': '123'})
-        self.test_warehouse.copy({'name': 'test_company_3', 'code': '321'})
+        self.test_warehouse.copy({"name": "test_company_2", "code": "123"})
+        self.test_warehouse.copy({"name": "test_company_3", "code": "321"})
         with self.assertRaises(ValidationError) as e:
             self.User.with_user(self.test_user).get_user_warehouse(
-                aux_domain=[('name', 'in', ['test_company_2', 'test_company_3'])]
+                aux_domain=[("name", "in", ["test_company_2", "test_company_3"])]
             )
         self.assertEqual(
             e.exception.name,
-            'Found multiple warehouses for user still, '
-            + 'the aux_domain is specifying multiple warehouses or cannot be correct!',
+            "Found multiple warehouses for user still, "
+            + "the aux_domain is specifying multiple warehouses or cannot be correct!",
         )

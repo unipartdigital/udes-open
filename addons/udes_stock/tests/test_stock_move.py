@@ -5,12 +5,11 @@ from unittest.mock import patch
 
 
 class TestStockMove(common.BaseUDES):
-
     @classmethod
     def setUpClass(cls):
         super(TestStockMove, cls).setUpClass()
         # Create a picking
-        cls._pick_info = [{'product': cls.banana, 'qty': 6}]
+        cls._pick_info = [{"product": cls.banana, "qty": 6}]
         cls.quant1 = cls.create_quant(cls.banana.id, cls.test_stock_location_01.id, 5)
         cls.quant2 = cls.create_quant(cls.banana.id, cls.test_stock_location_02.id, 3)
         cls.pick = cls.create_picking(
@@ -20,7 +19,7 @@ class TestStockMove(common.BaseUDES):
     def test01_split_out_move_lines_raise_error(self):
         """ Raise a value error when try to split out move lines from another move """
         # Create another picking
-        new_pick_info = [{'product': self.apple, 'qty': 20}]
+        new_pick_info = [{"product": self.apple, "qty": 20}]
         self.create_quant(self.banana.id, self.test_stock_location_01.id, 5)
         self.create_quant(self.apple.id, self.test_stock_location_02.id, 10)
         new_pick = self.create_picking(
@@ -32,7 +31,7 @@ class TestStockMove(common.BaseUDES):
         with self.assertRaises(ValueError) as e:
             mv.split_out_move_lines(mls)
         self.assertEqual(
-            str(e.exception), 'Cannot split move lines from a move they are not part of.'
+            str(e.exception), "Cannot split move lines from a move they are not part of."
         )
 
     def test02_split_out_move_lines_success(self):
@@ -74,19 +73,19 @@ class TestStockMove(common.BaseUDES):
         # Check that nothing is additionally reserved
         self.assertEqual(
             [self.quant1.reserved_quantity, self.quant2.reserved_quantity],
-            self.env['stock.quant'].search([]).mapped('reserved_quantity'),
+            self.env["stock.quant"].search([]).mapped("reserved_quantity"),
         )
 
     def test04_unreserve_initial_demand(self):
         """ Test for _unreserve_initial_demand """
-        MoveLine = self.env['stock.move.line']
+        MoveLine = self.env["stock.move.line"]
         pack1 = self.create_package()
         pack2 = self.create_package()
         self.create_quant(self.fig.id, self.test_stock_location_01.id, 2, package_id=pack1.id)
         self.create_quant(self.fig.id, self.test_stock_location_01.id, 2, package_id=pack2.id)
         picking = self.create_picking(
             self.picking_type_pick,
-            products_info=[{'product': self.fig, 'qty': 5}],
+            products_info=[{"product": self.fig, "qty": 5}],
             location_dest_id=self.test_received_location_01.id,
             location_id=self.test_stock_location_01.id,
             assign=True,
@@ -97,7 +96,7 @@ class TestStockMove(common.BaseUDES):
         pack2_ml = move_lines.filtered(lambda ml: ml.package_id == pack2)
 
         # Complete pack 1 operation
-        pack1_ml.write({'qty_done': 2})
+        pack1_ml.write({"qty_done": 2})
         # fig_move._action_done()
         # Validate picking which will create backorder preserving remaining ml to do
         picking.action_done()
@@ -105,6 +104,6 @@ class TestStockMove(common.BaseUDES):
         self.assertEqual(pack1_ml, picking.move_line_ids)
         self.assertEqual(pack1_ml.move_id, fig_move)
         # Get the again all the fig move lines, check that they are the same as before
-        new_move_lines = MoveLine.search([('product_id', '=', self.fig.id)])
+        new_move_lines = MoveLine.search([("product_id", "=", self.fig.id)])
         self.assertEqual(move_lines, new_move_lines)
         self.assertIn(pack2_ml, new_move_lines)

@@ -48,7 +48,7 @@ class MixinStockModel(models.AbstractModel):
 
             domain.extend(aux_domain)
         # Search overriding order for performance
-        results = self.search(domain, order='id')
+        results = self.search(domain, order="id")
 
         if not results:
             if self.MSM_CREATE and create and isinstance(identifier, str):

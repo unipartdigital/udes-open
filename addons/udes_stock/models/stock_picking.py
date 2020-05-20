@@ -4,10 +4,10 @@ from odoo.exceptions import ValidationError
 
 
 class StockPicking(models.Model):
-    _inherit = 'stock.picking'
+    _inherit = "stock.picking"
 
     sequence = fields.Integer(
-        'Sequence', default=0, help="Used to order the 'All Operations' kanban view"
+        "Sequence", default=0, help="Used to order the 'All Operations' kanban view"
     )
 
     def get_empty_locations(self):
@@ -15,7 +15,9 @@ class StockPicking(models.Model):
             instance dest location and are empty.
             Expects a singleton instance.
         """
-        return self._get_child_dest_locations(aux_domain=[('barcode', '!=', False), ('quant_ids', '=', False)])
+        return self._get_child_dest_locations(
+            aux_domain=[("barcode", "!=", False), ("quant_ids", "=", False)]
+        )
 
     def _get_child_dest_locations(self, aux_domain=None):
         """ Return the child locations of the instance dest location.
@@ -23,9 +25,9 @@ class StockPicking(models.Model):
             when specified.
             Expects a singleton instance.
         """
-        Location = self.env['stock.location']
+        Location = self.env["stock.location"]
 
-        domain = [('id', 'child_of', self.location_dest_id.ids)]
+        domain = [("id", "child_of", self.location_dest_id.ids)]
         if aux_domain is not None:
             domain.extend(aux_domain)
         return Location.search(domain)
@@ -53,7 +55,7 @@ class StockPicking(models.Model):
             Ensure this function is only called if _requires_back_order is True
             if everything is done - then a new pick is created and the old one is empty
         """
-        Move = self.env['stock.move']
+        Move = self.env["stock.move"]
         # Based on back order creation in stock_move._action_done
         self.ensure_one()
 
@@ -64,15 +66,22 @@ class StockPicking(models.Model):
         # therefore we have some relevant move lines
         if not (mls & self.move_line_ids):
             raise ValidationError(
-                _('There are no move lines within picking %s to backorder') % self.name
+                _("There are no move lines within picking %s to backorder") % self.name
             )
 
         new_moves = Move.browse()
-        for move, move_mls in mls.groupby('move_id'):
+        for move, move_mls in mls.groupby("move_id"):
             new_moves |= move.split_out_move_lines(move_mls)
 
         # Create picking for completed move
-        bk_picking = self.copy({'name': '/', 'move_lines': [(6, 0, new_moves.ids)], 'move_line_ids': [(6, 0, new_moves.move_line_ids.ids)], 'backorder_id': self.id})
+        bk_picking = self.copy(
+            {
+                "name": "/",
+                "move_lines": [(6, 0, new_moves.ids)],
+                "move_line_ids": [(6, 0, new_moves.move_line_ids.ids)],
+                "backorder_id": self.id,
+            }
+        )
 
         return bk_picking
 
@@ -87,7 +96,7 @@ class StockPicking(models.Model):
             if (
                 move not in mls_moves
                 or not move.move_line_ids == mls.filtered(lambda x: x.move_id == move)
-                or move.move_orig_ids.filtered(lambda x: x.state not in ('done', 'cancel'))
+                or move.move_orig_ids.filtered(lambda x: x.state not in ("done", "cancel"))
             ):
                 return True
         return False
@@ -116,10 +125,12 @@ class StockPicking(models.Model):
                 - create_batch: boolean flag if a batch should be created
 
         """
-        Picking = self.env['stock.picking']
+        Picking = self.env["stock.picking"]
 
         # Prepare stock.picking info
-        picking_values, products_info = self._prepare_picking_info(picking_type, products_info=products_info, **kwargs)
+        picking_values, products_info = self._prepare_picking_info(
+            picking_type, products_info=products_info, **kwargs
+        )
         # Create pickings
         pickings = Picking.create(picking_values)
         # Prepare stock.moves
@@ -127,7 +138,7 @@ class StockPicking(models.Model):
             move_values = self._prepare_move(pickings, products_info)
             # Create stock.moves
             self._create_move(move_values)
-            
+
         if confirm:
             pickings.action_confirm()
 
@@ -151,9 +162,9 @@ class StockPicking(models.Model):
             products_info: None if products_info is None, or list(list(dict)) of product, qty info
         """
         picking_values = {
-            'picking_type_id': picking_type.id,
-            'location_id': picking_type.default_location_src_id.id,
-            'location_dest_id': picking_type.default_location_dest_id.id,
+            "picking_type_id": picking_type.id,
+            "location_id": picking_type.default_location_src_id.id,
+            "location_dest_id": picking_type.default_location_dest_id.id,
         }
         picking_values.update(kwargs)
         if not products_info:
@@ -169,11 +180,10 @@ class StockPicking(models.Model):
                 products_info = [products_info]
             return picking_vals, products_info
 
-
     def _create_batch(self, pickings):
         """ Create batch """
-        PickingBatch = self.env['stock.picking.batch']
-        PickingBatch.create({'picking_ids': [(6, 0, pickings.ids)]})
+        PickingBatch = self.env["stock.picking.batch"]
+        PickingBatch.create({"picking_ids": [(6, 0, pickings.ids)]})
 
     def _prepare_move(self, pickings, products_info, **kwargs):
         """ Return a list of the move details to be used later in creation of the move(s).
@@ -190,18 +200,18 @@ class StockPicking(models.Model):
         move_values = []
         for i, picking in enumerate(pickings):
             for product_info in products_info[i]:
-                product = product_info.get('product')
-                qty = product_info.get('qty')
+                product = product_info.get("product")
+                qty = product_info.get("qty")
                 vals = {
-                    'product_id': product.id,
-                    'name': product.name,
-                    'product_uom': product.uom_id.id,
-                    'product_uom_qty': qty,
-                    'location_id': picking.location_id.id,
-                    'location_dest_id': picking.location_dest_id.id,
-                    'picking_id': picking.id,
-                    'priority': picking.priority,
-                    'picking_type_id': picking.picking_type_id.id,
+                    "product_id": product.id,
+                    "name": product.name,
+                    "product_uom": product.uom_id.id,
+                    "product_uom_qty": qty,
+                    "location_id": picking.location_id.id,
+                    "location_dest_id": picking.location_dest_id.id,
+                    "picking_id": picking.id,
+                    "priority": picking.priority,
+                    "picking_type_id": picking.picking_type_id.id,
                 }
                 vals.update(kwargs)
                 move_values.append(vals)
@@ -218,5 +228,5 @@ class StockPicking(models.Model):
             :returns:
                 - move
         """
-        Move = self.env['stock.move']
+        Move = self.env["stock.move"]
         return Move.create(move_values)

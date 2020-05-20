@@ -7,11 +7,14 @@ from odoo.exceptions import ValidationError
 
 
 class StockMoveLine(models.Model):
-    _inherit = 'stock.move.line'
+    _inherit = "stock.move.line"
 
     u_picking_type_id = fields.Many2one(
-        'stock.picking.type', 'Operation Type',
-        related='move_id.picking_type_id', store=True, readonly=True
+        "stock.picking.type",
+        "Operation Type",
+        related="move_id.picking_type_id",
+        store=True,
+        readonly=True,
     )
 
     def get_lines_incomplete(self):
@@ -72,27 +75,29 @@ class StockMoveLine(models.Model):
         owner = self.owner_id
         location = self.location_id
         domain = [
-            ('product_id', '=', product.id),
+            ("product_id", "=", product.id),
         ]
         if not strict:
             if lot:
-                domain = expression.AND([[('lot_id', '=', lot.id)], domain])
+                domain = expression.AND([[("lot_id", "=", lot.id)], domain])
             if package:
-                domain = expression.AND([[('package_id', '=', package.id)], domain])
+                domain = expression.AND([[("package_id", "=", package.id)], domain])
             if owner:
-                domain = expression.AND([[('owner_id', '=', owner.id)], domain])
-            domain = expression.AND([[('location_id', 'child_of', location.id)], domain])
+                domain = expression.AND([[("owner_id", "=", owner.id)], domain])
+            domain = expression.AND([[("location_id", "child_of", location.id)], domain])
         else:
-            domain = expression.AND([[('lot_id', '=', lot and lot.id or False)], domain])
-            domain = expression.AND([[('package_id', '=', package and package.id or False)], domain])
-            domain = expression.AND([[('owner_id', '=', owner and owner.id or False)], domain])
-            domain = expression.AND([[('location_id', '=', location.id)], domain])
+            domain = expression.AND([[("lot_id", "=", lot and lot.id or False)], domain])
+            domain = expression.AND(
+                [[("package_id", "=", package and package.id or False)], domain]
+            )
+            domain = expression.AND([[("owner_id", "=", owner and owner.id or False)], domain])
+            domain = expression.AND([[("location_id", "=", location.id)], domain])
 
         return domain
 
     def get_quants(self):
         """ Returns the quants related to move lines in self """
-        Quant = self.env['stock.quant']
+        Quant = self.env["stock.quant"]
 
         quants = Quant.browse()
         for ml in self:
@@ -117,9 +122,7 @@ class StockMoveLine(models.Model):
 
     def _round_qty(self, value):
         return float_round(
-            value,
-            precision_rounding=self.product_uom_id.rounding,
-            rounding_method='UP',
+            value, precision_rounding=self.product_uom_id.rounding, rounding_method="UP",
         )
 
     def _split(self, qty=None):
@@ -143,7 +146,10 @@ class StockMoveLine(models.Model):
         # Not allowed to split by qty parameter when quantity done > 0 unless
         # it is equal to quantity not done
         if qty is not None and qty_done != 0 and qty != qty_not_done:
-            raise ValidationError(_('Trying to split a move line with quantity done at picking %s') % self.picking_id.name)
+            raise ValidationError(
+                _("Trying to split a move line with quantity done at picking %s")
+                % self.picking_id.name
+            )
         split_qty = qty or qty_not_done
         if (
             split_qty > 0
@@ -155,10 +161,10 @@ class StockMoveLine(models.Model):
             # create new move line
             new_ml = self.copy(
                 default={
-                    'product_uom_qty': split_qty,
-                    'qty_done': 0.0,
-                    'result_package_id': False,
-                    'lot_name': False,
+                    "product_uom_qty": split_qty,
+                    "qty_done": 0.0,
+                    "result_package_id": False,
+                    "lot_name": False,
                 }
             )
             # Quantity to keep in self
@@ -167,10 +173,7 @@ class StockMoveLine(models.Model):
             # - bypass_reservation_update:
             #   avoids to execute code specific for Odoo UI at stock.move.line.write()
             self.with_context(bypass_reservation_update=True).write(
-                {
-                    'product_uom_qty': qty_to_keep,
-                    'qty_done': qty_done,
-                }
+                {"product_uom_qty": qty_to_keep, "qty_done": qty_done,}
             )
             res = new_ml
         return res

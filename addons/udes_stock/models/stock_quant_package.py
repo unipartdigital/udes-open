@@ -4,9 +4,9 @@ from collections import defaultdict
 
 
 class StockQuantPackage(models.Model):
-    _name = 'stock.quant.package'
-    _inherit = ['stock.quant.package', 'mixin.stock.model']
-    _description = 'Package'
+    _name = "stock.quant.package"
+    _inherit = ["stock.quant.package", "mixin.stock.model"]
+    _description = "Package"
 
     # Enable create packages
     MSM_CREATE = True
@@ -25,12 +25,12 @@ class StockQuantPackage(models.Model):
                 mls: move lines to check against
             :returns: the move lines the package can fulfil, and those split out that it can't
         """
-        MoveLines = self.env['stock.move.line']
+        MoveLines = self.env["stock.move.line"]
 
         pack_quantities = self.get_quantities_by_key()
         can_fulfil_mls = MoveLines.browse()
         excess_mls = MoveLines.browse()
-        for prod, mls_grp in mls.groupby('product_id'):
+        for prod, mls_grp in mls.groupby("product_id"):
             pack_qty = pack_quantities.get(prod, 0)
             if pack_qty == 0:
                 # just skip over
@@ -50,7 +50,9 @@ class StockQuantPackage(models.Model):
             :returns:
                 - Boolean flag, true if packages in self are the same as the packages in other (based on comparison method)
         """
-        return frozenset(self.get_quantities_by_key(get_key=get_key)) == frozenset(other.get_quantities_by_key(get_key=get_key))
+        return frozenset(self.get_quantities_by_key(get_key=get_key)) == frozenset(
+            other.get_quantities_by_key(get_key=get_key)
+        )
 
     def find_move_lines(self, aux_domain=None):
         """ Find move lines related to the package.
@@ -60,17 +62,17 @@ class StockQuantPackage(models.Model):
                  move lines, defaults to in progress
             :returns: a recordset with the move lines in progress.
         """
-        MoveLine = self.env['stock.move.line']
+        MoveLine = self.env["stock.move.line"]
 
         if aux_domain is None:
-            aux_domain = [('state', 'not in', ['done', 'cancel'])]
-        domain = [('package_id', 'in', self.ids)] + aux_domain
+            aux_domain = [("state", "not in", ["done", "cancel"])]
+        domain = [("package_id", "in", self.ids)] + aux_domain
         move_lines = MoveLine.search(domain)
         return move_lines
 
     def get_reserved_quantity(self):
         """ Returns the quantity in package that is reserved """
-        return sum(self._get_contained_quants().mapped('reserved_quantity'))
+        return sum(self._get_contained_quants().mapped("reserved_quantity"))
 
     def create_picking(self, picking_type, **kwargs):
         """ Create a picking from package

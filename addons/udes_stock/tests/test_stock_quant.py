@@ -3,18 +3,14 @@ from .common import BaseUDES
 
 
 class TestStockQuantModel(BaseUDES):
-
     @classmethod
     def setUpClass(cls):
         super(TestStockQuantModel, cls).setUpClass()
-        cls.Quant = cls.env['stock.quant']
+        cls.Quant = cls.env["stock.quant"]
         cls.test_package = cls.create_package()
         cls.test_package2 = cls.create_package()
         cls.quantA = cls.create_quant(
-            cls.apple.id,
-            cls.test_stock_location_01.id,
-            10,
-            package_id=cls.test_package.id,
+            cls.apple.id, cls.test_stock_location_01.id, 10, package_id=cls.test_package.id,
         )
         cls.create_quant(
             cls.apple.id, cls.test_stock_location_01.id, 5, package_id=cls.test_package.id
@@ -37,7 +33,7 @@ class TestStockQuantModel(BaseUDES):
         # reserved = 0
 
         # Create dummy user
-        cls.test_user = cls.create_user('test_user', 'test_user_login')
+        cls.test_user = cls.create_user("test_user", "test_user_login")
 
     def test00_get_quantity(self):
         """ Test get_quantity """
@@ -85,7 +81,9 @@ class TestStockQuantModel(BaseUDES):
         # Unfold the returned quants
         _q1, second_quant, _q2 = gathered_items
         # Check when quant_ids is set in the context
-        gathered_items_subset = self.Quant.with_context(quant_ids=[second_quant.id])._gather(self.apple, self.test_stock_location_01)
+        gathered_items_subset = self.Quant.with_context(quant_ids=[second_quant.id])._gather(
+            self.apple, self.test_stock_location_01
+        )
         self.assertEqual(len(gathered_items_subset), 1)
         self.assertEqual(gathered_items_subset.product_id, self.apple)
         self.assertEqual(gathered_items_subset, second_quant)
@@ -100,7 +98,7 @@ class TestStockQuantModel(BaseUDES):
         """ Create a picking from a single quant """
         pick = self.quantA.create_picking(self.picking_type_pick)
         # Confirm made in state draft
-        self.assertEqual(pick.state, 'draft')
+        self.assertEqual(pick.state, "draft")
         # Confirm default location used if non specified
         self.assertEqual(pick.location_id, self.picking_type_pick.default_location_src_id)
         # Confirm default dest location used if non specified
@@ -108,7 +106,7 @@ class TestStockQuantModel(BaseUDES):
         # Confirm correct picking type id associated
         self.assertEqual(pick.picking_type_id, self.picking_type_pick)
         # Check default priority is 1 = 'Normal'
-        self.assertEqual(pick.priority, '1')
+        self.assertEqual(pick.priority, "1")
         #  Check picking has correct products associated to it
         self.assertEqual(pick.product_id, self.apple)
         #  Check picking has correct quantities associated to it
@@ -119,7 +117,7 @@ class TestStockQuantModel(BaseUDES):
         """ Create a picking from a single quant and confirm """
         pick = self.quantA.create_picking(self.picking_type_pick, confirm=True)
         # Check it is confirmed
-        self.assertEqual(pick.state, 'confirmed')
+        self.assertEqual(pick.state, "confirmed")
 
     def test06_create_picking_from_single_quant_assign(self):
         """ Create a picking from a single quant and assign to user """
@@ -127,7 +125,7 @@ class TestStockQuantModel(BaseUDES):
             self.picking_type_pick, assign=True, user_id=self.test_user.id
         )
         # Check it is in state assigned
-        self.assertEqual(pick.state, 'assigned')
+        self.assertEqual(pick.state, "assigned")
         # Check user is assigned
         self.assertEqual(pick.user_id, self.test_user)
         # Check QuantA is now reserved
@@ -138,9 +136,9 @@ class TestStockQuantModel(BaseUDES):
             Change the priority to Urgent
             Priorities: [('0', 'Not urgent'), ('1', 'Normal'), ('2', 'Urgent'), ('3', 'Very Urgent')]
         """
-        pick = self.quantA.create_picking(self.picking_type_pick, priority='2')
+        pick = self.quantA.create_picking(self.picking_type_pick, priority="2")
         # Check priority is 2 = 'Urgent'
-        self.assertEqual(pick.priority, '2')
+        self.assertEqual(pick.priority, "2")
 
     def test08_create_picking_from_single_quant_non_default_locations(self):
         """ Create a picking from a single quant
@@ -166,4 +164,4 @@ class TestStockQuantModel(BaseUDES):
         pick = quants.create_picking(self.picking_type_pick)
         #  Check picking has correct products and quantities associated to it
         self.assertEqual(pick.move_lines.product_id, quants.product_id)
-        self.assertEqual(pick.move_lines.mapped('product_qty'), [16.0, 10.0])
+        self.assertEqual(pick.move_lines.mapped("product_qty"), [16.0, 10.0])
