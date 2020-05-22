@@ -1,10 +1,13 @@
 """Base model enhancements"""
 
+import logging
 import itertools
 from operator import itemgetter
 from .. import tools
 
 from odoo import models
+
+_logger = logging.getLogger(__name__)
 
 # TODO: This is duplicated in edi to allow edi to be stand alone.
 # Consider revising this.
@@ -15,7 +18,9 @@ def add_if_not_exists(cls):
 
     def wrapper(func):
         # pylint: disable=missing-docstring
-        if not hasattr(cls, func.__name__):
+        if hasattr(cls, func.__name__):
+            _logger.warning("%s.%s is already defined" % (cls.__name__, func.__name__))
+        else:
             setattr(cls, func.__name__, func)
         return func
 
