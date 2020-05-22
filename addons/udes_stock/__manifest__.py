@@ -11,6 +11,7 @@
         'base',
         'stock',
         'stock_picking_batch',
+        'udes_common',
     ],
     'data': [
         'data/stock_data.xml',
@@ -20,5 +21,6 @@
         'data/picking_types.xml',
         'data/routes.xml',
         'data/company.xml',
+        'views/stock_picking.xml',
     ],
 }
