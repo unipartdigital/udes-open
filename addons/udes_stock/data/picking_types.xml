@@ -69,7 +69,7 @@
     <!-- Create "Putaway" picking type -->
     <record id="picking_type_putaway" model="stock.picking.type">
       <field name="name">Putaway</field>
-      <field name="sequence" eval="13"/>
+      <field name="sequence" eval="11"/>
       <field name="code">internal</field>
       <field name="sequence_id" ref="sequence_putaway"/>
       <field name="sequence_code">Putaway</field>
@@ -99,7 +99,7 @@
     <!-- Update "Goods Out" picking type -->
     <record id="stock.picking_type_out" model="stock.picking.type">
       <field name="name">Goods Out</field>
-      <field name="sequence" eval="20"/>
+      <field name="sequence" eval="21"/>
       <field name="code">internal</field>
       <field name="sequence_id" ref="sequence_out"/>
       <field name="sequence_code">Out</field>
@@ -114,7 +114,7 @@
     <!-- Create "Trailer Dispatch" picking type -->
     <record id="picking_type_trailer" model="stock.picking.type">
       <field name="name">Trailer Dispatch</field>
-      <field name="sequence" eval="20"/>
+      <field name="sequence" eval="22"/>
       <field name="code">outgoing</field>
       <field name="sequence_id" ref="sequence_dispatch"/>
       <field name="sequence_code">Dispatch</field>
