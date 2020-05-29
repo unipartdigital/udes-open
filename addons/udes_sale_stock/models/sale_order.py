@@ -291,7 +291,8 @@ class SaleOrder(models.Model):
             while True:
                 try:
                     with self.env.cr.savepoint():
-                        batch.action_confirm()
+                        batch.with_context(recompute=False).action_confirm()
+                        batch.recompute()
                         break
                 except OperationalError as e:
                     self.invalidate_cache()
