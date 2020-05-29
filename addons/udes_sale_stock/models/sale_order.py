@@ -277,12 +277,15 @@ class SaleOrder(models.Model):
 
         return demand
 
+    def action_confirm(self):
+        """ Override to disable tracking by default """
+        return super(SaleOrder, self.with_context(tracking_disable=True)).action_confirm()
+
     def confirm_orders(self):
         """Process sale and cancel, confirm or ignore sale orders according to
            order processing configuration.
         """
         to_confirm = self.search([('state', '=', 'draft')])
-
         for _, batch in to_confirm.batched(size=1000):
             tries = 0
             while True:
