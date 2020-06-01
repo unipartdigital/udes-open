@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+
+<odoo noupdate="1">
+  <record id="inactive_session_time_out_enabled" model="ir.config_parameter">
+    <field name="key">inactive_session_time_out_enabled</field>
+    <field name="value">True</field>
+  </record>
+</odoo>

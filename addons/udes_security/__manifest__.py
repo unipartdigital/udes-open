@@ -17,6 +17,7 @@ Security enhancements used by UDES
     'data': [
         'views/res_users_views.xml',
         'data/auth_brute_force.xml',
+        'data/ir_config_parameter_data.xml',
         'data/res_groups.xml',
         'data/res_users.xml',
     ]

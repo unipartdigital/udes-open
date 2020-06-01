@@ -99,3 +99,23 @@ class Users(models.Model):
                     )
                     % group.name
                 )
+
+    @api.model_cr_context
+    def _auth_timeout_enabled(self):
+        """ Pluggable method to check if session timeout is enabled """
+        IrConfigParameter = self.env["ir.config_parameter"]
+        
+        auth_timeout_enabled_parameter = IrConfigParameter.get_param(
+            "inactive_session_time_out_enabled"
+        )
+        return auth_timeout_enabled_parameter == "True"
+
+    @api.model
+    def _auth_timeout_check(self):
+        """ Override to not carry out timeout check if system parameter is disabled """
+        auth_timeout_enabled = self._auth_timeout_enabled()
+
+        if not auth_timeout_enabled:
+            return
+        else:
+            return super(Users, self)._auth_timeout_check()
