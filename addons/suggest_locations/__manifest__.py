@@ -8,5 +8,5 @@
     "category": "UDES",
     "version": "0.1",
     "depends": ["base", "udes_common", "udes_stock"],
-    "data": [],
+    "data": ["views/stock_picking_type.xml"],
 }
