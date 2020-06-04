@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from collections import defaultdict
-from odoo import api, fields, models
+from odoo import api, fields, models, tools
 from odoo.addons.udes_stock.models import common
 import logging
 from datetime import timedelta, date
@@ -49,6 +49,18 @@ class SaleOrder(models.Model):
         self.mapped('order_line.move_ids.picking_id')
         for order in self:
             order.picking_ids = order.mapped('order_line.move_ids.picking_id')
+
+    @api.model_cr
+    def init(self):
+        """ Creates index for model order """
+        super(SaleOrder, self).init()
+
+        tools.create_index(
+            self._cr,
+            'sale_order_requested_date_priority_id_index',
+            self._table,
+            ['requested_date ASC', 'priority DESC', 'id ASC'],
+        )
 
     @api.multi
     def _set_priority(self):
