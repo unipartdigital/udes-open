@@ -11,6 +11,7 @@
     'application': True,
     'version': '0.1',
     'depends': [
+        'base',
         'stock',
         'udes_stock',
     ],
@@ -18,6 +19,8 @@
         'data/picking_types.xml',
         'security/ir.model.access.csv',
         'views/stock_picking_views.xml',
+        'views/stock_picking_batch.xml',
         'views/stock_picking_type.xml',
+        'views/res_partner.xml',
     ],
 }

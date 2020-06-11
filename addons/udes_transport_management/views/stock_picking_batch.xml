@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<odoo>
+  <data>
+
+    <!-- Stock picking batch form -->
+    <record id="stock_picking_batch_form" model="ir.ui.view">
+      <field name="name">udes_transport_management.stock.picking.batch.form</field>
+      <field name="model">stock.picking.batch</field>
+      <field name="inherit_id"
+             ref="stock_picking_batch.stock_picking_batch_form"/>
+      <field name="arch" type="xml">
+        <xpath expr="//field[@name='user_id']" position="after">
+          <field name="u_driver_id" />
+          <field name="u_transporter_id" />
+        </xpath>
+      </field>
+    </record>
+
+  </data>
+</odoo>

@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<odoo>
+  <data>
+
+    <!-- Partner form -->
+    <record id="res_partner_form" model="ir.ui.view">
+      <field name="name">udes_transport_management.res.partner.form</field>
+      <field name="model">res.partner</field>
+      <field name="inherit_id" ref="base.view_partner_form"/>
+      <field name="arch" type="xml">
+	<xpath expr="//field[@name='vat']" position="before">
+	  <field name="is_driver" />
+	  <field name="is_transporter" />
+	</xpath>
+      </field>
+    </record>
+
+
+    <record id="view_res_partner_filter" model="ir.ui.view">
+            <field name="name">udes_transport_management.res.partner.select</field>
+            <field name="model">res.partner</field>
+            <field name="inherit_id" ref="base.view_res_partner_filter"/>
+            <field name="arch" type="xml">
+              	<xpath expr="//filter[@name='type_company']" position="after">
+                  <separator/>
+                  <filter string="Drivers" name="type_driver" domain="[('is_driver','=',1)]"/>
+                  <filter string="Transporters" name="type_transporter" domain="[('is_transporter','=',1)]"/>
+            	</xpath>
+
+            </field>
+        </record>
+
+  </data>
+</odoo>
