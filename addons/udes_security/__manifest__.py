@@ -15,6 +15,7 @@ Security enhancements used by UDES
         "views/res_users_views.xml",
         "views/webclient_templates.xml",
         "data/auth_brute_force.xml",
+        "data/blocked_file_type_data.xml",
         "data/ir_config_parameter_data.xml",
         "data/res_groups.xml",
         "data/res_users.xml",
