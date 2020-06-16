@@ -7,8 +7,6 @@ from .suggest_locations_policy import SuggestLocationPolicy, get_selection
 class ByProduct(SuggestLocationPolicy):
     """Find locations based on other placed that product is stored"""
 
-    preprocessing = False
-
     @classmethod
     def name(cls):
         return "by_product"

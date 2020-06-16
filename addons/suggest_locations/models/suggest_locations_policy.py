@@ -15,12 +15,6 @@ class SuggestLocationPolicy(metaclass=SuggestRegistryMeta):
         super().__init__()
         self.env = env
 
-    @property
-    @abstractmethod
-    def preprocessing(self):
-        """The preprocessing flag for that policy"""
-        return False
-
     @abstractmethod
     def get_values_from_mls(self, mls):
         """Find values based on the move lines instances"""

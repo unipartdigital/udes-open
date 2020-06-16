@@ -15,7 +15,6 @@ Policies are based on a metaclass that enforces the methods needed for suggested
 | Policy | Description |
 | - | - |
 | ByProduct | Match drop locations to locations with existing products of the same type are |
-| MatchByMoveline | Suggest the location that is already expected for the move line |
 
 # Drop Configurations (u_drop_location_constaint)
 

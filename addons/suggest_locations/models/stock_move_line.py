@@ -13,26 +13,6 @@ VIEW_SET = set(["view"])
 class StockMoveLine(models.Model):
     _inherit = "stock.move.line"
 
-    def write(self, values):
-        """Extend write to catch preprocessed location update as constrains
-        happens after write creating a check which can never fail
-        Example: If product A has suggested locations 01, 02, but we bypass constraints
-        and write to 03. When we validate it later, with constraints, then no error
-        is raised, even though it reaches to the raise Validation error stage.
-        We allow for a write to be done on a location that is a view, and only validate 
-        if its location has already been set to a non-view location for all
-        policies that have preprocessing enabled.
-        """
-        Location = self.env["stock.location"]
-
-        if "location_dest_id" in values:
-            locations = Location.browse(values["location_dest_id"])
-            self.filtered(
-                lambda ml: ml.location_dest_id.usage not in VIEW_SET
-            ).validate_location_dest(locations=locations)
-
-        return super(StockMoveLine, self).write(values)
-
     def _get_policy_class(self, picking_type):
         """Get the policy for suggesting locations
         Note: Optionally we could cache the results with @lru_cache to avoid always returning the
@@ -106,17 +86,9 @@ class StockMoveLine(models.Model):
             if constraint not in CONTRAINTS_REQUIRING_A_CHECK:
                 continue
 
-            # Get policy and subsequent preprocessing
+            # Get policy
             policy = self._get_policy_class(picking_type)
-            preprocess = policy.preprocessing
-
-            if preprocess and locations is None:
-                # If preprocess is true, and lcoations None, validate is triggered outside of write
-                # and has already been processed in the write
-                continue
-            if not preprocess and locations:
-                # Triggered by write,but should not check here as preprocess False
-                continue
+            
             for mls_validation_grp in policy.iter_mls(mls):
                 # If no location was passed, get the ones from the move lines
                 locs = locations or mls_validation_grp.location_dest_id
