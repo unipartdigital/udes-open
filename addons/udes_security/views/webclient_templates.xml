@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <template id="udes_security.web" name="udes_security.web" inherit_id="web.assets_backend">
+            <xpath expr="." position="inside">
+                <script type="text/javascript" src="/udes_security/static/src/js/binary_fields.js"></script>
+            </xpath>
+        </template>
+    </data>
+</odoo>
