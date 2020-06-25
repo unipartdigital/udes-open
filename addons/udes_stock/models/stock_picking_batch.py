@@ -641,6 +641,25 @@ class StockPickingBatch(models.Model):
 
         return func()
 
+    def _get_move_lines_to_drop_off_by_criterion(self, criterion, item_identity):
+        all_mls_to_drop = self._get_move_lines_to_drop_off()
+
+        if len(all_mls_to_drop) == 0:
+            return all_mls_to_drop, True, True
+
+        func = getattr(self, "_get_next_drop_off_" + criterion, None)
+
+        if not func:
+            raise ValidationError(
+                _("An unexpected drop off criterion is currently configured") + ": '%s'" % criterion
+                if criterion
+                else ""
+            )
+
+        mls_to_drop = func(item_identity, all_mls_to_drop)
+        last = len(all_mls_to_drop) == len(mls_to_drop)
+        return mls_to_drop, last, False
+
     def get_next_drop_off(self, item_identity):
         """
         Based on the criteria specified for the batch picking type,
@@ -656,28 +675,19 @@ class StockPickingBatch(models.Model):
         self.ensure_one()
         assert self.state == "in_progress", "Batch must be in progress to be dropped off"
 
-        all_mls_to_drop = self._get_move_lines_to_drop_off()
-
-        if not len(all_mls_to_drop):
-            return {"last": True, "move_line_ids": [], "summary": ""}
-
         picking_type = self.picking_type_ids
 
         if len(picking_type) > 1:
             raise ValidationError(_("The batch unexpectedly has pickings of different types"))
 
-        criterion = picking_type.u_drop_criterion
-        func = getattr(self, "_get_next_drop_off_" + criterion, None)
+        mls_to_drop, last, no_lines = self._get_move_lines_to_drop_off_by_criterion(
+            picking_type.u_drop_criterion, item_identity
+        )
 
-        if not func:
-            raise ValidationError(
-                _("An unexpected drop off criterion is currently configured") + ": '%s'" % criterion
-                if criterion
-                else ""
-            )
+        if no_lines:
+            return {"last": True, "move_line_ids": [], "summary": ""}
 
-        mls_to_drop, summary = func(item_identity, all_mls_to_drop)
-        last = len(all_mls_to_drop) == len(mls_to_drop)
+        summary = mls_to_drop._drop_off_criterion_summary()
 
         return {"last": last, "move_line_ids": mls_to_drop.mapped("id"), "summary": summary}
 
@@ -695,18 +705,16 @@ class StockPickingBatch(models.Model):
 
     def _get_next_drop_off_by_products(self, item_identity, mls_to_drop):
         mls = mls_to_drop.filtered(lambda ml: ml.product_id.barcode == item_identity)
-        summary = mls._drop_off_criterion_summary()
 
-        return mls, summary
+        return mls
 
     def _get_drop_off_instructions_by_products(self):
         return _("Please scan the product that you want to drop off")
 
     def _get_next_drop_off_by_orders(self, item_identity, mls_to_drop):
         mls = mls_to_drop.filtered(lambda ml: ml.picking_id.origin == item_identity)
-        summary = mls._drop_off_criterion_summary()
 
-        return mls, summary
+        return mls
 
     def _get_drop_off_instructions_by_orders(self):
         return _("Please enter the order of the items that you want to drop off")
