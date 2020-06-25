@@ -116,6 +116,39 @@ class BaseUDES(common.SavepointCase):
         return Package.create(vals)
 
     @classmethod
+    def create_move_line(cls, move, qty, **kwargs):
+        """ Create and return a move line for the given move and qty."""
+        MoveLine = cls.env["stock.move.line"]
+        vals = {
+            "product_id": move.product_id.id,
+            "product_uom_id": move.product_id.uom_id.id,
+            "product_uom_qty": qty,
+            "location_id": move.location_id.id,
+            "location_dest_id": move.location_dest_id.id,
+            "move_id": move.id,
+        }
+        vals.update(kwargs)
+        return MoveLine.create(vals)
+
+    @classmethod
+    def create_move(cls, product, qty, picking, **kwargs):
+        """ Create and return a move for the given product and qty."""
+        Move = cls.env["stock.move"]
+        vals = {
+            "product_id": product.id,
+            "name": product.name,
+            "product_uom": product.uom_id.id,
+            "product_uom_qty": qty,
+            "location_id": picking.location_id.id,
+            "location_dest_id": picking.location_dest_id.id,
+            "picking_id": picking.id,
+            "priority": picking.priority,
+            "picking_type_id": picking.picking_type_id.id,
+        }
+        vals.update(kwargs)
+        return Move.create(vals)
+
+    @classmethod
     def _setup_locations(cls):
         """ Test Locations """
         Location = cls.env["stock.location"]
@@ -439,3 +472,10 @@ class BaseUDES(common.SavepointCase):
 
         vals.update(kwargs)
         return Batch.create(vals)
+
+    @classmethod
+    def create_partner(cls, name, **kwargs):
+        Partner = cls.env['res.partner']
+        vals = {'name': name}
+        vals.update(kwargs)
+        return Partner.create(vals)
