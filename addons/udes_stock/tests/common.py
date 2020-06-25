@@ -326,10 +326,10 @@ class BaseUDES(common.SavepointCase):
             "name": "TestGoodsOut",
             "route_id": cls.route_out.id,
             "sequence": 20,
-            "location_id": picking_type_pick.default_location_dest_id.id,
-            "location_src_id": picking_type_out.default_location_dest_id.id,
+            "location_src_id": picking_type_pick.default_location_dest_id.id,
+            "location_id": picking_type_out.default_location_dest_id.id,
             "picking_type_id": picking_type_out.id,
-            "action": "pull",
+            "action": "pull_push",
         }
         path_out_goodsout = Rule.create(location_path_vals)
 
