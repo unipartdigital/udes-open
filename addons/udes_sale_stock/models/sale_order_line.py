@@ -39,3 +39,7 @@ class SaleOrderLine(models.Model):
         to_cancel.mapped('move_ids').filtered(
             lambda m: m.state not in ('done', 'cancel'))._action_cancel()
         to_cancel.mapped('order_id').check_state_cancelled()
+
+    def _action_launch_procurement_rule(self):
+        not_cancelled_lines = self.filtered(lambda l: not l.is_cancelled)
+        super(SaleOrderLine, not_cancelled_lines)._action_launch_procurement_rule()
