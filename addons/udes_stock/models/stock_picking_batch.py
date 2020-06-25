@@ -13,89 +13,93 @@ _logger = logging.getLogger(__name__)
 
 
 class StockPickingBatch(models.Model):
-    _inherit = 'stock.picking.batch'
+    _inherit = "stock.picking.batch"
 
     picking_type_ids = fields.Many2many(
-        'stock.picking.type', string="Operation Types",
-        compute='_compute_picking_type', store=True, index=True,
+        "stock.picking.type",
+        string="Operation Types",
+        compute="_compute_picking_type",
+        store=True,
+        index=True,
     )
     scheduled_date = fields.Datetime(
-        string="Scheduled Date", compute='_compute_scheduled_date',
-        store=True, index=True,
+        string="Scheduled Date", compute="_compute_scheduled_date", store=True, index=True,
     )
     u_ephemeral = fields.Boolean(
-        string="Ephemeral",
-        help="Ephemeral batches are unassigned if the user logs out"
+        string="Ephemeral", help="Ephemeral batches are unassigned if the user logs out"
     )
     priority = fields.Selection(
-        selection=PRIORITIES, string="Priority", store=True, index=True,
-        readonly=True, compute='_compute_priority',
-        help="Priority of a batch is the maximum priority of its pickings."
+        selection=PRIORITIES,
+        string="Priority",
+        store=True,
+        index=True,
+        readonly=True,
+        compute="_compute_priority",
+        help="Priority of a batch is the maximum priority of its pickings.",
     )
     state = fields.Selection(
-        selection = [
-            ('draft', 'Draft'),
-            ('waiting', 'Waiting'),
-            ('ready', 'Ready'),
-            ('in_progress', 'Running'),
-            ('done', 'Done'),
-            ('cancel', 'Cancelled')
+        selection=[
+            ("draft", "Draft"),
+            ("waiting", "Waiting"),
+            ("ready", "Ready"),
+            ("in_progress", "Running"),
+            ("done", "Done"),
+            ("cancel", "Cancelled"),
         ],
-        compute='_compute_state',
+        compute="_compute_state",
         store=True,
     )
 
     u_location_category_id = fields.Many2one(
-        comodel_name='stock.location.category',
-        compute='_compute_location_category',
-        string='Location Category',
+        comodel_name="stock.location.category",
+        compute="_compute_location_category",
+        string="Location Category",
         help="Used to know which pickers have the right equipment to pick it. "
-             "In case multiple location categories are found in the picking it "
-             "will be empty.",
+        "In case multiple location categories are found in the picking it "
+        "will be empty.",
         readonly=True,
         store=True,
     )
 
     u_original_name = fields.Char(
-        string='Original batch name', default='',
-        copy=True, required=False,
-        help=('Name of the batch from which this batch was derived')
+        string="Original batch name",
+        default="",
+        copy=True,
+        required=False,
+        help=("Name of the batch from which this batch was derived"),
     )
 
     # This is a barcode and not a One2one to allow pallets that aren't
     # in the system yet (because they are empty) to be reserved.
     u_last_reserved_pallet_name = fields.Char(
-        string='Last Pallet Used',
+        string="Last Pallet Used",
         index=True,
         help="Barcode of the last pallet used for this batch. "
-             "If the batch is in progress, indicates the pallet currently in "
-             "use.",
+        "If the batch is in progress, indicates the pallet currently in "
+        "use.",
     )
 
-    @api.depends('picking_ids',
-                 'picking_ids.u_location_category_id')
+    @api.depends("picking_ids", "picking_ids.u_location_category_id")
     @api.one
     def _compute_location_category(self):
         """ Compute location category from picking_ids"""
         if self.picking_ids:
-            categories = self.picking_ids.mapped('u_location_category_id')
-            self.u_location_category_id = \
-                categories if len(categories) == 1 else False
+            categories = self.picking_ids.mapped("u_location_category_id")
+            self.u_location_category_id = categories if len(categories) == 1 else False
 
     @api.multi
     def confirm_picking(self):
         """Overwrite method confirm picking to raise error if not in draft and
            rollback to draft on error in action_assign.
         """
-        if any(batch.state != 'draft' for batch in self):
-            raise ValidationError(_(
-                'Batch (%s) is not in state draft can not perform '
-                'confirm_picking') % ','.join(
-                    b.name for b in self if b.state != 'draft')
+        if any(batch.state != "draft" for batch in self):
+            raise ValidationError(
+                _("Batch (%s) is not in state draft can not perform " "confirm_picking")
+                % ",".join(b.name for b in self if b.state != "draft")
             )
 
-        pickings_todo = self.mapped('picking_ids')
-        self.write({'state': 'waiting'})  # Get it out of draft
+        pickings_todo = self.mapped("picking_ids")
+        self.write({"state": "waiting"})  # Get it out of draft
 
         try:
             p = pickings_todo.with_context(lock_batch_state=True).action_assign()
@@ -103,38 +107,37 @@ class StockPickingBatch(models.Model):
 
             return p
         except:
-            self.write({'state': 'draft'})
+            self.write({"state": "draft"})
             raise
 
     @api.multi
-    @api.depends('picking_ids', 'picking_ids.picking_type_id')
+    @api.depends("picking_ids", "picking_ids.picking_type_id")
     def _compute_picking_type(self):
         for batch in self:
             if batch.picking_ids:
-                batch.picking_type_ids = batch.picking_ids.mapped('picking_type_id')
+                batch.picking_type_ids = batch.picking_ids.mapped("picking_type_id")
             elif not isinstance(batch.id, models.NewId):
                 # If the picking ids are empty use the stored picking type ids
-                batch.picking_type_ids = batch.read(['picking_type_ids'])[0]['picking_type_ids']
+                batch.picking_type_ids = batch.read(["picking_type_ids"])[0]["picking_type_ids"]
 
     @api.multi
-    @api.depends('picking_ids', 'picking_ids.scheduled_date')
+    @api.depends("picking_ids", "picking_ids.scheduled_date")
     def _compute_scheduled_date(self):
         for batch in self:
             batch.scheduled_date = min(
-                batch.picking_ids.mapped('scheduled_date') or
-                [fields.Datetime.now()]
+                batch.picking_ids.mapped("scheduled_date") or [fields.Datetime.now()]
             )
 
     @api.multi
-    @api.depends('picking_ids.priority')
+    @api.depends("picking_ids.priority")
     def _compute_priority(self):
         for batch in self:
             # Get the old priority of the batch
             old_priority = False
             if not isinstance(batch.id, models.NewId):
-                old_priority = batch.read(['priority'])[0]['priority']
-            if batch.mapped('picking_ids'):
-                priorities = batch.mapped('picking_ids.priority')
+                old_priority = batch.read(["priority"])[0]["priority"]
+            if batch.mapped("picking_ids"):
+                priorities = batch.mapped("picking_ids.priority")
                 new_priority = max(priorities)
             else:
                 # If the picking is empty keep the old priority
@@ -153,9 +156,9 @@ class StockPickingBatch(models.Model):
         # Get active batches with pickings
         batches = self.filtered(
             lambda b: (
-                b.state in ['waiting', 'in_progress']
+                b.state in ["waiting", "in_progress"]
                 and b.picking_ids
-                and any(b.mapped('picking_type_ids.u_auto_assign_batch_pick'))
+                and any(b.mapped("picking_type_ids.u_auto_assign_batch_pick"))
             )
         )
 
@@ -172,7 +175,7 @@ class StockPickingBatch(models.Model):
                 picks_to_assign.batch_id._compute_state()
 
     @api.multi
-    @api.constrains('user_id')
+    @api.constrains("user_id")
     def _compute_state(self):
         """ Compute the state of a batch post confirm
             waiting     : At least some picks are not ready
@@ -183,12 +186,12 @@ class StockPickingBatch(models.Model):
             the other two states are draft and cancel are manual
             to transitions from or to the respective state.
         """
-        if self.env.context.get('lock_batch_state'):
+        if self.env.context.get("lock_batch_state"):
             # State is locked so don't do anything
             return
 
         for batch in self:
-            if batch.state in ['draft', 'cancel']:
+            if batch.state in ["draft", "cancel"]:
                 # Can not do anything with them don't bother trying
                 continue
 
@@ -201,51 +204,45 @@ class StockPickingBatch(models.Model):
                 # Figure out state
                 if ready_picks and not unready_picks:
                     if batch.user_id:
-                        batch.state = 'in_progress'
+                        batch.state = "in_progress"
                     else:
-                        batch.state = 'ready'
+                        batch.state = "ready"
 
                 if ready_picks and unready_picks:
                     if batch.user_id:
-                        batch.state = 'in_progress'
+                        batch.state = "in_progress"
                     else:
-                        batch.state = 'waiting'
+                        batch.state = "waiting"
 
                 if done_picks and not ready_picks and not unready_picks:
-                    batch.state = 'done'
+                    batch.state = "done"
             else:
-                batch.state = 'done'
+                batch.state = "done"
 
     def done_picks(self):
         """ Return done picks from picks or self.picking_ids """
         picks = self.mapped("picking_ids")
-        return picks.filtered(
-            lambda pick: pick.state in ['done', 'cancel']
-        )
+        return picks.filtered(lambda pick: pick.state in ["done", "cancel"])
 
     def ready_picks(self):
         """ Return ready picks from picks or self.picking_ids """
         picks = self.mapped("picking_ids")
-        return picks.filtered(
-            lambda pick: pick.state == 'assigned'
-        )
+        return picks.filtered(lambda pick: pick.state == "assigned")
 
     def unready_picks(self):
         """ Return unready picks from picks or self.picking_ids """
         picks = self.mapped("picking_ids")
-        return picks.filtered(
-            lambda pick: pick.state in ["draft", "waiting", "confirmed"]
-        )
+        return picks.filtered(lambda pick: pick.state in ["draft", "waiting", "confirmed"])
 
     def _remove_unready_picks(self):
         """ Remove unready picks from running batches in self, if configured """
-        if self.env.context.get('lock_batch_state'):
+        if self.env.context.get("lock_batch_state"):
             # State is locked so don't do anything
             return
 
         # Get unready picks in running batches
         unready_picks = self.filtered(
-            lambda b: b.state in ['waiting', 'in_progress']
+            lambda b: b.state in ["waiting", "in_progress"]
         ).unready_picks()
 
         if not unready_picks:
@@ -253,9 +250,9 @@ class StockPickingBatch(models.Model):
             return
 
         # Remove unready pick, if configured.
-        unready_picks.filtered(
-            lambda p: p.picking_type_id.u_remove_unready_batch
-        ).write({"batch_id": False})
+        unready_picks.filtered(lambda p: p.picking_type_id.u_remove_unready_batch).write(
+            {"batch_id": False}
+        )
 
     def _get_task_grouping_criteria(self):
         """
@@ -264,22 +261,19 @@ class StockPickingBatch(models.Model):
         the swapping of packages (`u_allow_swapping_packages`) and picks by
         product (`u_user_scans`)
         """
-        batch_pt = self.mapped('picking_ids.picking_type_id')
+        batch_pt = self.mapped("picking_ids.picking_type_id")
         batch_pt.ensure_one()
 
         parts = [lambda ml: (ml.picking_id.id,)]
 
-        if not (batch_pt.u_allow_swapping_packages
-                and batch_pt.u_user_scans == "product"):
+        if not (batch_pt.u_allow_swapping_packages and batch_pt.u_user_scans == "product"):
             parts.append(lambda ml: (ml.package_id.id,))
 
         parts.append(lambda ml: (ml.product_id.id, ml.location_id.id))
 
         return lambda ml: tuple(chain(*[part(ml) for part in parts]))
 
-
-    def get_next_task(self, skipped_product_ids=None,
-                            task_grouping_criteria=None):
+    def get_next_task(self, skipped_product_ids=None, task_grouping_criteria=None):
         """
         Get the next not completed task of the batch to be done.
         Expect a singleton.
@@ -304,17 +298,17 @@ class StockPickingBatch(models.Model):
 
         if skipped_product_ids is not None:
             available_mls = available_mls.filtered(
-                lambda ml: ml.product_id.id not in skipped_product_ids)
+                lambda ml: ml.product_id.id not in skipped_product_ids
+            )
 
-        num_tasks_picked = len(available_mls.filtered(
-            lambda ml: ml.qty_done == ml.product_qty))
-        task = {'tasks_picked': num_tasks_picked > 0,
-                'num_tasks_to_pick': 0,
-                'move_line_ids': [],
-                'confirmations': [],
-                }
-        todo_mls = available_mls.get_lines_todo() \
-                                .sort_by_location_product()
+        num_tasks_picked = len(available_mls.filtered(lambda ml: ml.qty_done == ml.product_qty))
+        task = {
+            "tasks_picked": num_tasks_picked > 0,
+            "num_tasks_to_pick": 0,
+            "move_line_ids": [],
+            "confirmations": [],
+        }
+        todo_mls = available_mls.get_lines_todo().sort_by_location_product()
 
         if todo_mls:
             if task_grouping_criteria is None:
@@ -324,12 +318,16 @@ class StockPickingBatch(models.Model):
             _key, task_mls = next(grouped_mls)
             num_mls = len(task_mls)
             pick_seq = task_mls[0].picking_id.sequence
-            _logger.debug(_("Batch '%s': creating a task for %s move line%s; "
-                            "the picking sequence of the first move line is %s"),
-                            self.name,
-                            num_mls,
-                            '' if num_mls == 1 else 's',
-                            pick_seq if pick_seq is not False else "not determined")
+            _logger.debug(
+                _(
+                    "Batch '%s': creating a task for %s move line%s; "
+                    "the picking sequence of the first move line is %s"
+                ),
+                self.name,
+                num_mls,
+                "" if num_mls == 1 else "s",
+                pick_seq if pick_seq is not False else "not determined",
+            )
 
             # NB: adding all the MLs state to the task; this is what
             # ends up in the batch::next response!
@@ -337,18 +335,20 @@ class StockPickingBatch(models.Model):
             # the move lines of the task belong to the same picking
             task.update(task_mls._prepare_task_info())
 
-            if task_mls[0].picking_id.picking_type_id.u_user_scans == 'product':
+            if task_mls[0].picking_id.picking_type_id.u_user_scans == "product":
                 # NB: adding 1 to consider the group removed by next()
-                task['num_tasks_to_pick'] = len(list(grouped_mls)) + 1
-                task['move_line_ids'] = task_mls.ids
+                task["num_tasks_to_pick"] = len(list(grouped_mls)) + 1
+                task["move_line_ids"] = task_mls.ids
             else:
                 # TODO: check pallets of packages if necessary
-                task['num_tasks_to_pick'] = len(todo_mls.mapped('package_id'))
-                task['move_line_ids'] = todo_mls.filtered(
-                    lambda ml: ml.package_id == task_mls[0].package_id).ids
+                task["num_tasks_to_pick"] = len(todo_mls.mapped("package_id"))
+                task["move_line_ids"] = todo_mls.filtered(
+                    lambda ml: ml.package_id == task_mls[0].package_id
+                ).ids
         else:
-            _logger.debug(_("Batch '%s': no available move lines for creating "
-                            "a task"), self.name)
+            _logger.debug(
+                _("Batch '%s': no available move lines for creating " "a task"), self.name
+            )
 
         return task
 
@@ -370,18 +370,18 @@ class StockPickingBatch(models.Model):
         Raise a ValidationError in case it cannot perform a search
         or if multiple batches are found for the specified user.
         """
-        PickingBatch = self.env['stock.picking.batch']
+        PickingBatch = self.env["stock.picking.batch"]
 
         user_id = self._check_user_id(user_id)
-        batches = PickingBatch.search([('user_id', '=', user_id),
-                                       ('state', '=', 'in_progress')])
+        batches = PickingBatch.search([("user_id", "=", user_id), ("state", "=", "in_progress")])
         batch = None
 
         if batches:
             if len(batches) > 1:
                 raise ValidationError(
-                    _("Found %d batches for the user, please contact "
-                      "administrator.") % len(batches))
+                    _("Found %d batches for the user, please contact " "administrator.")
+                    % len(batches)
+                )
 
             batch = batches
 
@@ -391,24 +391,24 @@ class StockPickingBatch(models.Model):
         pickings = self.picking_ids
 
         if allowed_picking_states:
-            pickings = pickings.filtered(
-                lambda x: x.state in allowed_picking_states)
+            pickings = pickings.filtered(lambda x: x.state in allowed_picking_states)
 
-        return {'id': self.id,
-                'name': self.name,
-                'state': self.state,
-                'u_ephemeral': self.u_ephemeral,
-                'picking_ids': pickings.get_info(),
-                'result_package_names': pickings.get_result_packages_names(),
-                'u_original_name': self.u_original_name}
+        return {
+            "id": self.id,
+            "name": self.name,
+            "state": self.state,
+            "u_ephemeral": self.u_ephemeral,
+            "picking_ids": pickings.get_info(),
+            "result_package_names": pickings.get_result_packages_names(),
+            "u_original_name": self.u_original_name,
+        }
 
     def get_info(self, allowed_picking_states):
         """
         Return list of dictionaries containing information about
         all batches.
         """
-        return [batch._prepare_info(allowed_picking_states)
-                for batch in self]
+        return [batch._prepare_info(allowed_picking_states) for batch in self]
 
     def _select_batch_to_assign(self, batches):
         """
@@ -428,9 +428,9 @@ class StockPickingBatch(models.Model):
         Note that the transition from state 'ready' to 'in_progress'
         is handled by computation of state function.
         """
-        batches = self.search([('state', '=', 'ready')]) \
-                      .filtered(lambda b: all([pt.id == picking_type_id
-                                               for pt in b.picking_type_ids]))
+        batches = self.search([("state", "=", "ready")]).filtered(
+            lambda b: all([pt.id == picking_type_id for pt in b.picking_type_ids])
+        )
 
         if batches:
             batch = self._select_batch_to_assign(batches)
@@ -453,7 +453,9 @@ class StockPickingBatch(models.Model):
         user_id = self._check_user_id(user_id)
         self._check_user_batch_in_progress(user_id)
 
-        return self._create_batch(user_id, picking_type_id, picking_priorities, picking_id=picking_id)
+        return self._create_batch(
+            user_id, picking_type_id, picking_priorities, picking_id=picking_id
+        )
 
     def _create_batch(self, user_id, picking_type_id, picking_priorities=None, picking_id=None):
         """
@@ -463,8 +465,8 @@ class StockPickingBatch(models.Model):
         The batch will be marked as ephemeral.
         In case no pickings exist, return None.
         """
-        PickingBatch = self.env['stock.picking.batch']
-        Picking = self.env['stock.picking']
+        PickingBatch = self.env["stock.picking.batch"]
+        Picking = self.env["stock.picking"]
 
         if picking_id:
             picking = Picking.browse(picking_id)
@@ -474,9 +476,9 @@ class StockPickingBatch(models.Model):
         if not picking:
             return None
 
-        batch = PickingBatch.sudo().create({'user_id': user_id})
-        picking.write({'batch_id': batch.id})
-        batch.write({'u_ephemeral': True})
+        batch = PickingBatch.sudo().create({"user_id": user_id})
+        picking.write({"batch_id": batch.id})
+        batch.write({"u_ephemeral": True})
         batch.confirm_picking()
 
         return batch
@@ -495,20 +497,20 @@ class StockPickingBatch(models.Model):
         if not pickings:
             return None
 
-        new_name = get_next_name(self, 'picking.batch')
-        batch = self.sudo().copy({'name': new_name, 'user_id': None})
-        _logger.info('Created continuation batch %r, %s', batch, batch.name)
+        new_name = get_next_name(self, "picking.batch")
+        batch = self.sudo().copy({"name": new_name, "user_id": None})
+        _logger.info("Created continuation batch %r, %s", batch, batch.name)
         if not self.u_original_name:
-            batch.write({'u_original_name': self.name})
+            batch.write({"u_original_name": self.name})
 
-        pickings.write({'batch_id': batch.id})
+        pickings.write({"batch_id": batch.id})
         batch.mark_as_todo()
 
         return batch
 
     def add_extra_pickings(self, picking_type_id):
         """ Get the next available picking and add it to the current users batch """
-        Picking = self.env['stock.picking']
+        Picking = self.env["stock.picking"]
 
         picking_priorities = self.get_batch_priority_group()
         pickings = Picking.search_for_pickings(picking_type_id, picking_priorities)
@@ -519,7 +521,7 @@ class StockPickingBatch(models.Model):
         if not self.u_ephemeral:
             raise ValidationError(_("Can only add work to ephemeral batches"))
 
-        pickings.write({'batch_id': self.id})
+        pickings.write({"batch_id": self.id})
         return True
 
     def _check_user_batch_in_progress(self, user_id=None):
@@ -528,17 +530,18 @@ class StockPickingBatch(models.Model):
 
         if batches:
             incomplete_picks = batches.picking_ids.filtered(
-                lambda pick: pick.state in ['draft', 'waiting', 'confirmed']
+                lambda pick: pick.state in ["draft", "waiting", "confirmed"]
             )
-            picks_txt = ','.join([x.name for x in incomplete_picks])
+            picks_txt = ",".join([x.name for x in incomplete_picks])
             raise ValidationError(
-                _("The user already has pickings that need completing - "
-                  "please complete those before requesting "
-                  "more:\n {}").format(picks_txt)
+                _(
+                    "The user already has pickings that need completing - "
+                    "please complete those before requesting "
+                    "more:\n {}"
+                ).format(picks_txt)
             )
 
-    def drop_off_picked(self, continue_batch, move_line_ids, location_barcode,
-                        result_package_name):
+    def drop_off_picked(self, continue_batch, move_line_ids, location_barcode, result_package_name):
         """
         Validate the move lines of the batch (expects a singleton)
         by moving them to the specified location.
@@ -547,13 +550,13 @@ class StockPickingBatch(models.Model):
         """
         self.ensure_one()
 
-        if self.state != 'in_progress':
+        if self.state != "in_progress":
             raise ValidationError(_("Wrong batch state: %s.") % self.state)
 
-        Location = self.env['stock.location']
-        MoveLine = self.env['stock.move.line']
-        Picking = self.env['stock.picking']
-        Package = self.env['stock.quant.package']
+        Location = self.env["stock.location"]
+        MoveLine = self.env["stock.move.line"]
+        Picking = self.env["stock.picking"]
+        Package = self.env["stock.quant.package"]
         dest_loc = None
 
         if location_barcode:
@@ -568,29 +571,24 @@ class StockPickingBatch(models.Model):
             to_update = {}
 
             if dest_loc:
-                to_update['location_dest_id'] = dest_loc.id
+                to_update["location_dest_id"] = dest_loc.id
 
-            pickings = completed_move_lines.mapped('picking_id')
-            picking_type = pickings.mapped('picking_type_id')
+            pickings = completed_move_lines.mapped("picking_id")
+            picking_type = pickings.mapped("picking_type_id")
             picking_type.ensure_one()
 
             if picking_type.u_scan_parent_package_end:
                 if not result_package_name:
-                    raise ValidationError(
-                        _('Expecting result package on drop off.')
-                    )
+                    raise ValidationError(_("Expecting result package on drop off."))
 
-                result_package = Package.get_package(result_package_name,
-                                                     create=True)
+                result_package = Package.get_package(result_package_name, create=True)
 
-                if picking_type.u_target_storage_format == 'pallet_packages':
-                    to_update['u_result_parent_package_id'] = result_package.id
-                elif picking_type.u_target_storage_format == 'pallet_products':
-                    to_update['result_package_id'] = result_package.id
+                if picking_type.u_target_storage_format == "pallet_packages":
+                    to_update["u_result_parent_package_id"] = result_package.id
+                elif picking_type.u_target_storage_format == "pallet_products":
+                    to_update["result_package_id"] = result_package.id
                 else:
-                    raise ValidationError(
-                        _('Unnexpected result package at drop off.')
-                    )
+                    raise ValidationError(_("Unnexpected result package at drop off."))
 
             if to_update:
                 completed_move_lines.write(to_update)
@@ -600,8 +598,7 @@ class StockPickingBatch(models.Model):
 
             for pick in pickings:
                 pick_todo = pick
-                pick_mls = completed_move_lines.filtered(
-                    lambda x: x.picking_id == pick)
+                pick_mls = completed_move_lines.filtered(lambda x: x.picking_id == pick)
 
                 if pick._requires_backorder(pick_mls):
                     pick_todo = pick._backorder_movelines(pick_mls)
@@ -610,13 +607,14 @@ class StockPickingBatch(models.Model):
                 picks_todo |= pick_todo
 
             # Add backorders to the batch
-            to_add.write({'batch_id': self.id})
+            to_add.write({"batch_id": self.id})
 
             with self.statistics() as stats:
                 picks_todo.sudo().with_context(tracking_disable=True).action_done()
 
-            _logger.info("%s action_done in %.2fs, %d queries",
-                         picks_todo, stats.elapsed, stats.count)
+            _logger.info(
+                "%s action_done in %.2fs, %d queries", picks_todo, stats.elapsed, stats.count
+            )
         if not continue_batch:
             self.close()
 
@@ -632,12 +630,14 @@ class StockPickingBatch(models.Model):
         Raises an error if the instruction method for the
         specified criterion does not exist.
         """
-        func = getattr(self, '_get_drop_off_instructions_' + criterion, None)
+        func = getattr(self, "_get_drop_off_instructions_" + criterion, None)
 
         if not func:
             raise ValidationError(
-                _("An unexpected drop off criterion is currently configured")
-                + ": '%s'" % criterion if criterion else "")
+                _("An unexpected drop off criterion is currently configured") + ": '%s'" % criterion
+                if criterion
+                else ""
+            )
 
         return func()
 
@@ -654,56 +654,47 @@ class StockPickingBatch(models.Model):
          - unknown or invalid (e.g. 'all') drop off criterion.
         """
         self.ensure_one()
-        assert self.state == 'in_progress', \
-               "Batch must be in progress to be dropped off"
+        assert self.state == "in_progress", "Batch must be in progress to be dropped off"
 
         all_mls_to_drop = self._get_move_lines_to_drop_off()
 
         if not len(all_mls_to_drop):
-            return {'last': True,
-                    'move_line_ids': [],
-                    'summary': ""}
+            return {"last": True, "move_line_ids": [], "summary": ""}
 
         picking_type = self.picking_type_ids
 
         if len(picking_type) > 1:
-            raise ValidationError(
-                _("The batch unexpectedly has pickings of different types"))
+            raise ValidationError(_("The batch unexpectedly has pickings of different types"))
 
         criterion = picking_type.u_drop_criterion
-        func = getattr(self, '_get_next_drop_off_' + criterion, None)
+        func = getattr(self, "_get_next_drop_off_" + criterion, None)
 
         if not func:
             raise ValidationError(
-                _("An unexpected drop off criterion is currently configured")
-                + ": '%s'" % criterion if criterion else "")
+                _("An unexpected drop off criterion is currently configured") + ": '%s'" % criterion
+                if criterion
+                else ""
+            )
 
         mls_to_drop, summary = func(item_identity, all_mls_to_drop)
         last = len(all_mls_to_drop) == len(mls_to_drop)
 
-        return {'last': last,
-                'move_line_ids': mls_to_drop.mapped('id'),
-                'summary': summary}
+        return {"last": last, "move_line_ids": mls_to_drop.mapped("id"), "summary": summary}
 
     def _get_move_lines_to_drop_off(self):
         self.ensure_one()
-        return self.picking_ids \
-                   .mapped('move_line_ids') \
-                   .filtered(lambda ml:
-                        ml.qty_done > 0
-                        and ml.picking_id.state not in ['cancel', 'done'])
+        return self.picking_ids.mapped("move_line_ids").filtered(
+            lambda ml: ml.qty_done > 0 and ml.picking_id.state not in ["cancel", "done"]
+        )
 
     def _get_next_drop_off_all(self, item_identity, mls_to_drop):
-        raise ValidationError(
-            _("The 'all' drop off criterion should not be invoked"))
+        raise ValidationError(_("The 'all' drop off criterion should not be invoked"))
 
     def _get_drop_off_instructions_all(self):
-        raise ValidationError(
-            _("The 'all' drop off instruction should not be invoked"))
+        raise ValidationError(_("The 'all' drop off instruction should not be invoked"))
 
     def _get_next_drop_off_by_products(self, item_identity, mls_to_drop):
-        mls = mls_to_drop.filtered(
-            lambda ml: ml.product_id.barcode == item_identity)
+        mls = mls_to_drop.filtered(lambda ml: ml.product_id.barcode == item_identity)
         summary = mls._drop_off_criterion_summary()
 
         return mls, summary
@@ -712,8 +703,7 @@ class StockPickingBatch(models.Model):
         return _("Please scan the product that you want to drop off")
 
     def _get_next_drop_off_by_orders(self, item_identity, mls_to_drop):
-        mls = mls_to_drop.filtered(
-            lambda ml: ml.picking_id.origin == item_identity)
+        mls = mls_to_drop.filtered(lambda ml: ml.picking_id.origin == item_identity)
         summary = mls._drop_off_criterion_summary()
 
         return mls, summary
@@ -732,7 +722,7 @@ class StockPickingBatch(models.Model):
         """
         self.ensure_one()
 
-        Location = self.env['stock.location']
+        Location = self.env["stock.location"]
         location = None
 
         try:
@@ -740,33 +730,36 @@ class StockPickingBatch(models.Model):
         except:
             return False
 
-        done_pickings = self.picking_ids.filtered(
-            lambda p: p.state == 'assigned')
+        done_pickings = self.picking_ids.filtered(lambda p: p.state == "assigned")
         done_move_lines = done_pickings.get_move_lines_done()
-        all_done_pickings = done_move_lines.mapped('picking_id')
+        all_done_pickings = done_move_lines.mapped("picking_id")
 
-        return all([pick.is_valid_location_dest_id(location=location)
-                    for pick in all_done_pickings])
+        return all(
+            [pick.is_valid_location_dest_id(location=location) for pick in all_done_pickings]
+        )
 
     def _check_unpickable_item(self):
         """ Checks if all the picking types of the batch are allowed to handle
             unpickable items. If one of them does not, it raises an error.
         """
-        if not all(self.picking_type_ids.mapped('u_enable_unpickable_items')):
+        if not all(self.picking_type_ids.mapped("u_enable_unpickable_items")):
             raise ValidationError(
-                _('This type of operation cannot handle unpickable items. '
-                  'Please, contact your team leader to resolve the issue. '
-                  'Press back when resolved.')
+                _(
+                    "This type of operation cannot handle unpickable items. "
+                    "Please, contact your team leader to resolve the issue. "
+                    "Press back when resolved."
+                )
             )
 
-
-    def unpickable_item(self,
-                        reason,
-                        product_id=None,
-                        location_id=None,
-                        package_name=None,
-                        lot_name=None,
-                        raise_stock_investigation=True):
+    def unpickable_item(
+        self,
+        reason,
+        product_id=None,
+        location_id=None,
+        package_name=None,
+        lot_name=None,
+        raise_stock_investigation=True,
+    ):
         """
         Given an unpickable product or package, find the related
         move lines in the current batch, backorder them and refine
@@ -781,9 +774,9 @@ class StockPickingBatch(models.Model):
         """
         self.ensure_one()
 
-        Package = self.env['stock.quant.package']
-        Location = self.env['stock.location']
-        Product = self.env['product.product']
+        Package = self.env["stock.quant.package"]
+        Location = self.env["stock.location"]
+        Product = self.env["product.product"]
 
         self._check_unpickable_item()
 
@@ -796,24 +789,26 @@ class StockPickingBatch(models.Model):
         if product:
             if not location:
                 raise ValidationError(
-                    _('Missing location parameter for unpickable product %s.') %
-                    product.name)
+                    _("Missing location parameter for unpickable product %s.") % product.name
+                )
 
-            move_lines = move_lines.filtered(lambda ml: ml.product_id == product and
-                                             ml.location_id == location)
+            move_lines = move_lines.filtered(
+                lambda ml: ml.product_id == product and ml.location_id == location
+            )
 
-            msg = _('Unpickable product %s at location %s') % (product.name, location.name)
+            msg = _("Unpickable product %s at location %s") % (product.name, location.name)
 
             if lot_name:
                 move_lines = move_lines.filtered(lambda ml: ml.lot_id.name == lot_name)
-                msg += _(' with serial number %s') % lot_name
+                msg += _(" with serial number %s") % lot_name
 
             if package:
                 move_lines = move_lines.filtered(lambda ml: ml.package_id == package)
-                msg += _(' in package %s') % package.name
-            elif move_lines.mapped('package_id'):
+                msg += _(" in package %s") % package.name
+            elif move_lines.mapped("package_id"):
                 raise ValidationError(
-                    _('Unpickable product from a package but no package name provided.'))
+                    _("Unpickable product from a package but no package name provided.")
+                )
 
             # at this point we should only have one move_line
             quants = move_lines.get_quants()
@@ -824,26 +819,31 @@ class StockPickingBatch(models.Model):
 
             move_lines = move_lines.filtered(lambda ml: ml.package_id == package)
             quants = package._get_contained_quants()
-            msg = _('Unpickable package %s at location %s') % (package.name, location.name)
+            msg = _("Unpickable package %s at location %s") % (package.name, location.name)
         else:
             raise ValidationError(
-                _('Missing required information for unpickable item: product or package.'))
+                _("Missing required information for unpickable item: product or package.")
+            )
 
         if not move_lines:
             raise ValidationError(
-                _('Cannot find move lines todo for unpickable item '
-                  'in this batch.'))
+                _("Cannot find move lines todo for unpickable item " "in this batch.")
+            )
 
         # at this point we should have only one picking_id
-        picking = move_lines.mapped('picking_id')
+        picking = move_lines.mapped("picking_id")
         picking.message_post(body=msg)
 
         if picking.batch_id != self:
-            raise ValidationError(_('Move line is not part of the batch.'))
+            raise ValidationError(_("Move line is not part of the batch."))
 
-        if picking.state in ['cancel', 'done']:
-            raise ValidationError(_('Cannot mark a move line as unpickable '
-                                    'when it is part of a completed Picking.'))
+        if picking.state in ["cancel", "done"]:
+            raise ValidationError(
+                _(
+                    "Cannot mark a move line as unpickable "
+                    "when it is part of a completed Picking."
+                )
+            )
 
         original_picking_id = None
 
@@ -857,31 +857,30 @@ class StockPickingBatch(models.Model):
         if raise_stock_investigation:
             # By default the pick is unreserved
             picking.with_context(
-                lock_batch_state=True,
-                allow_partial=allow_partial,
+                lock_batch_state=True, allow_partial=allow_partial,
             ).raise_stock_inv(
-                reason=reason,
-                quants=quants,
-                location=location,
+                reason=reason, quants=quants, location=location,
             )
 
-            if picking.exists() \
-                    and picking.state == 'assigned' \
-                    and original_picking_id is not None\
-                    and not picking.picking_type_id.u_post_assign_action:
+            if (
+                picking.exists()
+                and picking.state == "assigned"
+                and original_picking_id is not None
+                and not picking.picking_type_id.u_post_assign_action
+            ):
                 # A backorder has been created, but the stock is
                 # available; get rid of the backorder after linking the
                 # move lines to the original picking, so it can be
                 # directly processed
-                picking.move_line_ids.write({'picking_id': original_picking_id})
-                picking.move_lines.write({'picking_id': original_picking_id})
+                picking.move_line_ids.write({"picking_id": original_picking_id})
+                picking.move_lines.write({"picking_id": original_picking_id})
                 picking.unlink()
             else:
                 # Moves may be part of a new picking after refactor, this should
                 # be added back to the batch
-                moves.mapped('picking_id')\
-                    .filtered(lambda p: p.state == 'assigned')\
-                    .write({'batch_id': self.id})
+                moves.mapped("picking_id").filtered(lambda p: p.state == "assigned").write(
+                    {"batch_id": self.id}
+                )
             self._remove_unready_picks()
             self._compute_state()
 
@@ -894,10 +893,9 @@ class StockPickingBatch(models.Model):
         """ Get all the move lines from available pickings
         """
         self.ensure_one()
-        available_pickings = self.picking_ids.filtered(
-            lambda p: p.state == 'assigned')
+        available_pickings = self.picking_ids.filtered(lambda p: p.state == "assigned")
 
-        return available_pickings.mapped('move_line_ids')
+        return available_pickings.mapped("move_line_ids")
 
     def get_user_batches(self, user_id=None):
         """ Get all batches for user
@@ -905,8 +903,7 @@ class StockPickingBatch(models.Model):
         if user_id is None:
             user_id = self.env.user.id
         # Search for in progress batches
-        batches = self.sudo().search([('user_id', '=', user_id),
-                                      ('state', '=', 'in_progress')])
+        batches = self.sudo().search([("user_id", "=", user_id), ("state", "=", "in_progress")])
         return batches
 
     def close_user_batches(self):
@@ -922,17 +919,18 @@ class StockPickingBatch(models.Model):
         """
         for batch in self:
             # Unassign batch_id from incomplete stock pickings on ephemeral batches
-            batch.filtered(lambda b: b.u_ephemeral)\
-                .mapped('picking_ids')\
-                .filtered(lambda sp: sp.state not in ('done', 'cancel'))\
-                .write({'batch_id': False})
+            batch.filtered(lambda b: b.u_ephemeral).mapped("picking_ids").filtered(
+                lambda sp: sp.state not in ("done", "cancel")
+            ).write({"batch_id": False})
 
             # Assign incomplete pickings to new batch
-            _logger.info('Creating continuation batch from %r.', batch.name)
-            pickings = batch.filtered(lambda b: not b.u_ephemeral)\
-                           .mapped('picking_ids')\
-                           .filtered(lambda sp: sp.state not in ('done', 'cancel'))
-            _logger.info('Picking ids continuation %r', pickings)
+            _logger.info("Creating continuation batch from %r.", batch.name)
+            pickings = (
+                batch.filtered(lambda b: not b.u_ephemeral)
+                .mapped("picking_ids")
+                .filtered(lambda sp: sp.state not in ("done", "cancel"))
+            )
+            _logger.info("Picking ids continuation %r", pickings)
 
             batch._copy_continuation_batch(pickings)
 
@@ -941,33 +939,30 @@ class StockPickingBatch(models.Model):
         Remove pickings from batch if they are not started
         Backorder half-finished pickings
         """
-        Picking = self.env['stock.picking']
+        Picking = self.env["stock.picking"]
 
         self.ensure_one()
 
         if not self.u_ephemeral:
-            raise ValidationError(
-                _("Can only remove work from ephemeral batches"))
+            raise ValidationError(_("Can only remove work from ephemeral batches"))
 
         pickings_to_remove = Picking.browse()
         pickings_to_add = Picking.browse()
 
         for picking in self.picking_ids:
-            started_lines = picking.mapped('move_line_ids').filtered(
-                lambda x: x.qty_done > 0)
+            started_lines = picking.mapped("move_line_ids").filtered(lambda x: x.qty_done > 0)
             if started_lines:
                 # backorder incomplete moves
                 if picking._requires_backorder(started_lines):
                     pickings_to_add |= picking.with_context(
-                        lock_batch_state=True)._backorder_movelines(started_lines)
+                        lock_batch_state=True
+                    )._backorder_movelines(started_lines)
                     pickings_to_remove |= picking
             else:
                 pickings_to_remove |= picking
 
-        pickings_to_remove.with_context(
-            lock_batch_state=True).write({'batch_id': False})
-        pickings_to_add.with_context(
-            lock_batch_state=True).write({'batch_id': self.id})
+        pickings_to_remove.with_context(lock_batch_state=True).write({"batch_id": False})
+        pickings_to_add.with_context(lock_batch_state=True).write({"batch_id": self.id})
         self._compute_state()
 
         return self
@@ -976,7 +971,7 @@ class StockPickingBatch(models.Model):
         """ Get priority group for this batch based on the pickings' priorities
         Returns list of IDs
         """
-        Picking = self.env['stock.picking']
+        Picking = self.env["stock.picking"]
 
         if not self.picking_ids:
             raise ValidationError(_("Batch without pickings cannot have a priority group"))
@@ -984,7 +979,7 @@ class StockPickingBatch(models.Model):
         picking_priority = self.picking_ids[0].priority
         priority_groups = Picking.get_priorities()
         for priority_group in priority_groups:
-            priority_ids = [priority['id'] for priority in priority_group['priorities']]
+            priority_ids = [priority["id"] for priority in priority_group["priorities"]]
             if picking_priority in priority_ids:
                 return priority_ids
         return None
@@ -994,14 +989,11 @@ class StockPickingBatch(models.Model):
 
         This is done without calling action assign.
         """
-        _logger.info("User %r has marked %r as todo.",
-                     self.env.uid, self)
-        not_draft = self.filtered(lambda b: b.state != 'draft')
+        _logger.info("User %r has marked %r as todo.", self.env.uid, self)
+        not_draft = self.filtered(lambda b: b.state != "draft")
         if not_draft:
-            raise UserError(
-                _('Only draft batches may be marked as "todo": %s') % not_draft.ids
-            )
-        self.write({'state': 'waiting'})
+            raise UserError(_('Only draft batches may be marked as "todo": %s') % not_draft.ids)
+        self.write({"state": "waiting"})
         self._compute_state()
 
         return
@@ -1017,21 +1009,23 @@ class StockPickingBatch(models.Model):
         Raises a ValidationError if the pallet is already reserved for another
         batch.
         """
-        PickingBatch = self.env['stock.picking.batch']
+        PickingBatch = self.env["stock.picking.batch"]
 
         self.ensure_one()
 
-        conflicting_batch = PickingBatch.search([
-            ('id', '!=', self.id),
-            ('state', '=', 'in_progress'),
-            ('u_last_reserved_pallet_name', '=', pallet_name),
-        ])
+        conflicting_batch = PickingBatch.search(
+            [
+                ("id", "!=", self.id),
+                ("state", "=", "in_progress"),
+                ("u_last_reserved_pallet_name", "=", pallet_name),
+            ]
+        )
         if conflicting_batch:
             raise ValidationError(
-                _("This pallet is already being used for batch %s.") %
-                conflicting_batch[0].name)
+                _("This pallet is already being used for batch %s.") % conflicting_batch[0].name
+            )
 
-        self.write({ 'u_last_reserved_pallet_name': pallet_name })
+        self.write({"u_last_reserved_pallet_name": pallet_name})
 
 
 def get_next_name(obj, code):
@@ -1049,11 +1043,11 @@ def get_next_name(obj, code):
     Returns:
         The generated name, a string.
     """
-    IrSequence = obj.env['ir.sequence']
+    IrSequence = obj.env["ir.sequence"]
 
     # Get the sequence for the object type.
-    obj.check_access_rights('read')
-    force_company = obj._context.get('force_company')
+    obj.check_access_rights("read")
+    force_company = obj._context.get("force_company")
     if not force_company:
         force_company = obj.env.user.company_id.id
     seq_id = IrSequence.seq_by_code(code, force_company)
@@ -1061,7 +1055,7 @@ def get_next_name(obj, code):
 
     # Name pattern for continuation object.
     # Is two digits enough?
-    name_pattern = r'({}\d+)-(\d{{2}})'.format(re.escape(ir_sequence.prefix))
+    name_pattern = r"({}\d+)-(\d{{2}})".format(re.escape(ir_sequence.prefix))
 
     match = re.match(name_pattern, obj.name)
     if match:
@@ -1071,4 +1065,5 @@ def get_next_name(obj, code):
         # This must be the original object.
         root = obj.name
         new_sequence = 1
-    return '{}-{:0>2}'.format(root, new_sequence)
+    return "{}-{:0>2}".format(root, new_sequence)
+
