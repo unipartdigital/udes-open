@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from odoo import api, fields, models, _
+from odoo import api, fields, models, SUPERUSER_ID, _
 from odoo.exceptions import ValidationError
 
 
@@ -17,11 +17,14 @@ class ResUser(models.Model):
         """
         Warehouse = self.env["stock.warehouse"]
 
-        # Get user logged in
-        user = self.search([("id", "=", self.env.uid)])
-        if not user:
-            raise ValidationError(_("Cannot find user"))
-        domain = [("company_id", "=", user.company_id.id)]
+        user_id = self.env.uid
+
+        if user_id != SUPERUSER_ID:
+            user = self.search([('id', '=', user_id)])
+            if not user:
+                raise ValidationError(_('Cannot find user'))
+
+        domain = [("company_id", "=", self.env.user.company_id.id)]
         if aux_domain is not None:
             domain += aux_domain
         warehouse = Warehouse.search(domain)
