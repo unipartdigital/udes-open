@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Change default stock.view_picking_form -->
+    <record id="view_form_stock_picking_udes_stock_refactoring" model="ir.ui.view">
+        <field name="name">stock.picking.form.udes_stock_refactoring</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Add "Previous/Next Pickings" fields -->
+            <xpath expr="//page[@name='extra']" position="inside">
+                <group>
+                    <group>
+                        <field name="u_first_picking_ids" widget="one2many_list" mode="kanban"/>
+                    </group>
+                    <group>
+                        <field name="u_prev_picking_ids" widget="one2many_list" mode="kanban"/>
+                    </group>
+                    <group>
+                        <field name="u_next_picking_ids" widget="one2many_list" mode="kanban"/>
+                    </group>
+                    <group>
+                        <field name="u_created_back_orders" widget="one2many_list" mode="kanban"/>
+                    </group>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>
