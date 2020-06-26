@@ -5,6 +5,8 @@
     <!-- Update "Warehouse/Stock" view location -->
     <record id="stock.stock_location_stock" model="stock.location">
       <field name="usage">view</field>
+      <!-- Changing a non-view to view so remove the barcode -->
+      <field name="barcode" eval="False"/>
     </record>
 
 
