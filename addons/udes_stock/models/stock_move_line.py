@@ -938,6 +938,7 @@ class StockMoveLine(models.Model):
             one of the suggested locations if the drop off policy
             is 'enforce' or 'enforce_with_empty'.
         """
+        Users = self.env["res.users"]
 
         if location is None:
             location = self.mapped("location_dest_id")
@@ -971,10 +972,18 @@ class StockMoveLine(models.Model):
                 if not mls:
                     continue
 
+                # location should be one of the suggested locations
                 locations = picking.get_suggested_locations(mls)
 
+                # or an empty location
                 if constraint == "enforce_with_empty":
                     locations = locations | picking.get_empty_locations()
+
+                # or the damaged stock location if the picking type is set up
+                # to handle damages
+                warehouse = Users.get_user_warehouse()
+                if picking.picking_type_id in warehouse.u_handle_damages_picking_type_ids:
+                    locations = locations | warehouse.u_damaged_location_id
 
                 # location should be one of the suggested locations, if any
                 if locations and location not in locations:

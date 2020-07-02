@@ -125,3 +125,40 @@ class TestValidateLocationDest(common.BaseUDES):
             for ml in mls:
                 # Expecting no error
                 ml.write({'location_dest_id': self.test_location_01.id})
+
+    def test05_damages_drop_location_enforced_success(self):
+        """ When the constraint is `enforce` or `enforce_with_empty`
+            and the picking type is configured to handle damages,
+            no error is thrown when the damaged stock location is used for
+            drop off, even if not suggested.
+        """
+        Users = self.env['res.users']
+
+        warehouse = Users.get_user_warehouse()
+        warehouse.write({
+            'u_handle_damages_picking_type_ids': [(4, self.picking_type_putaway.id)]
+        })
+        warehouse.u_damaged_location_id = self.test_location_02
+
+        for constraint in ['enforce', 'enforce_with_empty']:
+            self.picking_type_putaway.u_drop_location_constraint = constraint
+            self.picking_type_putaway.u_drop_location_policy     = 'by_products'
+
+            self.create_quant(self.apple.id, self.test_location_01.id, 4)
+            self.create_quant(self.apple.id,
+                              self.picking_type_putaway.default_location_src_id.id,
+                              4)
+            picking = self.create_picking(self.picking_type_putaway,
+                                          products_info=self._pick_info,
+                                          confirm=True,
+                                          assign=True)
+            mls = picking.move_line_ids
+            locations = picking.get_suggested_locations(mls)
+
+            # We'll use loc 02 to drop off, so we check the assumption
+            self.assertEqual(locations, self.test_location_01)
+            err_msg = "Drop off location must be one of the suggested locations"
+
+            for ml in mls:
+                # Expecting no error
+                ml.write({'location_dest_id': self.test_location_02.id})
