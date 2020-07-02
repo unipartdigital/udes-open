@@ -213,7 +213,7 @@ class StockPicking(models.Model):
                 moves = moves.mapped("move_orig_ids")
             picking.u_first_picking_ids = first_moves.mapped("picking_id")
 
-    def can_handle_partials(self):
+    def can_handle_partials(self, **kwargs):
         self.ensure_one()
         return self.picking_type_id.u_handle_partials
 
@@ -237,9 +237,12 @@ class StockPicking(models.Model):
         """ Prevent pickings to be in state assigned when not able to handle
             partials, so they should remain in state waiting or confirmed until
             they are fully assigned.
+
+            Add the flag 'computing_state' when we call can_handle_partials here to
+            distinguish it from other calls.
         """
         move_lines = self.move_lines.filtered(lambda move: move.state not in ["cancel", "done"])
-        if move_lines and not self.can_handle_partials():
+        if move_lines and not self.can_handle_partials(computing_state=True):
             relevant_move_state = move_lines._get_relevant_state_among_moves()
             if relevant_move_state == "partially_available":
                 if self.u_prev_picking_ids:
