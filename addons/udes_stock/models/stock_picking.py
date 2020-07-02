@@ -729,10 +729,11 @@ class StockPicking(models.Model):
             # when adding only do this?
             return True
 
-        if location_dest_id or location_dest_barcode or location_dest_name:
-            values["location_dest"] = (
-                location_dest_id or location_dest_barcode or location_dest_name
-            )
+        location_dest = (
+            location_dest_id or location_dest_barcode or location_dest_name
+        )
+        if location_dest:
+            values["location_dest"] = location_dest
 
         if result_package_name:
             values["result_package"] = result_package_name
@@ -775,6 +776,22 @@ class StockPicking(models.Model):
             if validate_real_time:
                 picking = self._real_time_update(mls_done)
                 validate = True
+        elif location_dest:
+            # update destination location for move lines
+            if result_package_name:
+                move_lines = move_lines.filtered(lambda ml: ml.result_package_id.name == result_package_name)
+
+            loc_dest_instance = Location.get_location(location_dest)
+            if not self.is_valid_location_dest_id(loc_dest_instance):
+                raise ValidationError(
+                    _(
+                        "The location '%s' is not a child of the picking destination "
+                        "location '%s'" % (loc_dest_instance.name, self.location_dest_id.name)
+                    )
+                )
+
+            move_lines_done = move_lines.get_lines_done()
+            move_lines_done.write({"location_dest_id": loc_dest_instance.id})
 
         if force_validate or validate:
             if picking.move_line_ids.get_lines_todo() and not create_backorder:
