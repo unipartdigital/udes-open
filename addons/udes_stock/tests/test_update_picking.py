@@ -742,7 +742,7 @@ class TestUpdatePickingMarksMoveLinesAsDone(common.BaseUDES):
     @classmethod
     def setUpClass(cls):
         super(TestUpdatePickingMarksMoveLinesAsDone, cls).setUpClass()
-        cls.picking_type_in.u_target_storage_format = 'product'
+        cls.picking_type_pick.u_target_storage_format = 'product'
 
     def test01_child_drop_location_success(self):
         """ If the updated destination location is a child of the
