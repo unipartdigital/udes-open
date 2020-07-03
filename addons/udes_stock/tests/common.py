@@ -116,39 +116,6 @@ class BaseUDES(common.SavepointCase):
         return Package.create(vals)
 
     @classmethod
-    def create_move_line(cls, move, qty, **kwargs):
-        """ Create and return a move line for the given move and qty."""
-        MoveLine = cls.env["stock.move.line"]
-        vals = {
-            "product_id": move.product_id.id,
-            "product_uom_id": move.product_id.uom_id.id,
-            "product_uom_qty": qty,
-            "location_id": move.location_id.id,
-            "location_dest_id": move.location_dest_id.id,
-            "move_id": move.id,
-        }
-        vals.update(kwargs)
-        return MoveLine.create(vals)
-
-    @classmethod
-    def create_move(cls, product, qty, picking, **kwargs):
-        """ Create and return a move for the given product and qty."""
-        Move = cls.env["stock.move"]
-        vals = {
-            "product_id": product.id,
-            "name": product.name,
-            "product_uom": product.uom_id.id,
-            "product_uom_qty": qty,
-            "location_id": picking.location_id.id,
-            "location_dest_id": picking.location_dest_id.id,
-            "picking_id": picking.id,
-            "priority": picking.priority,
-            "picking_type_id": picking.picking_type_id.id,
-        }
-        vals.update(kwargs)
-        return Move.create(vals)
-
-    @classmethod
     def _setup_locations(cls):
         """ Test Locations """
         Location = cls.env["stock.location"]
@@ -423,6 +390,34 @@ class BaseUDES(common.SavepointCase):
             create_batch=create_batch,
             **kwargs
         )
+
+    @classmethod
+    def create_move(cls, pickings, products_info, **kwargs):
+        """
+        Create and return move(s) for the given pickings and products using
+        _prepare_move and _create_move helper methods from stock.picking
+        """
+        Picking = cls.env["stock.picking"]
+
+        if not all(isinstance(el, list) for el in products_info):
+            # Convert the products_info to a list of lists
+            products_info = [products_info]
+
+        move_values = Picking._prepare_move(pickings, products_info, **kwargs)
+        moves = Picking._create_move(move_values)
+        return moves
+
+    @classmethod
+    def create_move_line(cls, moves, qty, **kwargs):
+        """
+        Create and return move line(s) for the given moves and quantity using
+        _prepare_move_line and _create_move_line helper methods from stock.move
+        """
+        Move = cls.env["stock.move"]
+
+        move_line_values = Move._prepare_move_line(moves, qty, **kwargs)
+        move_lines = Move._create_move_line(move_line_values)
+        return move_lines
 
     @classmethod
     def create_company(cls, name, **kwargs):
