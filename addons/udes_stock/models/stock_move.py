@@ -1,9 +1,55 @@
 # -*- coding: utf-8 -*-
-from odoo import models, _
+from odoo import models, api, _
 
 
 class StockMove(models.Model):
     _inherit = "stock.move"
+
+    def _prepare_move_line(self, moves, qty, **kwargs):
+        """
+        Return a list of the move line details to be used later in creation of the move line(s).
+        The purpose of this is to allow for multiple move lines to be created at once.
+
+        :args:
+            - moves: iterable of move objects to be assigned to the move lines
+            - qty: float value for quantity of each move line generated
+
+        :returns:
+            move_line_values: list(dict)
+
+        """
+        move_line_values = []
+
+        for move in moves:
+            vals = {
+                "product_id": move.product_id.id,
+                "product_uom_id": move.product_id.uom_id.id,
+                "product_uom_qty": qty,
+                "location_id": move.location_id.id,
+                "location_dest_id": move.location_dest_id.id,
+                "move_id": move.id,
+            }
+
+            vals.update(kwargs)
+            move_line_values.append(vals)
+
+        return move_line_values
+
+    @api.model
+    def _create_move_line(self, move_line_values):
+        """
+        Create and return move line(s) for the given move_line_values.
+        Should be used in conjunction with _prepare_move_line to obtain move_values
+
+        :args:
+            - move_line_values: list of dictionary values (or single dictionary) to create move line
+        
+        :returns:
+            - move line
+        """
+        MoveLine = self.env["stock.move.line"]
+
+        return MoveLine.create(move_line_values)
 
     def _unreserve_initial_demand(self, new_move):
         """ Override stock default function to keep the old move lines,
