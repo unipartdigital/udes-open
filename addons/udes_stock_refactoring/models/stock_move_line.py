@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from itertools import groupby
 
-from odoo import fields, models
+from odoo import fields, models, _
 from odoo.exceptions import UserError
 
 
@@ -18,9 +18,9 @@ class StockMoveLine(models.Model):
             return
         for move_line in self:
             move_line_vals = {
-                fname: getattr(move_line, fname)
-                for fname in move_line._fields.keys()
-                if fname != "u_grouping_key"
+                field_name: move_line[field_name]
+                for field_name in move_line._fields.keys()
+                if field_name != "u_grouping_key"
             }
             format_str = move_line.picking_id.picking_type_id.u_move_line_key_format
 
@@ -31,7 +31,10 @@ class StockMoveLine(models.Model):
 
     def group_by_key(self):
         """Check each picking type has a move line key format set and return the groupby"""
-        if any(pt.u_move_line_key_format is False for pt in self.picking_id.picking_type_id):
+        if any(
+            picking_type.u_move_line_key_format is False
+            for picking_type in self.picking_id.picking_type_id
+        ):
             raise UserError(
                 _("Cannot group move lines when their picking type has no grouping key set.")
             )

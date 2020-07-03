@@ -12,7 +12,6 @@
     "data": [
         "data/picking_types.xml",
         "views/stock_picking_type_views.xml",
-        "views/stock_picking_views.xml",
         "wizard/refactor_action_views.xml",
     ],
     "demo": [],

@@ -33,9 +33,9 @@ class StockMove(models.Model):
             return
         for move in self:
             move_vals = {
-                fname: getattr(move, fname)
-                for fname in move._fields.keys()
-                if fname != "u_grouping_key"
+                field_name: move[field_name]
+                for field_name in move._fields.keys()
+                if field_name != "u_grouping_key"
             }
 
             format_str = move.picking_id.picking_type_id.u_move_key_format
@@ -48,13 +48,16 @@ class StockMove(models.Model):
     u_grouping_key = fields.Char("Key", compute="compute_grouping_key")
 
     def action_refactor(self):
-        """Refactor all the moves in self. May result in the moves being changed
-        and/or their associated pickings being deleted."""
+        """
+        Refactor all the moves in self. May result in the moves being changed
+        and/or their associated pickings being deleted.
+        """
         self._action_refactor()
         return True
 
     def _action_refactor(self, stage=None):
-        """Refactor moves in self.
+        """
+        Refactor moves in self.
         :param stage: One of confirm|assign|done, if set, filters the moves
             which will be refactored to only the state(s) that match:
                 - 'confirm': confirmed, waiting
@@ -72,7 +75,7 @@ class StockMove(models.Model):
             raise UserError(_("Unknown stage for move refactor: %s") % stage)
         moves = self
 
-        if self._context.get("disable_move_refactor"):
+        if self.env.context.get("disable_move_refactor"):
             return moves
 
         rf_moves = moves.filtered(
@@ -110,7 +113,8 @@ class StockMove(models.Model):
         return moves
 
     def _action_confirm(self, *args, **kwargs):
-        """Extend _action_confirm to trigger refactor action.
+        """
+        Extend _action_confirm to trigger refactor action.
 
         Odoos move._action_confirm returns all the moves passed in to it, after
         merging any it can. In places the return value is used to immediately
@@ -124,7 +128,7 @@ class StockMove(models.Model):
         stock reserved against them.
         """
         res = super(StockMove, self)._action_confirm(*args, **kwargs)
-        post_refactor_moves = res._action_refactor(stage="confirm")
+        post_refactor_moves = res.exists()._action_refactor(stage="confirm")
 
         if post_refactor_moves != res:
             raise UserError(
@@ -137,7 +141,8 @@ class StockMove(models.Model):
         return res
 
     def _action_assign(self):
-        """Extend _action_assign to trigger refactor action.
+        """
+        Extend _action_assign to trigger refactor action.
         n.b. _action_assign does not return anything in core Odoo, so we
         don't return any extra moves that may have been created
         by refactoring.
@@ -148,7 +153,8 @@ class StockMove(models.Model):
         return res
 
     def _action_done(self, cancel_backorder=False):
-        """Extend _action_done to trigger refactor action, and push from drop
+        """
+        Extend _action_done to trigger refactor action, and push from drop
 
         Odoo returns completed moves.
         Therefore we will keep track of moves created by the refactor and
@@ -156,67 +162,8 @@ class StockMove(models.Model):
         """
         done_moves = super(StockMove, self)._action_done()
 
-        post_refactor_done_moves = done_moves._action_refactor(stage="validate")
-
-        post_refactor_done_moves.push_from_drop()
+        post_refactor_done_moves = done_moves.exists()._action_refactor(stage="validate")
         return post_refactor_done_moves
-
-    def push_from_drop(self):
-        """Get move lines grouped by location and find relevant rules to create"""
-        Move = self.env["stock.move"]
-        MoveLine = self.env["stock.move.line"]
-        Rule = self.env["stock.rule"]
-
-        done_moves = self.filtered(lambda m: m.state == "done")
-
-        # load all the move lines, grouped by location
-        move_lines_by_location = done_moves.move_line_ids.groupby("location_dest_id")
-
-        # Build mapping of push rule -> move lines to push
-        move_lines_by_push = {}
-        for location, location_move_lines in move_lines_by_location:
-            # Get the push rule that moves from the location.
-            push_step = Rule.get_path_from_location(location)
-            if not push_step:
-                continue
-            if push_step not in move_lines_by_push:
-                move_lines_by_push[push_step] = MoveLine.browse()
-            move_lines_by_push[push_step] |= location_move_lines
-
-        created_moves = Move.browse()
-        for push, move_lines in move_lines_by_push.items():
-            created_moves |= self._create_moves_for_push(push, move_lines)
-
-        confirmed_moves = created_moves._action_confirm()
-        pickings = confirmed_moves.picking_id
-        confirmed_moves._action_assign()
-        if pickings:
-            pickings.unlink_empty()
-
-    @api.model
-    def _create_moves_for_push(self, push, move_lines):
-        """Create moves for a push rule to cover the quantity in move_lines"""
-        Move = self.env["stock.move"]
-
-        # Group move_lines by move so we can preserve move information.
-        move_lines_by_move = move_lines.groupby("move_id")
-        created_moves = Move.browse()
-        base_vals = {
-            "picking_type_id": push.picking_type_id.id,
-            "location_id": push.location_from_id.id,
-            "location_dest_id": push.location_dest_id.id,
-            "picking_id": None,
-        }
-        for move, move_lines in move_lines_by_move:
-            move_vals = base_vals.copy()
-            move_vals.update(
-                {
-                    "product_uom_qty": sum(move_lines.mapped("qty_done")),
-                    "move_orig_ids": [(6, 0, move.ids)],
-                }
-            )
-            created_moves |= move.copy(move_vals)
-        return created_moves
 
     def group_by_key(self):
         """Check each picking type has a move key format set and return the groupby"""
@@ -234,10 +181,11 @@ class StockMove(models.Model):
         return self.with_context(compute_key=True).groupby(lambda ml: ml.u_grouping_key)
 
     def _prepare_extra_info_for_new_picking_for_group(self, pickings, moves):
-        """ Given the group of moves to refactor and its related pickings,
-            prepare the extra info for the new pickings that might be created
-            for the group of moves.
-            Fields with more than one value are going to be ignored.
+        """
+        Given the group of moves to refactor and its related pickings,
+        prepare the extra info for the new pickings that might be created
+        for the group of moves.
+        Fields with more than one value are going to be ignored.
         """
         values = {}
 
@@ -271,7 +219,8 @@ class StockMove(models.Model):
         return self.refactor_by_move_groups(self.group_by_key())
 
     def refactor_by_move_groups(self, groups):
-        """ Takes an iterator which produces key, move_group and moves
+        """
+        Takes an iterator which produces key, move_group and moves
         move_group into it's own picking
         """
         Picking = self.env["stock.picking"]
@@ -325,7 +274,8 @@ class StockMove(models.Model):
         return self.refactor_by_move_line_groups(move_lines_by_key.items())
 
     def refactor_by_move_line_groups(self, groups):
-        """ Takes an iterator which produces key, ml_group and moves ml_group
+        """ 
+        Takes an iterator which produces key, ml_group and moves ml_group
         into it's own picking
         """
         Move = self.env["stock.move"]
@@ -384,10 +334,7 @@ class StockMove(models.Model):
     def refactor_action_batch_pickings_by_date_priority(self):
         """Batch pickings by date and priority."""
         self._refactor_action_batch_pickings_by(
-            lambda picking: (
-                picking.scheduled_date.strftime("%Y-%m-%d"),
-                picking.priority,
-            )
+            lambda picking: (picking.scheduled_date.strftime("%Y-%m-%d"), picking.priority)
         )
 
     def refactor_action_batch_pickings_by_date(self):
@@ -397,7 +344,8 @@ class StockMove(models.Model):
         )
 
     def _refactor_action_batch_pickings_by(self, by_key):
-        """Group picks in batches.
+        """
+        Group picks in batches.
 
         Move the pickings of the moves in this StockMove into draft batches grouped by a
         given key.

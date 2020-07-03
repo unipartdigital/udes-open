@@ -22,8 +22,10 @@ class TestAssignSplitting(common.BaseUDES):
         self.picking = self.create_picking(self.picking_type_pick)
 
     def test_reserve_one_pallet_per_product_split(self):
-        """Reserve self.picking with one pallet of each product and check it
-        splits correctly when reserved."""
+        """
+        Reserve self.picking with one pallet of each product and check it
+        splits correctly when reserved.
+        """
         apple_pallet = self.create_package()
         self.create_quant(
             self.apple.id, self.test_stock_location_01.id, 10, package_id=apple_pallet.id
@@ -34,8 +36,11 @@ class TestAssignSplitting(common.BaseUDES):
             self.banana.id, self.test_stock_location_01.id, 10, package_id=banana_pallet.id
         )
 
-        apple_move = self.create_move(self.apple, 10, self.picking)
-        banana_move = self.create_move(self.banana, 10, self.picking)
+        products_info = [{"product": self.apple, "qty": 10}, {"product": self.banana, "qty": 10}]
+        moves = self.create_move(self.picking, products_info)
+
+        apple_move = moves[0]
+        banana_move = moves[1]
 
         self.picking.action_assign()
 
@@ -74,8 +79,10 @@ class TestAssignSplitting(common.BaseUDES):
         self.assertTrue(self.picking.exists())
 
     def test_split_move(self):
-        """Reserve self.picking with two pallet of the same product and check it
-        splits correctly when reserved."""
+        """
+        Reserve self.picking with two pallet of the same product and check it
+        splits correctly when reserved.
+        """
         MoveLine = self.env["stock.move.line"]
 
         cherry_pallet1 = self.create_package()
@@ -87,7 +94,9 @@ class TestAssignSplitting(common.BaseUDES):
             self.cherry.id, self.test_stock_location_01.id, 10, package_id=cherry_pallet2.id
         )
 
-        self.create_move(self.cherry, 20, self.picking)
+        products_info = [{"product": self.cherry, "qty": 20}]
+        self.create_move(self.picking, products_info)
+
         self.picking.action_assign()
 
         cherry_pallet_move_lines = MoveLine.search(
@@ -141,8 +150,10 @@ class TestAssignSplitting(common.BaseUDES):
         self.assertTrue(self.picking.exists())
 
     def test_split_pallet_different_products(self):
-        """Reserve self.picking with a pallet containing two different products
-        and check it splits correctly when reserved."""
+        """
+        Reserve self.picking with a pallet containing two different products
+        and check it splits correctly when reserved.
+        """
         mixed_pallet = self.create_package()
 
         self.create_quant(
@@ -152,8 +163,11 @@ class TestAssignSplitting(common.BaseUDES):
             self.grape.id, self.test_stock_location_01.id, 10, package_id=mixed_pallet.id
         )
 
-        fig_move = self.create_move(self.fig, 5, self.picking)
-        grape_move = self.create_move(self.grape, 10, self.picking)
+        products_info = [{"product": self.fig, "qty": 5}, {"product": self.grape, "qty": 10}]
+        moves = self.create_move(self.picking, products_info)
+
+        fig_move = moves[0]
+        grape_move = moves[1]
 
         self.picking.action_assign()
 
@@ -190,7 +204,8 @@ class TestAssignSplitting(common.BaseUDES):
         self.assertTrue(self.picking.exists())
 
     def test_combine_pickings_at_reserve(self):
-        """Create two pickings for two items on the same pallet. Reserve them
+        """
+        Create two pickings for two items on the same pallet. Reserve them
         simultaneously and check they result in one picking with two moves.
         """
         pallet = self.create_package()
@@ -205,8 +220,11 @@ class TestAssignSplitting(common.BaseUDES):
         pick1 = self.picking
         pick2 = self.create_picking(self.picking_type_pick)
 
-        move1 = self.create_move(self.elderberry, 5, pick1)
-        move2 = self.create_move(self.elderberry, 10, pick2)
+        pick1_products_info = [{"product": self.elderberry, "qty": 5}]
+        move1 = self.create_move(pick1, pick1_products_info)
+
+        pick2_products_info = [{"product": self.elderberry, "qty": 10}]
+        move2 = self.create_move(pick2, pick2_products_info)
 
         (pick1 | pick2).action_assign()
 
@@ -238,7 +256,8 @@ class TestAssignSplitting(common.BaseUDES):
         self.assertFalse(pick2.exists())
 
     def test_items_added_to_existing_picking(self):
-        """Create two pickings for two items on the same pallet. Reserve them
+        """
+        Create two pickings for two items on the same pallet. Reserve them
         sequentially and check they result in one picking with two moves.
         """
         pallet = self.create_package()
@@ -253,8 +272,11 @@ class TestAssignSplitting(common.BaseUDES):
         pick1 = self.picking
         pick2 = self.create_picking(self.picking_type_pick)
 
-        move1 = self.create_move(self.elderberry, 5, pick1)
-        move2 = self.create_move(self.elderberry, 10, pick2)
+        pick1_products_info = [{"product": self.elderberry, "qty": 5}]
+        move1 = self.create_move(pick1, pick1_products_info)
+
+        pick2_products_info = [{"product": self.elderberry, "qty": 10}]
+        move2 = self.create_move(pick2, pick2_products_info)
 
         pick1.action_assign()
         pick2.action_assign()
@@ -288,8 +310,10 @@ class TestAssignSplitting(common.BaseUDES):
         self.assertFalse(pick2.exists())
 
     def test_check_non_default_locations_maintained(self):
-        """Reserve when the locations of the picking are not the defaults of
-        the picking type and check the non-defaults are maintained."""
+        """
+        Reserve when the locations of the picking are not the defaults of
+        the picking type and check the non-defaults are maintained.
+        """
         self.picking.write(
             {
                 "location_id": self.test_stock_location_01.id,
@@ -301,15 +325,17 @@ class TestAssignSplitting(common.BaseUDES):
         self.create_quant(
             self.apple.id, self.test_stock_location_01.id, 10, package_id=apple_pallet.id
         )
-        apple_move = self.create_move(self.apple, 10, self.picking)
+
+        products_info = [{"product": self.apple, "qty": 10}]
+        apple_move = self.create_move(self.picking, products_info)
 
         self.picking.action_assign()
 
         apple_pick = apple_move.picking_id
         self.assertEqual(self.picking, apple_pick)  # Check picking reuse
         self.assertEqual(apple_pick.state, "assigned")
-        self.assertEqual(apple_pick.location_id.id, self.test_stock_location_01.id)
-        self.assertEqual(apple_pick.location_dest_id.id, self.test_goodsout_location_01.id)
+        self.assertEqual(apple_pick.location_id, self.test_stock_location_01)
+        self.assertEqual(apple_pick.location_dest_id, self.test_goodsout_location_01)
 
 
 class TestValidateSplitting(common.BaseUDES):
@@ -331,8 +357,10 @@ class TestValidateSplitting(common.BaseUDES):
         self.picking = self.create_picking(self.picking_type_pick)
 
     def test_check_picking_locations_split(self):
-        """Validate self.picking into two locations and check it splits
-        correctly."""
+        """
+        Validate self.picking into two locations and check it splits
+        correctly.
+        """
         apple_pallet = self.create_package()
         self.create_quant(
             self.apple.id, self.test_stock_location_01.id, 10, package_id=apple_pallet.id
@@ -342,8 +370,12 @@ class TestValidateSplitting(common.BaseUDES):
             self.banana.id, self.test_stock_location_01.id, 10, package_id=banana_pallet.id
         )
 
-        apple_move = self.create_move(self.apple, 10, self.picking)
-        banana_move = self.create_move(self.banana, 10, self.picking)
+        products_info = [{"product": self.apple, "qty": 10}, {"product": self.banana, "qty": 10}]
+        moves = self.create_move(self.picking, products_info)
+
+        apple_move = moves[0]
+        banana_move = moves[1]
+
         self.picking.action_assign()
 
         apple_move_line = apple_move.move_line_ids
@@ -362,8 +394,8 @@ class TestValidateSplitting(common.BaseUDES):
             }
         )
 
-        self.assertEqual(apple_move_line.picking_id.id, self.picking.id)
-        self.assertEqual(banana_move_line.picking_id.id, self.picking.id)
+        self.assertEqual(apple_move_line.picking_id, self.picking)
+        self.assertEqual(banana_move_line.picking_id, self.picking)
 
         self.picking.action_done()
 
@@ -375,9 +407,11 @@ class TestValidateSplitting(common.BaseUDES):
         )
 
     def test_maintain_single_pick_extra_info(self):
-        """ Check that when a move is split the picking's extra info is copied
-            to the new pick.
-            Extra info:
+        """
+        Check that when a move is split the picking's extra info is copied
+        to the new pick.
+
+        Extra info:
             - origin
             - partner_id
             - date_done (comes from move.date when not reusing picking)
@@ -391,8 +425,12 @@ class TestValidateSplitting(common.BaseUDES):
             self.banana.id, self.test_stock_location_01.id, 10, package_id=banana_pallet.id
         )
 
-        apple_move = self.create_move(self.apple, 10, self.picking)
-        banana_move = self.create_move(self.banana, 10, self.picking)
+        products_info = [{"product": self.apple, "qty": 10}, {"product": self.banana, "qty": 10}]
+        moves = self.create_move(self.picking, products_info)
+
+        apple_move = moves[0]
+        banana_move = moves[1]
+
         self.picking.action_assign()
 
         apple_move_line = apple_move.move_line_ids
@@ -441,10 +479,12 @@ class TestValidateSplitting(common.BaseUDES):
             self.assertGreaterEqual(banana_move.picking_id.date_done, banana_move.date)
 
     def test_maintain_two_picks_extra_info(self):
-        """ Check that when a moves from different picks are split the pickings
-            extra info is copied to the new pick and maintained when two picks
-            share the same info.
-            Extra info:
+        """
+        Check that when a moves from different picks are split the pickings
+        extra info is copied to the new pick and maintained when two picks
+        share the same info.
+
+        Extra info:
             - origin
             - partner_id
             - date_done (comes from move.date)
@@ -460,8 +500,15 @@ class TestValidateSplitting(common.BaseUDES):
             self.banana.id, self.test_stock_location_01.id, 10, package_id=banana_pallet.id
         )
 
-        apple_move = self.create_move(self.apple, 10, self.picking)
-        banana_move = self.create_move(self.banana, 10, self.picking)
+        pick1_products_info = [
+            {"product": self.apple, "qty": 10},
+            {"product": self.banana, "qty": 10},
+        ]
+        pick1_moves = self.create_move(self.picking, pick1_products_info)
+
+        apple_move = pick1_moves[0]
+        banana_move = pick1_moves[1]
+
         self.picking.action_assign()
 
         apple_move_line = apple_move.move_line_ids
@@ -492,8 +539,15 @@ class TestValidateSplitting(common.BaseUDES):
             self.damson.id, self.test_stock_location_01.id, 10, package_id=damson_pallet.id
         )
 
-        cherry_move = self.create_move(self.cherry, 10, self.picking_2)
-        damson_move = self.create_move(self.damson, 10, self.picking_2)
+        pick2_products_info = [
+            {"product": self.cherry, "qty": 10},
+            {"product": self.damson, "qty": 10},
+        ]
+        pick2_moves = self.create_move(self.picking_2, pick2_products_info)
+
+        cherry_move = pick2_moves[0]
+        damson_move = pick2_moves[1]
+
         self.picking_2.action_assign()
 
         cherry_move_line = cherry_move.move_line_ids
@@ -525,8 +579,8 @@ class TestValidateSplitting(common.BaseUDES):
             len(self.picking | apple_move.picking_id | banana_move.picking_id), 3,
         )
 
-        self.assertEqual(apple_move.picking_id.id, cherry_move.picking_id.id)
-        self.assertEqual(banana_move.picking_id.id, damson_move.picking_id.id)
+        self.assertEqual(apple_move.picking_id, cherry_move.picking_id)
+        self.assertEqual(banana_move.picking_id, damson_move.picking_id)
 
         # Check pick extra info
         self.assertEqual(origin, apple_move.picking_id.origin)
@@ -557,8 +611,9 @@ class TestConfirmSplitting(common.BaseUDES):
         self.picking = self.create_picking(self.picking_type_pick)
 
     def test_check_pallet_split(self):
-        """Reserve self.picking with one pallet of each product and check it
-           splits correctly when confirmed.
+        """
+        Reserve self.picking with one pallet of each product and check it
+        splits correctly when confirmed.
         """
         apple_pallet = self.create_package()
         self.create_quant(
@@ -570,8 +625,12 @@ class TestConfirmSplitting(common.BaseUDES):
             self.banana.id, self.test_stock_location_01.id, 10, package_id=banana_pallet.id
         )
 
-        apple_move = self.create_move(self.apple, 5, self.picking)
-        banana_move = self.create_move(self.banana, 10, self.picking)
+        products_info = [{"product": self.apple, "qty": 5}, {"product": self.banana, "qty": 10}]
+        moves = self.create_move(self.picking, products_info)
+
+        apple_move = moves[0]
+        banana_move = moves[1]
+
         self.picking.action_confirm()
 
         apple_pick = apple_move.picking_id
@@ -586,74 +645,3 @@ class TestConfirmSplitting(common.BaseUDES):
         self.assertEqual(banana_pick.move_lines, banana_move)
         self.assertEqual(apple_pick.state, "confirmed")
         self.assertEqual(banana_pick.state, "confirmed")
-
-
-class TestAutoUnlinkEmpty(common.BaseUDES):
-    def setUp(self):
-        """ Setup picking type config
-        """
-        super(TestAutoUnlinkEmpty, self).setUp()
-
-        self.picking_type_goods_out.write(
-            {
-                "u_post_confirm_action": "group_by_move_key",
-                "u_move_key_format": "{product_id.default_code}",
-            }
-        )
-
-    def _count_out_pickings(self):
-        Picking = self.env["stock.picking"]
-
-        return Picking.search_count([("picking_type_id", "=", self.picking_type_goods_out.id)])
-
-    def test_auto_unlink_empty_pickings(self):
-        """ Check that unlink_empty finds any picking in the system marked as
-            empty and that when auto unlink empty is disabled for goods-out any
-            empty picking is not deleted when searching for any picking.
-
-            Create two different picks for the same product, confirm them one
-            by one so the goods-out picking is reused leaving one empty picking
-            for the second picking.
-        """
-        Picking = self.env["stock.picking"]
-
-        # Create first pick for apples
-        pick_1 = self.create_picking(self.picking_type_pick)
-        self.create_move(self.apple, 5, pick_1)
-
-        # action_confirm triggers push route which creates goods-out picking
-        pick_1.action_confirm()
-        out_1 = pick_1.u_next_picking_ids
-        self.assertTrue(out_1.exists())
-
-        # There is at least one out picking
-        n_out_pickings = self._count_out_pickings()
-        self.assertTrue(n_out_pickings > 0)
-
-        # Create second pick for apples
-        pick_2 = self.create_picking(self.picking_type_pick)
-        self.create_move(self.apple, 5, pick_2)
-
-        # action_confirm triggers push route which creates goods-out picking
-        pick_2.action_confirm()
-        out_2 = pick_2.u_next_picking_ids
-
-        # The refactoring reuses out_1 because it is the same product
-        self.assertEqual(out_1, out_2)
-
-        # There is one more picking
-        self.assertEqual(n_out_pickings + 1, self._count_out_pickings())
-
-        # Disable auto unlink empty at out picking type
-        self.picking_type_goods_out.u_auto_unlink_empty = False
-        Picking.unlink_empty()
-
-        # There is still only one more picking
-        self.assertEqual(n_out_pickings + 1, self._count_out_pickings())
-
-        # Enable auto unlink empty at out picking type
-        self.picking_type_goods_out.u_auto_unlink_empty = True
-        Picking.unlink_empty()
-
-        # Empty picking has disappeared
-        self.assertEqual(n_out_pickings, self._count_out_pickings())

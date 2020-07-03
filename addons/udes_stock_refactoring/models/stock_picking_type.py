@@ -12,16 +12,24 @@ U_STOCK_REFACTORING_CORE_LIFECYCLE_ACTIONS = [
 class StockPickingType(models.Model):
     _inherit = "stock.picking.type"
 
+    u_auto_unlink_empty = fields.Boolean(
+        string="Auto Unlink Empty",
+        default=True,
+        help="""
+        Flag to indicate whether to unlink empty pickings when searching for any empty picking in 
+        the system.
+        """,
+    )
+
     # Picking lifecycle actions
 
     u_move_line_key_format = fields.Char(
         "Move Line Grouping Key",
-        help="""A field name on stock.move.line that can be used to group
-        move lines.""",
+        help="A field name on stock.move.line that can be used to group move lines.",
     )
 
     u_move_key_format = fields.Char(
-        "Move Grouping Key", help="""A field name on stock.move that can be to group move.""",
+        "Move Grouping Key", help="A field name on stock.move that can be to group move.",
     )
 
     u_post_confirm_action = fields.Selection(
@@ -47,16 +55,18 @@ class StockPickingType(models.Model):
     )
 
     def do_refactor_action(self, action, moves):
-        """Resolve and call the method to be executed on the moves.
+        """
+        Resolve and call the method to be executed on the moves
 
-           Methods doing a refactor are expected to take a single recordset of
-           moves on which they will act, and to return the recordset of
-           equivalent moves after they have been transformed.
-           The output moves may be identical to the input, may contain none
-           of the input moves, or anywhere in between.
-           The output should contain a functionally similar set of moves.
+        Methods doing a refactor are expected to take a single recordset of
+        moves on which they will act, and to return the recordset of
+        equivalent moves after they have been transformed.
+        The output moves may be identical to the input, may contain none
+        of the input moves, or anywhere in between.
+        The output should contain a functionally similar set of moves.
         """
         Move = self.env["stock.move"]
+
         if action == "none":
             return moves
 
