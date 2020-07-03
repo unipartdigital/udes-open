@@ -24,11 +24,10 @@ class StockMove(models.Model):
 
     def _unreserve_initial_demand(self, new_move):
         """ Override stock default function to keep the old move lines,
-            so there is no need to create them again
+            so there is no need to create them again.
         """
-        self.mapped('move_line_ids')\
-            .filtered(lambda x: x.qty_done == 0.0)\
-            .write({'move_id': new_move, 'product_uom_qty': 0})
+        self.mapped("move_line_ids").filtered(lambda x: x.qty_done == 0.0).write(
+            {'move_id': new_move, 'product_uom_qty': 0})
 
     def _prepare_info(self):
         """

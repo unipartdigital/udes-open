@@ -910,11 +910,13 @@ class StockMoveLine(models.Model):
             self._validate_location_dest(location=location)
 
         # By default bypass reservation update:
-        #   avoids to execute code specific for Odoo UI at stock.move.line.write()
-        if 'bypass_reservation_update' not in self.env.context:
+        #   Avoids to execute code specific for Odoo UI at stock.move.line.write()
+        #   In case product_uom_qty is in values, check the context variable, since
+        #   some code relies on changing product_uom_qty to unreserve quants.
+        if 'bypass_reservation_update' not in self.env.context and 'product_uom_qty' not in values:
             bypass = True
         else:
-            bypass = self.env.context.get('bypass_reservation_update')
+            bypass = self.env.context.get('bypass_reservation_update', False)
 
         return super(StockMoveLine,
                      self.with_context(bypass_reservation_update=bypass)).write(values)
