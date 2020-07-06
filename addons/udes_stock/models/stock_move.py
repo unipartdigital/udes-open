@@ -5,14 +5,40 @@ from odoo import models, api, _
 class StockMove(models.Model):
     _inherit = "stock.move"
 
-    def _prepare_move_line(self, moves, qty, **kwargs):
+    def _prepare_move_line(self, move, qty, **kwargs):
+        """
+        Return a dict of the move line details to be used later in creation of the move line(s).
+
+        :args:
+            - move: move object to be assigned to the move line
+            - qty: float value for quantity of the move line generated
+
+        :returns:
+            vals: dict
+
+        """
+        move.ensure_one()
+
+        vals = {
+            "product_id": move.product_id.id,
+            "product_uom_id": move.product_id.uom_id.id,
+            "product_uom_qty": qty,
+            "location_id": move.location_id.id,
+            "location_dest_id": move.location_dest_id.id,
+            "move_id": move.id,
+            "picking_id": move.picking_id.id,
+        }
+        vals.update(kwargs)
+
+        return vals
+
+    def _prepare_move_lines(self, moves_info, **kwargs):
         """
         Return a list of the move line details to be used later in creation of the move line(s).
         The purpose of this is to allow for multiple move lines to be created at once.
 
         :args:
-            - moves: iterable of move objects to be assigned to the move lines
-            - qty: float value for quantity of each move line generated
+            - moves_info: dict of move, quantity float value
 
         :returns:
             move_line_values: list(dict)
@@ -20,17 +46,8 @@ class StockMove(models.Model):
         """
         move_line_values = []
 
-        for move in moves:
-            vals = {
-                "product_id": move.product_id.id,
-                "product_uom_id": move.product_id.uom_id.id,
-                "product_uom_qty": qty,
-                "location_id": move.location_id.id,
-                "location_dest_id": move.location_dest_id.id,
-                "move_id": move.id,
-            }
-
-            vals.update(kwargs)
+        for move, qty in moves_info.items():
+            vals = self._prepare_move_line(move, qty, **kwargs)
             move_line_values.append(vals)
 
         return move_line_values
