@@ -646,7 +646,10 @@ class StockMoveLine(models.Model):
             )
             # updated ordered_qty otherwise odoo will use product_uom_qty
             # new_ml.ordered_qty = ordered_quantity_left_todo
-            self.write(
+            # update self move line quantity to do
+            # - bypass_reservation_update:
+            #   avoids to execute code specific for Odoo UI at stock.move.line.write()
+            self.with_context(bypass_reservation_update=True).write(
                 {"product_uom_qty": done_to_keep, "qty_done": qty_done, "ordered_qty": ordered_qty,}
             )
             res = new_ml
@@ -702,7 +705,10 @@ class StockMoveLine(models.Model):
             )
             # updated ordered_qty otherwise odoo will use product_uom_qty
             # new_ml.ordered_qty = ordered_quantity_left_todo
-            self.write(
+            # update self move line quantity to do
+            # - bypass_reservation_update:
+            #   avoids to execute code specific for Odoo UI at stock.move.line.write()
+            self.with_context(bypass_reservation_update=True).write(
                 {"product_uom_qty": old_ml_qty_todo, "ordered_qty": old_ml_ordered_qty,}
             )
             res = new_ml

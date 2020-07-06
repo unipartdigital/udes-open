@@ -40,7 +40,7 @@ def _update_move_lines_and_log_swap(move_lines, packs, other_pack):
         "result_package_id": other_pack.id,
         "lot_id": lots.id if len(lots) == 1 else False,
     }
-    move_lines.write(values)
+    move_lines.with_context(bypass_reservation_update=True).write(values)
     msg_args = (", ".join(packs.mapped("name")), other_pack.name)
     msg = _("Package %s swapped for package %s.") % msg_args
     move_lines.mapped("picking_id").message_post(body=msg)
@@ -516,7 +516,9 @@ class StockPicking(models.Model):
         if assign:
             old_move_line_ids = self.move_line_ids
             # Use picking.action_assign or moves._action_assign to create move lines
-            self.action_assign()
+            # with context variable bypass_reservation_update in order to avoid
+            # to execute code specific for Odoo UI at stock.move.line.write()
+            self.with_context(bypass_reservation_update=True).action_assign()
             if result_package:
                 # update result_package_id of the new move_line_ids
                 package = Package.get_package(result_package)
