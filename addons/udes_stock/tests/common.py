@@ -408,14 +408,26 @@ class BaseUDES(common.SavepointCase):
         return moves
 
     @classmethod
-    def create_move_line(cls, moves, qty, **kwargs):
+    def create_move_line(cls, move, qty, **kwargs):
         """
-        Create and return move line(s) for the given moves and quantity using
+        Create and return a single move line for the given move and quantity using
         _prepare_move_line and _create_move_line helper methods from stock.move
         """
         Move = cls.env["stock.move"]
 
-        move_line_values = Move._prepare_move_line(moves, qty, **kwargs)
+        move_line_values = Move._prepare_move_line(move, qty, **kwargs)
+        move_line = Move._create_move_line(move_line_values)
+        return move_line
+
+    @classmethod
+    def create_move_lines(cls, moves_info, **kwargs):
+        """
+        Create and return move line(s) for the given moves_info using
+        _prepare_move_lines and _create_move_line helper methods from stock.move
+        """
+        Move = cls.env["stock.move"]
+
+        move_line_values = Move._prepare_move_lines(moves_info, **kwargs)
         move_lines = Move._create_move_line(move_line_values)
         return move_lines
 
