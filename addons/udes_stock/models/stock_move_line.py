@@ -919,13 +919,14 @@ class StockMoveLine(models.Model):
         #   Avoids to execute code specific for Odoo UI at stock.move.line.write()
         #   In case product_uom_qty is in values, check the context variable, since
         #   some code relies on changing product_uom_qty to unreserve quants.
-        if 'bypass_reservation_update' not in self.env.context and 'product_uom_qty' not in values:
+        if "bypass_reservation_update" not in self.env.context and "product_uom_qty" not in values:
             bypass = True
         else:
-            bypass = self.env.context.get('bypass_reservation_update', False)
+            bypass = self.env.context.get("bypass_reservation_update", False)
 
-        return super(StockMoveLine,
-                     self.with_context(bypass_reservation_update=bypass)).write(values)
+        return super(StockMoveLine, self.with_context(bypass_reservation_update=bypass)).write(
+            values
+        )
 
     ## Drop Location Constraint
 
