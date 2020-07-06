@@ -21,9 +21,7 @@ class TestActionCancel(common.BaseUDES):
         )
 
         # Make some stock.
-        self.env["stock.quant"]._update_available_quantity(
-            self.apple, self.stock_location1, 150.0
-        )
+        self.env["stock.quant"]._update_available_quantity(self.apple, self.stock_location1, 150.0)
 
         # Set up two related moves.
         self.move1 = self.env["stock.move"].create(
@@ -100,3 +98,32 @@ class TestActionCancel(common.BaseUDES):
 
         # Remaining move2 should be cancelled.
         self.assertEqual(new_move2.state, "cancel")
+
+
+class TestUnreserveIntialDemand(common.BaseUDES):
+    @classmethod
+    def setUpClass(cls):
+        super(TestUnreserveIntialDemand, cls).setUpClass()
+        cls.pack_4apples_info = [{"product": cls.apple, "qty": 4}]
+        # Set target storage format to easily pick
+        cls.picking_type_pick.u_target_storage_format = "product"
+
+    def test01_do_not_bypass_reservation_update_at_unreserve_initial_demand(self):
+        """ When calling _unreserve_initial_demand() disable bypass reservation update
+            which is now enabled by default.
+        """
+        Picking = self.env["stock.picking"]
+        apple_quant = self.create_quant(self.apple.id, self.test_location_01.id, 4)
+        picking = self.create_picking(
+            self.picking_type_pick, products_info=self.pack_4apples_info, confirm=True, assign=True
+        )
+
+        self.assertEqual(picking.state, "assigned")
+        self.assertEqual(apple_quant.reserved_quantity, 4)
+        apple_ml = picking.move_line_ids
+        self.assertEqual(len(apple_ml), 1)
+        apple_ml.qty_done = 2
+        picking.action_done()
+        self.assertEqual(picking.state, "done")
+        backorder = Picking.get_pickings(backorder_id=picking.id)
+        self.assertEqual(backorder.state, "assigned")

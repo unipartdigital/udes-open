@@ -10,6 +10,7 @@ from . import test_location_category
 from . import test_location_pi
 from . import test_location_policy
 from . import test_move_line
+from . import test_move
 from . import test_package_reservation
 from . import test_package_swap
 from . import test_picking
