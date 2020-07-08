@@ -46,6 +46,40 @@ class StockPicking(models.Model):
                 break
             yield records
 
+    def _get_default_new_picking_for_group_values(
+        self, group, picking_type, location, dest_location
+    ):
+        """
+        Return a dict of values for a new picking based on the supplied 
+        Procurement Group Picking Type, Location and Destination Location.
+        """
+        values = {
+            "group_id": group.id,
+            "picking_type_id": picking_type.id,
+            "location_id": location.id,
+            "location_dest_id": dest_location.id,
+        }
+
+        return values
+
+    def _remove_misleading_values(self, **kwargs):
+        """
+        If any of the fields in kwargs is set and its value is different
+        than the new one, set the field value to False to avoid misleading values.
+        E.g. if picking.origin is 'ASN001' and kwargs contains origin with value 
+        'ASN002', picking.origin is set to False.
+        """
+        self.ensure_one()
+
+        for field, value in kwargs.items():
+            if field in self:
+                current_value = self[field]
+
+                if isinstance(current_value, models.BaseModel):
+                    current_value = current_value.id
+                if current_value and current_value != value:
+                    self[field] = False
+
     @api.model
     def _new_picking_for_group(self, group_key, moves, **kwargs):
         """
@@ -89,29 +123,15 @@ class StockPicking(models.Model):
         if not picking or len(picking) > 1:
             # There was no suitable picking to reuse.
             # Create a new picking.
-            values = {
-                "picking_type_id": picking_type.id,
-                "location_id": src_loc.id,
-                "location_dest_id": dest_loc.id,
-                "group_id": group.id,
-            }
-            values.update(kwargs)
+            picking_values = self._get_default_new_picking_for_group_values(
+                group, picking_type, src_loc, dest_loc
+            )
+            picking_values.update(kwargs)
 
-            picking = self.create(values)
+            picking = self.create_picking(picking_type, **picking_values)
 
         else:
-            # Avoid misleading values for extra fields.
-            # If any of the fields in kwargs is set and its value is different
-            # than the new one, set the field value to False to avoid misleading
-            # values.
-            # For instance, picking.origin is 'ASN001' and kwargs contains
-            # origin with value 'ASN002', picking.origin is set to False.
-            for field, value in kwargs.items():
-                current_value = getattr(picking, field, None)
-                if isinstance(current_value, models.BaseModel):
-                    current_value = current_value.id
-                if current_value and current_value != value:
-                    setattr(picking, field, False)
+            picking._remove_misleading_values(**kwargs)
 
         moves.write({"group_id": group.id, "picking_id": picking.id})
 
