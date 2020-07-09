@@ -3,6 +3,8 @@
 from odoo import api, models, fields, _
 from odoo.exceptions import UserError
 
+from .refactor import REFACTOR_REGISTRY
+
 import logging
 
 _logger = logging.getLogger(__name__)
@@ -20,6 +22,28 @@ U_STOCK_REFACTOR_STAGES = {
 
 class StockMove(models.Model):
     _inherit = "stock.move"
+
+    def _get_refactor_class(self, picking_type, stage):
+        """
+        Return the relevant refactor class from the provided 
+        picking type and stage, if applicable.
+        """
+        stage_post_action_dict = {
+            "confirm": picking_type.u_post_confirm_action,
+            "assign": picking_type.u_post_assign_action,
+            "validate": picking_type.u_post_validate_action,
+        }
+
+        refactor_action = stage_post_action_dict.get(stage)
+
+        if refactor_action:
+            try:
+                refactor_class = REFACTOR_REGISTRY[refactor_action]
+                return refactor_class(self.env)
+            except KeyError:
+                raise ValueError(_("Refactor action '%s' could not be found." % refactor_action))
+
+        return refactor_action
 
     def compute_grouping_key(self):
         """Compute the grouping key from the picking type move key format"""
@@ -78,36 +102,33 @@ class StockMove(models.Model):
         if self.env.context.get("disable_move_refactor"):
             return moves
 
-        rf_moves = moves.filtered(
+        refactor_moves = moves.filtered(
             lambda m: m.picking_type_id and m.state not in ["draft", "cancel"]
         )
 
         if stage is not None:
-            rf_moves = rf_moves.filtered(lambda m: U_STOCK_REFACTOR_STAGES[m.state] == stage)
+            refactor_moves = refactor_moves.filtered(
+                lambda m: U_STOCK_REFACTOR_STAGES[m.state] == stage
+            )
 
-        for picking_type, pt_moves in rf_moves.groupby("picking_type_id"):
-            for stage, st_moves in pt_moves.groupby(lambda m: U_STOCK_REFACTOR_STAGES[m.state]):
-                if stage == "confirm":
-                    action = picking_type.u_post_confirm_action
-                elif stage == "assign":
-                    action = picking_type.u_post_assign_action
-                elif stage == "validate":
-                    action = picking_type.u_post_validate_action
-                else:
-                    continue  # Don't refactor cancel or draft moves.
+        for picking_type, picking_type_moves in refactor_moves.groupby("picking_type_id"):
+            for stage, stage_moves in picking_type_moves.groupby(
+                lambda m: U_STOCK_REFACTOR_STAGES[m.state]
+            ):
+                refactor_class = self._get_refactor_class(picking_type, stage)
 
-                if action:
+                if refactor_class:
                     _logger.info(
                         "Refactoring %s at %s using %s: %s",
                         picking_type.name,
                         stage,
-                        action,
-                        st_moves.ids,
+                        refactor_class.name(),
+                        stage_moves.ids,
                     )
-                    func = getattr(st_moves, "refactor_action_" + action)
-                    new_moves = func()
+
+                    new_moves = refactor_class.do_refactor(stage_moves)
                     if new_moves is not None:
-                        moves -= st_moves
+                        moves -= stage_moves
                         moves |= new_moves
 
         return moves
@@ -172,7 +193,10 @@ class StockMove(models.Model):
         # this with the equivalent for move_line_key
         # we need to think of how we want to do it
 
-        if any(pt.u_move_key_format is False for pt in self.picking_id.picking_type_id):
+        if any(
+            picking_type.u_move_key_format is False
+            for picking_type in self.picking_id.picking_type_id
+        ):
             raise UserError(
                 _("Cannot group moves when their picking type has no grouping key set.")
             )
@@ -203,21 +227,6 @@ class StockMove(models.Model):
 
         return values
 
-    def refactor_action_group_by_move_key(self):
-        """
-        group the moves by the splitting criteria
-        for each resulting group of stock.moves:
-            create a new picking
-            attach the stock.moves to the new picking.
-        """
-        picking_type = self.picking_type_id
-        picking_type.ensure_one()
-
-        if not picking_type.u_move_key_format:
-            return
-
-        return self.refactor_by_move_groups(self.group_by_key())
-
     def refactor_by_move_groups(self, groups):
         """
         Takes an iterator which produces key, move_group and moves
@@ -234,9 +243,8 @@ class StockMove(models.Model):
                     _(
                         "Move grouping has generated a group of"
                         "moves that has more than one source or "
-                        'destination location. Aborting. key: "%s", '
-                        'location_ids: "%s", location_dest_ids: "%s"'
-                        ""
+                        "destination location. Aborting. key: '%s', "
+                        "location_ids: '%s', location_dest_ids: '%s'"
                     )
                     % (key, move_group.location_id, move_group.location_dest_id)
                 )
@@ -254,25 +262,6 @@ class StockMove(models.Model):
 
         return self
 
-    def refactor_action_group_by_move_line_key(self):
-        """
-        group the move lines by the splitting criteria
-        for each resulting group of stock.move.lines:
-            create a new picking
-            split any stock.move records that are only partially covered by the
-                group of stock.moves
-            attach the stock.moves and stock.move.lines to the new picking.
-        """
-        picking_type = self.mapped("picking_type_id")
-        picking_type.ensure_one()
-
-        if not picking_type.u_move_line_key_format:
-            return
-
-        move_lines_by_key = self.mapped("move_line_ids").group_by_key()
-
-        return self.refactor_by_move_line_groups(move_lines_by_key.items())
-
     def refactor_by_move_line_groups(self, groups):
         """ 
         Takes an iterator which produces key, ml_group and moves ml_group
@@ -281,29 +270,22 @@ class StockMove(models.Model):
         Move = self.env["stock.move"]
         Picking = self.env["stock.picking"]
 
-        pickings = self.mapped("picking_id")
+        pickings = self.picking_id
 
         result_moves = Move.browse()
 
         for key, ml_group in groups:
             touched_moves = ml_group.mapped("move_id")
 
-            if (
-                len(touched_moves.mapped("location_id")) > 1
-                or len(touched_moves.mapped("location_dest_id")) > 1
-            ):
+            if len(touched_moves.location_id) > 1 or len(touched_moves.location_dest_id) > 1:
                 raise UserError(
                     _(
                         "Move Line grouping has generated a group of moves that "
                         "has more than one source or destination location. "
-                        'Aborting. key: "%s", location_ids: "%s", '
-                        'location_dest_ids: "%s"'
+                        "Aborting. key: '%s', location_ids: '%s', "
+                        "location_dest_ids: '%s'"
                     )
-                    % (
-                        key,
-                        touched_moves.mapped("location_id"),
-                        touched_moves.mapped("location_dest_id"),
-                    )
+                    % (key, touched_moves.location_id, touched_moves.location_dest_id,)
                 )
 
             group_moves = Move.browse()
@@ -331,18 +313,6 @@ class StockMove(models.Model):
 
         return result_moves
 
-    def refactor_action_batch_pickings_by_date_priority(self):
-        """Batch pickings by date and priority."""
-        self._refactor_action_batch_pickings_by(
-            lambda picking: (picking.scheduled_date.strftime("%Y-%m-%d"), picking.priority)
-        )
-
-    def refactor_action_batch_pickings_by_date(self):
-        """Batch pickings by date."""
-        self._refactor_action_batch_pickings_by(
-            lambda picking: (picking.scheduled_date.strftime("%Y-%m-%d"))
-        )
-
     def _refactor_action_batch_pickings_by(self, by_key):
         """
         Group picks in batches.
@@ -357,22 +327,22 @@ class StockMove(models.Model):
         PickingBatch = self.env["stock.picking.batch"]
 
         # Find existing draft batches.
-        picking_types = self.mapped("picking_type_id")
+        picking_types = self.picking_type_id
         batches = PickingBatch.search(
             [("state", "=", "draft"), ("picking_type_ids", "in", picking_types.ids)]
         )
-        batches.mapped("picking_ids")
+        batches.picking_ids
 
         # Index coherent batches by key.
         batches_by_key = {}
         for batch in batches:
-            pickings = batch.mapped("picking_ids")
+            pickings = batch.picking_ids
             keys = set(by_key(picking) for picking in pickings)
             if len(keys) == 1:
                 batches_by_key[next(iter(keys))] = batch
 
         # Add to a batch using by_key.
-        for picking in self.mapped("picking_id"):
+        for picking in self.picking_id:
             # Identify existing batch or create new batch.
             key = by_key(picking)
             batch = batches_by_key.get(key)
@@ -382,4 +352,3 @@ class StockMove(models.Model):
 
             # Associate picking to the batch.
             picking.write({"batch_id": batch.id})
-
