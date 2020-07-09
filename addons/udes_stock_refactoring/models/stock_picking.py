@@ -20,13 +20,10 @@ class StockPicking(models.Model):
         help="Pickings that are unused after refactoring are unmarked and deleted",
     )
 
-    def find_empty_pickings_to_unlink(self):
+    def get_unmarked_pickings(self):
         """
-        Finds empty pickings to unlink in self, when it is set, otherwise
-        searches for any empty picking.
-
-        Filter out of the generic search when the picking type does not
-        have auto unlink empty enabled.
+        Find and yield unmarked (u_mark = False) pickings.
+        Search in self when it is set, otherwise search all pickings.
         """
         PickingType = self.env["stock.picking.type"]
 
@@ -34,12 +31,14 @@ class StockPicking(models.Model):
             ("u_mark", "=", False),
             ("is_locked", "=", True),
         ]
+
         if self:
             domain.append(("id", "in", self.ids))
         else:
-            pts = PickingType.search([("u_auto_unlink_empty", "=", False)])
-            if pts:
-                domain.append(("picking_type_id", "not in", pts.ids))
+            picking_types = PickingType.search([("u_auto_unlink_empty", "=", True)])
+            if picking_types:
+                domain.append(("picking_type_id", "in", picking_types.ids))
+
         while True:
             records = self.search(domain, limit=1000)
             if not records:
@@ -181,12 +180,12 @@ class StockPicking(models.Model):
         This is to prevent us leaving junk data behind when refactoring
         """
         records = self.browse()
-        for to_unlink in self.find_empty_pickings_to_unlink():
+        for to_unlink in self.get_unmarked_pickings():
             records |= to_unlink
             _logger.info("Unlinking empty pickings %s", to_unlink)
-            moves = to_unlink.mapped("move_lines")
-            move_lines = to_unlink.mapped("move_line_ids")
-            non_empty_pickings = moves.mapped("picking_id") | move_lines.mapped("picking_id")
+            moves = to_unlink.move_lines
+            move_lines = to_unlink.move_line_ids
+            non_empty_pickings = moves.picking_id | move_lines.picking_id
             if non_empty_pickings:
                 raise ValidationError(
                     _("Trying to unlink non empty pickings: " "%s" % non_empty_pickings.ids)
