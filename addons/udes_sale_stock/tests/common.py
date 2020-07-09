@@ -1,5 +1,7 @@
 from odoo.addons.udes_stock.tests import common
 
+from datetime import datetime
+
 
 class BaseSaleUDES(common.BaseUDES):
 
@@ -30,6 +32,9 @@ class BaseSaleUDES(common.BaseUDES):
             'partner_invoice_id': customer.id,
             'partner_shipping_id': customer.id,
             'pricelist_id': cls.env.ref('product.list0').id,
+            'client_order_ref': 'Test',
+            'requested_date': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+
         }
         create_values.update(kwargs)
         return cls.env['sale.order'].create(create_values)

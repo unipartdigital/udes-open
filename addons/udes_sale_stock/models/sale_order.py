@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from collections import defaultdict
-from odoo import api, fields, models, tools
+from odoo import api, fields, models, tools, _
 from odoo.addons.udes_stock.models import common
 import logging
 from datetime import timedelta, date
@@ -44,6 +44,11 @@ class SaleOrder(models.Model):
         states={'done': [('readonly', True)], 'cancel': [('readonly', True)]}
     )
 
+    # Set Customer Reference and Requested Date fields to be required
+    # and to be copied when Order is duplicated
+    client_order_ref = fields.Char(required=True, copy=True)
+    requested_date = fields.Datetime(required=True, copy=True)
+
     @api.depends('order_line.move_ids.picking_id')
     def _compute_picking_ids_by_line(self):
         self.mapped('order_line.move_ids.picking_id')
@@ -61,6 +66,12 @@ class SaleOrder(models.Model):
             self._table,
             ['requested_date ASC', 'priority DESC', 'id ASC'],
         )
+
+    @api.multi
+    def copy(self, default=None):
+        """Append '(copy)' to Customer Reference for duplicated Order"""
+        default = dict(default or {}, client_order_ref=_("%s (copy)") % self.client_order_ref)
+        return super(SaleOrder, self).copy(default)
 
     @api.multi
     def _set_priority(self):
