@@ -95,6 +95,12 @@ class StockWarehouse(models.Model):
         help="Maximum depth for package hierarchy. I.e. a value of 2 would limit the number of levels in hierarchy to 2, one level of packages(with no subpackages) inside an outer package."
     )
 
+    u_inventory_adjust_reserved = fields.Boolean(
+        string="Inventory Adjust Reserved Stock",
+        default=True,
+        help="Allow users to inventory adjust reserved stock."
+    )
+
     @lazy_property
     def reserved_package_name(self):
         return list(

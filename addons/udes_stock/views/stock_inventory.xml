@@ -16,5 +16,36 @@
                 </xpath>
             </field>
         </record>
+
+        <record id="view_inventory_form" model="ir.ui.view">
+            <field name="name">stock.inventory.form</field>
+            <field name="model">stock.inventory</field>
+            <field name="inherit_id" ref="stock.view_inventory_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//header/button[@name='action_done']" position="attributes">
+                    <attribute name="name">button_done</attribute>
+                </xpath>
+            </field>
+        </record>
+
+        <record id="view_adjust_reserved" model="ir.ui.view">
+            <field name="name">stock.inventory.adjust.reserved.view.form</field>
+            <field name="model">stock.inventory</field>
+            <field name="priority">20</field>
+            <field name="arch" type="xml">
+                <form string="Adjust Reserved Stock?">
+                    <group>
+                        <p>
+                            The stock you are adjusting is reserved for picking(s).
+                            Do you want to continue or cancel?
+                        </p>
+                    </group>
+                    <footer>
+                        <button name="action_done" string="_Continue" type="object" class="btn-primary"/>
+                        <button string="Cancel" class="btn-default" special="cancel" />
+                    </footer>
+                </form>
+            </field>
+        </record>
     </data>
 </odoo>
