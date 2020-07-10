@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from abc import abstractmethod, abstractclassmethod
-from .registry import RegistryMeta
+from addons.udes_common.models.registry import RegistryMeta
 
 SUGGEST_LOCATION_REGISTRY = dict()
 
