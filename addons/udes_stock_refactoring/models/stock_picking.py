@@ -144,6 +144,29 @@ class StockPicking(models.Model):
 
         return picking
 
+    def _prepare_extra_info_for_new_picking_for_group(self, moves):
+        """
+        Given the group of moves to refactor and its related pickings,
+        prepare the extra info for the new pickings that might be created
+        for the group of moves.
+        Fields with more than one value are going to be ignored.
+        """
+        values = {}
+
+        origins = list(set(self.mapped("origin")))
+        if len(origins) == 1:
+            values["origin"] = origins[0]
+
+        partners = self.partner_id
+        if len(partners) == 1:
+            values["partner_id"] = partners.id
+
+        dates_done = list(set(moves.mapped("date")))
+        if len(dates_done) == 1:
+            values["date_done"] = dates_done[0]
+
+        return values
+
     def _get_package_search_domain(self, package):
         """Generate the domain for searching pickings of a package"""
         return [

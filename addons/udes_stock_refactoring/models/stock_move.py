@@ -206,29 +206,6 @@ class StockMove(models.Model):
         # force recompute on u_grouping_key so we have an up-to-date key:
         return self.with_context(compute_key=True).groupby(lambda ml: ml.u_grouping_key)
 
-    def _prepare_extra_info_for_new_picking_for_group(self, pickings, moves):
-        """
-        Given the group of moves to refactor and its related pickings,
-        prepare the extra info for the new pickings that might be created
-        for the group of moves.
-        Fields with more than one value are going to be ignored.
-        """
-        values = {}
-
-        origins = list(set(pickings.mapped("origin")))
-        if len(origins) == 1:
-            values["origin"] = origins[0]
-
-        partners = pickings.partner_id
-        if len(partners) == 1:
-            values["partner_id"] = partners.id
-
-        dates_done = list(set(moves.mapped("date")))
-        if len(dates_done) == 1:
-            values["date_done"] = dates_done[0]
-
-        return values
-
     def refactor_by_move_groups(self, groups):
         """
         Takes an iterator which produces key, move_group and moves
@@ -251,9 +228,7 @@ class StockMove(models.Model):
                     % (key, move_group.location_id, move_group.location_dest_id)
                 )
 
-            values = self._prepare_extra_info_for_new_picking_for_group(
-                move_group.picking_id, move_group
-            )
+            values = move_group.picking_id._prepare_extra_info_for_new_picking_for_group(move_group)
 
             Picking._new_picking_for_group(key, move_group, **values)
 
@@ -303,7 +278,7 @@ class StockMove(models.Model):
                 else:
                     group_moves |= move
 
-            values = self._prepare_extra_info_for_new_picking_for_group(group_pickings, group_moves)
+            values = group_pickings._prepare_extra_info_for_new_picking_for_group(group_moves)
 
             Picking._new_picking_for_group(key, group_moves, **values)
             result_moves |= group_moves
