@@ -14,6 +14,10 @@ class StockMoveLine(models.Model):
         """Compute grouping key from move line"""
         # The environment must include {'compute_key': True}
         # to allow the keys to be computed.
+
+        # TODO: Look into making this computed field stored so it only needs 
+        # to recalculate when the picking type move line key format is updated
+        # and check for improvements to performance.
         if not self.env.context.get("compute_key", False):
             return
         for move_line in self:

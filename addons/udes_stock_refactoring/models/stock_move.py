@@ -51,6 +51,10 @@ class StockMove(models.Model):
         # this with the equivalent for move_line_key
         # we need to think of how we want to do it
 
+        # TODO: Look into making this computed field stored so it only needs 
+        # to recalculate when the picking type move key format is updated
+        # and check for improvements to performance.
+
         # The environment must include {'compute_key': True}
         # to allow the keys to be computed.
         if not self.env.context.get("compute_key", False):
