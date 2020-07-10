@@ -102,14 +102,13 @@ class StockMove(models.Model):
         if self.env.context.get("disable_move_refactor"):
             return moves
 
-        refactor_moves = moves.filtered(
-            lambda m: m.picking_type_id and m.state not in ["draft", "cancel"]
-        )
-
+        refactor_lam = lambda m: m.picking_type_id and m.state not in ["draft", "cancel"]
         if stage is not None:
-            refactor_moves = refactor_moves.filtered(
-                lambda m: U_STOCK_REFACTOR_STAGES[m.state] == stage
-            )
+            refactor_lam = lambda m, lam=refactor_lam: U_STOCK_REFACTOR_STAGES[
+                m.state
+            ] == stage and lam(m)
+
+        refactor_moves = moves.filtered(refactor_lam)
 
         for picking_type, picking_type_moves in refactor_moves.groupby("picking_type_id"):
             for stage, stage_moves in picking_type_moves.groupby(
