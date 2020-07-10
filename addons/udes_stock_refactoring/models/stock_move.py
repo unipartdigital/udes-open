@@ -148,15 +148,17 @@ class StockMove(models.Model):
         it makes little sense to split moves at this stage, before they have
         stock reserved against them.
         """
+        Module = self.env["ir.module.module"]
+
         res = super(StockMove, self)._action_confirm(*args, **kwargs)
         post_refactor_moves = res.exists()._action_refactor(stage="confirm")
 
-        if post_refactor_moves != res:
+        if Module.is_module_installed("mrp") and post_refactor_moves != res:
             raise UserError(
                 _(
                     "Post confirm refactor has created or destroyed "
                     "moves, which could break things if you have the "
-                    "MRP module installed"
+                    "MRP module installed."
                 )
             )
         return res
