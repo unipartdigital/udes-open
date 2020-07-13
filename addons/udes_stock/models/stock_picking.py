@@ -226,7 +226,9 @@ class StockPicking(models.Model):
             if picking.can_handle_partials() is False:
                 prev_pickings_states = picking.u_prev_picking_ids.mapped("state")
                 picking.u_pending = (
-                    "waiting" in prev_pickings_states or "assigned" in prev_pickings_states
+                    "waiting" in prev_pickings_states
+                    or "assigned" in prev_pickings_states
+                    or "confirmed" in prev_pickings_states
                 )
             else:
                 picking.u_pending = False
