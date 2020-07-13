@@ -15,6 +15,7 @@
         "security/udes_sale_stock_security.xml",
         "data/stock_config.xml",
         "data/ir_cron.xml",
+        "views/edi_sale_request_views.xml",
         "views/sale_order_views.xml",
         "views/stock_warehouse.xml",
         "views/res_users_views.xml",
