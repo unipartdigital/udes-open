@@ -97,7 +97,7 @@ class StockWarehouse(models.Model):
 
     u_inventory_adjust_reserved = fields.Boolean(
         string="Inventory Adjust Reserved Stock",
-        default=True,
+        default=False,
         help="Allow users to inventory adjust reserved stock."
     )
 
