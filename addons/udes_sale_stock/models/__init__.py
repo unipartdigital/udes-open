@@ -8,4 +8,5 @@ from . import res_users
 from . import res_groups
 from . import partner_pii
 from . import edi_sale_request_document
+from . import edi_sale_request_record
 from . import stock_warehouse

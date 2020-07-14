@@ -16,6 +16,25 @@
           <field name="product_packaging"/>
           <field name="is_cancelled"/>
         </xpath>
+
+        <xpath expr="//field[@name='client_order_ref']" position="replace"/>
+
+        <xpath expr="//field[@name='partner_shipping_id']" position="after">
+          <field name="client_order_ref"/>
+        </xpath>
+      </field>
+    </record>
+
+    <record id="view_order_form_inherit_sale_stock_inherit_sale_order_dates_udes" model="ir.ui.view">
+      <field name="name">udes_sale_stock.sale.order.form.sale_order_dates.sale.stock</field>
+      <field name="model">sale.order</field>
+      <field name="inherit_id" ref="sale_order_dates.view_order_form_inherit_sale_stock_inherit_sale_order_dates"/>
+      <field name="arch" type="xml">
+        <xpath expr="//field[@name='requested_date']" position="replace"/>
+
+        <xpath expr="//field[@name='partner_shipping_id']" position="after">
+          <field name="requested_date"/>
+        </xpath>
       </field>
     </record>
 
