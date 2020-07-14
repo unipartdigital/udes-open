@@ -57,6 +57,8 @@
                     <field name="u_reserve_batches" />
                     <field name="u_auto_unlink_empty" />
                     <field name="u_restrict_multi_lot_pickings" />
+                    <field name="u_reserve_pallet_per_picking" />
+                    <field name="u_max_reservable_pallets" />
                 </group>
                 <group string="Pick Refactoring" groups='base.group_no_one'>
                     <field name="u_move_line_key_format" />

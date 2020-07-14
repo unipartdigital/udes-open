@@ -831,3 +831,11 @@ class TestPickingType(common.BaseUDES):
 
         with self.assertRaisesRegex(ValidationError, expected_exception_message):
             mix_lot_picking.action_done()
+
+    def test23_returns_reserve_pallet_per_picking_in_info(self):
+        info = self.picking_type_pick.get_info()
+        self.assertIn('u_reserve_pallet_per_picking', info[0])
+
+    def test24_returns_reserve_pallet_per_picking_in_info(self):
+        info = self.picking_type_pick.get_info()
+        self.assertIn('u_max_reservable_pallets', info[0])

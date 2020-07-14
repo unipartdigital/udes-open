@@ -48,7 +48,7 @@ The warehouse is made up of various locations for storing stock. There are two m
 
 ## Quants (model: stock.quant)
 
-Physical instances of products at a location are modelled as quants. Short of "quantitis of stock", these are used to record stock levels are various parts of the warehouse. Using the analogy of object-orientated programming, products = classes, quants = objects.
+Physical instances of products at a location are modelled as quants. Short for "quantities of stock", these are used to record stock levels are various parts of the warehouse. Using the analogy of object-orientated programming, products = classes, quants = objects.
 
 | Field Name  | Type          | Description |
 | ----------- | ------------- | ----------- |
@@ -126,6 +126,8 @@ A lot of custom UDES functionality is specfied at the picking type level. This i
 | u_enable_confirmations     | boolean | Flag to indicate if user has to perform any confirmation after picking a product.|
 | u_use_part_pallets         | boolean | Flag to indicate if each pallet is validated and processed at goods in as oppose scanning the whole ASN.|
 | u_auto_unlink_empty        | boolean | Flag to indicate whether to unlink empty pickings when searching for any empty picking in the system.|
+| u_reserve_pallet_per_picking | boolean | Flag to indicate whether pallets are reserved on pickings rather than batches. |
+| u_max_reservable_pallets   | int     | The maximum number of pallets that may be simultaneously reserved in a batch, if `u_reserve_pallets_per_picking` is `True`. |
 
 More on the enumeration fields below.
 

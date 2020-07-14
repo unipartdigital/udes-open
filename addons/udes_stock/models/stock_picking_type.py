@@ -345,6 +345,18 @@ class StockPickingType(models.Model):
         """
     )
 
+    u_reserve_pallet_per_picking = fields.Boolean(
+        string="Reserve one pallet per picking",
+        default=False,
+        help="If enabled, each picking in a batch will be associated with an "
+        "individual pallet")
+
+    u_max_reservable_pallets = fields.Integer(
+        string="Maximum pallets that may be simultaneously reserved in a batch.",
+        default=10,
+        help="This setting is only applied when u_reserve_pallet_per_picking is True"
+    )
+
     def do_refactor_action(self, action, moves):
         """Resolve and call the method to be executed on the moves.
 
@@ -406,6 +418,8 @@ class StockPickingType(models.Model):
             - u_num_reservable_pickings: int
             - u_reserve_batches: boolean
             - u_restrict_multi_lot_pickings: boolean
+            - u_reserve_pallet_per_picking: boolean
+            - u_max_reservable_pallets: int
         """
         self.ensure_one()
         Batch = self.env["stock.picking.batch"]
@@ -458,6 +472,8 @@ class StockPickingType(models.Model):
                 'u_num_reservable_pickings': self.u_num_reservable_pickings,
                 'u_reserve_batches': self.u_reserve_batches,
                 'u_restrict_multi_lot_pickings': self.u_restrict_multi_lot_pickings,
+                'u_reserve_pallet_per_picking': self.u_reserve_pallet_per_picking,
+                'u_max_reservable_pallets': self.u_max_reservable_pallets,
                 }
 
     def get_info(self):

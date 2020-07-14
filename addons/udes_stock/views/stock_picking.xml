@@ -8,6 +8,11 @@
         <field name="inherit_id" ref="stock.view_picking_form"/>
         <field name="arch" type="xml">
 
+            <!-- Show reserved pallet -->
+            <xpath expr="//field[@name='backorder_id']" position="after">
+              <field name="u_reserved_pallet" groups="udes_security.group_trusted_user"/>
+            </xpath>
+
             <!-- Add "Previous/Next Pickings" fields -->
             <xpath expr="//page[@name='extra']" position="inside">
                 <group>

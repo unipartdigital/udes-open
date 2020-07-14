@@ -1878,3 +1878,212 @@ class TestPalletReservation(common.BaseUDES):
 
         batch.reserve_pallet('UDES11111')
         batch.reserve_pallet('UDES11111')
+
+
+class TestMultipleOrders(common.BaseUDES):
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.pack_4apples_info = [{'product': cls.apple,
+                                  'qty': 4}]
+        cls.pack_4bananas_info = [{'product': cls.banana,
+                                  'qty': 4}]
+
+        cls.create_quant(cls.apple.id,
+                         cls.test_location_01.id,
+                         300,
+                         package_id=cls.create_package().id)
+        cls.create_quant(cls.banana.id,
+                         cls.test_location_02.id,
+                         300,
+                         package_id=cls.create_package().id)
+
+        cls.picking_type_pick.u_reserve_pallet_per_picking = True
+
+    def create_batch(self, user=None, **kwargs):
+        return super().create_batch(user=user, u_ephemeral=True, **kwargs)
+
+    def create_batch_with_picking(self):
+        batch = self.create_batch(user=self.outbound_user)
+        self.create_picking(self.picking_type_pick,
+                            products_info=self.pack_4apples_info,
+                            confirm=True,
+                            assign=True,
+                            batch_id=batch.id)
+        batch.mark_as_todo()
+        return batch
+
+    def complete_pick(self, picking):
+        for move in picking.move_lines:
+            move.write({
+                'quantity_done': move.product_uom_qty,
+                'location_dest_id': self.test_output_location_01.id,
+            })
+
+    def test01_associates_pallet_with_initial_batch_picking(self):
+        batch = self.create_batch_with_picking()
+        picking = batch.picking_ids
+        batch.reserve_pallet('UDES11111', picking=picking)
+
+        self.assertEqual(picking.u_reserved_pallet, 'UDES11111')
+
+    def test02_associates_pallets_with_respective_pickings(self):
+        batch = self.create_batch_with_picking()
+        picking1 = batch.picking_ids
+        batch.reserve_pallet('UDES11111', picking=picking1)
+        picking2 = self.create_picking(self.picking_type_pick,
+                                       products_info=self.pack_4bananas_info,
+                                       confirm=True,
+                                       assign=True)
+        batch.add_extra_pickings(self.picking_type_pick.id)
+        batch.reserve_pallet('UDES11112', picking=picking2)
+
+        self.assertEqual(sorted(batch.mapped('picking_ids.u_reserved_pallet')), ['UDES11111', 'UDES11112'])
+
+    def test03_raises_error_on_reservation_conflict_different_batch(self):
+        batch1 = self.create_batch_with_picking()
+        picking1 = batch1.picking_ids
+        batch1.reserve_pallet('UDES11111', picking=picking1)
+        picking2 = self.create_picking(self.picking_type_pick,
+                                       products_info=self.pack_4bananas_info,
+                                       confirm=True,
+                                       assign=True)
+        batch1.add_extra_pickings(self.picking_type_pick.id)
+        batch1.reserve_pallet('UDES11112', picking=picking2)
+        batch2 = self.create_batch_with_picking()
+        picking3 = batch2.picking_ids
+
+        expected_error = 'This pallet is already being used for picking %s.' % \
+                         picking1.name
+
+        with self.assertRaisesRegex(ValidationError, expected_error,
+                                    msg='Incorrect error thrown'):
+            batch2.reserve_pallet('UDES11111', picking=picking3)
+
+    def test04_raises_error_on_reservation_conflict_same_batch(self):
+        batch = self.create_batch_with_picking()
+        picking1 = batch.picking_ids
+        batch.reserve_pallet('UDES11111', picking=picking1)
+
+        picking2 = self.create_picking(self.picking_type_pick,
+                                       products_info=self.pack_4bananas_info,
+                                       confirm=True,
+                                       assign=True)
+        batch.add_extra_pickings(self.picking_type_pick.id)
+        expected_error = 'This pallet is already being used for picking %s.' % \
+                         picking1.name
+
+        with self.assertRaisesRegex(ValidationError, expected_error,
+                                    msg='Incorrect error thrown'):
+            batch.reserve_pallet('UDES11111', picking=picking2)
+
+    def test05_raises_exception_if_picking_is_not_in_batch(self):
+        batch = self.create_batch_with_picking()
+        picking1 = batch.picking_ids
+        batch.reserve_pallet('UDES11111', picking=picking1)
+        picking2 = self.create_picking(self.picking_type_pick,
+                                       products_info=self.pack_4bananas_info,
+                                       confirm=True,
+                                       assign=True)
+        expected_error = 'Picking %s is not in batch %s.' % \
+                         (picking2.name, batch.name)
+
+        with self.assertRaisesRegex(ValidationError, expected_error,
+                                    msg='Incorrect error thrown'):
+            batch.reserve_pallet('UDES11112', picking=picking2)
+
+    def test06_raises_exception_if_no_picking_provided(self):
+        batch = self.create_batch_with_picking()
+        expected_error = 'A picking must be specified if pallets are reserved per picking.'
+
+        with self.assertRaisesRegex(ValidationError, expected_error,
+                                    msg='Incorrect error thrown'):
+            batch.reserve_pallet('UDES11111')
+
+    def test07_clears_reserved_pallet_on_dropoff(self):
+        Batch = self.env['stock.picking.batch']
+        Batch = Batch.sudo(self.outbound_user)
+
+        batch = self.create_batch_with_picking()
+        picking = batch.picking_ids
+        batch.reserve_pallet('UDES11111', picking=picking)
+        self.complete_pick(picking)
+
+        self.assertEqual(sorted(batch.mapped('picking_ids.u_reserved_pallet')), ['UDES11111'])
+        batch.drop_off_picked(continue_batch=False,
+                              move_line_ids=picking.move_line_ids.ids,
+                              location_barcode=self.test_output_location_01.name, result_package_name=None)
+
+        self.assertEqual(sorted(batch.mapped('picking_ids.u_reserved_pallet')), [False])
+
+    def test08_raises_exception_if_maximum_reservable_pallets_exceeded(self):
+        self.picking_type_pick.u_max_reservable_pallets = 1
+
+        batch = self.create_batch_with_picking()
+        picking = batch.picking_ids
+        batch.reserve_pallet('UDES11111', picking=picking)
+
+        self.create_picking(self.picking_type_pick,
+                            products_info=self.pack_4bananas_info,
+                            confirm=True,
+                            assign=True)
+        expected_error = 'Only %d pallets may be reserved at a time.' % self.picking_type_pick.u_max_reservable_pallets
+
+        with self.assertRaisesRegex(ValidationError, expected_error,
+                                    msg='Incorrect error thrown'):
+            batch.add_extra_pickings(self.picking_type_pick.id)
+
+    def test09_raises_exception_if_batch_created_with_more_than_max_reservable_pallets(self):
+        Batch = self.env['stock.picking.batch']
+
+        self.picking_type_pick.u_max_reservable_pallets = 1
+
+        pickings = self.create_picking(self.picking_type_pick,
+                                       products_info=self.pack_4apples_info,
+                                       confirm=True,
+                                       assign=True)
+        pickings |= self.create_picking(self.picking_type_pick,
+                                        products_info=self.pack_4bananas_info,
+                                        confirm=True,
+                                        assign=True)
+        expected_error = 'Only %d pallets may be reserved at a time.' % self.picking_type_pick.u_max_reservable_pallets
+
+        with self.assertRaisesRegex(ValidationError, expected_error,
+                                    msg='Incorrect error thrown'):
+            Batch.create_batch(picking_type_id=None,
+                               picking_priorities=[],
+                               user_id=self.outbound_user.id,
+                               picking_id=pickings.ids)
+
+    def test10_resets_reserved_pallet_when_closing_batch(self):
+        batch = self.create_batch_with_picking()
+        picking = batch.picking_ids
+        batch.reserve_pallet('UDES11111', picking=picking)
+
+        batch.close()
+
+        self.assertFalse(picking.u_reserved_pallet)
+
+    def test11_resets_reserved_pallet_when_removing_unfinished_work(self):
+        batch = self.create_batch_with_picking()
+        picking = batch.picking_ids
+        batch.reserve_pallet('UDES11111', picking=picking)
+
+        batch.remove_unfinished_work()
+
+        self.assertFalse(picking.u_reserved_pallet)
+
+    def test12_resets_reserved_pallet_when_unpickable_item(self):
+        self.picking_type_pick.u_enable_unpickable_items = True
+
+        batch = self.create_batch_with_picking()
+        picking = batch.picking_ids
+        batch.reserve_pallet('UDES11111', picking=picking)
+        move_line = picking.move_line_ids[0]
+        reason = 'missing item'
+
+        batch.unpickable_item(package_name=move_line.package_id.name,
+                              reason=reason)
+
+        self.assertFalse(picking.u_reserved_pallet)

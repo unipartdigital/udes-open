@@ -179,7 +179,7 @@ class PickingBatchApi(UdesApi):
 
     @http.route('/api/stock-picking-batch/<ident>/reserve-pallet',
                 type='json', methods=['POST'], auth='user')
-    def reserve_pallet(self, ident, pallet_name):
+    def reserve_pallet(self, ident, pallet_name, picking_id=None):
         """
         Reserves a pallet for use in a batch.
 
@@ -192,6 +192,8 @@ class PickingBatchApi(UdesApi):
 
         @param pallet_name - Barcode of the pallet to be reserved.
         """
+        Picking = request.env['stock.picking']
+
         batch = _get_batch(request.env, ident)
 
         if batch.state != 'in_progress':
@@ -201,7 +203,11 @@ class PickingBatchApi(UdesApi):
             raise ValidationError(
                 _("The specified batch is not assigned to you."))
 
-        batch.reserve_pallet(pallet_name)
+        picking = None
+        if picking_id is not None:
+            picking = Picking.browse(int(picking_id))
+
+        batch.reserve_pallet(pallet_name, picking=picking)
 
         return True
 
