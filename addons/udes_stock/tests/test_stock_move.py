@@ -127,7 +127,7 @@ class TestStockMove(common.BaseUDES):
 
     def test05_pepare_and_create_single_move_line(self):
         """ Prepare and create a single move line and check values are correct """
-        product_uom_qty = 5
+        product_uom_qty = 2
 
         move_values = self.Picking._prepare_move(self.pick, [self._pick_info])
         move = self.Picking._create_move(move_values)
@@ -146,10 +146,17 @@ class TestStockMove(common.BaseUDES):
         self.assertEqual(len(move_line), 1)
         self.assertEqual(move.move_line_ids, move_line)
 
+        # Confirm picking and assign the stock
+        self.pick.action_confirm()
+        self.pick.action_assign()
+
     def test06_pepare_and_create_multiple_move_lines(self):
         """ Prepare and create a multiple move lines and check values are correct """
         apple_uom_qty = 5
-        banana_uom_qty = 10
+        banana_uom_qty = 2
+
+        # Create quant for apple
+        self.create_quant(self.apple.id, self.test_stock_location_01.id, apple_uom_qty)
 
         products_info = [
             {"product": self.apple, "qty": apple_uom_qty},
@@ -186,3 +193,7 @@ class TestStockMove(common.BaseUDES):
         self.assertEqual(len(move_lines), 2)
         self.assertEqual(apple_move.move_line_ids, apple_move_line)
         self.assertEqual(banana_move.move_line_ids, banana_move_line)
+
+        # Confirm picking and assign the stock
+        self.pick.action_confirm()
+        self.pick.action_assign()
