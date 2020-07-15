@@ -742,7 +742,7 @@ class TestUpdatePickingMarksMoveLinesAsDone(common.BaseUDES):
     @classmethod
     def setUpClass(cls):
         super(TestUpdatePickingMarksMoveLinesAsDone, cls).setUpClass()
-        cls.picking_type_in.u_target_storage_format = 'product'
+        cls.picking_type_pick.u_target_storage_format = 'product'
 
     def test01_child_drop_location_success(self):
         """ If the updated destination location is a child of the
@@ -862,3 +862,110 @@ class TestUpdatePickingMarksMoveLinesAsDone(common.BaseUDES):
                                    location_dest_id=self.test_location_01.id)
 
         self.assertEqual(e_2.exception.name, err)
+
+class TestUpdatePickingExplicitDropOff(common.BaseUDES):
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestUpdatePickingExplicitDropOff, cls).setUpClass()
+        cls.picking_type_pick.u_target_storage_format = 'pallet_products'
+
+        cls.create_quant(cls.apple.id, cls.test_location_01.id, 4)
+        cls.create_quant(cls.banana.id, cls.test_location_01.id, 4)
+        cls.create_quant(cls.cherry.id, cls.test_location_01.id, 4)
+        create_info = [
+            {'product': cls.apple,
+             'qty': 4,
+             'location_dest_id': cls.test_output_location_01.id},
+            {'product': cls.banana,
+             'qty': 4,
+             'location_dest_id': cls.test_output_location_01.id},
+            {'product': cls.cherry,
+             'qty': 4,
+             'location_dest_id': cls.test_output_location_01.id}]
+
+        cls.picking = cls.create_picking(cls.picking_type_pick,
+                                         products_info=create_info,
+                                         confirm=True,
+                                         assign=True)
+        cls.picking = cls.picking.sudo(cls.outbound_user)
+        cls.apple_move_line = cls.picking.move_line_ids.filtered(lambda ml: ml.product_id == cls.apple)
+        cls.banana_move_line = cls.picking.move_line_ids.filtered(lambda ml: ml.product_id == cls.banana)
+        cls.cherry_move_line = cls.picking.move_line_ids.filtered(lambda ml: ml.product_id == cls.cherry)
+
+    def test01_explicit_drop_off_all(self):
+        """ Test that update_picking updates the destination location of
+            completed move lines and only completed move lines when no products
+            are given.
+        """
+        product_ids = [
+            {'barcode': self.apple.barcode,
+             'qty': 4},
+            {'barcode': self.banana.barcode,
+             'qty': 4}]
+
+        self.picking.update_picking(product_ids=product_ids,
+                                    result_package_name='UDES100000',
+                                    location_dest_id=self.test_output_location_01.id)
+
+        self.assertEqual(self.apple_move_line.location_dest_id,
+                         self.test_output_location_01)
+        self.assertEqual(self.banana_move_line.location_dest_id,
+                         self.test_output_location_01)
+        self.assertEqual(self.cherry_move_line.location_dest_id,
+                         self.test_output_location_01)
+
+        # Drop off
+        self.picking.update_picking(location_dest_id=self.test_output_location_02.id)
+
+        self.assertEqual(self.apple_move_line.location_dest_id,
+                         self.test_output_location_02)
+        self.assertEqual(self.banana_move_line.location_dest_id,
+                         self.test_output_location_02)
+        self.assertEqual(self.cherry_move_line.location_dest_id,
+                         self.test_output_location_01)
+
+    def test02_explicit_drop_off_by_pallet(self):
+        """ Test that update_picking updates the destination location of
+            completed move lines with a given destination pallet.
+        """
+        product_ids_1 = [
+            {'barcode': self.apple.barcode,
+             'qty': 4},
+            {'barcode': self.banana.barcode,
+             'qty': 4}]
+        product_ids_2 = [
+            {'barcode': self.cherry.barcode,
+             'qty': 4}]
+
+        self.picking.update_picking(product_ids=product_ids_1,
+                                    result_package_name='UDES100000',
+                                    location_dest_id=self.test_output_location_01.id)
+        self.picking.update_picking(product_ids=product_ids_2,
+                                    result_package_name='UDES100001',
+                                    location_dest_id=self.test_output_location_01.id)
+
+        self.assertEqual(self.apple_move_line.location_dest_id,
+                         self.test_output_location_01)
+        self.assertEqual(self.banana_move_line.location_dest_id,
+                         self.test_output_location_01)
+        self.assertEqual(self.cherry_move_line.location_dest_id,
+                         self.test_output_location_01)
+
+        # Drop off first pallet
+        self.picking.update_picking(result_package_name='UDES100000',
+                                    location_dest_id=self.test_output_location_02.id)
+
+        self.assertEqual(self.apple_move_line.location_dest_id,
+                         self.test_output_location_02)
+        self.assertEqual(self.banana_move_line.location_dest_id,
+                         self.test_output_location_02)
+        self.assertEqual(self.cherry_move_line.location_dest_id,
+                         self.test_output_location_01)
+
+        # Drop off second pallet
+        self.picking.update_picking(result_package_name='UDES100001',
+                                    location_dest_id=self.test_output_location_02.id)
+
+        self.assertEqual(self.cherry_move_line.location_dest_id,
+                         self.test_output_location_02)

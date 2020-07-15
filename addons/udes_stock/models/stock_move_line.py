@@ -94,7 +94,7 @@ class StockMoveLine(models.Model):
             # CASE C: wrong combination of package names given
             elif products_info:
                 raise ValidationError(
-                    _("Invalid parameters for target storage format," " expecting result package.")
+                    _("Invalid parameters for target storage format, expecting result package.")
                 )
 
         elif target_storage_format == "pallet_products":
@@ -104,7 +104,7 @@ class StockMoveLine(models.Model):
                 result_package = Package.get_package(result_package, create=True).name
             elif products_info and not result_package and not scan_parent_package_end:
                 raise ValidationError(
-                    _("Invalid parameters for target storage format," " expecting result package.")
+                    _("Invalid parameters for target storage format, expecting result package.")
                 )
 
         elif target_storage_format == "package":
@@ -119,7 +119,7 @@ class StockMoveLine(models.Model):
             # when result storage format is products
             if result_package:
                 raise ValidationError(
-                    _("Invalid parameters for products target" " storage format.")
+                    _("Invalid parameters for products target storage format.")
                 )
 
         return (result_package, parent_package)
@@ -288,7 +288,7 @@ class StockMoveLine(models.Model):
             repeated_lot_numbers = [sn for sn, num in Counter(lot_numbers).items() if num > 1]
             if len(repeated_lot_numbers) > 0:
                 raise ValidationError(
-                    _("Lot numbers %s are repeated in picking %s for " "product %s")
+                    _("Lot numbers %s are repeated in picking %s for product %s")
                     % (
                         " ".join(repeated_lot_numbers),
                         move_lines.mapped("picking_id").name,
@@ -303,7 +303,7 @@ class StockMoveLine(models.Model):
                 # all mls should have lot id
                 if not mls_with_lot_id == product_mls:
                     raise ValidationError(
-                        _("Some move lines don't have lot_id in picking %s for " "product %s")
+                        _("Some move lines don't have lot_id in picking %s for product %s")
                         % (product_mls.mapped("picking_id").name, product.name)
                     )
 
@@ -315,14 +315,14 @@ class StockMoveLine(models.Model):
                     diff = set(lot_numbers) - set(mls_lot_numbers)
                     if product.tracking == "serial" and set(lot_numbers) != set(mls_lot_numbers):
                         raise ValidationError(
-                            _("Lot numbers %s for product %s not found in " "picking %s")
+                            _("Lot numbers %s for product %s not found in picking %s")
                             % (" ".join(diff), product.name, product_mls.mapped("picking_id").name)
                         )
 
                 done_mls = product_mls_in_lot_numbers.filtered(lambda ml: ml.qty_done > 0)
                 if product.tracking == "serial" and done_mls == product_mls_in_lot_numbers:
                     raise ValidationError(
-                        _("Operations for product %s with lot numbers %s are " "already done.")
+                        _("Operations for product %s with lot numbers %s are already done.")
                         % (product.name, ",".join(done_mls.mapped("lot_id.name")))
                     )
 
@@ -571,7 +571,7 @@ class StockMoveLine(models.Model):
             if self.lot_name:
                 # lot_name is set when it does not exist in the system
                 raise ValidationError(
-                    _("Trying to mark as done a move line with lot" " name already set: %s")
+                    _("Trying to mark as done a move line with lot name already set: %s")
                     % self.lot_name
                 )
             # lot_id is set when it already exists in the system
@@ -579,7 +579,7 @@ class StockMoveLine(models.Model):
             if ml_lot_name:
                 if ml_lot_name not in info["lot_names"]:
                     raise ValidationError(
-                        _("Cannot find lot number %s in the list" " of lot numbers to validate")
+                        _("Cannot find lot number %s in the list of lot numbers to validate")
                         % ml_lot_name
                     )
             else:
@@ -593,7 +593,7 @@ class StockMoveLine(models.Model):
         self.ensure_one()
         if "qty_done" not in values:
             raise ValidationError(
-                _("Cannot mark as done move line %s of picking %s without " "quantity done")
+                _("Cannot mark as done move line %s of picking %s without quantity done")
                 % (self.id, self.picking_id.name)
             )
 
@@ -668,7 +668,7 @@ class StockMoveLine(models.Model):
         res = self
         if self.qty_done > 0:
             raise ValidationError(
-                _("Trying to split a move line by quantity when the move line " "is alreay done")
+                _("Trying to split a move line by quantity when the move line is alreay done")
             )
         if (
             qty > 0
@@ -895,7 +895,7 @@ class StockMoveLine(models.Model):
             pt.u_move_line_key_format is False for pt in self.mapped("picking_id.picking_type_id")
         ):
             raise UserError(
-                _("Cannot group move lines when their picking type" "has no grouping key set.")
+                _("Cannot group move lines when their picking type has no grouping key set.")
             )
 
         by_key = lambda ml: ml.u_grouping_key
@@ -938,6 +938,7 @@ class StockMoveLine(models.Model):
             one of the suggested locations if the drop off policy
             is 'enforce' or 'enforce_with_empty'.
         """
+        Users = self.env["res.users"]
 
         if location is None:
             location = self.mapped("location_dest_id")
@@ -971,15 +972,23 @@ class StockMoveLine(models.Model):
                 if not mls:
                     continue
 
+                # location should be one of the suggested locations
                 locations = picking.get_suggested_locations(mls)
 
+                # or an empty location
                 if constraint == "enforce_with_empty":
                     locations = locations | picking.get_empty_locations()
+
+                # or the damaged stock location if the picking type is set up
+                # to handle damages
+                warehouse = Users.get_user_warehouse()
+                if picking.picking_type_id in warehouse.u_handle_damages_picking_type_ids:
+                    locations = locations | warehouse.u_damaged_location_id
 
                 # location should be one of the suggested locations, if any
                 if locations and location not in locations:
                     raise ValidationError(
-                        _("Drop off location must be one of the suggested " "locations")
+                        _("Drop off location must be one of the suggested locations")
                     )
 
     def any_destination_locations_default(self):
