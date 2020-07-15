@@ -17,7 +17,7 @@ class PrintStrategy(models.Model):
     )
     action_filter = fields.Char(
         'Action Filter',
-        readonly=True,
+        readonly=False,
         index=True
     )
 
