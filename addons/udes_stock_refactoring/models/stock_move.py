@@ -255,7 +255,7 @@ class StockMove(models.Model):
         result_moves = Move.browse()
 
         for key, ml_group in groups:
-            touched_moves = ml_group.mapped("move_id")
+            touched_moves = ml_group.move_id
 
             if len(touched_moves.location_id) > 1 or len(touched_moves.location_dest_id) > 1:
                 raise UserError(

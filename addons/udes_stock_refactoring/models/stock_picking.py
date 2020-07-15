@@ -87,10 +87,10 @@ class StockPicking(models.Model):
         """
         ProcurementGroup = self.env["procurement.group"]
 
-        picking_type = moves.mapped("picking_type_id")
+        picking_type = moves.picking_type_id
         picking_type.ensure_one()
-        src_loc = moves.mapped("location_id")
-        dest_loc = moves.mapped("location_dest_id")
+        src_loc = moves.location_id
+        dest_loc = moves.location_dest_id
 
         group = ProcurementGroup.get_or_create(group_key, create=True)
 
@@ -111,8 +111,8 @@ class StockPicking(models.Model):
             # already belong to it and it contains no other moves
             # The picking_type_id, location_id and location_dest_id
             # will match already
-            current_picking = moves.mapped("picking_id")
-            if len(current_picking) == 1 and current_picking.mapped("move_lines") == moves:
+            current_picking = moves.picking_id
+            if len(current_picking) == 1 and current_picking.move_lines == moves:
                 values = {"group_id": group.id}
                 values.update(kwargs)
 
@@ -134,7 +134,7 @@ class StockPicking(models.Model):
 
         moves.write({"group_id": group.id, "picking_id": picking.id})
 
-        move_lines = moves.mapped("move_line_ids")
+        move_lines = moves.move_line_ids
         if move_lines:
             move_lines.write({"picking_id": picking.id})
             # After moving move lines check entire packages again just in case
