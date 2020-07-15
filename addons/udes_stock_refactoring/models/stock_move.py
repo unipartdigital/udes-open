@@ -85,23 +85,23 @@ class StockMove(models.Model):
 
     def _action_refactor(self, stage=None):
         """
-        Refactor moves in self.
+        Refactor moves in self if any exist.
         :param stage: One of confirm|assign|done, if set, filters the moves
             which will be refactored to only the state(s) that match:
                 - 'confirm': confirmed, waiting
                 - 'assign': assigned, partially_available
                 - 'done': done
 
-           Methods doing a refactor are expected to take a single recordset of
-           moves on which they will act, and to return the recordset of
-           equivalent moves after they have been transformed.
-           The output moves may be identical to the input, may contain none
-           of the input moves, or anywhere in between.
-           The output should contain a functionally similar set of moves.
+        Methods doing a refactor are expected to take a single recordset of
+        moves on which they will act, and to return the recordset of
+        equivalent moves after they have been transformed.
+        The output moves may be identical to the input, may contain none
+        of the input moves, or anywhere in between.
+        The output should contain a functionally similar set of moves.
         """
         if stage is not None and stage not in U_STOCK_REFACTOR_STAGES.values():
             raise UserError(_("Unknown stage for move refactor: %s") % stage)
-        moves = self
+        moves = self.exists()
 
         if self.env.context.get("disable_move_refactor"):
             return moves
@@ -154,7 +154,7 @@ class StockMove(models.Model):
         Module = self.env["ir.module.module"]
 
         res = super(StockMove, self)._action_confirm(*args, **kwargs)
-        post_refactor_moves = res.exists()._action_refactor(stage="confirm")
+        post_refactor_moves = res._action_refactor(stage="confirm")
 
         if Module.is_module_installed("mrp") and post_refactor_moves != res:
             raise UserError(
@@ -175,7 +175,7 @@ class StockMove(models.Model):
         """
         res = super(StockMove, self)._action_assign()
 
-        self.exists()._action_refactor(stage="assign")
+        self._action_refactor(stage="assign")
         return res
 
     def _action_done(self, cancel_backorder=False):
@@ -188,7 +188,7 @@ class StockMove(models.Model):
         """
         done_moves = super(StockMove, self)._action_done()
 
-        post_refactor_done_moves = done_moves.exists()._action_refactor(stage="validate")
+        post_refactor_done_moves = done_moves._action_refactor(stage="validate")
         return post_refactor_done_moves
 
     def group_by_key(self):
