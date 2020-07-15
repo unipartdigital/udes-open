@@ -167,14 +167,6 @@ class StockPicking(models.Model):
 
         return values
 
-    def _get_package_search_domain(self, package):
-        """Generate the domain for searching pickings of a package"""
-        return [
-            "|",
-            ("move_line_ids.package_id", "child_of", package.id),
-            ("move_line_ids.result_package_id", "child_of", package.id),
-        ]
-
     def action_assign(self):
         """Override action_assign to unlink empty pickings if needed"""
         res = super(StockPicking, self).action_assign()
