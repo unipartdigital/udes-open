@@ -3,14 +3,14 @@
 from addons.udes_stock.tests import common
 
 
-class TestSplittingBase(common.BaseUDES):
+class TestRefactoringBase(common.BaseUDES):
     def setUp(self):
         """
-        Base test class for splitting tests
+        Base test class for refactoring tests
         Create pick with test pick type
         Create pallets and quants for apples and banana products
         """
-        super(TestSplittingBase, self).setUp()
+        super(TestRefactoringBase, self).setUp()
 
         self.picking = self.create_picking(self.picking_type_pick)
 
@@ -91,7 +91,7 @@ class TestSplittingBase(common.BaseUDES):
             self.assertEqual(picking.date_done, date_done)
 
 
-class TestAssignSplitting(TestSplittingBase):
+class TestAssignRefactoring(TestRefactoringBase):
     def setUp(self):
         """
         Set post assign action for test pick type
@@ -104,7 +104,7 @@ class TestAssignSplitting(TestSplittingBase):
             }
         )
 
-        super(TestAssignSplitting, self).setUp()
+        super(TestAssignRefactoring, self).setUp()
 
     def test_reserve_1_pallet_diff_prods_splits_1_pick_per_pallet(self):
         """
@@ -377,7 +377,7 @@ class TestAssignSplitting(TestSplittingBase):
         )
 
 
-class TestValidateSplitting(TestSplittingBase):
+class TestValidateRefactoring(TestRefactoringBase):
     def setUp(self):
         """
         Set post validate action for test pick type
@@ -390,7 +390,7 @@ class TestValidateSplitting(TestSplittingBase):
             }
         )
 
-        super(TestValidateSplitting, self).setUp()
+        super(TestValidateRefactoring, self).setUp()
 
     def test_validate_2_locations_splits_2_picks(self):
         """
@@ -611,7 +611,7 @@ class TestValidateSplitting(TestSplittingBase):
         )
 
 
-class TestConfirmSplitting(TestSplittingBase):
+class TestConfirmRefactoring(TestRefactoringBase):
     def setUp(self):
         """
         Set post confirm action for test pick type
@@ -624,7 +624,7 @@ class TestConfirmSplitting(TestSplittingBase):
             }
         )
 
-        super(TestConfirmSplitting, self).setUp()
+        super(TestConfirmRefactoring, self).setUp()
 
     def test_confirm_2_prods_assert_split_1_pick_per_prod(self):
         """
