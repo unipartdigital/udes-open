@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Trigger refactor on pickings -->
+    <record id="stock_picking_refactor_form" model="ir.ui.view">
+        <field name="name">stock.picking.refactor.form</field>
+        <field name="model">stock.picking.refactor.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Refactor Pickings">
+                <separator string="Are you sure?"/>
+                <footer>
+                    <button name="do_refactor" type="object" string="Do Refactor" class="btn-primary"/>
+                    <button string="Cancel" class="btn-default" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Trigger refactor on pickings action -->
+    <record id="stock_picking_refactor_action" model="ir.actions.act_window">
+        <field name="name">Refactor Pickings</field>
+        <field name="res_model">stock.picking.refactor.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="stock_picking_refactor_form"/>
+        <field name="target">new</field>
+    </record>
+
+    <act_window id="stock_picking_refactor_action_stock_picking"
+        name="Refactor Pickings"
+        res_model="stock.picking.refactor.wizard"
+        binding_model="stock.picking"
+        binding_views="list,form"
+        view_mode="form"
+        target="new"
+    />
+
+    <!-- Trigger refactor on batches -->
+    <record id="stock_picking_batch_refactor_form" model="ir.ui.view">
+        <field name="name">stock.picking.batch.refactor.form</field>
+        <field name="model">stock.picking.batch.refactor.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Refactor Batches">
+                <separator string="Are you sure?"/>
+                <footer>
+                    <button name="do_refactor" type="object" string="Do Refactor" class="btn-primary"/>
+                    <button string="Cancel" class="btn-default" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Trigger refactor on batch list view -->
+    <record id="stock_picking_batch_refactor_action" model="ir.actions.act_window">
+        <field name="name">Refactor Batches</field>
+        <field name="res_model">stock.picking.batch.refactor.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="stock_picking_refactor_form"/>
+        <field name="target">new</field>
+    </record>
+
+    <act_window id="stock_picking_refactor_action_stock_picking_batch"
+        name="Refactor Batches"
+        res_model="stock.picking.batch.refactor.wizard"
+        binding_model="stock.picking.batch"
+        binding_views="list,form"
+        view_mode="form"
+        target="new"
+    />
+
+    <!-- Trigger refactor on moves -->
+    <record id="stock_move_refactor_form" model="ir.ui.view">
+        <field name="name">stock.move.refactor.form</field>
+        <field name="model">stock.move.refactor.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Refactor Moves">
+                <separator string="Are you sure?"/>
+                <footer>
+                    <button name="do_refactor" type="object" string="Do Refactor" class="btn-primary"/>
+                    <button string="Cancel" class="btn-default" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Trigger refactor on moves action -->
+    <record id="stock_move_refactor_action" model="ir.actions.act_window">
+        <field name="name">Refactor Moves</field>
+        <field name="res_model">stock.move.refactor.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="stock_move_refactor_form"/>
+        <field name="target">new</field>
+    </record>
+
+    <act_window id="stock_move_refactor_action_stock_move"
+        name="Refactor Moves"
+        res_model="stock.move.refactor.wizard"
+        binding_model="stock.move"
+        binding_views="list,form"
+        view_mode="form"
+        target="new"
+    />
+
+</odoo>

@@ -8,6 +8,9 @@ class TestStockMove(common.BaseUDES):
     @classmethod
     def setUpClass(cls):
         super(TestStockMove, cls).setUpClass()
+        cls.Picking = cls.env["stock.picking"]
+        cls.Move = cls.env["stock.move"]
+
         # Create a picking
         cls._pick_info = [{"product": cls.banana, "qty": 6}]
         cls.quant1 = cls.create_quant(cls.banana.id, cls.test_stock_location_01.id, 5)
@@ -15,6 +18,20 @@ class TestStockMove(common.BaseUDES):
         cls.pick = cls.create_picking(
             cls.picking_type_pick, products_info=cls._pick_info, confirm=True, assign=True
         )
+
+    def _get_expected_move_line_values(self, move, qty, **kwargs):
+        """ Helper to get expected move line values """
+        expected_move_values = {
+            "move_id": move.id,
+            "product_id": move.product_id.id,
+            "product_uom_id": move.product_id.uom_id.id,
+            "product_uom_qty": qty,
+            "location_id": move.location_id.id,
+            "location_dest_id": move.location_dest_id.id,
+            "picking_id": move.picking_id.id,
+        }
+        expected_move_values.update(kwargs)
+        return expected_move_values
 
     def test01_split_out_move_lines_raise_error(self):
         """ Raise a value error when try to split out move lines from another move """
@@ -107,3 +124,76 @@ class TestStockMove(common.BaseUDES):
         new_move_lines = MoveLine.search([("product_id", "=", self.fig.id)])
         self.assertEqual(move_lines, new_move_lines)
         self.assertIn(pack2_ml, new_move_lines)
+
+    def test05_pepare_and_create_single_move_line(self):
+        """ Prepare and create a single move line and check values are correct """
+        product_uom_qty = 2
+
+        move_values = self.Picking._prepare_move(self.pick, [self._pick_info])
+        move = self.Picking._create_move(move_values)
+
+        # Check the prepared move_line_values are correct
+        move_line_values = self.Move._prepare_move_line(move, product_uom_qty)
+        self.assertEqual(
+            move_line_values, self._get_expected_move_line_values(move, product_uom_qty)
+        )
+
+        # Create the move line
+        move_line = self.Move._create_move_line(move_line_values)
+
+        # Check that one move line has been created and that the move now contains
+        # the created move line
+        self.assertEqual(len(move_line), 1)
+        self.assertEqual(move.move_line_ids, move_line)
+
+        # Confirm picking and assign the stock
+        self.pick.action_confirm()
+        self.pick.action_assign()
+
+    def test06_pepare_and_create_multiple_move_lines(self):
+        """ Prepare and create a multiple move lines and check values are correct """
+        apple_uom_qty = 5
+        banana_uom_qty = 2
+
+        # Create quant for apple
+        self.create_quant(self.apple.id, self.test_stock_location_01.id, apple_uom_qty)
+
+        products_info = [
+            {"product": self.apple, "qty": apple_uom_qty},
+            {"product": self.banana, "qty": banana_uom_qty},
+        ]
+
+        move_values = self.Picking._prepare_move(self.pick, [products_info])
+        moves = self.Picking._create_move(move_values)
+
+        apple_move = moves.filtered(lambda m: m.product_id == self.apple)
+        banana_move = moves.filtered(lambda m: m.product_id == self.banana)
+
+        # Check the prepared move_line_values are correct
+        moves_info = {
+            apple_move: apple_uom_qty,
+            banana_move: banana_uom_qty,
+        }
+        move_line_values = self.Move._prepare_move_lines(moves_info)
+
+        self.assertEqual(
+            move_line_values[0], self._get_expected_move_line_values(apple_move, apple_uom_qty)
+        )
+        self.assertEqual(
+            move_line_values[1], self._get_expected_move_line_values(banana_move, banana_uom_qty)
+        )
+
+        # Create the move lines
+        move_lines = self.Move._create_move_line(move_line_values)
+        apple_move_line = move_lines.filtered(lambda ml: ml.product_id == self.apple)
+        banana_move_line = move_lines.filtered(lambda ml: ml.product_id == self.banana)
+
+        # Check that two move lines have been created and that the apple and banana
+        # moves now contain the correct move lines that were created
+        self.assertEqual(len(move_lines), 2)
+        self.assertEqual(apple_move.move_line_ids, apple_move_line)
+        self.assertEqual(banana_move.move_line_ids, banana_move_line)
+
+        # Confirm picking and assign the stock
+        self.pick.action_confirm()
+        self.pick.action_assign()

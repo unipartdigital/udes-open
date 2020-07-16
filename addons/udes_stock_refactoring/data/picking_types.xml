@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<odoo>
+  <data>
+  
+    <record id="stock.picking_type_out" model="stock.picking.type">
+      <field name="u_post_assign_action">group_by_move_line_key</field>
+      <field name="u_move_line_key_format">{package_id.name}</field>
+    </record>
+
+    <record id="udes_stock.picking_type_putaway" model="stock.picking.type">
+      <field name="u_post_assign_action">group_by_move_line_key</field>
+      <field name="u_move_line_key_format">{package_id.name}</field>
+    </record>
+
+  </data>
+</odoo>

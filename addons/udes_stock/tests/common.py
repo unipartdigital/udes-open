@@ -326,10 +326,10 @@ class BaseUDES(common.SavepointCase):
             "name": "TestGoodsOut",
             "route_id": cls.route_out.id,
             "sequence": 20,
-            "location_id": picking_type_pick.default_location_dest_id.id,
-            "location_src_id": picking_type_out.default_location_dest_id.id,
+            "location_src_id": picking_type_pick.default_location_dest_id.id,
+            "location_id": picking_type_out.default_location_dest_id.id,
             "picking_type_id": picking_type_out.id,
-            "action": "pull",
+            "action": "pull_push",
         }
         path_out_goodsout = Rule.create(location_path_vals)
 
@@ -392,6 +392,46 @@ class BaseUDES(common.SavepointCase):
         )
 
     @classmethod
+    def create_move(cls, pickings, products_info, **kwargs):
+        """
+        Create and return move(s) for the given pickings and products using
+        _prepare_move and _create_move helper methods from stock.picking
+        """
+        Picking = cls.env["stock.picking"]
+
+        if not all(isinstance(el, list) for el in products_info):
+            # Convert the products_info to a list of lists
+            products_info = [products_info]
+
+        move_values = Picking._prepare_move(pickings, products_info, **kwargs)
+        moves = Picking._create_move(move_values)
+        return moves
+
+    @classmethod
+    def create_move_line(cls, move, qty, **kwargs):
+        """
+        Create and return a single move line for the given move and quantity using
+        _prepare_move_line and _create_move_line helper methods from stock.move
+        """
+        Move = cls.env["stock.move"]
+
+        move_line_values = Move._prepare_move_line(move, qty, **kwargs)
+        move_line = Move._create_move_line(move_line_values)
+        return move_line
+
+    @classmethod
+    def create_move_lines(cls, moves_info, **kwargs):
+        """
+        Create and return move line(s) for the given moves_info using
+        _prepare_move_lines and _create_move_line helper methods from stock.move
+        """
+        Move = cls.env["stock.move"]
+
+        move_line_values = Move._prepare_move_lines(moves_info, **kwargs)
+        move_lines = Move._create_move_line(move_line_values)
+        return move_lines
+
+    @classmethod
     def create_company(cls, name, **kwargs):
         """ Create and return a company """
         Company = cls.env["res.company"]
@@ -439,3 +479,10 @@ class BaseUDES(common.SavepointCase):
 
         vals.update(kwargs)
         return Batch.create(vals)
+
+    @classmethod
+    def create_partner(cls, name, **kwargs):
+        Partner = cls.env['res.partner']
+        vals = {'name': name}
+        vals.update(kwargs)
+        return Partner.create(vals)
