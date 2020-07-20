@@ -298,6 +298,7 @@ class StockPicking(models.Model):
         mls = self.mapped("move_line_ids")
         # Prevent recomputing the batch stat
         batches = mls.mapped("picking_id.batch_id")
+        next_pickings = self.mapped("u_next_picking_ids")
         res = super(StockPicking, self.with_context(lock_batch_state=True)).action_done()
 
         # just in case move lines change on action done, for instance cancelling
@@ -320,7 +321,7 @@ class StockPicking(models.Model):
             **extra_context
         ).run()
         if self:
-            self.unlink_empty()
+            (self | next_pickings).unlink_empty()
         return res
 
     def action_cancel(self):

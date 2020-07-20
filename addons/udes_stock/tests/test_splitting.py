@@ -17,6 +17,11 @@ class TestAssignSplitting(common.BaseUDES):
             'u_post_assign_action': 'group_by_move_line_key',
             'u_move_line_key_format': "{package_id.name}",
         })
+        # group by product post assign for out picking
+        self.picking_type_out.write({
+            'u_post_assign_action': 'group_by_move_line_key',
+            'u_move_line_key_format': "{product_id.name}",
+        })
 
         self.picking = self.create_picking(self.picking_type_pick)
 
@@ -256,6 +261,62 @@ class TestAssignSplitting(common.BaseUDES):
         self.assertEqual(apple_pick.location_id.id, self.test_location_01.id)
         self.assertEqual(apple_pick.location_dest_id.id, self.test_output_location_01.id)
 
+    def test07_remove_empty_pickings(self):
+        """Verify that when grouping happens in a subsequent picking, empty picks are
+        still removed as expected after being grouped and not left in draft"""
+        Picking = self.env["stock.picking"]
+        # Do not merge the out pickings
+        self.picking_type_pick.write({"u_create_procurement_group": True})
+        # Create quants and pickings, all separate packages to avoid grouping
+        pallet1 = self.create_package()
+        pallet2 = self.create_package()
+        pallet3 = self.create_package()
+        self.create_quant(
+            self.apple.id, self.test_location_01.id, 10, package_id=pallet1.id
+        )
+        self.create_quant(
+            self.apple.id, self.test_location_01.id, 10, package_id=pallet2.id
+        )
+        self.create_quant(
+            self.banana.id, self.test_location_02.id, 10, package_id=pallet3.id
+        )
+        self.create_move(self.apple, 10, self.picking)
+        picking1 = self.create_picking(
+            self.picking_type_pick, products_info=[{"product": self.apple, "qty": 10}]
+        )
+        picking2 = self.create_picking(
+            self.picking_type_pick, products_info=[{"product": self.banana, "qty": 10}]
+        )
+        # Check that picks are created correctly, in the correct states
+        pick_pickings = self.picking | picking1 | picking2
+        pick_pickings.action_assign()
+        out_pickings = pick_pickings.mapped("u_next_picking_ids")
+        self.assertEqual(pick_pickings.mapped("state"), 3 * ["assigned"])
+        self.assertEqual(out_pickings.mapped("state"), 3 * ["waiting"])
+
+        # Complete pickings
+        for ml in pick_pickings.mapped("move_line_ids"):
+            ml.write({"location_dest_id": self.test_output_location_01.id, "qty_done": 10})
+        pick_pickings.action_done()
+
+        # Get out_pickings again
+        apple_picking = Picking.get_pickings(package_name=pallet1.name, picking_type_ids = [self.picking_type_out.id])
+        banana_picking = Picking.get_pickings(package_name=pallet3.name, picking_type_ids = [self.picking_type_out.id])
+        out_pickings = apple_picking | banana_picking
+        
+        # Check state of pickings
+        self.assertEqual(pick_pickings.mapped("state"), 3 * ["done"])
+        self.assertEqual(out_pickings.mapped("state"), 2 * ["assigned"])
+        
+        # Check the pickings have the correct amount of move lines and package_ids
+        self.assertEqual(len(apple_picking.mapped("move_line_ids")), 2)
+        self.assertEqual((pallet1 | pallet2), apple_picking.move_line_ids.mapped("package_id"))
+        self.assertEqual(len(banana_picking.mapped("move_line_ids")), 1)
+        self.assertEqual(pallet3, banana_picking.move_line_ids.package_id)
+
+        # Check there are no picks in state draft of picking type out
+        all_out_pickings = Picking.search([("picking_type_id", "=", self.picking_type_out.id)])
+        self.assertEqual(all_out_pickings, out_pickings)
 
 class TestValidateSplitting(common.BaseUDES):
 
