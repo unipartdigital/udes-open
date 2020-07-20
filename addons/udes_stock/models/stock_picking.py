@@ -1850,6 +1850,28 @@ class StockPicking(models.Model):
         return location
 
     def _get_suggested_location_by_products(self, move_line_ids, products=None):
+        """Get suggested locations by matching product."""
+        return self._suggest_locations_products(move_line_ids, products)
+
+    def _get_suggested_location_by_product_lot(self, move_line_ids, products=None):
+        """Get suggested locations by matching both product and lot number.
+
+        If used on a product that is not tracked by lot then locations will be suggested
+        based on products.
+        """
+        return self._suggest_locations_products(move_line_ids, products, match_lots=True)
+
+    def _suggest_locations_products(self, move_line_ids, products=None, match_lots=False):
+        """Get suggested locations by matching product and optionally lot number.
+
+        If used on a product that is not tracked by lot then locations will be suggested
+        based on products.
+
+        Assumption: match_lots not used for goods in process, i.e. based on lots with ids.
+        During goods in, lots of quants on movelines won't be committed to the database so won't
+        have ids, only names. To allow this to work for goods in the search would have to be on
+        the name instead which would be less efficicent.
+        """
         Quant = self.env["stock.quant"]
 
         if not move_line_ids:
@@ -1863,14 +1885,25 @@ class StockPicking(models.Model):
         if not products:
             raise ValidationError(_("Products missing to suggest location for."))
 
-        suggested_locations = Quant.search(
-            [
-                ("product_id", "in", products.ids),
-                ("location_id", "child_of", self.location_dest_id.ids),
-                ("location_id.u_blocked", "=", False),
-                ("location_id.barcode", "!=", False),
-            ]
-        ).mapped("location_id")
+        if match_lots:
+            if len(products) > 1:
+                raise ValidationError(_("Cannot drop different products by lot number."))
+            lot_tracking = products.tracking == "lot"
+            if lot_tracking:
+                lots = move_line_ids.filtered(lambda ml: ml.product_id in products).mapped("lot_id")
+                if len(lots) != 1:
+                    raise ValidationError(_("Expecting a single lot number "
+                                            "when dropping by product and lot."))
+
+        quant_domain = [
+            ("product_id", "in", products.ids),
+            ("location_id", "child_of", self.location_dest_id.ids),
+            ("location_id.u_blocked", "=", False),
+            ("location_id.barcode", "!=", False),
+        ]
+        if match_lots and lot_tracking:
+            quant_domain.append(("lot_id", "in", lots.ids))
+        suggested_locations = Quant.search(quant_domain).mapped("location_id")
 
         if not suggested_locations:
             # No drop locations currently used for this product;

@@ -244,6 +244,7 @@ class StockPickingType(models.Model):
                 "Exactly Match The Move Line Destination Location",
             ),
             ("by_products", "By Products"),
+            ("by_product_lot", "By Product and Lot Number"),
             ("by_packages", "By Products in Packages"),
             ("by_height_speed", "By Height and Speed Category"),
             ("by_orderpoint", "By Order Point"),
