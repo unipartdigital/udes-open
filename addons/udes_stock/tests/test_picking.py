@@ -20,7 +20,7 @@ class TestGoodsInPicking(common.BaseUDES):
 
     def generate_picks_and_pallets_for_check_entire_pack(self):
         """
-            Generate picks and pallets for ready for_check_entire_pack function 
+            Generate picks and pallets for ready for_check_entire_pack function
         """
         Package = self.env['stock.quant.package']
         mummy_pallet = Package.get_package('mummy_pallet', create=True)
@@ -167,3 +167,212 @@ class TestGoodsInPicking(common.BaseUDES):
         _, pick = self.generate_picks_and_pallets_for_check_entire_pack()
         pick._check_entire_pack()
         self.assertFalse(pick.move_line_ids.u_result_parent_package_id)
+
+class TestSuggestedLocation(common.BaseUDES):
+
+    @classmethod
+    def setUpClass(cls):
+        """Setup test data to test suggested locations."""
+        super(TestSuggestedLocation, cls).setUpClass()
+
+        Location = cls.env['stock.location']
+        Picking = cls.env['stock.picking']
+
+        cls.test_location_03 = Location.create({
+            "name": "Test location 03",
+            "barcode": "LTEST03",
+            "location_id": cls.stock_location.id,
+        })
+        cls.test_location_04 = Location.create({
+            "name": "Test location 04",
+            "barcode": "LTEST04",
+            "location_id": cls.stock_location.id,
+        })
+        cls.test_locations += cls.test_location_03 + cls.test_location_04
+
+        cls.test_stock_quant_01 = cls.create_quant(
+            cls.tangerine.id,
+            cls.test_location_01.id,
+            10,
+            "TESTLOT001"
+        )
+        cls.test_stock_quant_02 = cls.create_quant(
+            cls.tangerine.id,
+            cls.test_location_02.id,
+            10,
+            "TESTLOT002"
+        )
+        # Create a non-lot tracked quant
+        cls.test_stock_quant_03 = cls.create_quant(
+            cls.apple.id,
+            cls.test_location_03.id,
+            10,
+        )
+
+        # Create a new lot tracked product
+        cls.uglyfruit = cls.create_product('Ugly Fruit', tracking='lot')
+
+    def create_and_assign_putaway_picking(
+        self,
+        products_info,
+        drop_policy="exactly_match_move_line"
+    ):
+        """Create and assign a putaway picking with associated quants created."""
+        for info in products_info:
+            test_quant = self.create_quant(
+                info["product"].id,
+                self.received_location.id,
+                info["qty"],
+            )
+            # Remove lot from dictionary (if present) so that it may be used in create_picking
+            lot = info.pop("lot", False)
+            if lot:
+                test_quant.lot_id = lot
+
+        self.picking_type_putaway.u_drop_location_policy = drop_policy
+        picking = self.create_picking(self.picking_type_putaway,
+                                      origin="test_picking_origin",
+                                      products_info=products_info,
+                                      assign=True)
+        picking = picking.sudo(self.inbound_user)
+        return picking
+
+    def test01_get_suggested_location_by_product_lot(self):
+        """Test that we can obtain the correct sugested location when
+        suggesting by product and lot.
+        """
+        drop_policy = "by_product_lot"
+        products_info = [
+            {"product": self.tangerine, "qty": 10, "lot": self.test_stock_quant_01.lot_id}
+        ]
+        picking = self.create_and_assign_putaway_picking(products_info, drop_policy)
+
+        suggested_locations = picking.get_suggested_locations(picking.move_line_ids)
+
+        # Assert that only a single location is returned;
+        # the location with the matching product and lot.
+        self.assertEqual(len(suggested_locations), 1)
+        self.assertTrue(self.test_location_01 in suggested_locations)
+        # To be thorough, test that a location with the same product
+        # but different lot is not returned.
+        self.assertFalse(self.test_location_02 in suggested_locations)
+
+    def test02_get_suggested_location_by_product_lot_no_match(self):
+        """Test that empty locations are returned when there are no suitable
+        locations when suggesting by product and lot.
+        """
+        drop_policy = "by_product_lot"
+        uf_lot = self.create_lot(self.uglyfruit.id, "TEST_UF_LOT001")
+        products_info = [{"product": self.uglyfruit, "qty": 10, "lot": uf_lot}]
+        picking = self.create_and_assign_putaway_picking(products_info, drop_policy)
+
+        suggested_locations = picking.get_suggested_locations(picking.move_line_ids)
+
+        # Assert that only a single location is returned;
+        # the empty location.
+        self.assertEqual(len(suggested_locations), 1)
+        self.assertTrue(self.test_location_04 in suggested_locations)
+
+    def test03_get_suggested_location_by_product_lot_multiple_lots(self):
+        """Test that an error is raised if we want to suggest a location
+        based on product and lot if there are multiple lots in the picking.
+        """
+        drop_policy = "by_product_lot"
+        products_info = [
+            {"product": self.tangerine, "qty": 10, "lot": self.test_stock_quant_01.lot_id},
+            {"product": self.tangerine, "qty": 10, "lot": self.test_stock_quant_02.lot_id}
+        ]
+        picking = self.create_and_assign_putaway_picking(products_info, drop_policy)
+
+        # Assert that suggesting locations raises an error
+        self.assertEqual(len(picking.move_line_ids), 2)
+        with self.assertRaises(ValidationError) as e:
+            picking.get_suggested_locations(picking.move_line_ids)
+            self.assertEqual(
+                e.exception.name,
+                "Expecting a single lot number "
+                "when dropping by product and lot."
+            )
+
+    def test04_get_suggested_location_by_product_lot_multiple_products(self):
+        """Test that an error is raised if we want to suggest a location
+        based on product and lot if there are multiple products in the picking.
+        """
+        drop_policy = "by_product_lot"
+        uf_lot = self.create_lot(self.uglyfruit.id, "TEST_UF_LOT001")
+        products_info = [
+            {"product": self.tangerine, "qty": 10, "lot": self.test_stock_quant_01.lot_id},
+            {"product": self.uglyfruit, "qty": 10, "lot": uf_lot}
+        ]
+        picking = self.create_and_assign_putaway_picking(products_info, drop_policy)
+
+        # Assert that suggesting locations raises an error
+        with self.assertRaises(ValidationError) as e:
+            picking.get_suggested_locations(picking.move_line_ids)
+            self.assertEqual(
+                e.exception.name,
+                "Cannot drop different products by lot number."
+            )
+
+    def test05_get_suggested_location_by_product_lot_not_tracked(self):
+        """Test that when a product is not lot tracked, locations of that product
+        are returned.
+        """
+        drop_policy = "by_product_lot"
+        products_info = [{"product": self.apple, "qty": 10}]
+        picking = self.create_and_assign_putaway_picking(products_info, drop_policy)
+
+        suggested_locations = picking.get_suggested_locations(picking.move_line_ids)
+
+        # Assert that only a single location is returned;
+        # the location with the matching product.
+        self.assertEqual(len(suggested_locations), 1)
+        self.assertTrue(self.test_location_03 in suggested_locations)
+
+    def test06_get_suggested_location_by_product(self):
+        """Test that we can obtain the correct sugested location when
+        suggesting by product.
+        """
+        drop_policy = "by_products"
+        products_info = [{"product": self.apple, "qty": 10}]
+        picking = self.create_and_assign_putaway_picking(products_info, drop_policy)
+
+        suggested_locations = picking.get_suggested_locations(picking.move_line_ids)
+
+        # Assert that only a single location is returned;
+        # the location with the matching product.
+        self.assertEqual(len(suggested_locations), 1)
+        self.assertTrue(self.test_location_03 in suggested_locations)
+
+    def test07_get_suggested_location_by_product_no_match(self):
+        """Test that empty locations are returned when there are no suitable
+        locations when suggesting by product.
+        """
+        drop_policy = "by_products"
+        products_info = [{"product": self.banana, "qty": 10}]
+        picking = self.create_and_assign_putaway_picking(products_info, drop_policy)
+
+        suggested_locations = picking.get_suggested_locations(picking.move_line_ids)
+
+        # Assert that only a single location is returned;
+        # the empty location.
+        self.assertEqual(len(suggested_locations), 1)
+        self.assertTrue(self.test_location_04 in suggested_locations)
+
+    def test08_get_suggested_location_by_product_all_lots(self):
+        """Test that we can obtain all locations for a lot tracked product when
+        suggesting by product.
+        """
+        drop_policy = "by_products"
+        products_info = [
+            {"product": self.tangerine, "qty": 10, "lot": self.test_stock_quant_01.lot_id}
+        ]
+        picking = self.create_and_assign_putaway_picking(products_info, drop_policy)
+
+        suggested_locations = picking.get_suggested_locations(picking.move_line_ids)
+
+        # Assert that two locations are returned;
+        # the location with the matching product and lot
+        # and the location with matching product but different lot.
+        self.assertEqual(len(suggested_locations), 2)
+        self.assertEqual(self.test_location_01 + self.test_location_02, suggested_locations)
