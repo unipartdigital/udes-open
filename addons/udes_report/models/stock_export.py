@@ -71,9 +71,11 @@ class StockExport(models.TransientModel):
         Product = self.env['product.product']
         Location = self.env['stock.location']
         all_quants = Quant.search([('location_id', 'child_of', locations.ids)])
+
         by_prod = lambda x: x.product_id.id
         by_location = lambda x: x.location_id.id
         by_package_name = lambda x: x.package_id.name or ''
+        by_lot_name = lambda x: x.lot_id.name or ''
 
         get_quants_by_loc = lambda quant_union: {
             Location.browse(loc): Quant.union(*_quants)
@@ -82,6 +84,11 @@ class StockExport(models.TransientModel):
 
         quants_by_prod_by_loc = OrderedDict()
         prod_summary = defaultdict(lambda: {'n_pkgs': 0, 'qty': 0})
+
+        # Determine if lots should be shown on the report
+        show_lots = False
+        if Product.search([("tracking", "=", "lot")]):
+            show_lots = True
 
         for prod, _quants in groupby(all_quants.sorted(key=by_prod),
                                      key=by_prod):
@@ -97,29 +104,37 @@ class StockExport(models.TransientModel):
             TIMESTAMP=datetime.now())
         wb = xlwt.Workbook()
 
-        # 1/2) 'Stock File': one entry for each (prod, package) pair
+        # 1/2) 'Stock File': one entry for each (prod, package, lot) combination
+        if show_lots:
+            row_titles = ['Part Number', 'Location', 'Package', 'Lot Number', 'Quantity']
+        else:
+            row_titles = ['Part Number', 'Location', 'Package', 'Quantity']
 
-        stock_sheet = _create_sheet(wb, 'Stock File', ['Part Number',
-                                                       'Location',
-                                                       'Package',
-                                                       'Quantity'])
+        stock_sheet = _create_sheet(wb, 'Stock File', row_titles)
 
         row = 0
         for prod, quants_by_location in quants_by_prod_by_loc.items():
             for location, quants in quants_by_location.items():
-                for pkg_name, grouped_quants in groupby(quants,
+                for pkg_name, grouped_quants in groupby(quants.sorted(key=by_package_name),
                                                         key=by_package_name):
-                    row += 1
-                    qty = get_prod_qty(grouped_quants)
+                    # If lots are not present then this will not change the rows
+                    for lot_name, lot_grouped_quants in groupby(grouped_quants,
+                                                                key=by_lot_name):
+                        row += 1
+                        qty = get_prod_qty(lot_grouped_quants)
 
-                    stock_sheet.write(row, 0, prod.default_code)
-                    stock_sheet.write(row, 1, location.display_name)
-                    stock_sheet.write(row, 2, pkg_name)
-                    stock_sheet.write(row, 3, qty)
+                        stock_sheet.write(row, 0, prod.default_code)
+                        stock_sheet.write(row, 1, location.display_name)
+                        stock_sheet.write(row, 2, pkg_name)
+                        if show_lots:
+                            stock_sheet.write(row, 3, lot_name)
+                            stock_sheet.write(row, 4, qty)
+                        else:
+                            stock_sheet.write(row, 3, qty)
 
-                    prod_summary[prod]['qty'] += qty
-                    if pkg_name:
-                        prod_summary[prod]['n_pkgs'] += 1
+                        prod_summary[prod]['qty'] += qty
+                        if pkg_name:
+                            prod_summary[prod]['n_pkgs'] += 1
 
         # 2/2) 'Stock Summary': one entry for each prod
 
