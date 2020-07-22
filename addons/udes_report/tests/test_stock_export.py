@@ -82,7 +82,7 @@ class TestStockExport(BaseUDES):
 
             _timestr = datetime.datetime.today().strftime('%Y-%m-%d %H:%M')
             self.assertIn('warehouse_stock_{}'.format(_timestr),
-                          self.stock_export._write_workbook.call_args[0][1])
+                          self.stock_export._write_workbook.call_args[0][0])
 
     #
     ## Movement
@@ -122,7 +122,7 @@ class TestStockExport(BaseUDES):
 
             _timestr = datetime.datetime.today().strftime("%Y-%m-%d %H:%M")
             self.assertIn("warehouse_movement_{}".format(_timestr),
-                          self.stock_export._write_workbook.call_args[0][1])
+                          self.stock_export._write_workbook.call_args[0][0])
 
     def test_check_message(self):
         """Check that message is sent"""

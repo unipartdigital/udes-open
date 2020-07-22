@@ -62,94 +62,78 @@ class StockExport(models.TransientModel):
             1) part number, location, package ID and quantity;
             2) part number, number of packages and total quantity.
         '''
-        locations = self.included_locations - self.excluded_locations
+        file_name = 'warehouse_stock_{TIMESTAMP}.xls'.format(TIMESTAMP=datetime.now())
 
+        data = self._generate_stock_file_data()
+        self._write_workbook(file_name, "Stock File", data, send_file_via=send_file_via)
+
+    def _generate_stock_file_data(self):
+        '''
+        Generate data for the stock file.
+
+        This will contain 2 sheets that may then be exported to any format
+        (currently only excel)
+        Sheets:
+            1) part number, location, package ID and quantity;
+            2) part number, number of packages and total quantity.
+        '''
+        Quant = self.env['stock.quant']
+        Product = self.env['product.product']
+
+        locations = self.included_locations - self.excluded_locations
         if not locations:
             raise UserError(_("The specified list of Stock Locations is empty."))
 
-        Quant = self.env['stock.quant']
-        Product = self.env['product.product']
-        Location = self.env['stock.location']
         all_quants = Quant.search([('location_id', 'child_of', locations.ids)])
-
-        by_prod = lambda x: x.product_id.id
-        by_location = lambda x: x.location_id.id
-        by_package_name = lambda x: x.package_id.name or ''
-        by_lot_name = lambda x: x.lot_id.name or ''
-
-        get_quants_by_loc = lambda quant_union: {
-            Location.browse(loc): Quant.union(*_quants)
-            for loc, _quants in groupby(quant_union.sorted(key=by_location),
-                                        key=by_location)}
 
         quants_by_prod_by_loc = OrderedDict()
         prod_summary = defaultdict(lambda: {'n_pkgs': 0, 'qty': 0})
 
-        # Determine if lots should be shown on the report
-        show_lots = False
-        if Product.search([("tracking", "=", "lot")]):
-            show_lots = True
+        for prod, quants in all_quants.groupby('product_id'):
+            quants_by_prod_by_loc[prod] = {loc: grouped_quants
+                                           for loc, grouped_quants in quants.groupby("location_id")}
 
-        for prod, _quants in groupby(all_quants.sorted(key=by_prod),
-                                     key=by_prod):
-            quant_prods = Product.browse(prod)
-            quants_u = Quant.union(*_quants)
-            quants_by_prod_by_loc[quant_prods] = get_quants_by_loc(quants_u)
+        # 1/2) 'Stock File': one entry for each prod, package and lot (if applicable)
+        stock_file_data = {"name": 'Stock File'}
+        # Determine if lots/serials should be shown on the report
+        show_tracking = bool(Product.search([("tracking", "!=", "none")], order="id", limit=1))
 
-        def get_prod_qty(quants):
-            return sum(Quant.union(*quants).mapped('quantity'))
+        headers = ['Part Number', 'Location', 'Package', 'Quantity']
+        if show_tracking:
+            headers.insert(3, 'Lot/Serial Number')
+        stock_file_data["column_titles"] = headers
 
-        _logger.info(_('Creating Excel file'))
-        file_name = 'warehouse_stock_{TIMESTAMP}.xls'.format(
-            TIMESTAMP=datetime.now())
-        wb = xlwt.Workbook()
-
-        # 1/2) 'Stock File': one entry for each (prod, package, lot) combination
-        if show_lots:
-            row_titles = ['Part Number', 'Location', 'Package', 'Lot Number', 'Quantity']
-        else:
-            row_titles = ['Part Number', 'Location', 'Package', 'Quantity']
-
-        stock_sheet = _create_sheet(wb, 'Stock File', row_titles)
-
-        row = 0
+        rows = []
         for prod, quants_by_location in quants_by_prod_by_loc.items():
             for location, quants in quants_by_location.items():
-                for pkg_name, grouped_quants in groupby(quants.sorted(key=by_package_name),
-                                                        key=by_package_name):
-                    # If lots are not present then this will not change the rows
-                    for lot_name, lot_grouped_quants in groupby(grouped_quants,
-                                                                key=by_lot_name):
-                        row += 1
-                        qty = get_prod_qty(lot_grouped_quants)
-
-                        stock_sheet.write(row, 0, prod.default_code)
-                        stock_sheet.write(row, 1, location.display_name)
-                        stock_sheet.write(row, 2, pkg_name)
-                        if show_lots:
-                            stock_sheet.write(row, 3, lot_name)
-                            stock_sheet.write(row, 4, qty)
-                        else:
-                            stock_sheet.write(row, 3, qty)
-
+                for pkg_name, grouped_quants in quants.groupby(lambda x: x.package_id.name or ''):
+                    for lot_name, lot_grouped_quants in grouped_quants.groupby(lambda x:
+                                                                               x.lot_id.name or ''):
+                        qty = lot_grouped_quants.total_quantity()
+                        row = {'Part Number': prod.default_code,
+                               'Location': location.display_name,
+                               'Package': pkg_name,
+                               'Quantity': qty}
+                        if show_tracking:
+                            row['Lot/Serial Number'] = lot_name
+                        rows.append(row)
                         prod_summary[prod]['qty'] += qty
-                        if pkg_name:
-                            prod_summary[prod]['n_pkgs'] += 1
+                    if pkg_name:
+                        prod_summary[prod]['n_pkgs'] += 1
+        stock_file_data['rows'] = rows
 
         # 2/2) 'Stock Summary': one entry for each prod
+        stock_summary = {"name": "Stock Summary"}
+        stock_summary["column_titles"] = ['Part Number', 'Package Count', 'Quantity']
 
-        summary_sheet = _create_sheet(wb, 'Stock Summary', ['Part Number',
-                                                            'Package Count',
-                                                            'Quantity'])
+        rows = []
+        for (prod, summary) in sorted(prod_summary.items(), key=lambda x: x[0].id):
+            rows.append({'Part Number': prod.default_code,
+                         'Package Count': summary['n_pkgs'],
+                         'Quantity': summary['qty']})
+        stock_summary['rows'] = rows
 
-        for row, (prod, summary) in enumerate(
-                sorted(prod_summary.items(), key=lambda x: x[0].id), 1):
-            summary_sheet.write(row, 0, prod.default_code)
-            summary_sheet.write(row, 1, summary['n_pkgs'])
-            summary_sheet.write(row, 2, summary['qty'])
-
-        self._write_workbook(wb, file_name, "Stock File",
-                             send_file_via=send_file_via)
+        return [stock_file_data, stock_summary]
 
     def run_movement_file_export(self, context=None, send_file_via='user'):
         '''
@@ -159,19 +143,33 @@ class StockExport(models.TransientModel):
             1) Goods In:  Reference, Part number, Package, Quantity;
             2) Goods Out: Reference, Part number, Package, Quantity.
         '''
+        file_name = 'warehouse_movement_{TIMESTAMP}.xls'.format(TIMESTAMP=datetime.now())
+
+        data = self._generate_movement_file_data()
+        self._write_workbook(file_name, "Movement File", data, send_file_via=send_file_via)
+
+    def _generate_movement_file_data(self):
+        '''
+        Creates movement file data summarising the stock
+        received and sent for a given date, i.e. goods-in and goods-out
+        stock moves done, in two different tabs containing:
+            1) Goods In:  Reference, Part number, Package, Quantity;
+            2) Goods Out: Reference, Part number, Package, Quantity.
+        '''
+        Users = self.env['res.users']
+        Move = self.env['stock.move']
+
         if not self.date:
             raise UserError(_("Date not specified."))
 
         self.field_data = False
         self.field_name = False
 
-        Users = self.env['res.users']
         warehouse = Users.get_user_warehouse()
         picking_type_in = warehouse.in_type_id
         picking_type_out = warehouse.out_type_id
         picking_types = picking_type_in | picking_type_out
 
-        Move = self.env['stock.move']
         moves = Move.search([('state', '=', 'done'),
                              ('picking_type_id', 'in', picking_types.ids),
                              ('date', '>', self.date + " 00:00:00"),
@@ -180,35 +178,47 @@ class StockExport(models.TransientModel):
         in_moves = moves.filtered(lambda m: m.picking_type_id == picking_type_in)
         out_moves = moves.filtered(lambda m: m.picking_type_id == picking_type_out)
 
-        _logger.info(_('Creating Excel file'))
-        file_name = 'warehouse_movement_{TIMESTAMP}.xls'.format(
-            TIMESTAMP=datetime.now())
-        wb = xlwt.Workbook()
-
-        for goods_moves, sheet_name in [(in_moves, "Goods In"),
-                                        (out_moves, "Goods Out")]:
-            sheet = _create_sheet(wb, sheet_name, ['Reference',
-                                                   'Part number',
-                                                   'Package',
-                                                   'Quantity'])
-
-            row = 0
+        data = []
+        for goods_moves, sheet_name in [(in_moves, "Goods In"), (out_moves, "Goods Out")]:
+            move_data = {
+                "name": sheet_name,
+                "column_titles": ['Reference', 'Part number', 'Package', 'Quantity']
+            }
+            rows = []
             for move in goods_moves:
                 for move_line in move.mapped('move_line_ids'):
-                    row += 1
-                    sheet.write(row, 0, move.picking_id.origin)
-                    sheet.write(row, 1, move.product_id.display_name)
-                    sheet.write(row, 2, move_line.result_package_id.name)
-                    sheet.write(row, 3, move_line.qty_done)
+                    rows.append(
+                        {'Reference': move.picking_id.origin,
+                         'Part number': move.product_id.display_name,
+                         'Package': move_line.result_package_id.name,
+                         'Quantity': move_line.qty_done}
+                    )
+            move_data['rows'] = rows
+            data.append(move_data)
 
-        self._write_workbook(wb, file_name, "Movement File",
-                             send_file_via=send_file_via)
+        return data
 
     @api.model
-    def _write_workbook(self, workbook, file_name, doc_title,
-                        send_file_via='user'):
+    def _write_workbook(self, file_name, doc_title, sheets_data, send_file_via="user"):
+        """Write data to workbook.
+
+        sheets_data is a list of sheets in dict format. [{sheet1}, {sheet2}, ...]
+        Each sheet {name, column_titles, rows} has a "name", a list of "column_titles" and
+        "rows"; a list of dicts with keys that match the column_titles
+        that contains data for the rows [{r1}, {r2}, ...].
+        """
+        # Generate workbook from data
+        _logger.info(_('Creating Excel file'))
+        wb = xlwt.Workbook()
+        for sheet_data in sheets_data:
+            column_names = sheet_data.get("column_titles")
+            sheet = _create_sheet(wb, sheet_data.get("name", "Sheet"), column_names)
+            for row_number, row in enumerate(sheet_data["rows"]):
+                for column_number, column_name in enumerate(column_names):
+                    sheet.write(row_number + 1, column_number, row.get(column_name, ""))
+
         with closing(BytesIO()) as output:
-            workbook.save(output)
+            wb.save(output)
             data = output.getvalue()
 
         file_data = base64.b64encode(data)
