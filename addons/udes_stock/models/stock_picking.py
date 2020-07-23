@@ -1999,7 +1999,7 @@ class StockPicking(models.Model):
             # remove locations which are already used in move lines
             valid_locations -= MoveLines.search(
                 [
-                    ("state", "=", "assigned"),
+                    ("state", "in", ["assigned", "partially_available"]),
                     ("location_dest_id", "in", valid_locations.ids),
                 ]
             ).mapped("location_dest_id")

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from . import common
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import ValidationError
 
 class TestGoodsInPicking(common.BaseUDES):
 
@@ -176,7 +176,6 @@ class TestSuggestedLocation(common.BaseUDES):
         super(TestSuggestedLocation, cls).setUpClass()
 
         Location = cls.env['stock.location']
-        Picking = cls.env['stock.picking']
 
         cls.test_location_03 = Location.create({
             "name": "Test location 03",
@@ -376,3 +375,34 @@ class TestSuggestedLocation(common.BaseUDES):
         # and the location with matching product but different lot.
         self.assertEqual(len(suggested_locations), 2)
         self.assertEqual(self.test_location_01 + self.test_location_02, suggested_locations)
+
+    def test09_considers_partially_available_move_lines_when_suggesting_location(self):
+        """Test that we don't suggest locations associated with partially
+        available move lines.
+        """
+        Location = self.env['stock.location']
+
+        drop_policy = "by_height_speed"
+        products_info = [{"product": self.apple, "qty": 10}]
+        self.product_category_slow = self.create_category(name='Slow')
+        self.product_category_ground = self.create_category(name='Ground')
+        self.apple.u_height_category_id = self.product_category_ground
+        self.apple.u_speed_category_id = self.product_category_slow
+
+        # We need another empty location
+        self.test_location_05 = Location.create({
+            "name": "Test location 05",
+            "barcode": "LTEST05",
+            "location_id": self.stock_location.id,
+        })
+
+        picking1 = self.create_and_assign_putaway_picking(products_info, drop_policy)
+        picking2 = self.create_and_assign_putaway_picking(products_info, drop_policy)
+        picking1.apply_drop_location_policy()
+        picking1.move_lines[0].product_uom_qty += 1
+        self.assertEqual(picking1.move_line_ids.state, 'partially_available')
+
+        suggested_locations = picking2.get_suggested_locations(picking2.move_line_ids)
+
+        self.assertNotIn(picking1.move_line_ids.location_dest_id, suggested_locations)
+        self.assertEqual(suggested_locations, self.test_location_05)
