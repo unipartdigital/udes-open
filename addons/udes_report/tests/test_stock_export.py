@@ -84,6 +84,88 @@ class TestStockExport(BaseUDES):
             self.assertIn('warehouse_stock_{}'.format(_timestr),
                           self.stock_export._write_workbook.call_args[0][0])
 
+    def test_generate_stock_file_data(self):
+        """Test that stock file data is correctly generated."""
+        self.stock_export.included_locations = self.stock_location
+
+        expected_column_titles_stock_file = [
+            'Part Number',
+            'Location',
+            'Package',
+            'Lot/Serial Number',
+            'Quantity'
+        ]
+        expected_rows_stock_file = [
+            {
+                'Part Number': self.apple_quant.product_id.default_code,
+                'Location': self.apple_quant.location_id.display_name,
+                'Package': self.apple_quant.package_id.display_name,
+                'Quantity': self.apple_quant.quantity,
+                'Lot/Serial Number': "",
+             },
+            {
+                'Part Number': self.cherry_quant.product_id.default_code,
+                'Location': self.cherry_quant.location_id.display_name,
+                'Package': "",
+                'Quantity': self.cherry_quant.quantity,
+                'Lot/Serial Number': "",
+             },
+        ]
+        expected_column_titles_stock_summary = ['Part Number', 'Package Count', 'Quantity']
+        expected_rows_stock_summary = [
+            {
+                'Part Number': self.apple_quant.product_id.default_code,
+                'Package Count': 1,
+                'Quantity': self.apple_quant.quantity
+            },
+            {
+                'Part Number': self.cherry_quant.product_id.default_code,
+                'Package Count': 0,
+                'Quantity': self.cherry_quant.quantity
+            }
+        ]
+
+        data = self.stock_export._generate_stock_file_data()
+
+        self.assertEqual(data[0]["name"], "Stock File")
+        self.assertEqual(data[0]["column_titles"], expected_column_titles_stock_file)
+        self.assertEqual(data[0]["rows"], expected_rows_stock_file)
+
+        self.assertEqual(data[1]["name"], "Stock Summary")
+        self.assertEqual(data[1]["column_titles"], expected_column_titles_stock_summary)
+        self.assertEqual(data[1]["rows"], expected_rows_stock_summary)
+
+    def test_stock_file_tracking(self):
+        """"Check that the data for the stock file correctly displays
+        tracking numbers if required.
+        """
+        self.stock_export.included_locations = self.stock_location
+        # Assert tracking column is present even when not in stock.
+        data = self.stock_export._generate_stock_file_data()
+        self.assertTrue("Lot/Serial Number" in data[0]["column_titles"])
+        self.assertFalse(any(row["Lot/Serial Number"] for row in data[0]["rows"]))
+
+        # Test that tracking info is not displayed if no products are lot tracked
+        self.tangerine.tracking = "none"
+        self.strawberry.tracking = "none"
+        data = self.stock_export._generate_stock_file_data()
+        self.assertFalse("Lot/Serial Number" in data[0]["column_titles"])
+
+        # Test that a lots are correctly shown if one is present
+        self.tangerine.tracking = "lot"
+        self.create_quant(
+            product_id=self.tangerine.id,
+            location_id=self.test_location_02.id,
+            qty=5,
+            serial_number="TESTLOT001",
+        )
+        data = self.stock_export._generate_stock_file_data()
+        self.assertTrue("Lot/Serial Number" in data[0]["column_titles"])
+        self.assertTrue(all(row["Lot/Serial Number"] == "TESTLOT001" for row in data[0]["rows"]
+                        if row['Part Number'] == self.tangerine.default_code))
+        self.assertFalse(any(row["Lot/Serial Number"] for row in data[0]["rows"]
+                             if row['Part Number'] != self.tangerine.default_code))
+
     #
     ## Movement
     #
@@ -143,7 +225,6 @@ class TestStockExport(BaseUDES):
 
         self.assertEqual(len(new_msg), 1)
         self.assertIn('.xls Stock File is attached', new_msg.body)
-
 
     def test_check_email(self):
         """Check that email is sent"""
