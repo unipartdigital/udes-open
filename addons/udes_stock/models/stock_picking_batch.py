@@ -759,7 +759,6 @@ class StockPickingBatch(models.Model):
                   'Press back when resolved.')
             )
 
-
     def unpickable_item(self,
                         reason,
                         product_id=None,
@@ -770,11 +769,8 @@ class StockPickingBatch(models.Model):
         """
         Given an unpickable product or package, find the related
         move lines in the current batch, backorder them and refine
-        the backorder (by default it is canceled).
-        Then create a new stock investigation picking for the
-        unpickable stock.
-        If the picking was the last one of the batch, the batch is
-        set as done.
+        the backorder. Then create a new stock investigation picking
+        for the unpickable stock.
 
         An unpickable product requires at least the location_id and
         optionally the package_id and lot_name.
@@ -782,6 +778,7 @@ class StockPickingBatch(models.Model):
         self.ensure_one()
 
         Package = self.env['stock.quant.package']
+        Picking = self.env['stock.picking']
         Location = self.env['stock.location']
         Product = self.env['product.product']
 
@@ -792,7 +789,6 @@ class StockPickingBatch(models.Model):
         package = Package.get_package(package_name) if package_name else None
         allow_partial = False
         move_lines = self.get_available_move_lines()
-
         if product:
             if not location:
                 raise ValidationError(
@@ -834,29 +830,37 @@ class StockPickingBatch(models.Model):
                 _('Cannot find move lines todo for unpickable item '
                   'in this batch.'))
 
-        # at this point we should have only one picking_id
-        picking = move_lines.mapped('picking_id')
-        picking.message_post(body=msg)
+        pickings = move_lines.mapped('picking_id')
+        original_picking_ids = {}
+        if raise_stock_investigation:
+            to_investigate = Picking.browse()
+        for picking in pickings:
+            picking.message_post(body=msg)
 
-        if picking.batch_id != self:
-            raise ValidationError(_('Move line is not part of the batch.'))
+            if picking.batch_id != self:
+                raise ValidationError(_('Move line is not part of the batch.'))
 
-        if picking.state in ['cancel', 'done']:
-            raise ValidationError(_('Cannot mark a move line as unpickable '
-                                    'when it is part of a completed Picking.'))
+            if picking.state in ['cancel', 'done']:
+                raise ValidationError(_('Cannot mark a move line as unpickable '
+                                        'when it is part of a completed Picking.'))
 
-        original_picking_id = None
+            original_id = None
 
-        if len(picking.move_line_ids - move_lines):
-            # Create a backorder for the affected move lines if
-            # there are move lines that are not affected
-            original_picking_id = picking.id
-            picking = picking._backorder_movelines(move_lines)
+            if len(picking.move_line_ids - move_lines):
+                # Create a backorder for the affected move lines if
+                # there are move lines that are not affected
+                original_id = picking.id
+                picking = picking._backorder_movelines(picking.move_line_ids & move_lines)
+            original_picking_ids[picking] = original_id
 
-        moves = picking.move_lines
+            if raise_stock_investigation:
+                to_investigate |= picking
+            else:
+                picking.batch_id = False
+
         if raise_stock_investigation:
             # By default the pick is unreserved
-            picking.with_context(
+            to_investigate.with_context(
                 lock_batch_state=True,
                 allow_partial=allow_partial,
             ).raise_stock_inv(
@@ -865,29 +869,28 @@ class StockPickingBatch(models.Model):
                 location=location,
             )
 
-            if picking.exists() \
-                    and picking.state == 'assigned' \
-                    and original_picking_id is not None\
-                    and not picking.picking_type_id.u_post_assign_action:
-                # A backorder has been created, but the stock is
-                # available; get rid of the backorder after linking the
-                # move lines to the original picking, so it can be
-                # directly processed
-                picking.move_line_ids.write({'picking_id': original_picking_id})
-                picking.move_lines.write({'picking_id': original_picking_id})
-                picking.unlink()
-            else:
-                # Moves may be part of a new picking after refactor, this should
-                # be added back to the batch
-                moves.mapped('picking_id')\
-                    .filtered(lambda p: p.state == 'assigned')\
-                    .write({'batch_id': self.id})
-            self._remove_unready_picks()
-            self._compute_state()
-
-        else:
-            picking.batch_id = False
-
+            for picking in to_investigate:
+                moves = picking.move_lines
+                original_picking_id = original_picking_ids[picking]
+                if picking.exists() \
+                        and picking.state == 'assigned' \
+                        and original_picking_id is not None\
+                        and not picking.picking_type_id.u_post_assign_action:
+                    # A backorder has been created, but the stock is
+                    # available; get rid of the backorder after linking the
+                    # move lines to the original picking, so it can be
+                    # directly processed
+                    picking.move_line_ids.write({'picking_id': original_picking_id})
+                    picking.move_lines.write({'picking_id': original_picking_id})
+                    picking.unlink()
+                else:
+                    # Moves may be part of a new picking after refactor, this should
+                    # be added back to the batch
+                    moves.mapped('picking_id')\
+                        .filtered(lambda p: p.state == 'assigned')\
+                        .write({'batch_id': self.id})
+                self._remove_unready_picks()
+                self._compute_state()
         return True
 
     def get_available_move_lines(self):
