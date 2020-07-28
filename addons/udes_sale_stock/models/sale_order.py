@@ -101,23 +101,52 @@ class SaleOrder(models.Model):
 
     @api.model
     def cancel_orders_without_availability(self):
-        """ From the current list of unconfirmed SO lines, cancel lines that
-        cannot be fulfilled with current stock holding """
-        OrderLine = self.env["sale.order.line"]
+        """From the current list of unconfirmed SO lines, cancel lines that
+        cannot be fulfilled with current stock holding and returns them"""
         Order = self.env["sale.order"]
+
+        # Get order lines
+        orders = Order.search([("state", "in", ["sale", "draft"])])
+        unfulfillable_lines = orders._find_unfulfillable_order_lines()
+
+        _logger.info("Cancelling %s unfulfillable order lines", len(unfulfillable_lines))
+        if unfulfillable_lines:
+            # Cancel these lines
+            with self.statistics() as stats:
+                unfulfillable_lines.action_cancel()
+                unfulfillable_lines.write({"is_cancelled_due_shortage": True})
+
+            _logger.info(
+                "Sale lines on orders %s cancelled in %.2fs, %d queries, due to" " stock shortage,",
+                ", ".join(unfulfillable_lines.mapped("order_id.name")),
+                stats.elapsed,
+                stats.count,
+            )
+
+            cancelled_sales = unfulfillable_lines.mapped("order_id").filtered(
+                lambda x: x.state == "cancel"
+            )
+            if cancelled_sales:
+                _logger.info(
+                    "Sales %s cancelled due to missing stock",
+                    ", ".join(cancelled_sales.mapped("name")),
+                )
+
+        return unfulfillable_lines
+
+    def _find_unfulfillable_order_lines(self, batch_size=1000):
+        """Find unfullfilable order lines due to lack of stock."""
+        OrderLine = self.env["sale.order.line"]
+
+        # Create empty record sets for SO lines
+        unfulfillable_lines = OrderLine.browse()
 
         _logger.info("Checking orders to cancel due to stock shortage")
         # Get unreserved stock for each product in locations
         locations = self.get_available_stock_locations()
         stock = defaultdict(int)
 
-        # Create empty record sets for SO lines
-        cant_fulfill = OrderLine.browse()
-
-        # Get order lines
-        orders = Order.search([("state", "in", ["sale", "draft"])])
-
-        for r, batch in orders.batched(size=1000):
+        for r, batch in self.batched(size=batch_size):
             _logger.info("Checking orders %d-%d", r[0], r[-1])
             # Cache the needed fields and only the needed fields
             # This code has to process tens of thousands of sale order lines
@@ -167,35 +196,17 @@ class SaleOrder(models.Model):
                     if stock[product] >= qty_ordered:
                         stock[product] = stock[product] - qty_ordered
                     else:
-                        cant_fulfill |= line
+                        unfulfillable_lines |= line
 
             # Empty cached stuff
             batch.invalidate_cache()
 
-        _logger.info("Cancelling %s unfulfillable order lines", len(cant_fulfill))
-        if cant_fulfill:
-            # Cancel these lines
-            with self.statistics() as stats:
-                cant_fulfill.action_cancel()
-                cant_fulfill.write({"is_cancelled_due_shortage": True})
+        return unfulfillable_lines
 
-            _logger.info(
-                "Sale lines on orders %s cancelled in %.2fs, %d queries, due to" " stock shortage,",
-                ", ".join(cant_fulfill.mapped("order_id.name")),
-                stats.elapsed,
-                stats.count,
-            )
-
-            cancelled_sales = cant_fulfill.mapped("order_id").filtered(
-                lambda x: x.state == "cancel"
-            )
-            if cancelled_sales:
-                _logger.info(
-                    "Sales %s cancelling due to missing stock",
-                    ", ".join(cancelled_sales.mapped("name")),
-                )
-
-        return cant_fulfill
+    def _find_unfulfillable_orders(self, batch_size=1000):
+        """Find unfullfilable orders due to lack of stock."""
+        unfulfillable_lines = self._find_unfulfillable_order_lines(batch_size)
+        return unfulfillable_lines.mapped("order_id")
 
     def check_delivered(self):
         """ Update sale orders state based on the states of their related
