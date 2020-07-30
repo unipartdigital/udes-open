@@ -538,10 +538,11 @@ class BaseUDES(common.SavepointCase):
     @classmethod
     def create_stock_inventory(cls, name, **kwargs):
         """Create a stock inventory record."""
+        StockInventory = cls.env["stock.inventory"]
         vals = {
             "name": name,
             "location_id": cls.env.ref("stock.stock_location_stock").id,
             "filter": "none",
         }
         vals.update(kwargs)
-        return cls.env["stock.inventory"].create(vals)
+        return StockInventory.create(vals)
