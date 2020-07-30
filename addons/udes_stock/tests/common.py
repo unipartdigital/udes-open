@@ -515,10 +515,11 @@ class BaseUDES(common.SavepointCase):
         vals.update(kwargs)
         return Batch.create(vals)
 
-    def create_package(self, **kwargs):
+    @classmethod
+    def create_package(cls, **kwargs):
         """Create and return a new package
         """
-        Package = self.env['stock.quant.package']
+        Package = cls.env['stock.quant.package']
         vals = {}
         vals.update(kwargs)
         return Package.create(vals)
