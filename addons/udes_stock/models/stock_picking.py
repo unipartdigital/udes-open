@@ -279,6 +279,46 @@ class StockPicking(models.Model):
                     % picking.name
                 )
 
+    def assert_not_lot_restricted(self):
+        """
+        Assert that the pickings in self are not restricted based on lot.
+        If picking operation type restricts multi lot transfers then check for number of unique
+        lots in move lines and raise an error if picking contains more than one. Pickings that
+        contain a mix of set lot and empty lot move lines will also raise an error.
+        """
+        restrict_multi_lot_pickings = self.filtered(
+            lambda p: p.picking_type_id.u_restrict_multi_lot_pickings
+        )
+
+        for pick in restrict_multi_lot_pickings:
+            # Get the move lines tracked by lot or by none
+            non_serial_move_line_ids = pick.move_line_ids.filtered(
+                lambda ml: ml.product_id.tracking != "serial"
+            )
+
+            if non_serial_move_line_ids:
+                # Count the number of unique lots in the move lines
+                lots = non_serial_move_line_ids.mapped("lot_id")
+                lot_count = len(lots)
+
+                if lot_count:
+                    if lot_count > 1:
+                        raise ValidationError(_("Cannot validate transfer with multiple lots."))
+
+                    # Count the move lines without a lot set
+                    empty_lot_move_line_ids = non_serial_move_line_ids.filtered(
+                        lambda ml: not ml.lot_id
+                    )
+                    empty_lot_count = len(empty_lot_move_line_ids)
+
+                    if lot_count and empty_lot_count:
+                        raise ValidationError(
+                            _(
+                                "Cannot validate transfer with both set lot and empty lot "
+                                "move lines."
+                            )
+                        )
+
     def action_assign(self):
         """
         Unlink empty pickings after action_assign, as there may be junk data
@@ -299,6 +339,7 @@ class StockPicking(models.Model):
         # Prevent recomputing the batch stat
         batches = mls.mapped("picking_id.batch_id")
         next_pickings = self.mapped("u_next_picking_ids")
+
         res = super(StockPicking, self.with_context(lock_batch_state=True)).action_done()
 
         # just in case move lines change on action done, for instance cancelling
@@ -308,6 +349,8 @@ class StockPicking(models.Model):
         # batches of the following stage should also be recomputed
         all_picks = picks | picks.mapped("u_next_picking_ids")
         all_picks.with_context(lock_batch_state=False)._trigger_batch_state_recompute()
+
+        self.assert_not_lot_restricted()
 
         extra_context = {}
         if hasattr(self, "get_extra_printing_context"):
