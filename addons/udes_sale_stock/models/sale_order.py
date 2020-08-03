@@ -6,8 +6,12 @@ from odoo.addons.udes_stock.models import common
 import logging
 from datetime import timedelta, date
 import time
+import traceback
 
 from psycopg2 import OperationalError, errorcodes
+
+from .. import exceptions
+
 
 PG_CONCURRENCY_ERRORS_TO_RETRY = (
     errorcodes.LOCK_NOT_AVAILABLE,
@@ -311,8 +315,17 @@ class SaleOrder(models.Model):
         the other batches may still be confirmed, attempting to maximise the number of
         orders that may be confirmed.
         """
+
+        def extract_exception_data(err):
+            """Extract information from an exception for later reporting."""
+            tbe = traceback.TracebackException.from_exception(err)
+            trace = "".join(tbe.format())
+            data = "{}\n{}".format(str(err), trace)
+            return data
+
         to_confirm = self.search(self._get_confirmation_domain())
-        for _, batch in to_confirm.batched(size=1000):
+        exception_data = []
+        for __, batch in to_confirm.batched(size=1000):
             tries = 0
             while True:
                 try:
@@ -323,7 +336,6 @@ class SaleOrder(models.Model):
                 except OperationalError as e:
                     self.invalidate_cache()
                     if e.pgcode not in PG_CONCURRENCY_ERRORS_TO_RETRY:
-                        # don't do this
                         raise
                     if tries >= MAX_TRIES_ON_CONCURRENCY_FAILURE:
                         _logger.info(
@@ -342,9 +354,10 @@ class SaleOrder(models.Model):
                         )
                     )
                     time.sleep(wait_time)
-                except Exception:
+                except Exception as e:
                     _logger.exception("Error confirming orders.")
                     self.invalidate_cache()
+                    exception_data.append(extract_exception_data(e))
                     break
             if tries >= MAX_TRIES_ON_CONCURRENCY_FAILURE:
                 break
@@ -353,6 +366,14 @@ class SaleOrder(models.Model):
             # allow serialisation error to propagate.
             self.env.cr.commit()
             self.invalidate_cache()
+        if exception_data:
+            # Raise an exception that includes details of the exceptions that
+            # have been suppressed, in case we want to expose this information
+            # somewhere else.
+            collected_exceptions = '\n\n'.join(exception_data)
+            _logger.error(collected_exceptions)
+            raise exceptions.CombinedException('At least one error occurred while confirming orders.',
+                                               collected_exceptions=collected_exceptions) from None
 
         return True
 
