@@ -3,9 +3,11 @@
 from collections import defaultdict
 from odoo import api, fields, models, tools
 from odoo.addons.udes_stock.models import common
+from odoo.exceptions import ValidationError
 import logging
 from datetime import timedelta, date
 import time
+import traceback
 
 from psycopg2 import OperationalError, errorcodes
 
@@ -297,8 +299,17 @@ class SaleOrder(models.Model):
         """Process sale and cancel, confirm or ignore sale orders according to
            order processing configuration.
         """
-        to_confirm = self.search([('state', '=', 'draft')])
-        for _, batch in to_confirm.batched(size=1000):
+
+        def extract_exception_data(err):
+            """Extract information from an exception for later reporting."""
+            tbe = traceback.TracebackException.from_exception(err)
+            trace = "".join(tbe.format())
+            data = "{}\n{}".format(str(err), trace)
+            return data
+
+        to_confirm = self.search([("state", "=", "draft")])
+        exception_data = []
+        for __, batch in to_confirm.batched(size=1000):
             tries = 0
             while True:
                 try:
@@ -309,7 +320,6 @@ class SaleOrder(models.Model):
                 except OperationalError as e:
                     self.invalidate_cache()
                     if e.pgcode not in PG_CONCURRENCY_ERRORS_TO_RETRY:
-                        # don't do this
                         raise
                     if tries >= MAX_TRIES_ON_CONCURRENCY_FAILURE:
                         _logger.info(
@@ -328,9 +338,10 @@ class SaleOrder(models.Model):
                         )
                     )
                     time.sleep(wait_time)
-                except Exception:
-                    _logger.exception('Error confirming orders.')
+                except Exception as e:
+                    _logger.exception("Error confirming orders.")
                     self.invalidate_cache()
+                    exception_data.append(extract_exception_data(e))
                     break
             if tries >= MAX_TRIES_ON_CONCURRENCY_FAILURE:
                 break
@@ -339,8 +350,30 @@ class SaleOrder(models.Model):
             # allow serialisation error to propagate.
             self.env.cr.commit()
             self.invalidate_cache()
+        if exception_data:
+            # Raise an exception including details of the exceptions that have
+            # suppressed, in case we want to expose this information somewhere.
+            collected_exceptions = '\n\n'.join(exception_data)
+            _logger.error(collected_exceptions)
+            raise CombinedException('At least one error occurred while confirming orders.',
+                                    collected_exceptions=collected_exceptions) from None
 
         return True
+
+
+class CombinedException(ValidationError):
+    """
+    An exception which contains detals of other exceptions.
+
+    We inherit from `ValidationError` because Odoo evaluates code provided through an
+    action's `code` attribute with odoo.tools.unsafe_eval, which many exception
+    types as ValueErrors.  This loses the extra information in
+    `collected_exceptions`, which we would like to keep.
+    """
+
+    def __init__(self, msg, collected_exceptions, *args):
+        super().__init__(msg, *args)
+        self.collected_exceptions = collected_exceptions
 
 
 class SaleOrderCancelWizard(models.TransientModel):
