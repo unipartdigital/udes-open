@@ -351,8 +351,9 @@ class SaleOrder(models.Model):
             self.env.cr.commit()
             self.invalidate_cache()
         if exception_data:
-            # Raise an exception including details of the exceptions that have
-            # suppressed, in case we want to expose this information somewhere.
+            # Raise an exception that includes details of the exceptions that
+            # have been suppressed, in case we want to expose this information
+            # somewhere else.
             collected_exceptions = '\n\n'.join(exception_data)
             _logger.error(collected_exceptions)
             raise CombinedException('At least one error occurred while confirming orders.',
