@@ -299,11 +299,19 @@ class SaleOrder(models.Model):
         """ Override to disable tracking by default """
         return super(SaleOrder, self.with_context(tracking_disable=True)).action_confirm()
 
+    def _get_confirmation_domain(self):
+        """Returns the domain for sale orders to attempt confirmation."""
+        return [("state", "=", "draft")]
+
     def confirm_orders(self):
-        """Process sale and cancel, confirm or ignore sale orders according to
-           order processing configuration.
+        """Attempt to confirm sale orders.
+
+        This is done in batches to reduce the chance of concurrency errors
+        when confirming large numbers of orders at once. If one batch fails
+        the other batches may still be confirmed, attempting to maximise the number of
+        orders that may be confirmed.
         """
-        to_confirm = self.search([("state", "=", "draft")])
+        to_confirm = self.search(self._get_confirmation_domain())
         for _, batch in to_confirm.batched(size=1000):
             tries = 0
             while True:
