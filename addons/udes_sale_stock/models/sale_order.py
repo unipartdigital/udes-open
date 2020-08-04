@@ -3,13 +3,15 @@
 from collections import defaultdict
 from odoo import api, fields, models, tools
 from odoo.addons.udes_stock.models import common
-from odoo.exceptions import ValidationError
 import logging
 from datetime import timedelta, date
 import time
 import traceback
 
 from psycopg2 import OperationalError, errorcodes
+
+from .. import exceptions
+
 
 PG_CONCURRENCY_ERRORS_TO_RETRY = (
     errorcodes.LOCK_NOT_AVAILABLE,
@@ -356,25 +358,10 @@ class SaleOrder(models.Model):
             # somewhere else.
             collected_exceptions = '\n\n'.join(exception_data)
             _logger.error(collected_exceptions)
-            raise CombinedException('At least one error occurred while confirming orders.',
-                                    collected_exceptions=collected_exceptions) from None
+            raise exceptions.CombinedException('At least one error occurred while confirming orders.',
+                                               collected_exceptions=collected_exceptions) from None
 
         return True
-
-
-class CombinedException(ValidationError):
-    """
-    An exception which contains detals of other exceptions.
-
-    We inherit from `ValidationError` because Odoo evaluates code provided through an
-    action's `code` attribute with `odoo.tools.unsafe_eval`, which converts many exception
-    types to `ValueErrors`.  This loses the extra information in
-    `collected_exceptions`, which we would like to keep.
-    """
-
-    def __init__(self, msg, collected_exceptions, *args):
-        super().__init__(msg, *args)
-        self.collected_exceptions = collected_exceptions
 
 
 class SaleOrderCancelWizard(models.TransientModel):
