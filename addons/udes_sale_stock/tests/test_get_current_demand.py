@@ -27,22 +27,19 @@ class TestGetCurrentDemand(common.BaseSaleUDES):
         self.create_quant(self.cherry.id, self.test_location_01.id, 20)
 
         # Order 1
-        sale = self.create_sale(customer)
+        sale = self.create_sale(customer, requested_date="2020-01-03")
         self.create_sale_line(sale, self.apple, 15)
         self.create_sale_line(sale, self.cherry, 2)
-        sale.requested_date = "2020-01-03"
 
         # Order 2
-        sale2 = self.create_sale(customer)
+        sale2 = self.create_sale(customer, requested_date="2020-01-04")
         self.create_sale_line(sale2, self.apple, 10)
         self.create_sale_line(sale2, self.cherry, 10)
-        sale2.requested_date = "2020-01-04"
 
         # Order 3
-        sale3 = self.create_sale(customer)
+        sale3 = self.create_sale(customer, requested_date="2020-01-03")
         self.create_sale_line(sale3, self.apple, 5)
         sale3l2 = self.create_sale_line(sale3, self.cherry, 8)
-        sale3.requested_date = "2020-01-03"
 
         sales = sale | sale2 | sale3
 
