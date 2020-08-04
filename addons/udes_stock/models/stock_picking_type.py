@@ -335,6 +335,16 @@ class StockPickingType(models.Model):
         " for any empty picking in the system.",
     )
 
+    u_restrict_multi_lot_pickings = fields.Boolean(
+        string="Restrict Multi Lot Transfers",
+        default=False,
+        help="""
+        If set, transfers can only be validated if all move lines have the same lot.
+        This does not apply to serial number or non-tracked products. However, transfers which
+        contain both set lot and empty lot move lines are restricted.
+        """
+    )
+
     def do_refactor_action(self, action, moves):
         """Resolve and call the method to be executed on the moves.
 
@@ -395,6 +405,7 @@ class StockPickingType(models.Model):
             - u_new_package_policy: string
             - u_num_reservable_pickings: int
             - u_reserve_batches: boolean
+            - u_restrict_multi_lot_pickings: boolean
         """
         self.ensure_one()
         Batch = self.env["stock.picking.batch"]
@@ -446,6 +457,7 @@ class StockPickingType(models.Model):
                 'u_use_part_pallets': self.u_use_part_pallets,
                 'u_num_reservable_pickings': self.u_num_reservable_pickings,
                 'u_reserve_batches': self.u_reserve_batches,
+                'u_restrict_multi_lot_pickings': self.u_restrict_multi_lot_pickings,
                 }
 
     def get_info(self):

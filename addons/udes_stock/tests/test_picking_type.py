@@ -630,3 +630,204 @@ class TestPickingType(common.BaseUDES):
         picking.move_line_ids.write({
             'location_dest_id': self.test_location_02.id
         })
+
+    def test20_assert_single_lot_picking_validation_allowed(self):
+        """With a picking type set to restrict multi lot pickings, assert
+           that picking with only one lot in its move lines can still be
+           validated.
+        """
+        tangerine_qty = 20
+
+        # Set internal transfer to restrict multi lot pickings
+        self.picking_type_internal.u_restrict_multi_lot_pickings = True
+
+        # Create lots for tangerine product
+        tangerine_lot = self.create_lot(self.tangerine.id, "T1")
+
+        # Create quant for tangerine product
+        self.create_quant(
+            self.tangerine.id,
+            self.test_location_01.id,
+            tangerine_qty,
+            lot_id = tangerine_lot.id
+        )
+
+        tangerine_product_info = {
+            'product': self.tangerine,
+            'qty': tangerine_qty,
+            'location_id': self.test_location_01.id,
+            'location_dest_id': self.test_location_02.id
+        }
+
+        tangerine_lot_picking = self.create_picking(self.picking_type_internal,
+                                        products_info=[tangerine_product_info],
+                                        confirm=True, assign=True)
+
+        tangerine_lot_picking_move_lines = tangerine_lot_picking.move_line_ids
+        tangerine_lot_picking_lots = tangerine_lot_picking_move_lines.mapped('lot_id')
+
+        # Assert tangerine lot picking has 1 move line which is linked to the tangerine lot
+        self.assertEqual(len(tangerine_lot_picking_move_lines), 1)
+        self.assertEqual(tangerine_lot_picking_lots, tangerine_lot)
+
+        tangerine_lot_picking_move_lines[0].qty_done = tangerine_qty
+
+        # Validate the tangerine lot picking which should not raise an exception as it contains
+        # only a single lot within the move lines
+        tangerine_lot_picking.action_done()
+
+        self.assertEqual(tangerine_lot_picking.state, 'done')
+
+    def test21_assert_multi_lot_picking_validation_prevented(self):
+        """With a picking type set to restrict multi lot pickings, assert
+           that any picking of this type cannot be validated if its move lines
+           contain more than 1 unique product lot.
+        """
+        strawberry_qty = 10
+        tangerine_qty = 20
+
+        # Set internal transfer to restrict multi lot pickings
+        self.picking_type_internal.u_restrict_multi_lot_pickings = True
+
+        # Set strabwerry tracking to lot instead of serial number
+        self.strawberry.tracking = 'lot'
+
+        # Create lots for strawberry and tangerine products
+        strawberry_lot = self.create_lot(self.strawberry.id, "S1")
+        tangerine_lot = self.create_lot(self.tangerine.id, "T1")
+
+        # Create quants for strawberry and tangerine products
+        self.create_quant(
+            self.strawberry.id,
+            self.test_location_01.id,
+            strawberry_qty,
+            lot_id = strawberry_lot.id
+        )
+
+        self.create_quant(
+            self.tangerine.id,
+            self.test_location_01.id,
+            tangerine_qty,
+            lot_id = tangerine_lot.id
+        )
+
+        strawberry_product_info = {
+            'product': self.strawberry,
+            'qty': strawberry_qty,
+            'location_id': self.test_location_01.id,
+            'location_dest_id': self.test_location_02.id
+        }
+
+        tangerine_product_info = {
+            'product': self.tangerine,
+            'qty': tangerine_qty,
+            'location_id': self.test_location_01.id,
+            'location_dest_id': self.test_location_02.id
+        }
+
+        multi_lot_products_info = [strawberry_product_info, tangerine_product_info]
+
+        # Create, confirm and assign picking for the strawberry and tangerine lots
+        multi_lot_picking = self.create_picking(self.picking_type_internal,
+                                        products_info=multi_lot_products_info,
+                                        confirm=True, assign=True)
+
+        multi_lot_picking_move_lines = multi_lot_picking.move_line_ids
+        multi_lot_picking_lots = multi_lot_picking_move_lines.mapped('lot_id')
+
+        # Assert multi lot picking has 2 move lines with 1 each for 
+        # the strawberry and tangerine lots
+        self.assertEqual(len(multi_lot_picking_move_lines), 2)
+        self.assertEqual(multi_lot_picking_lots, (strawberry_lot | tangerine_lot))
+
+        multi_lot_picking_strawberry_move_line = multi_lot_picking_move_lines.filtered(
+            lambda ml: ml.product_id == self.strawberry
+        )
+
+        multi_lot_picking_tangerine_move_line = (
+            multi_lot_picking_move_lines - multi_lot_picking_strawberry_move_line
+        )
+
+        multi_lot_picking_strawberry_move_line.qty_done = strawberry_qty
+        multi_lot_picking_tangerine_move_line.qty_done = tangerine_qty
+
+        # Validate the multi lot picking which should raise an exception as it contains
+        # multiple lots
+        expected_exception_message = 'Cannot validate transfer with multiple lots.'
+        with self.assertRaisesRegex(ValidationError, expected_exception_message):
+            multi_lot_picking.action_done()
+
+    def test22_assert_picking_with_lot_and_no_lot_lines_validation_prevented(self):
+        """With a picking type set to restrict multi lot pickings, assert
+           that any picking of this type cannot be validated if its move lines
+           contain 1 product lot and lines without a lot set.
+        """
+        apple_qty = 10
+        tangerine_qty = 20
+
+        # Set internal transfer to restrict multi lot pickings
+        self.picking_type_internal.u_restrict_multi_lot_pickings = True
+
+        # Create lot for tangerine product
+        tangerine_lot = self.create_lot(self.tangerine.id, "T1")
+
+        # Create quants for apple and tangerine products
+        self.create_quant(
+            self.apple.id,
+            self.test_location_01.id,
+            apple_qty,
+        )
+
+        self.create_quant(
+            self.tangerine.id,
+            self.test_location_01.id,
+            tangerine_qty,
+            lot_id = tangerine_lot.id
+        )
+
+        apple_product_info = {
+            'product': self.apple,
+            'qty': apple_qty,
+            'location_id': self.test_location_01.id,
+            'location_dest_id': self.test_location_02.id
+        }
+
+        tangerine_product_info = {
+            'product': self.tangerine,
+            'qty': tangerine_qty,
+            'location_id': self.test_location_01.id,
+            'location_dest_id': self.test_location_02.id
+        }
+
+        mix_lot_products_info = [apple_product_info, tangerine_product_info]
+
+        # Create, confirm and assign picking for the tangerine and empty lots
+        mix_lot_picking = self.create_picking(self.picking_type_internal,
+                                        products_info=mix_lot_products_info,
+                                        confirm=True, assign=True)
+
+        mix_lot_picking_move_lines = mix_lot_picking.move_line_ids
+        mix_lot_picking_lots = mix_lot_picking_move_lines.mapped('lot_id')
+
+        # Assert multi lot picking has 2 move lines and only 1 lot for tangerine
+        self.assertEqual(len(mix_lot_picking_move_lines), 2)
+        self.assertEqual(mix_lot_picking_lots, tangerine_lot)
+
+        tangerine_moveline = mix_lot_picking_move_lines.filtered(
+            lambda ml: ml.lot_id == tangerine_lot
+        )
+
+        apple_move_line = (
+            mix_lot_picking_move_lines - tangerine_moveline
+        )
+
+        tangerine_moveline.qty_done = apple_qty
+        apple_move_line.qty_done = tangerine_qty
+
+        # Validate the multi lot picking which should raise an exception as it contains
+        # multiple lots
+        expected_exception_message = 'Cannot validate transfer with both set lot and '
+        'empty lot move lines.'
+
+        with self.assertRaisesRegex(ValidationError, expected_exception_message):
+            mix_lot_picking.action_done()
