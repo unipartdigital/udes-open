@@ -153,6 +153,14 @@ class StockPicking(models.Model):
         store=True,
     )
 
+    u_reserved_pallet = fields.Char(
+        string='Reserved Pallet',
+        index=True,
+        copy=False,
+        help='If reserving pallets per picking is enabled, this field stores '
+        'the pallet reserved for this picking.'
+    )
+
     @api.depends("move_line_ids", "move_line_ids.location_id")
     @api.one
     def _compute_location_category(self):
@@ -1161,6 +1169,9 @@ class StockPicking(models.Model):
 
         if not fields_to_fetch:
             fields_to_fetch = info.keys()
+
+        if self.picking_type_id.u_reserve_pallet_per_picking:
+            info['u_reserved_pallet'] = lambda p: p.u_reserved_pallet
 
         return {key: value(self) for key, value in info.items() if key in fields_to_fetch}
 

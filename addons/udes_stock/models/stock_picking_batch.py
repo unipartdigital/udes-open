@@ -255,7 +255,7 @@ class StockPickingBatch(models.Model):
         # Remove unready pick, if configured.
         unready_picks.filtered(
             lambda p: p.picking_type_id.u_remove_unready_batch
-        ).write({"batch_id": False})
+        ).write({"batch_id": False, 'u_reserved_pallet': False})
 
     def _get_task_grouping_criteria(self):
         """
@@ -474,6 +474,14 @@ class StockPickingBatch(models.Model):
         if not picking:
             return None
 
+        picking_type = picking.mapped('picking_type_id')
+        picking_type.ensure_one()
+        if picking_type.u_reserve_pallet_per_picking:
+            max_reservable_pallets = picking_type.u_max_reservable_pallets
+            if len(picking) > max_reservable_pallets:
+                raise ValidationError('Only %d pallets may be reserved at a time.' %
+                                      max_reservable_pallets)
+
         batch = PickingBatch.sudo().create({'user_id': user_id})
         picking.write({'batch_id': batch.id})
         batch.write({'u_ephemeral': True})
@@ -510,14 +518,22 @@ class StockPickingBatch(models.Model):
         """ Get the next available picking and add it to the current users batch """
         Picking = self.env['stock.picking']
 
+        if not self.u_ephemeral:
+            raise ValidationError(_("Can only add work to ephemeral batches"))
+
         picking_priorities = self.get_batch_priority_group()
         pickings = Picking.search_for_pickings(picking_type_id, picking_priorities)
 
         if not pickings:
             raise ValidationError(_("No more work to do."))
 
-        if not self.u_ephemeral:
-            raise ValidationError(_("Can only add work to ephemeral batches"))
+        picking_type = pickings.mapped('picking_type_id')
+        picking_type.ensure_one()
+        if picking_type.u_reserve_pallet_per_picking:
+            active_pickings = self.picking_ids.filtered(lambda p: p.state not in ['draft', 'done', 'cancel'])
+            if len(active_pickings) + len(pickings) > picking_type.u_max_reservable_pallets:
+                raise ValidationError('Only %d pallets may be reserved at a time.' %
+                                      picking_type.u_max_reservable_pallets)
 
         pickings.write({'batch_id': self.id})
         return True
@@ -608,6 +624,7 @@ class StockPickingBatch(models.Model):
                     to_add |= pick_todo
 
                 picks_todo |= pick_todo
+                pick.write({'u_reserved_pallet': False})
 
             # Add backorders to the batch
             to_add.write({'batch_id': self.id})
@@ -928,7 +945,7 @@ class StockPickingBatch(models.Model):
             batch.filtered(lambda b: b.u_ephemeral)\
                 .mapped('picking_ids')\
                 .filtered(lambda sp: sp.state not in ('done', 'cancel'))\
-                .write({'batch_id': False})
+                    .write({'batch_id': False, 'u_reserved_pallet': False})
 
             # Assign incomplete pickings to new batch
             _logger.info('Creating continuation batch from %r.', batch.name)
@@ -968,7 +985,7 @@ class StockPickingBatch(models.Model):
                 pickings_to_remove |= picking
 
         pickings_to_remove.with_context(
-            lock_batch_state=True).write({'batch_id': False})
+            lock_batch_state=True).write({'batch_id': False, 'u_reserved_pallet': False})
         pickings_to_add.with_context(
             lock_batch_state=True).write({'batch_id': self.id})
         self._compute_state()
@@ -1009,32 +1026,61 @@ class StockPickingBatch(models.Model):
 
         return
 
-    def reserve_pallet(self, pallet_name):
+    def reserve_pallet(self, pallet_name, picking=None):
         """
         Reserves a pallet for use in a batch.
 
-        Only one pallet can be reserved per batch. The pallet is automatically
-        considered unreserved when another pallet is reserved or the batch is
-        done.
+        If the batch's picking type's u_reserve_pallet_per_picking flag is
+        False, only one pallet can be reserved per batch.
+
+        If the batch's picking type's u_reserve_pallet_per_picking flag is
+        True, a different pallet is reserved for each picking in the batch.
+        The picking must be passed to this method in this case.
+
+        Pallets are automatically considered unreserved when another pallet is
+        reserved or the batch is done.
 
         Raises a ValidationError if the pallet is already reserved for another
-        batch.
+        batch or if a reserving pallets per picking is enabled and a valid
+        picking is not provided.
         """
+        Picking = self.env['stock.picking']
         PickingBatch = self.env['stock.picking.batch']
 
         self.ensure_one()
 
-        conflicting_batch = PickingBatch.search([
-            ('id', '!=', self.id),
-            ('state', '=', 'in_progress'),
-            ('u_last_reserved_pallet_name', '=', pallet_name),
-        ])
-        if conflicting_batch:
-            raise ValidationError(
-                _("This pallet is already being used for batch %s.") %
-                conflicting_batch[0].name)
+        reserve_pallet_per_picking = self.picking_type_ids.u_reserve_pallet_per_picking
+        if reserve_pallet_per_picking:
+            if not picking:
+                raise ValidationError('A picking must be specified if pallets are reserved per picking.')
+        if reserve_pallet_per_picking and picking and not self.picking_ids & picking:
+            raise ValidationError('Picking %s is not in batch %s.' % (picking.name, self.name))
 
-        self.write({ 'u_last_reserved_pallet_name': pallet_name })
+        if reserve_pallet_per_picking:
+            conflicting_picking = Picking.search([
+                ('u_reserved_pallet', '=', pallet_name),
+                ('state', 'not in', ['draft', 'cancel', 'done'])
+            ])
+            if conflicting_picking:
+                raise ValidationError(
+                    _("This pallet is already being used for picking %s.") %
+                    conflicting_picking[0].name)
+        else:
+            conflicting_batch = PickingBatch.search([
+                ('id', '!=', self.id),
+                ('state', '=', 'in_progress'),
+                ('u_last_reserved_pallet_name', '=', pallet_name),
+            ])
+            if conflicting_batch:
+                raise ValidationError(
+                    _("This pallet is already being used for batch %s.") %
+                    conflicting_batch[0].name)
+
+        if reserve_pallet_per_picking:
+            # The front end will always send only one picking.
+            picking.write({'u_reserved_pallet': pallet_name})
+        else:
+            self.write({'u_last_reserved_pallet_name': pallet_name})
 
 
 def get_next_name(obj, code):
