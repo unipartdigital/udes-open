@@ -310,6 +310,9 @@ class SaleOrder(models.Model):
     def confirm_orders(self):
         """Attempt to confirm sale orders.
 
+        If self is empty, find orders to confirm via _get_confirmation_domain.
+        Otherwise, attempt to confirm orders in self.
+
         This is done in batches to reduce the chance of concurrency errors
         when confirming large numbers of orders at once. If one batch fails
         the other batches may still be confirmed, attempting to maximise the number of
@@ -323,9 +326,14 @@ class SaleOrder(models.Model):
             data = "{}\n{}".format(str(err), trace)
             return data
 
-        to_confirm = self.search(self._get_confirmation_domain())
         exception_data = []
-        for __, batch in to_confirm.batched(size=1000):
+
+        if self:
+            to_confirm = self
+        else:
+            to_confirm = self.search(self._get_confirmation_domain())
+            
+        for _, batch in to_confirm.batched(size=1000):
             tries = 0
             while True:
                 try:
