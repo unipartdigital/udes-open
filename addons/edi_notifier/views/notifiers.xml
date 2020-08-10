@@ -36,6 +36,9 @@
                 <field name="lookback_hours" attrs="{'invisible': ['!', ('model_name', 'ilike', 'In Range')]}"/>
                 <field name="include_notes" attrs="{'invisible': ['!', '|', ('model_name', 'ilike', 'Failed'), ('model_name', 'ilike', 'Success')]}"/>
                 <field name="include_issues" attrs="{'invisible': ['!', ('model_name', 'ilike', 'Failed')]}"/>
+                <field name="include_attachments" 
+                  attrs="{'invisible': ['!', '|', ('model_name', 'ilike', 'Failed'), ('model_name', 'ilike', 'Success')]}"
+                  groups="udes_security.group_debug_user"/>
                 <field name="active"/>
               </group>
             </group>

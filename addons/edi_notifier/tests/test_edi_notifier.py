@@ -136,7 +136,7 @@ class TestSuccess(EdiNotifierCase):
         self.assertEqual(self.doc.state, "done")
         send_mail_mock.assert_called_once()
         send_mail_mock.assert_called_with(
-            self.email_template, self.doc.id, force_send=True
+            self.email_template, self.doc.id, force_send=True, email_values=None
         )
 
     def test_dont_send_if_not_active(self):
@@ -175,6 +175,50 @@ class TestSuccess(EdiNotifierCase):
         message = send_mock.call_args[0][0]
         self.assertNotIn(note_text, message.body_html)
 
+    def test_sends_output_attachment_on_success(self):
+        self.notifier.include_attachments = "output"
+        attachment = self.create_output_attachment(self.doc, "out.csv")
+        with self.mock_send() as send_mock:
+            self.assertTrue(self.doc.action_execute())
+        self.assertEqual(self.doc.state, "done")
+        send_mock.assert_called_once()
+        message = send_mock.call_args[0][0]
+        self.assertEqual(message.attachment_ids, attachment)
+
+    def test_sends_input_attachment_on_success(self):
+        self.notifier.include_attachments = "input"
+        attachment = self.create_input_attachment(self.doc, "in.csv")
+        with self.mock_send() as send_mock:
+            self.assertTrue(self.doc.action_execute())
+        self.assertEqual(self.doc.state, "done")
+        send_mock.assert_called_once()
+        message = send_mock.call_args[0][0]
+        self.assertEqual(message.attachment_ids, attachment)
+
+    def test_sends_all_attachments_on_success(self):
+        Attachment = self.env["ir.attachment"]
+        self.notifier.include_attachments = "all"
+        attachments = Attachment.browse()
+        attachments |= self.create_input_attachment(self.doc, "in.csv")
+        attachments |= self.create_output_attachment(self.doc, "out.csv")
+        with self.mock_send() as send_mock:
+            self.assertTrue(self.doc.action_execute())
+        self.assertEqual(self.doc.state, "done")
+        send_mock.assert_called_once()
+        message = send_mock.call_args[0][0]
+        self.assertEqual(message.attachment_ids, attachments)
+
+    def test_sends_no_attachment_on_success(self):
+        self.notifier.include_attachments = False
+        self.create_input_attachment(self.doc, "in.csv")
+        self.create_output_attachment(self.doc, "out.csv")
+        with self.mock_send() as send_mock:
+            self.assertTrue(self.doc.action_execute())
+        self.assertEqual(self.doc.state, "done")
+        send_mock.assert_called_once()
+        message = send_mock.call_args[0][0]
+        self.assertFalse(message.attachment_ids)
+
 
 class TestFailed(EdiNotifierCase):
     @classmethod
@@ -211,7 +255,7 @@ class TestFailed(EdiNotifierCase):
         self.assertEqual(self.doc.state, "draft")
         send_mail_mock.assert_called_once()
         send_mail_mock.assert_called_with(
-            self.email_template, self.doc.id, force_send=True
+            self.email_template, self.doc.id, force_send=True, email_values=None
         )
 
     def test_send_on_prepare_failure_within_execute(self):
@@ -220,7 +264,7 @@ class TestFailed(EdiNotifierCase):
         self.assertEqual(self.doc.state, "draft")
         send_mail_mock.assert_called_once()
         send_mail_mock.assert_called_with(
-            self.email_template, self.doc.id, force_send=True
+            self.email_template, self.doc.id, force_send=True, email_values=None
         )
 
     def test_send_on_execute_failure(self):
@@ -233,7 +277,7 @@ class TestFailed(EdiNotifierCase):
         self.assertEqual(self.doc.state, "prep")
         send_mail_mock.assert_called_once()
         send_mail_mock.assert_called_with(
-            self.email_template, self.doc.id, force_send=True
+            self.email_template, self.doc.id, force_send=True, email_values=None
         )
 
     def test_dont_send_on_success(self):
@@ -298,6 +342,50 @@ class TestFailed(EdiNotifierCase):
         self.assertIn(note_text, message.body_html)
         self.assertIn("Unknown document type", message.body_html)
 
+    def test_sends_output_attachment_on_failure(self):
+        self.notifier.include_attachments = "output"
+        attachment = self.create_output_attachment(self.doc, "out.csv")
+        with self.mute_issues(), self.mock_send() as send_mock:
+            self.assertFalse(self.doc.action_execute())
+        self.assertEqual(self.doc.state, "draft")
+        send_mock.assert_called_once()
+        message = send_mock.call_args[0][0]
+        self.assertEqual(message.attachment_ids, attachment)
+
+    def test_sends_input_attachment_on_failure(self):
+        self.notifier.include_attachments = "input"
+        attachment = self.create_input_attachment(self.doc, "in.csv")
+        with self.mute_issues(), self.mock_send() as send_mock:
+            self.assertFalse(self.doc.action_execute())
+        self.assertEqual(self.doc.state, "draft")
+        send_mock.assert_called_once()
+        message = send_mock.call_args[0][0]
+        self.assertEqual(message.attachment_ids, attachment)
+
+    def test_sends_all_attachments_on_failure(self):
+        Attachment = self.env["ir.attachment"]
+        self.notifier.include_attachments = "all"
+        attachments = Attachment.browse()
+        attachments |= self.create_input_attachment(self.doc, "in.csv")
+        attachments |= self.create_output_attachment(self.doc, "out.csv")
+        with self.mute_issues(), self.mock_send() as send_mock:
+            self.assertFalse(self.doc.action_execute())
+        self.assertEqual(self.doc.state, "draft")
+        send_mock.assert_called_once()
+        message = send_mock.call_args[0][0]
+        self.assertEqual(message.attachment_ids, attachments)
+
+    def test_sends_no_attachment_on_failure(self):
+        self.notifier.include_attachments = False
+        self.create_input_attachment(self.doc, "in.csv")
+        self.create_output_attachment(self.doc, "out.csv")
+        with self.mute_issues(), self.mock_send() as send_mock:
+            self.assertFalse(self.doc.action_execute())
+        self.assertEqual(self.doc.state, "draft")
+        send_mock.assert_called_once()
+        message = send_mock.call_args[0][0]
+        self.assertFalse(message.attachment_ids)
+
 
 class TestMissing(EdiNotifierCase):
     @classmethod
@@ -326,7 +414,7 @@ class TestMissing(EdiNotifierCase):
             self.cron.method_direct_trigger()
         send_mail_mock.assert_called_once()
         send_mail_mock.assert_called_with(
-            self.email_template, self.doc_type.id, force_send=True
+            self.email_template, self.doc_type.id, force_send=True, email_values=None,
         )
 
     def test_cron_trigger_missing_already_reported(self):
@@ -388,7 +476,7 @@ class TestMissingInRange(EdiNotifierCase):
         with self.mock_send_mail() as send_mail_mock:
             self.cron.method_direct_trigger()
         send_mail_mock.assert_called_with(
-            self.email_template, self.doc_type_raw.id, force_send=True
+            self.email_template, self.doc_type_raw.id, force_send=True, email_values=None
         )
 
     def test_dont_send_if_recived_within_timeframe(self):

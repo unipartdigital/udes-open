@@ -18,12 +18,25 @@ class EdiEmailNotifier(models.AbstractModel):
     @api.multi
     def _notify(self, notifier, event_type, recs):
         for rec in recs:
-            template =  notifier.template_id
+            template = notifier.template_id
             if notifier.include_issues:
                 template = template.with_context(issues=self._get_issues(rec))
             if notifier.include_notes:
                 template = template.with_context(notes=self._get_notes(rec))
-            template.send_mail(rec.id, force_send=True)
+            attachments = None
+            if notifier.include_attachments == "all":
+                attachments = self._get_attachments(rec)
+                template = template.with_context(attachments=attachments)
+            elif notifier.include_attachments == "input":
+                attachments = self._get_input_attachments(rec)
+                template = template.with_context(attachments=attachments)
+            elif notifier.include_attachments == "output":
+                attachments = self._get_output_attachments(rec)
+                template = template.with_context(attachments=attachments)
+            email_values = None
+            if attachments:
+                email_values = {'attachment_ids': attachments.mapped('id')}
+            template.send_mail(rec.id, force_send=True, email_values=email_values)
 
     @api.multi
     def notify(self, notifier, event_type, recs):

@@ -99,6 +99,11 @@ class EdiNotifier(models.Model):
     )
     include_issues = fields.Boolean(string="Include issues", default=False)
     include_notes = fields.Boolean(string="Include notes", default=False)
+    include_attachments = fields.Selection(
+        selection=[("all", "All"), ("input", "Input"), ("output", "Output"), (False, "None")],
+        default=False,
+        string="Include attachments",
+    )
 
     @api.depends("cron_ids")
     def _compute_cron_count(self):
@@ -225,7 +230,6 @@ class EdiNotifierModel(models.AbstractModel):
         rec.ensure_one()
         return self.env["mail.message"].search([("model", "=", rec._name), ("res_id", "=", rec.id)])
 
-
     @api.multi
     def _get_issues(self, rec):
         """Get issues from a record"""
@@ -233,6 +237,20 @@ class EdiNotifierModel(models.AbstractModel):
             return rec.issue_ids
         except AttributeError:
             return None
+
+    @api.multi
+    def _get_attachments(self, rec):
+        attachments = self._get_input_attachments(rec)
+        attachments |= self._get_output_attachments(rec)
+        return attachments
+
+    @api.multi
+    def _get_input_attachments(self, rec):
+        return rec.input_ids
+
+    @api.multi
+    def _get_output_attachments(self, rec):
+        return rec.output_ids
 
     @api.multi
     def notify(self, notifier, event_type, recs):

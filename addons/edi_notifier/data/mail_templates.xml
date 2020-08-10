@@ -16,9 +16,15 @@
 <br/>
 <p>The files attached are:
   <ul>
-  % for file in object.input_ids:
-    <li>${file.datas_fname | safe}</li>
-  % endfor
+  % if ctx.get('attachments'):
+    % for file in ctx.get('attachments'):
+      <li>${file.datas_fname | safe}</li>
+    % endfor
+  % else 
+    % for file in object.input_ids:
+      <li>${file.datas_fname | safe}</li>
+    % endfor
+  % endif
   </ul>
 </p>
 % if ctx.get("notes"):
