@@ -208,6 +208,19 @@ class StockMoveLine(models.Model):
         # to be marked as done only
         move_lines._assert_result_package(result_package)
 
+        if (
+            loc_dest_instance is not None
+            and parent_package
+            and parent_package.location_id
+            and parent_package.location_id != loc_dest_instance
+        ):
+            # complain now rather than at validation time which could be much
+            # later
+            raise ValidationError(
+                _("Package is already in a different location: %s in %s")
+                % (parent_package.name, parent_package.location_id.name)
+            )
+
         mls_done = MoveLine.browse()
         for ml in move_lines:
             ml_values = values.copy()
