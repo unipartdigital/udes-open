@@ -107,8 +107,8 @@ class TestCreatePicking(BaseUDES):
         pick = self.quant_1.create_picking(self.picking_type_pick)
         # Confirm made in state draft
         self.assertEqual(pick.state, "draft")
-        # Confirm default location used if non specified
-        self.assertEqual(pick.location_id, self.picking_type_pick.default_location_src_id)
+        # Confirm quant location used if non specified
+        self.assertEqual(pick.location_id, self.test_stock_location_01)
         # Confirm default dest location used if non specified
         self.assertEqual(pick.location_dest_id, self.picking_type_pick.default_location_dest_id)
         # Confirm correct picking type id associated
@@ -187,6 +187,8 @@ class TestCreatePicking(BaseUDES):
         # Get all quants in test package
         quants = self.quant_1 | self.quant_2
         pick = quants.create_picking(self.picking_type_pick)
+        # Check picking has correct location
+        self.assertEqual(pick.location_id, self.stock_location)
         #  Check picking has correct products and quantities associated to it
         self.assertEqual(pick.move_lines.product_id, quants.product_id)
         self.assertEqual(pick.move_lines.mapped("product_qty"), [10.0, 10.0])

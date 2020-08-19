@@ -250,8 +250,8 @@ class TestCreatePicking(BaseUDES):
         pick = self.test_package.create_picking(self.picking_type_goods_out)
         # Confirm made in state draft
         self.assertEqual(pick.state, "draft")
-        # Confirm default location used if non specified
-        self.assertEqual(pick.location_id, self.out_location)
+        # Confirm package location used if non specified
+        self.assertEqual(pick.location_id, self.test_stock_location_01)
         # Confirm default dest location used if non specified
         self.assertEqual(pick.location_dest_id, self.trailer_location)
         # Confirm correct picking type id associated
