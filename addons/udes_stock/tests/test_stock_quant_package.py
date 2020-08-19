@@ -293,3 +293,25 @@ class TestCreatePicking(BaseUDES):
         #  Check picking has correct quantities associated to it
         self.assertEqual(pick.move_lines.mapped("product_id"), (self.apple | self.banana))
         self.assertEqual(pick.move_lines.mapped("product_qty"), [10, 5])
+
+    def test03_single_package_correct_package(self):
+        """ Test that create_picking uses the right package when assigning
+            the picking
+        """
+        Package = self.env["stock.quant.package"]
+
+        # Create a bunch of packages with identical contents in the same
+        # location
+        packages = Package.browse()
+        for i in range(5):
+            package = Package.create({})
+            self.create_quant(
+                self.apple.id, self.test_stock_location_01.id, 10, package_id=package.id
+            )
+            packages |= package
+        self.assertEqual(len(packages), 5)
+
+        package = packages[2]
+        pick = package.create_picking(self.picking_type_pick, confirm=True, assign=True)
+        self.assertEqual(pick.state, "assigned")
+        self.assertEqual(pick.move_line_ids.package_id, package)

@@ -139,7 +139,24 @@ class TestCreatePicking(BaseUDES):
         # Check quant_1 is now reserved
         self.assertEqual(self.quant_1.reserved_quantity, 10)
 
-    def test04_single_quant_priority(self):
+    def test04_single_quant_assign_correct_quant(self):
+        """ Test that create_picking uses the right quant when assigning
+            the picking
+        """
+        Quant = self.env["stock.quant"]
+
+        # Create a bunch of identical quants in the same location
+        quants = Quant.browse()
+        for i in range(5):
+            quants |= self.create_quant(self.apple.id, self.test_stock_location_01.id, 10)
+        self.assertEqual(len(quants), 5)
+
+        quant = quants[2]
+        pick = quant.create_picking(self.picking_type_pick, confirm=True, assign=True)
+        self.assertEqual(pick.state, "assigned")
+        self.assertEqual(quant.reserved_quantity, 10)
+
+    def test05_single_quant_priority(self):
         """ Create a picking from a single quant
             Change the priority to Urgent
             Priorities: [('0', 'Not urgent'), ('1', 'Normal'), ('2', 'Urgent'), ('3', 'Very Urgent')]
@@ -148,7 +165,7 @@ class TestCreatePicking(BaseUDES):
         # Check priority is 2 = 'Urgent'
         self.assertEqual(pick.priority, "2")
 
-    def test05_single_quant_non_default_locations(self):
+    def test06_single_quant_non_default_locations(self):
         """ Create a picking from a single quant
             - non-default location_id
             - non-default location_dest_id
@@ -165,7 +182,7 @@ class TestCreatePicking(BaseUDES):
         self.assertEqual(pick.location_dest_id, self.test_goodsout_location_02)
         self.assertNotEqual(pick.location_id, self.picking_type_pick.default_location_dest_id)
 
-    def test06_multiple_quants(self):
+    def test07_multiple_quants(self):
         """ Multiple quants for pick """
         # Get all quants in test package
         quants = self.quant_1 | self.quant_2

@@ -55,4 +55,6 @@ class StockQuant(models.Model):
         Picking = self.env["stock.picking"]
         product_quantities = self.get_quantities_by_key()
         products_info = [{"product": key, "qty": val} for key, val in product_quantities.items()]
-        return Picking.create_picking(picking_type, products_info, **kwargs)
+        return Picking.with_context(quant_ids=self.ids).create_picking(
+            picking_type, products_info, **kwargs
+        )
