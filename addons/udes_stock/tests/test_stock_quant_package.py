@@ -14,7 +14,6 @@ class TestStockQuantPackageModel(BaseUDES):
         cls.create_quant(
             cls.banana.id, cls.test_stock_location_01.id, 5, package_id=cls.test_package.id
         )
-        cls.create_quant(cls.banana.id, cls.test_stock_location_02.id, 15)
         cls.test_user = cls.create_user("test_user", "test_user_login")
 
     def test01_get_quantities_by_default_key(self):
