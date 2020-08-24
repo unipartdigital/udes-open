@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo import api, fields, models, _
+from odoo.exceptions import ValidationError
 from collections import defaultdict
 
 
@@ -10,6 +11,23 @@ class StockQuantPackage(models.Model):
 
     # Enable create packages
     MSM_CREATE = True
+
+    def assert_not_reserved(self):
+        """ Ensure that the contents of all packages in the recordset are fully
+            unreserved.
+        """
+        reserved_packages = self.filtered(
+            lambda package: package.get_reserved_quantity() > 0
+        )
+        if reserved_packages:
+            raise ValidationError(
+                _(
+                    "Cannot move packages with reserved contents. "
+                    "Please speak to a team leader to resolve the issue.\n"
+                    "Affected packages: %s"
+                )
+                % (", ".join(reserved_packages.mapped("name")))
+            )
 
     def get_quantities_by_key(self, get_key=lambda q: q.product_id):
         """ This function computes the product quantities for the given package grouped by a key
