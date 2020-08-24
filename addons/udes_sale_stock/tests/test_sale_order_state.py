@@ -6,18 +6,6 @@ class TestSaleOrderState(common.BaseSaleUDES):
     def setUpClass(cls):
         super(TestSaleOrderState, cls).setUpClass()
 
-        Customer = cls.env["res.partner"]
-
-        cls.customer = Customer.create(
-            {
-                "name": "Bob",
-                "street": "1 Bobs House",
-                "street2": "Bobs street",
-                "city": "The city of Bob",
-                "zip": "EN1 4LS",
-            }
-        )
-
         cls.apple_quant = cls.create_quant(
             cls.apple.id,
             cls.test_location_01.id,

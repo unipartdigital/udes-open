@@ -5,22 +5,13 @@ class TestCancelUnfulfillable(common.BaseSaleUDES):
     @classmethod
     def setUpClass(cls):
         super(TestCancelUnfulfillable, cls).setUpClass()
-        cls.Customer = cls.env["res.partner"]
         cls.Sale = cls.env["sale.order"]
 
     def test01_test_cancel_in_order(self):
         """
         Test that sale order cancellation works as expected
         """
-        customer = self.Customer.create(
-            {
-                "name": "Bob",
-                "street": "1 Bobs House",
-                "street2": "Bobs street",
-                "city": "The city of Bob",
-                "zip": "EN1 4LS",
-            }
-        )
+
         quant = self.create_quant(
             self.apple.id, self.test_location_01.id, 30, package_id=self.create_package().id
         )
@@ -29,17 +20,17 @@ class TestCancelUnfulfillable(common.BaseSaleUDES):
         )
 
         # Order 1
-        sale = self.create_sale(customer, requested_date="2020-01-03")
+        sale = self.create_sale(self.customer, requested_date="2020-01-03")
         sale1l1 = self.create_sale_line(sale, self.apple, 15)
         sale1l2 = self.create_sale_line(sale, self.cherry, 2)
 
         # Order 2
-        sale2 = self.create_sale(customer, requested_date="2020-01-04")
+        sale2 = self.create_sale(self.customer, requested_date="2020-01-04")
         sale2l1 = self.create_sale_line(sale2, self.apple, 10)
         sale2l2 = self.create_sale_line(sale2, self.cherry, 10)
 
         # Order 3
-        sale3 = self.create_sale(customer, requested_date="2020-01-03")
+        sale3 = self.create_sale(self.customer, requested_date="2020-01-03")
         sale3l1 = self.create_sale_line(sale3, self.apple, 5)
         sale3l2 = self.create_sale_line(sale3, self.cherry, 8)
 

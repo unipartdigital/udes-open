@@ -7,6 +7,8 @@ class BaseSaleUDES(common.BaseUDES):
     @classmethod
     def setUpClass(cls):
         super(BaseSaleUDES, cls).setUpClass()
+        Customer = cls.env["res.partner"]
+
         cls.customer = cls.env.ref("base.public_partner")
 
     @classmethod

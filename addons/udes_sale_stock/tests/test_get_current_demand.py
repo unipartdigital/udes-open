@@ -6,7 +6,6 @@ class TestGetCurrentDemand(common.BaseSaleUDES):
     @classmethod
     def setUpClass(cls):
         super(TestGetCurrentDemand, cls).setUpClass()
-        cls.Customer = cls.env["res.partner"]
         cls.Sale = cls.env["sale.order"]
         cls.SaleLine = cls.env["sale.order.line"]
 
@@ -14,30 +13,21 @@ class TestGetCurrentDemand(common.BaseSaleUDES):
         """
         Test that sale order cancellation works as expected
         """
-        customer = self.Customer.create(
-            {
-                "name": "Joe",
-                "street": "1 Joes House",
-                "street2": "Joes street",
-                "city": "The city of Joe",
-                "zip": "AB1 2CD",
-            }
-        )
         self.create_quant(self.apple.id, self.test_location_01.id, 30)
         self.create_quant(self.cherry.id, self.test_location_01.id, 20)
 
         # Order 1
-        sale = self.create_sale(customer, requested_date="2020-01-03")
+        sale = self.create_sale(self.customer, requested_date="2020-01-03")
         self.create_sale_line(sale, self.apple, 15)
         self.create_sale_line(sale, self.cherry, 2)
 
         # Order 2
-        sale2 = self.create_sale(customer, requested_date="2020-01-04")
+        sale2 = self.create_sale(self.customer, requested_date="2020-01-04")
         self.create_sale_line(sale2, self.apple, 10)
         self.create_sale_line(sale2, self.cherry, 10)
 
         # Order 3
-        sale3 = self.create_sale(customer, requested_date="2020-01-03")
+        sale3 = self.create_sale(self.customer, requested_date="2020-01-03")
         self.create_sale_line(sale3, self.apple, 5)
         sale3l2 = self.create_sale_line(sale3, self.cherry, 8)
 
