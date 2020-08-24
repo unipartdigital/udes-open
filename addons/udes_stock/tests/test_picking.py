@@ -406,3 +406,51 @@ class TestSuggestedLocation(common.BaseUDES):
 
         self.assertNotIn(picking1.move_line_ids.location_dest_id, suggested_locations)
         self.assertEqual(suggested_locations, self.test_location_05)
+
+class TestPickingWarning(common.BaseUDES):
+    """Test the generation of warning messages for user-set pre-conditions"""
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestPickingWarning, cls).setUpClass()
+        Picking = cls.env['stock.picking']
+
+        cls.products_info = [{'product': cls.apple, 'qty': 10}]
+        cls.test_picking = cls.create_picking(cls.picking_type_in,
+                                              origin="test_picking_origin",
+                                              products_info=cls.products_info,
+                                              confirm=True)
+        cls.next_picking = cls.test_picking.u_next_picking_ids
+        # Setup picking type so that the pre-condition is met
+        cls.next_picking.picking_type_id.u_warn_picking_precondition = "pickings_pending"
+        cls.next_picking.picking_type_id.u_handle_partials = False
+        cls.test_picking = cls.test_picking.sudo(cls.inbound_user)
+
+    def test_doesnt_warn_picking_pickings_pending(self):
+        """Assert that we don't get a warning message when checking if pickings are pending
+        when condition isn't met.
+        """
+        # Get message for picking without previous picking
+        self.assertFalse(
+            self.test_picking.u_prev_picking_ids,
+            "Assert there are no previous pickings"
+        )
+        message_not_pending = self.test_picking.warn_picking_pickings_pending()
+
+        self.assertFalse(
+            message_not_pending,
+            "Assert a message is not returned when there are no previous pickings"
+        )
+
+    def test_warn_picking_pickings_pending(self):
+        """Assert that we get a warning message when checking if pickings are pending
+        when condition is met and no warning is given if it isn't.
+        """
+        # Get message for picking with previous picking
+        message_pending = self.next_picking.warn_picking_pickings_pending()
+
+        self.assertTrue(
+            message_pending,
+            "Assert a message is returned when previous pickings are incomplete"
+        )
+        self.assertIsInstance(message_pending, str)

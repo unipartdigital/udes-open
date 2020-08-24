@@ -357,6 +357,16 @@ class StockPickingType(models.Model):
         help="This setting is only applied when u_reserve_pallet_per_picking is True"
     )
 
+    u_warn_picking_precondition = fields.Selection(
+        selection=[
+            ("pickings_pending", "Pickings pending"),
+        ],
+        string="Warn during a picking if the precondition is met",
+        help="Choose a condition to be checked when performing a picking. "
+             "Will be checked when validating a picking on the dekstop UI. "
+             "Currently only implimented for pallet move on the mobile UI.",
+    )
+
     def do_refactor_action(self, action, moves):
         """Resolve and call the method to be executed on the moves.
 

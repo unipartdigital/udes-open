@@ -128,6 +128,7 @@ A lot of custom UDES functionality is specfied at the picking type level. This i
 | u_auto_unlink_empty        | boolean | Flag to indicate whether to unlink empty pickings when searching for any empty picking in the system.|
 | u_reserve_pallet_per_picking | boolean | Flag to indicate whether pallets are reserved on pickings rather than batches. |
 | u_max_reservable_pallets   | int     | The maximum number of pallets that may be simultaneously reserved in a batch, if `u_reserve_pallets_per_picking` is `True`. |
+| u_warn_picking_precondition     | string  |  | Display a warning messsage when trying to validate a picking when a given precondition is not met. |
 
 More on the enumeration fields below.
 
@@ -584,14 +585,14 @@ JSON object.
 URI: /api/stock-picking-batch/:id/close/
 HTTP Method: POST
 ```
-Closes the batch.  
+Closes the batch.
 For ephemeral batches, any outstanding pickings will be
-unlinked from the batch (i.e. their `batch_id` fields will be cleared).  
+unlinked from the batch (i.e. their `batch_id` fields will be cleared).
 For non-ephemeral batches, outstanding pickings will be split out into a
 new batch named BATCH/NNNNN-XX where BATCH/NNNNN is the name of the original
 batch and XX is a sequence counter, eg. '01'. If `u_confirm_batch` on the
 picking type is `True`, the name of the original batch will be stored in
-`u_original_name`.  
+`u_original_name`.
 After this call succeeds, the batch will be `done`.
 
 Request:

@@ -395,12 +395,35 @@ class StockPicking(models.Model):
         return super(StockPicking, self.with_context(**context_vals)).write(vals)
 
     def button_validate(self):
-        """ Ensure we don't incorrectly validate pending pickings."""
+        """ Ensure we don't incorrectly validate pending pickings.
+
+        Additionally, display a warning message if the defined condition is not met.
+        """
         self.ensure_one()
 
         self.assert_not_pending()
         self.update_lot_names()
 
+        # Run picking checks and display warning
+        warning_message = self.action_warn_picking_precondition()
+        if warning_message:
+            return {
+                "name": _(warning_message),
+                "type": "ir.actions.act_window",
+                "view_type": "form",
+                "view_mode": "form",
+                "res_model": "stock.picking",
+                "views": [(self.env.ref("udes_stock.view_picking_warning").id, "form")],
+                "view_id": self.env.ref("udes_stock.view_picking_warning").id,
+                "target": "new",
+                "res_id": self.id,
+                "context": self.env.context,
+            }
+
+        return super(StockPicking, self).button_validate()
+
+    def button_validate_continue(self):
+        """Method to continue with the button validate method after a warning message."""
         return super(StockPicking, self).button_validate()
 
     def update_lot_names(self):
@@ -2323,3 +2346,25 @@ class StockPicking(models.Model):
                     break
             _logger.info("Reserving stock for picking type %r completed.", picking_type)
         return
+
+    def action_warn_picking_precondition(self):
+        """Returns a warning string for pickings if preconditions are not met."""
+        self.ensure_one()
+        action = self.picking_type_id.u_warn_picking_precondition
+        if action:
+            return self._action_warn_picking(action)
+        else:
+            return False
+
+    def _action_warn_picking(self, action):
+        """Return a warning string when conditions of the action are met."""
+        func = getattr(self, "warn_picking_" + action)
+        warning_message = func()
+        return warning_message
+
+    def warn_picking_pickings_pending(self):
+        """Return a warning string when a previous picking is pending."""
+        if self.u_pending:
+            return "Previous pickings are not all complete."
+        else:
+            return False

@@ -67,6 +67,9 @@
                     <field name="u_post_assign_action" />
                     <field name="u_post_validate_action" />
                 </group>
+                <group string="Pick Warnings" groups='base.group_no_one'>
+                    <field name="u_warn_picking_precondition" />
+                </group>
             </xpath>
 
         </field>

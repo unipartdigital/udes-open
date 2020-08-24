@@ -60,12 +60,12 @@
             <!-- Partner field filtered to only see suppliers -->
             <xpath expr="//field[@name='partner_id']" position="replace">
                 <field name="partner_id" domain="[('supplier', '=', True)]" options="{'no_create': True}"/>
-            </xpath>  
+            </xpath>
 
             <!-- Destination location field changed to read-only for goods-in -->
             <xpath expr="//field[@name='location_dest_id']" position="attributes">
                 <attribute name="attrs">{'readonly': [('picking_type_code', '=', 'incoming')]}</attribute>
-            </xpath>  
+            </xpath>
 
             <!-- origin (Source Document  field changed to required for goods-in -->
             <xpath expr="//field[@name='origin']" position="attributes">
@@ -231,7 +231,7 @@
             <!-- Change the Late count to Red -->
             <xpath expr="//div[@t-if='record.count_picking_late.raw_value > 0']" position="attributes">
                 <attribute name="style">color:red;font-weight:bold</attribute>
-            </xpath>    
+            </xpath>
 
             <!-- Change bootstrap columns to allow for longer numbers -->
             <xpath expr="//div[@t-if='record.count_picking_backorders.raw_value > 0']" position="replace">
@@ -286,6 +286,23 @@
             <p>
                 You can either do it immediately or mark it as Todo for future processing. Use your scanner to validate the transferred quantity quicker.
             </p>
+        </field>
+    </record>
+
+    <record id="view_picking_warning" model="ir.ui.view">
+        <field name="name">stock.inventory.adjust.reserved.view.form</field>
+        <field name="model">stock.inventory</field>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+            <form string="Warning">
+                <group>
+                    <p>Do you wish to continue?</p>
+                </group>
+                <footer>
+                    <button name="button_validate_continue" string="_Continue" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-default" special="cancel" />
+                </footer>
+            </form>
         </field>
     </record>
 
