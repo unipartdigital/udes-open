@@ -93,3 +93,14 @@ class PickingApi(UdesApi):
             res = picking.batch_id.get_info(None)[0]
 
         return res
+
+    @http.route('/api/stock-picking/<int:ident>/warn_picking_precondition',
+                type='json', methods=['GET'], auth='user')
+    def warn_picking_precondition(self, ident):
+        """ Check if picking does not fulfill a precondition.
+            Returns a warning string if it doesn't, False otherwise.
+        """
+        Picking = request.env['stock.picking']
+
+        picking = Picking.browse(ident)
+        return picking.action_warn_picking_precondition()
