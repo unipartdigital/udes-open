@@ -14,7 +14,6 @@ class TestStockQuantPackageModel(BaseUDES):
         cls.create_quant(
             cls.banana.id, cls.test_stock_location_01.id, 5, package_id=cls.test_package.id
         )
-        cls.create_quant(cls.banana.id, cls.test_stock_location_02.id, 15)
         cls.test_user = cls.create_user("test_user", "test_user_login")
 
     def test01_get_quantities_by_default_key(self):
@@ -118,56 +117,7 @@ class TestStockQuantPackageModel(BaseUDES):
         )
         self.assertEqual(self.test_package.get_reserved_quantity(), 15)
 
-    def test07_create_simple_picking_from_package(self):
-        """ Create a picking from a single quant """
-        pick = self.test_package.create_picking(self.picking_type_goods_out)
-        # Confirm made in state draft
-        self.assertEqual(pick.state, "draft")
-        # Confirm default location used if non specified
-        self.assertEqual(pick.location_id, self.out_location)
-        # Confirm default dest location used if non specified
-        self.assertEqual(pick.location_dest_id, self.trailer_location)
-        # Confirm correct picking type id associated
-        self.assertEqual(pick.picking_type_id, self.picking_type_goods_out)
-        # Check default priority is 1 = 'Normal'
-        self.assertEqual(pick.priority, "1")
-        #  Check picking has correct quantities associated to it
-        self.assertEqual(pick.move_lines.mapped("product_id"), (self.apple | self.banana))
-        self.assertEqual(pick.move_lines.mapped("product_qty"), [10, 5])
-
-    def test08_create_picking_from_package_extra_kwargs(self):
-        """ Create a picking from a single package
-            - confirm
-            - priority
-            - assign_user
-            - non-default location_id
-            - non-default location_dest_id
-        """
-        pick = self.test_package.create_picking(
-            self.picking_type_goods_out,
-            confirm=True,
-            priority="2",
-            user_id=self.test_user.id,
-            location_id=self.test_received_location_01.id,
-            location_dest_id=self.test_goodsout_location_02.id,
-        )
-        # Confirm in state assigned
-        self.assertEqual(pick.state, "confirmed")
-        # Check user is assigned
-        self.assertEqual(pick.user_id, self.test_user)
-        # Confirm default location used if non specified
-        self.assertEqual(pick.location_id, self.test_received_location_01)
-        # Confirm default dest location used if non specified
-        self.assertEqual(pick.location_dest_id, self.test_goodsout_location_02)
-        # Confirm correct picking type id associated
-        self.assertEqual(pick.picking_type_id, self.picking_type_goods_out)
-        # Check priority is 2 = 'Urgent'
-        self.assertEqual(pick.priority, "2")
-        #  Check picking has correct quantities associated to it
-        self.assertEqual(pick.move_lines.mapped("product_id"), (self.apple | self.banana))
-        self.assertEqual(pick.move_lines.mapped("product_qty"), [10, 5])
-
-    def test09_find_move_lines_simple(self):
+    def test07_find_move_lines_simple(self):
         """ Find move lines of package """
         # Create a picking from test package
         pick = self.create_picking(
@@ -180,7 +130,7 @@ class TestStockQuantPackageModel(BaseUDES):
         mls = self.test_package.find_move_lines()
         self.assertEqual(mls, pick.move_line_ids)
 
-    def test10_find_move_lines_additional_domain(self):
+    def test08_find_move_lines_additional_domain(self):
         """ Find move lines of package with additional domain """
         # Create a picking from test package
         pick = self.create_picking(
@@ -194,7 +144,7 @@ class TestStockQuantPackageModel(BaseUDES):
         self.assertEqual(mls, pick.move_line_ids.filtered(lambda ml: ml.product_id == self.apple))
         self.assertEqual(mls.product_id, self.apple)
 
-    def test11_mls_can_fulfill_success_no_excess_multiple_move_lines(self):
+    def test09_mls_can_fulfill_success_no_excess_multiple_move_lines(self):
         """ Test to check if the move lines can be met by the package, then no excess given"""
         self.create_quant(self.apple.id, self.test_stock_location_02.id, 10)
         self.create_quant(self.banana.id, self.test_stock_location_02.id, 10)
@@ -215,7 +165,7 @@ class TestStockQuantPackageModel(BaseUDES):
         self.assertEqual(can_fulfil_mls.mapped("product_qty"), [10, 2])
         self.assertFalse(excess_mls, "Expected no excess move lines")
 
-    def test12_mls_can_fulfill_success_with_excess_simple(self):
+    def test10_mls_can_fulfill_success_with_excess_simple(self):
         """ Test to check that when a move line has quantity > package quantity, it returns which
             it can meet, and the excess move line.
         """
@@ -237,7 +187,7 @@ class TestStockQuantPackageModel(BaseUDES):
         self.assertEqual(can_fulfil_mls.product_qty, 10)
         self.assertEqual(excess_mls.product_qty, 8)
 
-    def test13_mls_can_fulfill_success_with_excess_multiple_move_lines(self):
+    def test11_mls_can_fulfill_success_with_excess_multiple_move_lines(self):
         """ Test to check that when multiple move lines passed, it correctly splits those when
             the move lines quantity > package quantity, and meets those it can
         """
@@ -278,3 +228,90 @@ class TestStockQuantPackageModel(BaseUDES):
         self.assertIn(self.banana, excess_mls.product_id)
         self.assertEqual(excess_mls.mapped("product_qty"), [8, 12])
 
+
+class TestCreatePicking(BaseUDES):
+    @classmethod
+    def setUpClass(cls):
+        super(TestCreatePicking, cls).setUpClass()
+
+        Package = cls.env["stock.quant.package"]
+
+        cls.test_package = Package.get_or_create("test_package_01", create=True)
+        cls.create_quant(
+            cls.apple.id, cls.test_stock_location_01.id, 10, package_id=cls.test_package.id,
+        )
+        cls.create_quant(
+            cls.banana.id, cls.test_stock_location_01.id, 5, package_id=cls.test_package.id,
+        )
+        cls.test_user = cls.create_user("test_user", "test_user_login")
+
+    def test01_single_package(self):
+        """ Create a picking from a single quant """
+        pick = self.test_package.create_picking(self.picking_type_goods_out)
+        # Confirm made in state draft
+        self.assertEqual(pick.state, "draft")
+        # Confirm package location used if non specified
+        self.assertEqual(pick.location_id, self.test_stock_location_01)
+        # Confirm default dest location used if non specified
+        self.assertEqual(pick.location_dest_id, self.trailer_location)
+        # Confirm correct picking type id associated
+        self.assertEqual(pick.picking_type_id, self.picking_type_goods_out)
+        # Check default priority is 1 = 'Normal'
+        self.assertEqual(pick.priority, "1")
+        #  Check picking has correct quantities associated to it
+        self.assertEqual(pick.move_lines.mapped("product_id"), (self.apple | self.banana))
+        self.assertEqual(pick.move_lines.mapped("product_qty"), [10, 5])
+
+    def test02_single_package_extra_kwargs(self):
+        """ Create a picking from a single package
+            - confirm
+            - priority
+            - assign_user
+            - non-default location_id
+            - non-default location_dest_id
+        """
+        pick = self.test_package.create_picking(
+            self.picking_type_goods_out,
+            confirm=True,
+            priority="2",
+            user_id=self.test_user.id,
+            location_id=self.test_received_location_01.id,
+            location_dest_id=self.test_goodsout_location_02.id,
+        )
+        # Confirm in state assigned
+        self.assertEqual(pick.state, "confirmed")
+        # Check user is assigned
+        self.assertEqual(pick.user_id, self.test_user)
+        # Confirm default location used if non specified
+        self.assertEqual(pick.location_id, self.test_received_location_01)
+        # Confirm default dest location used if non specified
+        self.assertEqual(pick.location_dest_id, self.test_goodsout_location_02)
+        # Confirm correct picking type id associated
+        self.assertEqual(pick.picking_type_id, self.picking_type_goods_out)
+        # Check priority is 2 = 'Urgent'
+        self.assertEqual(pick.priority, "2")
+        #  Check picking has correct quantities associated to it
+        self.assertEqual(pick.move_lines.mapped("product_id"), (self.apple | self.banana))
+        self.assertEqual(pick.move_lines.mapped("product_qty"), [10, 5])
+
+    def test03_single_package_correct_package(self):
+        """ Test that create_picking uses the right package when assigning
+            the picking
+        """
+        Package = self.env["stock.quant.package"]
+
+        # Create a bunch of packages with identical contents in the same
+        # location
+        packages = Package.browse()
+        for i in range(5):
+            package = Package.create({})
+            self.create_quant(
+                self.apple.id, self.test_stock_location_01.id, 10, package_id=package.id
+            )
+            packages |= package
+        self.assertEqual(len(packages), 5)
+
+        package = packages[2]
+        pick = package.create_picking(self.picking_type_pick, confirm=True, assign=True)
+        self.assertEqual(pick.state, "assigned")
+        self.assertEqual(pick.move_line_ids.package_id, package)

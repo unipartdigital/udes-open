@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<odoo>
+
+    <act_window id="action_multi_create_picking_for_packages"
+        name="Create Picking For Packages"
+        res_model="udes_stock_move.change_package_location"
+        binding_model="stock.quant.package"
+        binding_views="list,form"
+        view_mode="form"
+        target="new" />
+
+</odoo>

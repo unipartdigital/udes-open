@@ -486,3 +486,12 @@ class BaseUDES(common.SavepointCase):
         vals = {'name': name}
         vals.update(kwargs)
         return Partner.create(vals)
+
+    @classmethod
+    def complete_picking(cls, picking, validate=True):
+        """ Marks a picking and all its moves as done """
+        for move_line in picking.move_line_ids:
+            if move_line.state == "assigned":
+                move_line.qty_done = move_line.product_uom_qty
+        if validate:
+            picking.action_done()

@@ -53,6 +53,15 @@ class StockQuant(models.Model):
                 - picking
         """
         Picking = self.env["stock.picking"]
+
+        if "location_id" not in kwargs:
+            locations = self.location_id
+            location = locations.get_common_ancestor()
+            if location:
+                kwargs.update({"location_id": location.id})
+
         product_quantities = self.get_quantities_by_key()
         products_info = [{"product": key, "qty": val} for key, val in product_quantities.items()]
-        return Picking.create_picking(picking_type, products_info, **kwargs)
+        return Picking.with_context(quant_ids=self.ids).create_picking(
+            picking_type, products_info, **kwargs
+        )
