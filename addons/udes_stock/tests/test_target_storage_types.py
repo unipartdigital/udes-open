@@ -1070,3 +1070,39 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         parent_package = Package.get_package('test_pallet', create=True)
         self.validate_quants(package=package, expected_quants=expected_quants,
                              parent_package=parent_package, **validation_args)
+
+    def test27_target_storage_format_pallet_packages_result_parent_package_in_multiple_locations(self):
+        """ Test that the correct error is thrown when the result parent
+            package already exists in a different location to the move
+            destination before the picking is validated.
+        """
+        Package = self.env['stock.quant.package']
+
+        create_info = [{'product': self.apple, 'qty': 4}]
+        picking = self.create_picking(self.picking_type_in,
+                                      products_info=create_info,
+                                      confirm=True)
+        picking = picking.sudo(self.inbound_user)
+
+        product_ids = [{'barcode': self.apple.barcode, 'qty': 4}]
+        self.picking_type_in.u_target_storage_format = 'pallet_packages'
+
+        pallet = Package.get_package('test_pallet', create=True)
+        self.create_quant(self.apple.id,
+                          self.test_location_01.id,
+                          5,
+                          package_id=pallet.id)
+
+        with self.assertRaises(ValidationError) as e:
+            dest_barcode = self.picking_type_in.default_location_dest_id.barcode
+            picking.update_picking(product_ids=product_ids,
+                                   location_dest_barcode=dest_barcode,
+                                   result_package_name='test_package',
+                                   result_parent_package_name='test_pallet')
+
+        expected_error = 'Package is already in a different location: %s in %s' \
+                         % ('test_pallet', self.test_location_01.name)
+
+        self.assertEqual(e.exception.name,
+                         expected_error,
+                         'No/Incorrect error message was thrown')
