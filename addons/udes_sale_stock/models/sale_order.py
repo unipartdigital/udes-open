@@ -105,13 +105,16 @@ class SaleOrder(models.Model):
         return available_quantity
 
     @api.model
-    def cancel_orders_without_availability(self):
+    def cancel_orders_without_availability(self, aux_domain=None):
         """From the current list of unconfirmed SO lines, cancel lines that
         cannot be fulfilled with current stock holding and returns them"""
         Order = self.env["sale.order"]
+        domain = [("state", "in", ["sale", "draft"])]
 
         # Get order lines
-        orders = Order.search([("state", "in", ["sale", "draft"])])
+        if aux_domain is not None:
+            domain += aux_domain
+        orders = Order.search(domain)
         unfulfillable_lines = orders._find_unfulfillable_order_lines()
 
         _logger.info("Cancelling %s unfulfillable order lines", len(unfulfillable_lines))
