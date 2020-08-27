@@ -38,8 +38,7 @@ class TestSaleOrderState(common.BaseSaleUDES):
         sale.action_confirm()
         cls.sale = sale
 
-        cls.first_picking = sale.picking_ids.filtered(lambda x: x.state == "assigned")
-        assert cls.first_picking.u_next_picking_ids
+        cls.first_pickings = sale.picking_ids.filtered(lambda x: x.state == "assigned")
 
     def complete_picking(self, picking):
         """
@@ -77,18 +76,19 @@ class TestSaleOrderState(common.BaseSaleUDES):
         completed.
         """
         # Complete the pickings in order
-        picking = self.first_picking
-        while picking:
+        pickings = self.first_pickings
+        while pickings:
             self.assertEqual(self.sale.state, "sale")
             self.assertFalse(self.apple_sale_line.is_cancelled)
             self.assertFalse(self.banana_sale_line.is_cancelled)
 
-            # Complete the picking
-            self.assertEqual(picking.state, "assigned")
-            self.complete_picking(picking)
-            self.assertEqual(picking.state, "done")
+            # Complete the pickings
+            for picking in pickings:
+                self.assertEqual(picking.state, "assigned")
+                self.complete_picking(picking)
+                self.assertEqual(picking.state, "done")
 
-            picking = picking.u_next_picking_ids
+            pickings = pickings.mapped("u_next_picking_ids")
 
         # Check that the sale order is done
         self.assertEqual(self.sale.state, "done")
@@ -97,28 +97,29 @@ class TestSaleOrderState(common.BaseSaleUDES):
 
     def test02_test_last_picking_cancelled(self):
         """
-        Test that a sale order is cancelled when all but the final picking is
-        complete and the final picking is cancelled.
+        Test that a sale order is cancelled when all but the pickings
+        in the final stage are complete and the final pickings are cancelled.
         """
-        # Complete all but the final picking in order
-        picking = self.first_picking
-        while picking.u_next_picking_ids:
+        # Complete all but the final picking stage in order
+        pickings = self.first_pickings
+        while pickings.mapped("u_next_picking_ids"):
             self.assertEqual(self.sale.state, "sale")
             self.assertFalse(self.apple_sale_line.is_cancelled)
             self.assertFalse(self.banana_sale_line.is_cancelled)
 
-            # Complete the picking
-            self.assertEqual(picking.state, "assigned")
-            self.complete_picking(picking)
-            self.assertEqual(picking.state, "done")
+            # Complete the pickings
+            for picking in pickings:
+                self.assertEqual(picking.state, "assigned")
+                self.complete_picking(picking)
+                self.assertEqual(picking.state, "done")
 
-            picking = picking.u_next_picking_ids
+            pickings = pickings.mapped("u_next_picking_ids")
 
-        # Cancel the last picking
-        last_picking = picking
-        self.assertEqual(last_picking.state, "assigned")
-        last_picking.action_cancel()
-        self.assertEqual(last_picking.state, "cancel")
+        # Cancel the pickings in the final stage
+        last_pickings = pickings
+        self.assertTrue(all(last_picking.state == "assigned" for last_picking in last_pickings))
+        last_pickings.action_cancel()
+        self.assertTrue(all(last_picking.state == "cancel" for last_picking in last_pickings))
 
         # Check that the sale order is cancelled
         self.assertEqual(self.sale.state, "cancel")
@@ -135,7 +136,7 @@ class TestSaleOrderState(common.BaseSaleUDES):
         # Complete the pickings in order
         # The chain should split after the first picking because of the
         # cancellation.
-        pickings = self.first_picking
+        pickings = self.first_pickings
         while pickings:
             for picking in pickings.filtered(lambda x: x.state == "assigned"):
                 self.assertEqual(self.sale.state, "sale")
