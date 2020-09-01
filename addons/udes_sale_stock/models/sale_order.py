@@ -76,8 +76,9 @@ class SaleOrder(models.Model):
 
     @api.multi
     def copy(self, default=None):
-        """Append '(copy)' to Customer Reference for duplicated Order"""
-        default = dict(default or {}, client_order_ref=_("%s (copy)") % self.client_order_ref)
+        """Append '(copy)' to Customer Reference for duplicated Order if not supplied"""
+        if not dict(default or {}).get('client_order_ref'):
+            default = dict(default or {}, client_order_ref=_("%s (copy)") % self.client_order_ref)
         return super(SaleOrder, self).copy(default)
 
     @api.multi
@@ -332,7 +333,7 @@ class SaleOrder(models.Model):
             to_confirm = self
         else:
             to_confirm = self.search(self._get_confirmation_domain())
-            
+
         for _, batch in to_confirm.batched(size=1000):
             tries = 0
             while True:
