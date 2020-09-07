@@ -1026,6 +1026,49 @@ class StockPickingBatch(models.Model):
 
         return
 
+    @api.model
+    def _check_package_not_reserved(self, package_name, batch=None, pickings=None):
+        """
+            Check package is not reserved by other batches or pickings
+            Args:
+                package_name (str): Name of the package to check for reservations
+                batch (batch set): Batch to exclude from check
+                pickings: (picking set): Pickings to exclude from check
+
+        """
+        Batch = self.env["stock.picking.batch"]
+        Picking = self.env["stock.picking"]
+
+        batch_domain = [
+            ("state", "=", "in_progress"),
+            ("u_last_reserved_pallet_name", "=", package_name),
+        ]
+
+        if batch:
+            batch_domain += [("id", "!=", batch.id)]
+
+        batch_using_package = Batch.search(batch_domain, limit=1, order="id")
+        if batch_using_package:
+            raise UserWarning(
+                _("%s is already being used for batch %s, use another pallet.")
+                % (package_name, batch_using_package.name)
+            )
+
+        picking_domain = [
+            ("u_reserved_pallet", "=", package_name),
+            ("state", "not in", ["draft", "cancel", "done"]),
+        ]
+
+        if pickings:
+            picking_domain += [("id", "not in", pickings.ids)]
+
+        pickings_using_package = Picking.search(picking_domain, limit=1, order="id",)
+        if pickings_using_package:
+            raise ValidationError(
+                _("This pallet is already being used for picking %s, use another pallet.")
+                % pickings_using_package.name
+            )
+
     def reserve_pallet(self, pallet_name, picking=None):
         """
         Reserves a pallet for use in a batch.
