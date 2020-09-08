@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from lxml import etree
+
 from odoo import api, models, fields, _
 from odoo.exceptions import ValidationError
 
@@ -230,3 +232,18 @@ class StockPicking(models.Model):
         """
         Move = self.env["stock.move"]
         return Move.create(move_values)
+
+    @api.model
+    def _fields_view_get(self, view_id=None, view_type="form", toolbar=False, submenu=False):
+        """ Remove delete button for untrusted users """
+        res = super(StockPicking, self)._fields_view_get(
+            view_id=view_id, view_type=view_type, toolbar=toolbar, submenu=submenu
+        )
+
+        if not self.env.user.u_is_trusted_user:
+            node = etree.fromstring(res["arch"])
+            if node.tag in ("kanban", "tree", "form", "gantt"):
+                node.set("delete", "false")
+                res["arch"] = etree.tostring(node, encoding="unicode")
+
+        return res
