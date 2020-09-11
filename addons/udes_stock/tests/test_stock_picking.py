@@ -34,6 +34,37 @@ class TestStockPicking(common.BaseUDES):
         expected_move_values.update(kwargs)
         return expected_move_values
 
+    def _assert_picking_related_pickings_match_expected_values(self, pickings, expected_values):
+        """
+        Assert that each supplied picking returns the expected related picking records
+
+        :args:
+                - pickings: A recordset of pickings
+                - expected_values: A dictionary with field names to check as keys
+                                   Each value should be another dictionary with the picking as key, 
+                                   and expected pickings (or False for none) to return as value
+        """
+        for picking in pickings:
+            # Loop through all fields that need to be checked
+            for field in expected_values.keys():
+                returned_picks = picking[field]
+                expected_picks = expected_values[field][picking]
+
+                if not expected_picks:
+                    # Assert that the field returns an empty recordset
+                    self.assertFalse(
+                        returned_picks, f"{picking.name} should not have any pickings for '{field}'"
+                    )
+                else:
+                    # Assert that the recordset only contains the expected picks
+                    expected_pick_names = self.get_picking_names(expected_picks)
+
+                    self.assertEqual(
+                        returned_picks,
+                        expected_picks,
+                        f"'{field}' for {picking.name} should be '{expected_pick_names}'",
+                    )
+
     def test01_get_empty_locations(self):
         """ Get empty locations - for goods in """
         self.assertEqual(
@@ -326,3 +357,185 @@ class TestStockPicking(common.BaseUDES):
         self.assertEqual(pick.move_lines.state, "confirmed")
         self.assertEqual(len(pick.move_line_ids), 0)
         self.assertEqual(pick.move_lines.quantity_done, 0)
+
+    def test19_assert_related_pickings_computed_correctly(self):
+        """
+        Assert that first/previous/next picking computed fields return expected records
+        with the following setup:
+
+        4 picks (A, B, C and D) with the following moves:
+
+        - Pick A - 1 move
+        - Pick B - 2 moves, 1st move set to originate from Pick A's move
+        - Pick C - 1 move
+        - Pick D - 1 move, set to originate from all moves from Pick B and C
+        """
+        apple_products_info = [{"product": self.apple, "qty": 10}]
+
+        # Create test picks
+        pick_a = self.create_picking(self.picking_type_pick, name="Pick A")
+        pick_b = self.create_picking(self.picking_type_pick, name="Pick B")
+        pick_c = self.create_picking(self.picking_type_pick, name="Pick C")
+        pick_d = self.create_picking(self.picking_type_pick, name="Pick D")
+
+        all_picks = pick_a | pick_b | pick_c | pick_d
+
+        # Create moves for picks
+        pick_a_move_1 = self.create_move(pick_a, apple_products_info)
+
+        pick_b_move_1 = self.create_move(pick_b, apple_products_info)
+        pick_b_move_2 = self.create_move(pick_b, apple_products_info)
+
+        pick_c_move_1 = self.create_move(pick_c, apple_products_info)
+
+        pick_d_move_1 = self.create_move(pick_d, apple_products_info)
+
+
+        # Set one of Pick B's moves to have originated from Pick A's move
+        pick_b_move_1.move_orig_ids = pick_a_move_1
+
+        # Set Pick D's move to have originated from Pick B/C's moves
+        pick_d_move_1.move_orig_ids = pick_b_move_1 | pick_b_move_2 | pick_c_move_1
+
+        # Pick Move Relationship Diagram
+        #
+        # A1
+        # |
+        # B1________B2_______C1
+        # |         |         |
+        # |_________D1________|
+        #
+        # Expected Results From Computed Fields
+        #
+        # Pick A:
+        #   -- First: Pick A (A1 doesn't originate from any move)
+        #   -- Prev:  False (A1 doesn't originate from any move)
+        #   -- Next:  Pick B (B1 originates from A1)
+        #
+        # Pick B:
+        #   -- First: Pick A and B (B1 originates from A1, but B2 does not originate from any move)
+        #   -- Prev:  Pick A (only pick above Pick B in the chain)
+        #   -- Next:  Pick D (D1 originates from B1 and B2, no direct link to Pick C)
+        #
+        # Pick C:
+        #   -- First: Pick C (C1 doesn't originate from any move)
+        #   -- Prev:  False (C1 doesn't originate from any move)
+        #   -- Next:  Pick D (D1 originates from C1)
+        #
+        # Pick D:
+        #   -- First: Pick A, B and C (D1 originates from B2, C1 and B1, which originates from A1)
+        #   -- Prev:  Pick B and C (D1 originates from B1, B2 and C1 but has no direct link to A1)
+        #   -- Next:  False (No moves originate from D1)
+
+        expected_pickings_by_field = {
+            "u_first_picking_ids": {
+                pick_a: pick_a,
+                pick_b: (pick_a | pick_b),
+                pick_c: pick_c,
+                pick_d: (pick_a | pick_b | pick_c),
+            },
+            "u_prev_picking_ids": {
+                pick_a: False,
+                pick_b: pick_a,
+                pick_c: False,
+                pick_d: (pick_b | pick_c),
+            },
+            "u_next_picking_ids": {
+                pick_a: pick_b,
+                pick_b: pick_d,
+                pick_c: pick_d,
+                pick_d: False,
+            },
+        }
+
+        # Assert that each computed picking field returns the expected result for all picks
+        self._assert_picking_related_pickings_match_expected_values(
+            all_picks, expected_pickings_by_field
+        )
+
+    def test20_assert_created_backorders_computed_correctly(self):
+        """ Assert that Created Back Orders field is computed correctly """
+        apple_qty = 1
+        self.create_quant(self.apple.id, self.test_stock_location_01.id, apple_qty)
+
+        # Create picking with demand for more apple's than are in stock
+        pick = self.create_picking(
+            self.picking_type_pick,
+            products_info=[{"product": self.apple, "qty": apple_qty + 1}],
+            location_dest_id=self.test_received_location_01.id,
+            location_id=self.test_stock_location_01.id,
+            assign=True,
+        )
+
+        # Set quantity done which doesn't match the full demand
+        pick.move_line_ids[0].qty_done = apple_qty
+
+        # Validate pick which will create backorder for remaining apple quantity
+        pick.action_done()
+
+        # Assert that a backorder was generated
+        expected_backorder = self.Picking.search([("backorder_id", "=", pick.id)], limit=1)
+        self.assertEqual(
+            len(expected_backorder),
+            1,
+            "A backorder should have been generated from pick being validated",
+        )
+
+        # Assert that Created Back Orders field picks up the previously generated backorder
+        self.assertEqual(
+            pick.u_created_backorder_ids,
+            expected_backorder,
+            f"Created Back Orders {pick.u_created_backorder_ids} does not match "
+            f"expected backorder: {expected_backorder}",
+        )
+
+    def test21_assert_picking_quantities_computed_correctly(self):
+        """ Assert that qty todo/done and package discrepancies fields are computed correctly """
+        apple_qty = 10
+        apple_qty_per_line = apple_qty / 2
+
+        # Create quants for apples in two separate packages
+        pack1 = self.create_package()
+        pack2 = self.create_package()
+        self.create_quant(
+            self.apple.id, self.test_stock_location_01.id, apple_qty_per_line, package_id=pack1.id
+        )
+        self.create_quant(
+            self.apple.id, self.test_stock_location_01.id, apple_qty_per_line, package_id=pack2.id
+        )
+
+        # Create picking with demand for all apples in stock, split over 2 lines
+        pick = self.create_picking(
+            self.picking_type_pick,
+            products_info=[
+                {"product": self.apple, "qty": apple_qty_per_line},
+                {"product": self.apple, "qty": apple_qty_per_line},
+            ],
+            location_dest_id=self.test_received_location_01.id,
+            location_id=self.test_stock_location_01.id,
+            assign=True,
+        )
+
+        self.assertEqual(pick.u_quantity_done, 0, "Quantity done should be zero")
+        self.assertEqual(
+            pick.u_total_quantity, apple_qty, "Total quantity should match apple quantity"
+        )
+        self.assertTrue(pick.u_has_discrepancies, "Pick should have discrepancies")
+
+        # Fulfil 1st move line
+        pick.move_line_ids[0].qty_done = apple_qty_per_line
+
+        self.assertEqual(
+            pick.u_quantity_done,
+            apple_qty_per_line,
+            "Quantity done should match apple per line quantity",
+        )
+        self.assertTrue(pick.u_has_discrepancies, "Pick should have discrepancies")
+
+        # Fulfil 2nd move line which should mean pick is no longer flagged as having discrepancies
+        pick.move_line_ids[1].qty_done = apple_qty_per_line
+
+        self.assertEqual(
+            pick.u_quantity_done, apple_qty, "Quantity done should match apple quantity"
+        )
+        self.assertFalse(pick.u_has_discrepancies, "Pick should not have discrepancies")
