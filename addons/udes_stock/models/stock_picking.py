@@ -32,9 +32,9 @@ class StockPicking(models.Model):
     )
     u_created_backorder_ids = fields.One2many(
         "stock.picking",
-        string="Created Back Orders",
+        string="Created Backorders",
         compute="_compute_related_picking_ids",
-        help="Back Orders created from this picking",
+        help="Backorders created from this picking",
     )
 
     # Picking quantity computed fields
@@ -167,7 +167,7 @@ class StockPicking(models.Model):
             if everything is done - then a new pick is created and the old one is empty
         """
         Move = self.env["stock.move"]
-        # Based on back order creation in stock_move._action_done
+        # Based on backorder creation in stock_move._action_done
         self.ensure_one()
 
         if mls is None:

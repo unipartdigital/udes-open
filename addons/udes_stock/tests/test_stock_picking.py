@@ -230,7 +230,7 @@ class TestStockPicking(common.BaseUDES):
         self.assertEqual(move_lines.qty_done, 10)
 
     def test12_requires_backorder_simple(self):
-        """ Simple requires back order check """
+        """ Simple requires backorder check """
         # Update moves
         self.test_picking_in.move_lines.quantity_done = 10
         # Check a backorder is not needed when picking move lines are passed to requires_backorder
@@ -238,7 +238,7 @@ class TestStockPicking(common.BaseUDES):
         self.assertFalse(self.test_picking_in._requires_backorder(mls))
 
     def test13_requires_backorder_multi_lines(self):
-        """ Create picking with multiple lines back order check """
+        """ Create picking with multiple lines backorder check """
         self.create_quant(self.fig.id, self.test_stock_location_02.id, 50)
         self.create_quant(self.banana.id, self.test_stock_location_02.id, 50)
         pick = self.Picking.create_picking(
@@ -348,7 +348,7 @@ class TestStockPicking(common.BaseUDES):
         self.assertEqual(pick.move_lines.mapped("quantity_done"), [10, 10])
         self.assertEqual(len(pick.move_line_ids), 2)
         bk_picking = pick._backorder_move_lines()
-        # Check back order pick
+        # Check backorder pick
         self.assertEqual(pick, bk_picking.backorder_id)
         self.assertEqual(bk_picking.move_lines.mapped("state"), ["assigned", "assigned"])
         self.assertEqual(len(bk_picking.move_line_ids), 2)
@@ -454,7 +454,7 @@ class TestStockPicking(common.BaseUDES):
         )
 
     def test20_assert_created_backorders_computed_correctly(self):
-        """ Assert that Created Back Orders field is computed correctly """
+        """ Assert that Created Backorders field is computed correctly """
         apple_qty = 1
         self.create_quant(self.apple.id, self.test_stock_location_01.id, apple_qty)
 
@@ -481,11 +481,11 @@ class TestStockPicking(common.BaseUDES):
             "A backorder should have been generated from pick being validated",
         )
 
-        # Assert that Created Back Orders field picks up the previously generated backorder
+        # Assert that Created Backorders field picks up the previously generated backorder
         self.assertEqual(
             pick.u_created_backorder_ids,
             expected_backorder,
-            f"Created Back Orders {pick.u_created_backorder_ids} does not match "
+            f"Created Backorders {pick.u_created_backorder_ids} does not match "
             f"expected backorder: {expected_backorder}",
         )
 
