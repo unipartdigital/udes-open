@@ -55,15 +55,17 @@ class MixinStockModel(models.AbstractModel):
                 results = self.create({"name": identifier})
             elif self.MSM_CREATE and create:
                 raise ValidationError(
-                    _(f"Cannot create a new {model_name} for %s with identifier of type %s")
-                    % (model, type(identifier))
+                    _("Cannot create a new %s for %s with identifier of type %s")
+                    % (model_name, model, type(identifier))
                 )
             elif create:
-                raise ValidationError(_(f"Cannot create a new {model_name} for %s") % model)
+                raise ValidationError(_("Cannot create a new %s for %s") % (model_name, model))
             else:
-                raise ValidationError(_(f"{model_name} not found for identifier %s") % identifier)
+                raise ValidationError(
+                    _("%s not found for identifier %s") % (model_name, identifier)
+                )
         elif len(results) > 1:
             raise ValidationError(
-                _(f"Too many {model_name}s found for identifier %s in %s") % (identifier, model)
+                _("Too many %ss found for identifier %s in %s") % (model_name, identifier, model)
             )
         return results
