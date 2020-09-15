@@ -124,6 +124,14 @@ This is essentially a collection of products that are to be moved from one locat
 | Field Name | Type    | Description |
 | ---------- | ------- | ----------- |
 | sequence | int | Used to order the 'All Operations' kanban view |
+| u_first_picking_ids | one2many (stock.picking) | Shows the pickings at the top of the chain |
+| u_prev_picking_ids | one2many (stock.picking) | Shows the previous pickings in the chain |
+| u_next_picking_ids | one2many (stock.picking) | Shows the next pickings in the chain |
+| u_created_backorder_ids | one2many (stock.picking) | Shows backorders created from this picking |
+| u_quantity_done | float | Sums all done move quantities for the picking |
+| u_total_quantity | float | Sums all move quantities for the picking |
+| u_has_discrepancies | boolean | Flags when u_quantity_done doesn't match u_total_quantity |
+| u_num_pallets | int | Sums all unique destination packages found in the picking's move lines |
 
 | Helpers | Description |
 | ------- | ----------- |
