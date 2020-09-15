@@ -31,7 +31,7 @@
 - udes_common:
   Contains useful helper functions, such as groupby
 
-## Models 
+## Models
 
 In general the functions are designed to be as simple as possible, where they do one thing well. 
 One reason why update picking has not been migrated over, as it is just a lot of if statements
