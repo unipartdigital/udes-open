@@ -10,6 +10,117 @@ class StockPicking(models.Model):
         "Sequence", default=0, help="Used to order the 'All Operations' kanban view"
     )
 
+    # Related pickings computed fields
+
+    u_first_picking_ids = fields.One2many(
+        "stock.picking",
+        string="First Pickings",
+        compute="_compute_first_picking_ids",
+        help="First pickings in the chain",
+    )
+    u_prev_picking_ids = fields.One2many(
+        "stock.picking",
+        string="Previous Pickings",
+        compute="_compute_related_picking_ids",
+        help="Previous pickings",
+    )
+    u_next_picking_ids = fields.One2many(
+        "stock.picking",
+        string="Next Pickings",
+        compute="_compute_related_picking_ids",
+        help="Next pickings",
+    )
+    u_created_backorder_ids = fields.One2many(
+        "stock.picking",
+        string="Created Backorders",
+        compute="_compute_related_picking_ids",
+        help="Backorders created from this picking",
+    )
+
+    # Picking quantity computed fields
+
+    u_quantity_done = fields.Float(
+        "Quantity Done",
+        compute="_compute_picking_quantities",
+        digits=(0, 0),
+        help="Quantity done of the moves related to the picking",
+    )
+    u_total_quantity = fields.Float(
+        "Total Quantity",
+        compute="_compute_picking_quantities",
+        digits=(0, 0),
+        help="Total quantity todo of the moves related to the picking",
+    )
+    u_has_discrepancies = fields.Boolean(
+        "Has Discrepancies",
+        compute="_compute_picking_quantities",
+        readonly=True,
+        help="Flag to indicate if the picking has discrepancies.",
+    )
+    u_num_pallets = fields.Integer(
+        "Total Pallets Count",
+        compute="_compute_num_pallets",
+        help="Total number of different pallets in the picking",
+    )
+
+    @api.depends("move_lines", "move_lines.move_orig_ids", "move_lines.move_orig_ids.picking_id")
+    def _compute_first_picking_ids(self):
+        """ Compute first picking from moves that do not originate from other moves """
+        Move = self.env["stock.move"]
+
+        for picking in self:
+            first_moves = Move.browse()
+
+            moves = picking.move_lines
+            while moves:
+                first_moves |= moves.filtered(lambda x: not x.move_orig_ids)
+                moves = moves.move_orig_ids
+
+            picking.u_first_picking_ids = first_moves.picking_id
+
+    @api.depends(
+        "move_lines",
+        "move_lines.move_orig_ids",
+        "move_lines.move_dest_ids",
+        "move_lines.move_orig_ids.picking_id",
+        "move_lines.move_dest_ids.picking_id",
+    )
+    def _compute_related_picking_ids(self):
+        """ Compute previous/next picking and created backorders """
+        for picking in self:
+            picking.u_prev_picking_ids = picking.move_lines.move_orig_ids.picking_id
+            picking.u_next_picking_ids = picking.move_lines.move_dest_ids.picking_id
+
+            picking.u_created_backorder_ids = self.search([("backorder_id", "=", picking.id)])
+
+    @api.depends("move_lines", "move_lines.quantity_done", "move_lines.product_uom_qty")
+    def _compute_picking_quantities(self):
+        """ Compute the quantity done and to do of the picking from the moves """
+        for picking in self:
+            total_qty_done = 0.0
+            total_qty_todo = 0.0
+            has_discrepancies = False
+
+            for move in picking.move_lines.filtered(lambda ml: ml.state != "cancel"):
+                qty_done = move.quantity_done
+                qty_todo = move.product_uom_qty
+
+                if not has_discrepancies and qty_done != qty_todo:
+                    has_discrepancies = True
+
+                total_qty_done += qty_done
+                total_qty_todo += qty_todo
+
+            picking.u_quantity_done = total_qty_done
+            picking.u_total_quantity = total_qty_todo
+            picking.u_has_discrepancies = has_discrepancies
+
+    @api.depends("move_line_ids", "move_line_ids.result_package_id")
+    def _compute_num_pallets(self):
+        """ Compute the number of pallets from the operations """
+        for picking in self:
+            picking.u_num_pallets = len(picking.move_line_ids.result_package_id)
+
     def get_empty_locations(self):
         """ Returns the recordset of locations that are child of the
             instance dest location and are empty.
@@ -56,7 +167,7 @@ class StockPicking(models.Model):
             if everything is done - then a new pick is created and the old one is empty
         """
         Move = self.env["stock.move"]
-        # Based on back order creation in stock_move._action_done
+        # Based on backorder creation in stock_move._action_done
         self.ensure_one()
 
         if mls is None:

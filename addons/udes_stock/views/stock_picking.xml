@@ -47,4 +47,40 @@
         </field>
     </record>
 
+    <record id="view_picking_form" model="ir.ui.view">
+        <field name="name">stock.picking.form.udes</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Add picking quantity fields -->
+            <xpath expr="//field[@name='move_ids_without_package']" position="before">
+                <group string="Summary">
+                    <group colspan="2" attrs="{'invisible':[('u_has_discrepancies', '==', False)]}">
+                        <field name="u_has_discrepancies" invisible="1" />
+                        <div class="text-danger" style="font-weight: bold;">This picking has discrepancies</div>
+                    </group>
+                    <group>
+                        <field name="u_num_pallets" />
+                    </group>
+                    <group>
+                        <field name="u_quantity_done" />
+                        <field name="u_total_quantity" />
+                    </group>
+                </group>
+            </xpath>
+
+            <!-- Add related picking fields -->
+            <xpath expr="//page[@name='extra']" position="inside">
+                <group>
+                    <field name="u_first_picking_ids" widget="one2many_list" mode="kanban"/>
+                    <field name="u_prev_picking_ids" widget="one2many_list" mode="kanban"/>
+                    <field name="u_next_picking_ids" widget="one2many_list" mode="kanban"/>
+                    <field name="u_created_backorder_ids" widget="one2many_list" mode="kanban"/>
+                </group>
+            </xpath>
+
+        </field>
+    </record>
+
 </odoo>

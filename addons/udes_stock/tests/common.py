@@ -495,3 +495,12 @@ class BaseUDES(common.SavepointCase):
                 move_line.qty_done = move_line.product_uom_qty
         if validate:
             picking.action_done()
+
+    @classmethod
+    def get_picking_names(cls, pickings):
+        """
+        Takes the names of the supplied pickings and returns
+        a string with all names comma seperated
+        """
+        names = pickings.mapped("name")
+        return ", ".join(map(str, names))
