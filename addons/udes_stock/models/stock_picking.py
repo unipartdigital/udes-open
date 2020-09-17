@@ -2181,6 +2181,18 @@ class StockPicking(models.Model):
 
         return picking
 
+    def _reserve_stock_assign(self):
+        """ Perform assign of the pickings at the move level because refactoring
+            may change the pickings.
+            This is a function so it can be extended and/or overriden.
+        """
+        # Assign at the move level because refactoring may change
+        # the pickings.
+        moves = self.mapped("move_lines")
+        moves.with_context(lock_batch_state=True)._action_assign()
+
+        return moves.mapped("picking_id")
+
     def reserve_stock(self):
         """
         Reserve stock according to the number of reservable pickings.
@@ -2267,12 +2279,9 @@ class StockPicking(models.Model):
 
                     try:
                         with self.env.cr.savepoint():
-                            # Assign at the move level because refactoring may change
-                            # the pickings.
-                            moves = pickings.mapped("move_lines")
-                            moves.with_context(lock_batch_state=True)._action_assign()
+                            pickings = pickings._reserve_stock_assign()
                             batch._compute_state()
-                            pickings = moves.mapped("picking_id")
+
                             processed |= pickings
 
                             unsatisfied = pickings.filtered(
