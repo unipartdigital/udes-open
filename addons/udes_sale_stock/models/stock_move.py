@@ -28,12 +28,13 @@ class StockMove(models.Model):
         def not_cancelled_filter(m):
             return m.state not in ["cancel"] and m.location_dest_id == location_customers
 
-        lines_to_cancel = (
-            self.filtered(lambda m: m.location_dest_id == location_customers)
-            .mapped("sale_line_id")
-            .filtered(lambda s: len(s.move_ids.filtered(not_cancelled_filter)) == 0)
-        )
-        if lines_to_cancel:
-            lines_to_cancel.action_cancel()
+        if not self.env.context.get("disable_sale_cancel", False):
+            lines_to_cancel = (
+                self.filtered(lambda m: m.location_dest_id == location_customers)
+                .mapped("sale_line_id")
+                .filtered(lambda s: len(s.move_ids.filtered(not_cancelled_filter)) == 0)
+            )
+            if lines_to_cancel:
+                lines_to_cancel.action_cancel()
 
         return result

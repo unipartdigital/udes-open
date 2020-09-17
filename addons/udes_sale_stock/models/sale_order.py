@@ -229,7 +229,8 @@ class SaleOrder(models.Model):
                 lambda p: p.state in ["done", "cancel"]
             )
             cancelled_last_pickings = last_pickings.filtered(lambda p: p.state == "cancel")
-            if last_pickings == cancelled_last_pickings:
+            if last_pickings == cancelled_last_pickings and \
+                not self.env.context.get("disable_sale_cancel", False):
                 order.with_context(from_sale=True).action_cancel()
             elif last_pickings == completed_last_pickings:
                 order.action_done()
