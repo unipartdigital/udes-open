@@ -21,6 +21,8 @@ class EdiDocumentType(models.Model):
 class EdiDocument(models.Model):
     _inherit = "edi.document"
 
+    notifier_subject_suffix = fields.Char("Suffix to the Subject Line of the Notifier Email")
+
     @api.multi
     def action_prepare(self):
         """Extend action prepare to call notifiers"""
