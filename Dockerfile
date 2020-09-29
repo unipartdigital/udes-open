@@ -34,8 +34,8 @@ ADD addons /opt/odoo-addons
 # Module installation (without tests)
 #
 RUN odoo-wrapper --without-demo=all -i \
-    udes_stock,udes_mrp,udes_purchase,udes_report,udes_transport_management,udes_security
+    udes_stock,udes_mrp,udes_purchase,udes_report,udes_transport_management,udes_security,edi_sale
 
 # Module tests
 #
-CMD ["--test-enable", "-i", "udes_stock,udes_mrp,udes_purchase,udes_report,udes_transport_management,udes_security,edi_notifier"]
+CMD ["--test-enable", "-i", "udes_stock,udes_mrp,udes_purchase,udes_report,udes_transport_management,udes_security,edi_notifier,edi_sale_notifier"]
