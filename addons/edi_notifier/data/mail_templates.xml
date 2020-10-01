@@ -4,7 +4,7 @@
       <field name="name">EDI Document Sucesss</field>
       <field name="model_id" ref="edi.model_edi_document"/>
       <field name="auto_delete" eval="True"/>
-      <field name="subject">${object.doc_type_id.name} ${object.name} received and processed successfully</field>
+      <field name="subject">${object.doc_type_id.name} ${object.name} received and processed successfully${object.notifier_subject_suffix or ''}</field>
       <field name="email_from">no-reply@udes.io</field>
       <field name="reply_to">no-reply@udes.io</field>
       <field name="email_to"></field>
@@ -20,7 +20,7 @@
     % for file in ctx.get('attachments'):
       <li>${file.datas_fname | safe}</li>
     % endfor
-  % else 
+  % else
     % for file in object.input_ids:
       <li>${file.datas_fname | safe}</li>
     % endfor
@@ -47,7 +47,7 @@
       <field name="name">EDI Document Failed</field>
       <field name="model_id" ref="edi.model_edi_document"/>
       <field name="auto_delete" eval="True"/>
-      <field name="subject">${object.doc_type_id.name} ${object.name} failed</field>
+      <field name="subject">${object.doc_type_id.name} ${object.name} failed${object.notifier_subject_suffix or ''}</field>
       <field name="email_from">no-reply@udes.io</field>
       <field name="reply_to">no-reply@udes.io</field>
       <field name="email_to"></field>
@@ -95,7 +95,7 @@
         <field name="name">EDI Document Not Received</field>
         <field name="model_id" ref="edi.model_edi_document_type"/>
         <field name="auto_delete" eval="True"/>
-        <field name="subject">${object.name} not received</field>
+        <field name="subject">${object.name} not received${object.notifier_subject_suffix or ''}</field>
         <field name="email_from">no-reply@udes.io</field>
         <field name="reply_to">no-reply@udes.io</field>
         <field name="email_to"></field>

@@ -219,6 +219,19 @@ class TestSuccess(EdiNotifierCase):
         message = send_mock.call_args[0][0]
         self.assertFalse(message.attachment_ids)
 
+    def test_suffix_included_in_subject(self):
+        """Assert that the suffix is included in the subject if specified."""
+        self.doc.notifier_subject_suffix = " TEST_STRING"
+        with self.mock_send() as send_mock:
+            self.assertTrue(self.doc.action_execute())
+        self.assertEqual(self.doc.state, "done")
+        send_mock.assert_called_once()
+        message = send_mock.call_args[0][0]
+        self.assertEqual(
+            self.doc.notifier_subject_suffix,
+            message.subject[-len(self.doc.notifier_subject_suffix):]
+        )
+
 
 class TestFailed(EdiNotifierCase):
     @classmethod
@@ -385,6 +398,19 @@ class TestFailed(EdiNotifierCase):
         send_mock.assert_called_once()
         message = send_mock.call_args[0][0]
         self.assertFalse(message.attachment_ids)
+
+    def test_suffix_included_in_subject(self):
+        """Assert that the suffix is included in the subject if specified."""
+        self.doc.notifier_subject_suffix = " TEST_STRING"
+        with self.mute_issues(), self.mock_send() as send_mock:
+            self.assertFalse(self.doc.action_execute())
+        self.assertEqual(self.doc.state, "draft")
+        send_mock.assert_called_once()
+        message = send_mock.call_args[0][0]
+        self.assertEqual(
+            self.doc.notifier_subject_suffix,
+            message.subject[-len(self.doc.notifier_subject_suffix):]
+        )
 
 
 class TestMissing(EdiNotifierCase):
