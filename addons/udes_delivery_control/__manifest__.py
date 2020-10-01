@@ -14,7 +14,9 @@
     # any module necessary for this one to work correctly
     "depends": ["udes_stock"],
     # always loaded
-    "data": [],
+    "data": [
+        "data/picking_types.xml",
+    ],
     # only loaded in demonstration mode
     "demo": [],
 }
