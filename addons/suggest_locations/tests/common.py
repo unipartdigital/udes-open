@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from addons.udes_stock.tests import common
+from odoo.addons.udes_stock.tests import common
 
 
 class SuggestedLocations(common.BaseUDES):

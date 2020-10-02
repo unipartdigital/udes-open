@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from abc import abstractmethod, abstractclassmethod
-from addons.udes_common.models.registry import RegistryMeta
+from odoo.addons.udes_common.models.registry import RegistryMeta
 
 REFACTOR_REGISTRY = dict()
 

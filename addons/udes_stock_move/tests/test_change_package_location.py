@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from odoo.exceptions import UserError, ValidationError
-from addons.udes_stock.tests import common
+from odoo.addons.udes_stock.tests import common
 
 
 class TestChangePackageLocation(common.BaseUDES):
