@@ -21,8 +21,13 @@ class TestSaleOrderState(common.BaseSaleUDES):
 
         # Create sale order
         sale = cls.create_sale(cls.customer, requested_date="2020-01-03")
-        cls.apple_sale_line = cls.create_sale_line(sale, cls.apple, 15)
-        cls.banana_sale_line = cls.create_sale_line(sale, cls.banana, 15)
+        cls.apple_sale_line = cls.create_sale_line(sale, cls.apple, 15, route_id=cls.route_out.id)
+        cls.banana_sale_line = cls.create_sale_line(
+            sale,
+            cls.banana,
+            15,
+            route_id=cls.route_out.id
+        )
         sale.action_confirm()
         cls.sale = sale
 
