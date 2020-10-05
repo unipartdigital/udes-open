@@ -343,7 +343,93 @@ class TestAssignSplitting(common.BaseUDES):
         self.assertEqual(self.picking.move_lines.product_uom_qty, 2)
         self.assertEqual(new_picking.move_lines.product_uom_qty, 5)
 
+    def test09_backorder_partially_picked_mls_with_backorder_movelines(self):
+        """Test splitting for backordering when everything is available
+        The mls that are part done should be moved into a new picking, this is the
+        reverse of update_picking that moves the `incomplete` mls into a new picking
+        """
+        Picking = self.env["stock.picking"]
+        self.create_quant(self.elderberry.id, self.test_location_01.id, 5)
+        self.create_quant(self.banana.id, self.test_location_01.id, 10)
+        self.create_move(self.elderberry, 5, self.picking)
+        self.create_move(self.banana, 10, self.picking)
+        self.picking.action_assign()
+        # Partially pick one move line
+        elderberry_mls = self.picking.move_line_ids.filtered(
+            lambda mls: mls.product_id == self.elderberry
+        )
+        elderberry_mls.write({"qty_done": 3})
+        new_picking = self.picking._backorder_movelines(elderberry_mls)
+        new_picking.action_done()
 
+        # Check the original picking has the completed move_lines removed
+        self.assertEqual(self.picking.state, "assigned")
+        self.assertEqual(
+            self.picking.move_lines.mapped("product_id"), (self.elderberry | self.banana)
+        )
+        self.assertEqual(sum(self.picking.move_lines.mapped("product_uom_qty")), 12)
+        self.assertEqual(sum(self.picking.move_lines.mapped("quantity_done")), 0)
+        self.assertEqual(sum(self.picking.move_line_ids.mapped("product_uom_qty")), 12)
+        self.assertEqual(sum(self.picking.move_line_ids.mapped("qty_done")), 0)
+        # Sanity check that the elderberry mls are correct (=> banana mls are correct)
+        elderberry_mls = self.picking.move_line_ids.filtered(
+            lambda mls: mls.product_id == self.elderberry
+        )
+        self.assertEqual(elderberry_mls.product_uom_qty, 2)
+        self.assertEqual(elderberry_mls.qty_done, 0)
+
+        # Check the mls moved into a new picking are correct
+        self.assertEqual(new_picking.state, "done")
+        self.assertNotEqual(new_picking.id, self.picking.id)
+        self.assertEqual(new_picking.product_id, self.elderberry)
+        self.assertEqual(new_picking.move_line_ids.qty_done, 3)
+        self.assertEqual(new_picking.move_lines.product_uom_qty, 3)
+        self.assertEqual(new_picking.move_lines.quantity_done, 3)
+
+    def test10_backorder_partially_picked_mls_with_update_picking(self):
+        """Test splitting for backordering when everything is available via update_picking
+        """
+        Picking = self.env["stock.picking"]
+        self.create_quant(self.elderberry.id, self.test_location_01.id, 5)
+        self.create_quant(self.banana.id, self.test_location_02.id, 10)
+        self.create_move(self.elderberry, 5, self.picking)
+        self.create_move(self.banana, 10, self.picking)
+        self.picking.action_assign()
+
+        # Partially pick the elderberries
+        product_ids = [{"barcode": self.elderberry.barcode, "qty": 3}]
+        self.picking.update_picking(product_ids=product_ids)
+        self.picking.action_done()
+
+        all_pickings = Picking.search([("picking_type_id", "=", self.picking_type_pick.id)])
+
+        # Check the completed picking is correct
+        completed_pickings = all_pickings.filtered(lambda p: p.state == "done")
+        self.assertEqual(len(completed_pickings), 1)
+        self.assertEqual(completed_pickings.id, self.picking.id)
+        self.assertEqual(completed_pickings.product_id, self.elderberry)
+        self.assertEqual(completed_pickings.move_line_ids.qty_done, 3)
+        self.assertEqual(completed_pickings.move_lines.product_uom_qty, 3)
+        self.assertEqual(completed_pickings.move_lines.quantity_done, 3)
+
+        # Check the new picking created
+        remaining_picking = all_pickings.filtered(lambda p: p.state != "done")
+        self.assertEqual(len(remaining_picking), 1)
+        self.assertEqual(remaining_picking.state, "assigned")
+        self.assertEqual(
+            remaining_picking.move_lines.mapped("product_id"), (self.elderberry | self.banana)
+        )
+        self.assertEqual(sum(remaining_picking.move_lines.mapped("product_uom_qty")), 12)
+        self.assertEqual(sum(remaining_picking.move_lines.mapped("quantity_done")), 0)
+        self.assertEqual(sum(remaining_picking.move_line_ids.mapped("product_uom_qty")), 12)
+        self.assertEqual(sum(remaining_picking.move_line_ids.mapped("qty_done")), 0)
+        # Sanity check that the elderberry mls
+        elderberry_mls = remaining_picking.move_line_ids.filtered(
+            lambda mls: mls.product_id == self.elderberry
+        )
+        self.assertEqual(elderberry_mls.product_uom_qty, 2)
+        self.assertEqual(elderberry_mls.qty_done, 0)
+        
 class TestValidateSplitting(common.BaseUDES):
 
     def setUp(self):

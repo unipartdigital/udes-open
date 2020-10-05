@@ -132,6 +132,13 @@ class StockMove(models.Model):
                 updated_origin_ids |= previous_mls.mapped("move_id")
             move.move_orig_ids = updated_origin_ids
 
+    def _prepare_move_lines(self, move_lines):
+        """Split the move lines for backordering
+        :param move_lines: Record set of move lines in which to split
+        """
+        for ml in move_lines:
+            ml._split()
+
     def split_out_move_lines(self, move_lines):
         """ Split sufficient quantity from self to cover move_lines, and
         attach move_lines to the new move. Return the move that now holds all
@@ -146,6 +153,10 @@ class StockMove(models.Model):
         self.ensure_one()
         if not all(ml.move_id == self for ml in move_lines):
             raise ValueError(_("Cannot split move lines from a move they are not part of."))
+
+        # create new move line(s) with the qty_done
+        self._prepare_move_lines(move_lines)
+
         if (
             move_lines == self.move_line_ids
             and not self.move_orig_ids.filtered(lambda x: x.state not in ("done", "cancel"))
@@ -527,7 +538,6 @@ class StockMove(models.Model):
                     group_moves |= move.split_out_move_lines(move_mls)
                 else:
                     group_moves |= move
-
             values = self._prepare_extra_info_for_new_picking_for_group(group_pickings, group_moves)
 
             Picking._new_picking_for_group(key, group_moves, **values)
