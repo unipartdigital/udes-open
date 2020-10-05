@@ -921,11 +921,11 @@ class StockPicking(models.Model):
         if mls is None:
             mls = self.move_line_ids.filtered(lambda x: x.qty_done > 0)
 
-        # test that the intercetion of mls and move lines in picking
-        # therefore we have some relevent move lines
+        # test that the interaction of mls and move lines in picking
+        # therefore we have some relevant move lines
         if not (mls & self.move_line_ids):
             raise ValidationError(
-                _("There is no move lines within " "picking %s to backorder" % self.name)
+                _("There are no move lines within picking %s to backorder" % self.name)
             )
 
         new_moves = Move.browse()

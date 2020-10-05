@@ -378,7 +378,7 @@ class TestAssignSplitting(common.BaseUDES):
         self.assertEqual(elderberry_mls.product_uom_qty, 2)
         self.assertEqual(elderberry_mls.qty_done, 0)
 
-        # Check the mls moved into a new picking are correct
+        # Check that the mls moved into a new picking are correct
         self.assertEqual(new_picking.state, "done")
         self.assertNotEqual(new_picking.id, self.picking.id)
         self.assertEqual(new_picking.product_id, self.elderberry)

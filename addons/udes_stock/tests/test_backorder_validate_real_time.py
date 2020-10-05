@@ -699,7 +699,7 @@ class TestRealTimeUpdate(common.BaseUDES):
 
         picking = picking.sudo(self.inbound_user)
 
-        expected_error_msg = 'There is no move lines within ' \
+        expected_error_msg = 'There are no move lines within ' \
                          'picking %s to backorder' % picking.name
 
         empty_mls = MoveLine.browse()
@@ -729,7 +729,7 @@ class TestRealTimeUpdate(common.BaseUDES):
         picking_1 = picking_1.sudo(self.inbound_user)
         picking_2 = picking_2.sudo(self.inbound_user)
 
-        expected_error_msg = 'There is no move lines within ' \
+        expected_error_msg = 'There are no move lines within ' \
                          'picking %s to backorder' % picking_1.name
 
         with self.assertRaises(ValidationError) as e:
