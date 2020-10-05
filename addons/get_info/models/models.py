@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo import models, _
-from addons.udes_common.models import add_if_not_exists
+from odoo.addons.udes_common.models import add_if_not_exists
 import logging
 
 _logger = logging.getLogger(__name__)
