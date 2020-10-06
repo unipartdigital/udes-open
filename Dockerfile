@@ -15,7 +15,7 @@ RUN unzip -q -d /opt /opt/server-auth.zip ; \
     unzip -q -d /opt /opt/odoo-package-hierarchy.zip    ; \
     ln -s /opt/server-auth-${ODOO_VERSION}/password_security \
           /opt/odoo-package-hierarchy-${ODOO_VERSION}/addons/* \
-          /opt/odoo-edi-wip_13.0/addons/* \
+          /opt/odoo-edi-${ODOO_VERSION}/addons/* \
           /opt/server-auth-${ODOO_VERSION}/auth_brute_force \
           /opt/server-auth-${ODOO_VERSION}/auth_session_timeout \
           /opt/odoo/addons/
