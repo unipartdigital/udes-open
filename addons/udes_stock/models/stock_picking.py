@@ -154,11 +154,11 @@ class StockPicking(models.Model):
     )
 
     u_reserved_pallet = fields.Char(
-        string='Reserved Pallet',
+        string="Reserved Pallet",
         index=True,
         copy=False,
-        help='If reserving pallets per picking is enabled, this field stores '
-        'the pallet reserved for this picking.'
+        help="If reserving pallets per picking is enabled, this field stores "
+        "the pallet reserved for this picking.",
     )
 
     @api.depends("move_line_ids", "move_line_ids.location_id")
@@ -809,9 +809,7 @@ class StockPicking(models.Model):
             # when adding only do this?
             return True
 
-        location_dest = (
-            location_dest_id or location_dest_barcode or location_dest_name
-        )
+        location_dest = location_dest_id or location_dest_barcode or location_dest_name
         if location_dest:
             values["location_dest"] = location_dest
 
@@ -859,7 +857,9 @@ class StockPicking(models.Model):
         elif location_dest:
             # update destination location for move lines
             if result_package_name:
-                move_lines = move_lines.filtered(lambda ml: ml.result_package_id.name == result_package_name)
+                move_lines = move_lines.filtered(
+                    lambda ml: ml.result_package_id.name == result_package_name
+                )
 
             loc_dest_instance = Location.get_location(location_dest)
             if not self.is_valid_location_dest_id(loc_dest_instance):
@@ -936,7 +936,7 @@ class StockPicking(models.Model):
 
         # Create picking for completed move lines
         bk_picking = self.copy(
-            {"name": "/", "move_lines": [], "move_line_ids": [], "backorder_id": self.id,}
+            {"name": "/", "move_lines": [], "move_line_ids": [], "backorder_id": self.id}
         )
         new_moves.write({"picking_id": bk_picking.id})
         new_moves.mapped("move_line_ids").write({"picking_id": bk_picking.id})
@@ -1131,7 +1131,7 @@ class StockPicking(models.Model):
             raise ValidationError(_("You (%s) already have a batch in progess") % user.name)
 
         if not self.batch_id:
-            batch = PickingBatch.create({"user_id": user.id, "u_ephemeral": True,})
+            batch = PickingBatch.create({"user_id": user.id, "u_ephemeral": True})
             self.batch_id = batch.id
             batch.confirm_picking()
 
@@ -1194,7 +1194,7 @@ class StockPicking(models.Model):
             fields_to_fetch = info.keys()
 
         if self.picking_type_id.u_reserve_pallet_per_picking:
-            info['u_reserved_pallet'] = lambda p: p.u_reserved_pallet
+            info["u_reserved_pallet"] = lambda p: p.u_reserved_pallet
 
         return {key: value(self) for key, value in info.items() if key in fields_to_fetch}
 
@@ -1343,10 +1343,7 @@ class StockPicking(models.Model):
         """
         PickingType = self.env["stock.picking.type"]
 
-        domain = [
-            ("u_mark", "=", False),
-            ("is_locked", "=", True),
-        ]
+        domain = [("u_mark", "=", False), ("is_locked", "=", True)]
         if self:
             domain.append(("id", "in", self.ids))
         else:
@@ -1970,8 +1967,9 @@ class StockPicking(models.Model):
             if lot_tracking:
                 lots = move_line_ids.filtered(lambda ml: ml.product_id in products).mapped("lot_id")
                 if len(lots) != 1:
-                    raise ValidationError(_("Expecting a single lot number "
-                                            "when dropping by product and lot."))
+                    raise ValidationError(
+                        _("Expecting a single lot number " "when dropping by product and lot.")
+                    )
 
         quant_domain = [
             ("product_id", "in", products.ids),
@@ -2021,7 +2019,7 @@ class StockPicking(models.Model):
         if not len(height_category) == 1 or not len(speed_category) == 1:
             raise UserError(
                 _("Move lines with more than category for height(%s) or " "speed(%s) provided")
-                % (height_category.mapped("name"), speed_category.mapped("name"),)
+                % (height_category.mapped("name"), speed_category.mapped("name"))
             )
 
         default_location.ensure_one()
