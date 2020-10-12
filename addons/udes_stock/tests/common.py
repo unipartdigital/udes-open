@@ -432,10 +432,10 @@ class BaseUDES(common.SavepointCase):
         return move_lines
 
     @classmethod
-    def create_company(cls, name, **kwargs):
+    def create_company(cls, name, po_lead=0, **kwargs):
         """ Create and return a company """
         Company = cls.env["res.company"]
-        vals = {"name": name}
+        vals = {"name": name, "po_lead": po_lead}
         vals.update(kwargs)
         return Company.create(vals)
 
