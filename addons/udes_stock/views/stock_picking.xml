@@ -109,10 +109,10 @@
 
             <!-- Change colour of the rows depending on new values -->
             <xpath expr="//field[@name='move_lines']/tree" position="attributes">
-                <attribute name="decoration-danger">ordered_qty &lt; quantity_done</attribute>
+                <attribute name="decoration-danger">(ordered_qty != quantity_done) and quantity_done > 0</attribute>
                 <attribute name="decoration-success">ordered_qty == quantity_done</attribute>
                 <attribute name="decoration-muted">scrapped == True or state == 'cancel'</attribute>
-                <attribute name="decoration-bf">(ordered_qty == quantity_done) or (ordered_qty &lt; quantity_done)</attribute>
+                <attribute name="decoration-bf">quantity_done > 0</attribute>
             </xpath>
 
             <!-- Add move_line_id to context for new packages name -->
