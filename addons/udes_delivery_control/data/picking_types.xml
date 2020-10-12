@@ -25,6 +25,7 @@
       <field name="u_scan_tracking">no</field>
       <field name="u_auto_unlink_empty" eval="False"/>
       <field name="active">True</field>
+      <field name="u_is_delivery_control">True</field>
     </record>
 
   </data>

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_form_stock_picking" model="ir.ui.view">
+        <field name="name">udes_delivery_control_form</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form"/>
+        <field name="arch" type="xml">
+            <!-- Disable Reserved Pallet field -->
+            <xpath expr="//field[@name='u_reserved_pallet']" position="attributes">
+                <attribute name="attrs">{'invisible': [('u_is_delivery_control', '=', True)]}</attribute>
+            </xpath>
+            <!-- Disable tabs on Delivery Control Picking -->
+            <!-- Disable Detailed Operations tab -->
+            <xpath expr="//page[1]" position="attributes">
+                <attribute name="attrs">{'invisible': ['|', ('show_operations', '=', False), ('u_is_delivery_control', '=', True)]}</attribute>
+            </xpath>
+            <!-- Disable Operations tab -->
+            <xpath expr="//page[2]" position="attributes">
+                <attribute name="attrs">{'invisible': [('u_is_delivery_control', '=', True)]}</attribute>
+            </xpath>
+            <!-- Make partner field mandatory -->
+            <xpath expr="//field[@name='partner_id']" position="attributes">
+                <attribute name="attrs">{'required': [('u_is_delivery_control', '=', True)]}</attribute>
+            </xpath>
+            <!-- Add page to notebook -->
+            <xpath expr="//page[@name='extra']" position="before">
+                <page string="Delivery Control" name="door_control" attrs="{'invisible': [('u_is_delivery_control', '=', False)]}">
+                    <field name="u_extras_id" invisible="1"/>
+                    <field name="u_is_delivery_control" invisible="1"/>
+                    <group colspan="4">
+                        <field name="u_is_backload"/>
+                    </group>
+                    <group string="Unloading" name="unloading">
+                        <group name="unloading_group1">
+                            <field name="u_user_id"/>
+                            <field name="u_location_id"/>
+                            <field name="u_lane_number"/>
+                            <field name="u_vehicle_arrival_date"/>
+                            <field name="u_week" force_save="1"/>
+                            <field name="u_unloading_start_date"/>
+                            <field name="u_unloading_end_date"/>
+                            <field name="u_unloading_time_taken" widget="float_time"/>
+                        </group>
+                        <group name="unloading_group2">
+                            <field name="u_vehicle_type" options="{'no_create': True, 'no_open': True}"/>
+                            <field name="u_trailer_number"/>
+                            <field name="u_pallet_count"/>
+                            <field name="u_stillage_count"/>
+                            <field name="u_box_count"/>
+                            <field name="u_is_planned"/>
+                            <field name="u_is_late"/>
+                            <field name="u_is_fast_track"/>
+                        </group>
+                    </group>
+                    <group string="Backloading" name="back_loading" attrs="{'invisible': [('u_is_backload', '=', False)]}">
+                        <group name="bl_group1">
+                            <field name="u_backload_supplier" context="{'default_supplier':True, 'default_customer':False}"/>
+                            <field name="u_backload_start_date"/>
+                            <field name="u_backload_end_date"/>
+                            <field name="u_backload_time_taken" widget="float_time"/>
+                        </group>
+                        <group name="bl_group2">
+                            <field name="u_backload_reject_count"/>
+                            <field name="u_backload_pallet_count"/>
+                            <field name="u_backload_stillage_count"/>
+                            <field name="u_backload_cover_count"/>
+                        </group>
+
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>
