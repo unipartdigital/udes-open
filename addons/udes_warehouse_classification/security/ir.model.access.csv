@@ -1,1 +1,4 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_warehouse_classification_manager,access_warehouse_classification_manager,model_product_warehouse_classification,stock.group_stock_manager,1,1,1,1
+access_warehouse_classification_anyone,access_warehouse_classification_anyone,model_product_warehouse_classification,base.group_user,1,0,0,0
+access_ir_reports_manager,access_ir_reports_manager,base.model_ir_actions_report,stock.group_stock_manager,1,0,1,0
