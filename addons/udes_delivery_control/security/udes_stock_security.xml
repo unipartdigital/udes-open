@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <data noupdate="0">
+
+        <!-- Add Delivery Control permissions to inbound user -->
+        <record id="udes_stock.group_inbound_user" model="res.groups">
+            <field name="u_picking_type_ids"
+                   eval="[(4, ref('udes_delivery_control.picking_type_delivery_control'))]"/>
+        </record>
+    </data>
+</odoo>
