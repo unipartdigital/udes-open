@@ -73,6 +73,17 @@ class StockPicking(models.Model):
     u_backload_end_date = fields.Datetime(related="u_extras_id.backload_end_date")
     u_backload_time_taken = fields.Float(related="u_extras_id.backload_time_taken")
 
+    u_delivery_control_picking_id = fields.Many2one(
+        "stock.picking",
+        string="Originating Delivery Control Picking",
+        readonly=True,
+        index=True,
+        copy=False,
+    )
+    u_goods_in_picking_id = fields.Many2one(
+        "stock.picking", string="Generated Goods In Picking", readonly=True, index=True, copy=False
+    )
+
     _sql_constraints = [
         (
             "extras_id_uniq",
@@ -80,6 +91,78 @@ class StockPicking(models.Model):
             "You can not have two pickings associated with the same picking extras!",
         )
     ]
+
+    @api.depends(
+        "move_lines",
+        "move_lines.move_orig_ids",
+        "move_lines.move_dest_ids",
+        "move_lines.move_orig_ids.picking_id",
+        "move_lines.move_dest_ids.picking_id",
+        "u_goods_in_picking_id",
+        "u_delivery_control_picking_id",
+    )
+    def _compute_related_picking_ids(self):
+        """Override to link Delivery Control and Goods In pickings"""
+        super(StockPicking, self)._compute_related_picking_ids()
+
+        goods_in_type = self.env.ref("stock.picking_type_in")
+
+        for picking in self.filtered(
+            lambda p: p.u_is_delivery_control or p.picking_type_id == goods_in_type
+        ):
+            if picking.u_is_delivery_control and picking.u_goods_in_picking_id:
+                picking.u_next_picking_ids |= picking.u_goods_in_picking_id
+            elif picking.u_delivery_control_picking_id:
+                picking.u_prev_picking_ids |= picking.u_delivery_control_picking_id
+
+    @api.depends(
+        "move_lines",
+        "move_lines.move_orig_ids",
+        "move_lines.move_orig_ids.picking_id",
+        "u_goods_in_picking_id",
+        "u_delivery_control_picking_id",
+    )
+    def _compute_first_picking_ids(self):
+        """
+        Override to replace first pickings that are Goods In pickings with their linked
+        Delivery Control picking, if applicable
+
+        Also set first pickings for Delivery Control pickings to themselves
+        """
+        super(StockPicking, self)._compute_first_picking_ids()
+
+        goods_in_type = self.env.ref("stock.picking_type_in")
+
+        for picking in self:
+            first_pickings = picking.u_first_picking_ids
+
+            if picking.u_is_delivery_control:
+                first_pickings = picking
+            elif picking.picking_type_id == goods_in_type and picking.u_delivery_control_picking_id:
+                first_pickings -= picking
+                first_pickings |= picking.u_delivery_control_picking_id
+            else:
+                first_pickings_types = first_pickings.mapped("picking_type_id")
+                delivery_control_pickings = first_pickings.mapped("u_delivery_control_picking_id")
+
+                if goods_in_type in first_pickings_types and delivery_control_pickings:
+                    goods_in_pickings_to_remove = first_pickings.filtered(
+                        "u_delivery_control_picking_id"
+                    )
+                    # Remove Goods In Pickings and replace them with their linked
+                    # Delivery Control pickings
+                    first_pickings -= goods_in_pickings_to_remove
+                    first_pickings |= delivery_control_pickings
+
+            picking.u_first_picking_ids = first_pickings
+
+    @api.depends("state", "move_lines", "picking_type_id")
+    def _compute_show_mark_as_todo(self):
+        """Override to show Mark as Todo button for draft Delivery Control pickings"""
+        super()._compute_show_mark_as_todo()
+
+        for picking in self.filtered("u_is_delivery_control"):
+            picking.show_mark_as_todo = picking.state == "draft"
 
     def _create_picking_extras_data(self, values):
         """ Create a transport information for each picking that doesn't
@@ -113,3 +196,103 @@ class StockPicking(models.Model):
     @api.model
     def _default_u_supplier_id(self):
         return self.partner_id
+
+    def button_validate(self):
+        """Override to allow Delivery Control pickings to validate without stock moves"""
+        self.ensure_one()
+
+        if self.u_is_delivery_control:
+            return self.action_delivery_control_done()
+        else:
+            return super(StockPicking, self).button_validate()
+
+    def action_confirm(self):
+        """Override to confirm Delivery Control pickings without interacting with stock moves"""
+        delivery_control_pickings = self.filtered("u_is_delivery_control")
+        other_pickings = self - delivery_control_pickings
+
+        for picking in delivery_control_pickings:
+            picking.write({"state": "assigned"})
+
+        res = True
+
+        if other_pickings:
+            res = super(StockPicking, other_pickings).action_confirm()
+
+        return res
+
+    def action_cancel(self):
+        """
+        Override to mark Delivery Control pickings as cancelled, and carry out action_cancel
+        on linked Goods In pickings
+        """
+        delivery_control_pickings = self.filtered("u_is_delivery_control")
+        other_pickings = self - delivery_control_pickings
+
+        for picking in delivery_control_pickings:
+            picking.write({"state": "cancel"})
+
+            if picking.u_goods_in_picking_id:
+                other_pickings |= picking.u_goods_in_picking_id
+
+        res = True
+
+        if other_pickings:
+            res = super(StockPicking, other_pickings).action_cancel()
+        return res
+
+    def action_done(self):
+        """Override to call action_delivery_control_done for Delivery Control pickings"""
+        delivery_control_pickings = self.filtered("u_is_delivery_control")
+        other_pickings = self - delivery_control_pickings
+
+        res = delivery_control_pickings.action_delivery_control_done()
+
+        if other_pickings:
+            res = super(StockPicking, other_pickings).action_done()
+
+        return res
+
+    def action_delivery_control_done(self):
+        """
+        Mark Delivery Control picking as done.
+        
+        Generate a Goods In picking if Delivery Control picking not already linked with one.
+
+        Otherwise check if linked Goods in Picking is in 'Waiting Another Operation' state and
+        confirm it if so.
+        """
+        for picking in self.filtered("u_is_delivery_control"):
+            picking.write({"state": "done", "date_done": fields.Datetime.now()})
+
+            if not picking.u_goods_in_picking_id:
+                self.create_goods_in_from_delivery_control()
+            elif picking.u_goods_in_picking_id.state == "waiting":
+                picking.u_goods_in_picking_id.action_confirm()
+
+        return True
+
+    def create_goods_in_from_delivery_control(self, **kwargs):
+        """Create Goods In picking from Delivery Control picking and add link between both"""
+        self.ensure_one()
+
+        goods_in_type = self.env.ref("stock.picking_type_in")
+        goods_in_picking = self.browse()
+
+        if self.u_is_delivery_control:
+            vals = {
+                "picking_type_id": goods_in_type.id,
+                "location_id": goods_in_type.default_location_src_id.id,
+                "location_dest_id": goods_in_type.default_location_dest_id.id,
+                "u_delivery_control_picking_id": self.id,
+                "origin": self.origin,
+                "partner_id": self.partner_id.id if self.partner_id else False,
+                # Set locked to False so that Moves are editable through UI
+                "is_locked": False,
+            }
+            vals.update(kwargs)
+            goods_in_picking = self.create(vals)
+
+            self.write({"u_goods_in_picking_id": goods_in_picking.id})
+
+        return goods_in_picking
