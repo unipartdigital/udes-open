@@ -90,6 +90,7 @@
       <field name="default_location_dest_id" ref="location_input_received"/>
       <field name="u_target_storage_format">pallet_products</field>
       <field name="show_operations" eval="1"/>
+      <field name="u_selection_method">source_doc</field>
       <field name="active">True</field>
     </record>
 

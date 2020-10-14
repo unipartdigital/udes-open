@@ -59,6 +59,7 @@
                     <field name="u_restrict_multi_lot_pickings" />
                     <field name="u_reserve_pallet_per_picking" />
                     <field name="u_max_reservable_pallets" />
+                    <field name="u_selection_method" />
                 </group>
                 <group string="Pick Refactoring" groups='base.group_no_one'>
                     <field name="u_move_line_key_format" />
