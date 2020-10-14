@@ -367,6 +367,18 @@ class StockPickingType(models.Model):
         help="Goods receive location used by mobile client",
     )
 
+    u_selection_method = fields.Selection(
+        string="How to select picking",
+        selection=[
+            ("source_doc", "Scan source document number"),
+            ("list_available", "Select available from list"),
+        ],
+        help=(
+            "Defines the method for selecting the picking "
+            "(this is currently only used for Goods In)"
+        ),
+    )
+
     def do_refactor_action(self, action, moves):
         """Resolve and call the method to be executed on the moves.
 
@@ -430,6 +442,7 @@ class StockPickingType(models.Model):
             - u_restrict_multi_lot_pickings: boolean
             - u_reserve_pallet_per_picking: boolean
             - u_max_reservable_pallets: int
+            - u_selection_method: string
         """
         self.ensure_one()
         Batch = self.env["stock.picking.batch"]
@@ -487,6 +500,7 @@ class StockPickingType(models.Model):
             "u_max_reservable_pallets": self.u_max_reservable_pallets,
             "u_damaged_location_id": self.u_damaged_location_id.id,
             "u_good_location_id": self.u_good_location_id.id,
+            "u_selection_method": self.u_selection_method,
         }
 
     def get_info(self):
