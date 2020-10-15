@@ -10,6 +10,7 @@ class TestGoodsInPicking(common.BaseUDES):
         super(TestGoodsInPicking, cls).setUpClass()
         Picking = cls.env["stock.picking"]
         products_info = [{"product": cls.apple, "qty": 10}]
+        cls.picking_type_in.u_handle_partials = True
         cls.test_picking = cls.create_picking(
             cls.picking_type_in,
             origin="test_picking_origin",
