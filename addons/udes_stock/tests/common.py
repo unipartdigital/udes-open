@@ -11,13 +11,13 @@ SECURITY_GROUPS = [
 ]
 
 
-@common.at_install(False)
-@common.post_install(True)
-class BaseUDES(common.SavepointCase):
+
+class UnconfiguredBaseUDES(common.SavepointCase):
+    """Defines helper methods without automatic warehouse setup."""
 
     @classmethod
     def setUpClass(cls):
-        super(BaseUDES, cls).setUpClass()
+        super().setUpClass()
 
         # Products
         ## Untracked
@@ -32,8 +32,6 @@ class BaseUDES(common.SavepointCase):
         ## Serial/Lot tracking
         cls.strawberry = cls.create_product('Strawberry', tracking='serial')
         cls.tangerine = cls.create_product('Tangerine', tracking='lot')
-
-        cls.setup_default_warehouse()
 
     @classmethod
     def setup_default_warehouse(cls):
@@ -547,3 +545,13 @@ class BaseUDES(common.SavepointCase):
         }
         vals.update(kwargs)
         return StockInventory.create(vals)
+
+
+@common.at_install(False)
+@common.post_install(True)
+class BaseUDES(UnconfiguredBaseUDES):
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.setup_default_warehouse()
