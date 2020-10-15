@@ -27,3 +27,4 @@ from . import test_picking_print_strategy
 from . import test_limit_orderpoints
 from . import test_package_hierarchy
 from . import test_stock_inventory
+from . import test_stock_quant
