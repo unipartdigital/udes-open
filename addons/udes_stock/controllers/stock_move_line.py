@@ -52,35 +52,27 @@ class StockMoveLineApi(UdesApi):
 
     @http.route("/api/stock-move-line/", type="json", methods=["GET"], auth="user")
     def get_move_lines(
-        self,
-        picking_id,
-        product_barcode,
-        package_name=None,
-        lot_name=None,
-        only_done=False,
-        fetch_fields=None,
+        self, picking_id, product_barcodes, package_names=None, lot_names=None, only_done=False,
     ):
-        """Fetches move lines on the given picking
-            which match the criteria provided
+        """Fetches move lines on the given picking which match the criteria provided.
+
+        Note: any combination of the values provided will form a match.
+
         Args:
             picking_id: int
                 ID of the picking
 
-            product_barcode: string
-                Barcode of product on target move line/s
+            product_barcodes: list[string]
+                Barcodes of product on target move line/s
 
-            package_name: string (optional)
-                Name/Barcode of the package on target move line/s
+            package_names: list[string] (optional)
+                Names of the package on target move line/s
 
-            lot_name: string (optional)
-                Name of the lot on target move line/s
+            lot_names: list[string] (optional)
+                Names of the lot on target move line/s
 
             only_done: boolean (optional)
                 Flag to use only complete lines
-
-            fetch_fields: list[string] (optional)
-                The fields which should be returned if not set
-                                                    all are returned
 
         Errors:
             If no picking is found for picking_id
@@ -92,6 +84,9 @@ class StockMoveLineApi(UdesApi):
         """
 
         Picking = request.env["stock.picking"]
+        Product = request.env["product.product"]
+        Package = request.env["stock.quant.package"]
+
         picking = Picking.browse(picking_id)
 
         if not picking:
@@ -102,28 +97,30 @@ class StockMoveLineApi(UdesApi):
         else:
             mls = picking.move_line_ids
 
-        filter_lamb = lambda ml: ml.product_id.barcode == product_barcode
+        products = Product.union(*[Product.get_product(pb) for pb in product_barcodes])
+        filters = [lambda ml: ml.product_id in products]
 
-        if package_name:
-            filter_lamb = lambda ml, other=filter_lamb: (
-                ml.result_package_id.name == package_name
-                or ml.u_result_parent_package_id.name == package_name
-            ) and other(ml)
+        if package_names:
+            packages = Package.union(*[Package.get_package(pn) for pn in package_names])
 
-        if lot_name:
-            filter_lamb = lambda ml, other=filter_lamb: (
-                ml.lot_name == lot_name or ml.lot_id.name
-            ) and other(ml)
+            filters.append(
+                lambda ml: (
+                    ml.result_package_id in packages or ml.u_result_parent_package_id in packages
+                )
+            )
 
-        matched_mls = mls.filtered(filter_lamb)
+        if lot_names:
+            filters.append(lambda ml: (ml.lot_name in lot_names or ml.lot_id.name in lot_names))
+
+        matched_mls = mls.filtered(lambda ml: all(x(ml) for x in filters))
 
         if not matched_mls:
             fields = [
                 ("picking_id", picking_id),
-                ("product_barcode", product_barcode),
-                ("package_name", package_name),
-                ("lot_name", lot_name),
+                ("product_barcode", ",".join(product_barcodes)),
+                ("package_name", ",".join(package_names) if package_names else None),
+                ("lot_name", ",".join(lot_names) if lot_names else None),
             ]
-            citeria = ["%s=%s" % (n, v) for n, v in fields if v is not None]
+            citeria = ["%s in [%s]" % (n, v) for n, v in fields if v is not None]
             raise UserError(_("No move line found matching citeria: %s") % ", ".join(citeria))
-        return matched_mls.get_info(fetch_fields)
+        return matched_mls.get_info()
