@@ -1005,8 +1005,6 @@ class StockPicking(models.Model):
                 A List of strings that are states for pickings. If present
                 only pickings in the states present in the list are
                 returned.
-                Defaults to all, possible values:
-                'draft', 'cancel', 'waiting', 'confirmed', 'assigned', 'done'
 
             @param (optional) result_package_id
                 If an id is supplied all pickings that are registered to
@@ -1040,12 +1038,11 @@ class StockPicking(models.Model):
 
         order = None
 
-        if states is None:
-            states = ["draft", "cancel", "waiting", "confirmed", "assigned", "done"]
-
         warehouse = Users.get_user_warehouse()
         if picking_type_ids is None:
             picking_type_ids = warehouse.get_picking_types().ids
+
+        domain = []
 
         if self:
             domain = [("id", "in", self.mapped("id"))]
@@ -1089,11 +1086,10 @@ class StockPicking(models.Model):
             ]
         elif batch_id is not None:
             domain = [("batch_id", "=", batch_id)]
-        else:
-            raise ValidationError(_("No valid options provided."))
 
-        # add the states to the domain
-        domain.append(("state", "in", states))
+        if states:
+            domain.append(("state", "in", states))
+
         # add the picking type ids to the domain
         domain.append(("picking_type_id", "in", picking_type_ids))
 
