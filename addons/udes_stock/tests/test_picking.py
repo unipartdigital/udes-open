@@ -3,17 +3,19 @@
 from . import common
 from odoo.exceptions import ValidationError
 
-class TestGoodsInPicking(common.BaseUDES):
 
+class TestGoodsInPicking(common.BaseUDES):
     @classmethod
     def setUpClass(cls):
         super(TestGoodsInPicking, cls).setUpClass()
-        Picking = cls.env['stock.picking']
-        products_info = [{'product': cls.apple, 'qty': 10}]
-        cls.test_picking = cls.create_picking(cls.picking_type_in,
-                                              origin="test_picking_origin",
-                                              products_info=products_info,
-                                              confirm=True)
+        Picking = cls.env["stock.picking"]
+        products_info = [{"product": cls.apple, "qty": 10}]
+        cls.test_picking = cls.create_picking(
+            cls.picking_type_in,
+            origin="test_picking_origin",
+            products_info=products_info,
+            confirm=True,
+        )
         cls.SudoPicking = Picking.sudo(cls.inbound_user)
         cls.test_picking = cls.test_picking.sudo(cls.inbound_user)
         cls.tangerine_lot = cls.create_lot(cls.tangerine.id, 1)
@@ -22,16 +24,16 @@ class TestGoodsInPicking(common.BaseUDES):
         """
             Generate picks and pallets for ready for_check_entire_pack function
         """
-        Package = self.env['stock.quant.package']
-        mummy_pallet = Package.get_package('mummy_pallet', create=True)
-        baby_pallet = Package.get_package('baby_pallet', create=True)
+        Package = self.env["stock.quant.package"]
+        mummy_pallet = Package.get_package("mummy_pallet", create=True)
+        baby_pallet = Package.get_package("baby_pallet", create=True)
         baby_pallet.package_id = mummy_pallet.id
-        pick_product_info = [{'product': self.tangerine, 'qty': 10}]
+        pick_product_info = [{"product": self.tangerine, "qty": 10}]
         pick = self.create_picking(
             self.picking_type_in,
             origin="test_picking_origin",
             products_info=pick_product_info,
-            confirm=True
+            confirm=True,
         )
         pick.move_line_ids.result_package_id = baby_pallet.id
         pick.move_line_ids.qty_done = 10
@@ -42,24 +44,24 @@ class TestGoodsInPicking(common.BaseUDES):
         """ Tests get_pickings by package_name
             when no package exists
         """
-        returned_pickings = self.SudoPicking.get_pickings(package_name='DUMMY')
+        returned_pickings = self.SudoPicking.get_pickings(package_name="DUMMY")
         self.assertEqual(len(returned_pickings), 0)
 
     def test02_get_pickings_by_package_name_sucess(self):
         """ Tests get_pickings by package_name
             when package exists
         """
-        Package = self.env['stock.quant.package']
-        test_package = Package.get_package('test_package', create=True)
+        Package = self.env["stock.quant.package"]
+        test_package = Package.get_package("test_package", create=True)
         self.test_picking.move_line_ids.result_package_id = test_package
-        returned_pickings = self.SudoPicking.get_pickings(package_name='test_package')
+        returned_pickings = self.SudoPicking.get_pickings(package_name="test_package")
         self.assertEqual(returned_pickings.id, self.test_picking.id)
 
     def test03_get_pickings_by_origin_fail(self):
         """ Tests get_pickings by origin
             when no package exists
         """
-        returned_pickings = self.SudoPicking.get_pickings(origin='DUMMY')
+        returned_pickings = self.SudoPicking.get_pickings(origin="DUMMY")
         self.assertEqual(len(returned_pickings), 0)
 
     def test04_get_pickings_by_origin_sucess(self):
@@ -74,17 +76,18 @@ class TestGoodsInPicking(common.BaseUDES):
             a field
         """
         info = self.test_picking.get_info()
-        expected = ['backorder_id',
-                    'id',
-                    'location_dest_id',
-                    'moves_lines',
-                    'name',
-                    'origin',
-                    'picking_type_id',
-                    'priority',
-                    'priority_name',
-                    'state',
-                    'picking_guidance'
+        expected = [
+            "backorder_id",
+            "id",
+            "location_dest_id",
+            "moves_lines",
+            "name",
+            "origin",
+            "picking_type_id",
+            "priority",
+            "priority_name",
+            "state",
+            "picking_guidance",
         ]
         # Sorted returns a list(or did when I wrote this)
         # so no need to type cast
@@ -92,9 +95,9 @@ class TestGoodsInPicking(common.BaseUDES):
 
     def test06_get_info_only_id(self):
         """ Tests get_info requesting a specific field"""
-        info = self.test_picking.get_info(fields_to_fetch=['id'])
+        info = self.test_picking.get_info(fields_to_fetch=["id"])
         # There should only be one and they should all be the same if not
-        self.assertEqual(list(info[0].keys()), ['id'])
+        self.assertEqual(list(info[0].keys()), ["id"])
 
     def test07_get_priorities(self):
         """ Tests get_priorities by trivially exercising it """
@@ -113,7 +116,7 @@ class TestGoodsInPicking(common.BaseUDES):
         move_c3 = self.create_move(self.apple, 5, pick_c)
         pick_d = self.create_picking(self.picking_type_internal)
         move_d12 = self.create_move(self.apple, 15, pick_d)
-        move_d12.move_orig_ids = (move_b1 | move_b2 | move_c3)
+        move_d12.move_orig_ids = move_b1 | move_b2 | move_c3
         self.assertFalse(pick_a.u_prev_picking_ids)
         self.assertEqual(pick_a.u_next_picking_ids, pick_b)
         self.assertEqual(pick_b.u_prev_picking_ids, pick_a)
@@ -144,7 +147,9 @@ class TestGoodsInPicking(common.BaseUDES):
         self.picking_type_in.u_target_storage_format = "product"
         with self.assertRaises(ValidationError) as e:
             _, pick = self.generate_picks_and_pallets_for_check_entire_pack()
-            self.assertEqual(e.exception.name, "Pickings stored by product cannot be inside packages.")
+            self.assertEqual(
+                e.exception.name, "Pickings stored by product cannot be inside packages."
+            )
 
     def test11_pallet_of_products_has_no_parent_package(self):
         """
@@ -180,60 +185,50 @@ class TestGoodsInPicking(common.BaseUDES):
         pick._check_entire_pack()
         self.assertFalse(pick.move_line_ids.u_result_parent_package_id)
 
-class TestSuggestedLocation(common.BaseUDES):
 
+class TestSuggestedLocation(common.BaseUDES):
     @classmethod
     def setUpClass(cls):
         """Setup test data to test suggested locations."""
         super(TestSuggestedLocation, cls).setUpClass()
 
-        Location = cls.env['stock.location']
+        Location = cls.env["stock.location"]
 
-        cls.test_location_03 = Location.create({
-            "name": "Test location 03",
-            "barcode": "LTEST03",
-            "location_id": cls.stock_location.id,
-        })
-        cls.test_location_04 = Location.create({
-            "name": "Test location 04",
-            "barcode": "LTEST04",
-            "location_id": cls.stock_location.id,
-        })
+        cls.test_location_03 = Location.create(
+            {
+                "name": "Test location 03",
+                "barcode": "LTEST03",
+                "location_id": cls.stock_location.id,
+            }
+        )
+        cls.test_location_04 = Location.create(
+            {
+                "name": "Test location 04",
+                "barcode": "LTEST04",
+                "location_id": cls.stock_location.id,
+            }
+        )
         cls.test_locations += cls.test_location_03 + cls.test_location_04
 
         cls.test_stock_quant_01 = cls.create_quant(
-            cls.tangerine.id,
-            cls.test_location_01.id,
-            10,
-            "TESTLOT001"
+            cls.tangerine.id, cls.test_location_01.id, 10, "TESTLOT001"
         )
         cls.test_stock_quant_02 = cls.create_quant(
-            cls.tangerine.id,
-            cls.test_location_02.id,
-            10,
-            "TESTLOT002"
+            cls.tangerine.id, cls.test_location_02.id, 10, "TESTLOT002"
         )
         # Create a non-lot tracked quant
-        cls.test_stock_quant_03 = cls.create_quant(
-            cls.apple.id,
-            cls.test_location_03.id,
-            10,
-        )
+        cls.test_stock_quant_03 = cls.create_quant(cls.apple.id, cls.test_location_03.id, 10,)
 
         # Create a new lot tracked product
-        cls.uglyfruit = cls.create_product('Ugly Fruit', tracking='lot')
+        cls.uglyfruit = cls.create_product("Ugly Fruit", tracking="lot")
 
     def create_and_assign_putaway_picking(
-        self,
-        products_info,
-        drop_policy="exactly_match_move_line"
+        self, products_info, drop_policy="exactly_match_move_line"
     ):
         """Create and assign a putaway picking with associated quants created."""
         for info in products_info:
             test_quant = self.create_quant(
-                info["product"].id,
-                self.received_location.id,
-                info["qty"],
+                info["product"].id, self.received_location.id, info["qty"],
             )
             # Remove lot from dictionary (if present) so that it may be used in create_picking
             lot = info.pop("lot", False)
@@ -241,10 +236,12 @@ class TestSuggestedLocation(common.BaseUDES):
                 test_quant.lot_id = lot
 
         self.picking_type_putaway.u_drop_location_policy = drop_policy
-        picking = self.create_picking(self.picking_type_putaway,
-                                      origin="test_picking_origin",
-                                      products_info=products_info,
-                                      assign=True)
+        picking = self.create_picking(
+            self.picking_type_putaway,
+            origin="test_picking_origin",
+            products_info=products_info,
+            assign=True,
+        )
         picking = picking.sudo(self.inbound_user)
         return picking
 
@@ -291,7 +288,7 @@ class TestSuggestedLocation(common.BaseUDES):
         drop_policy = "by_product_lot"
         products_info = [
             {"product": self.tangerine, "qty": 10, "lot": self.test_stock_quant_01.lot_id},
-            {"product": self.tangerine, "qty": 10, "lot": self.test_stock_quant_02.lot_id}
+            {"product": self.tangerine, "qty": 10, "lot": self.test_stock_quant_02.lot_id},
         ]
         picking = self.create_and_assign_putaway_picking(products_info, drop_policy)
 
@@ -301,8 +298,7 @@ class TestSuggestedLocation(common.BaseUDES):
             picking.get_suggested_locations(picking.move_line_ids)
             self.assertEqual(
                 e.exception.name,
-                "Expecting a single lot number "
-                "when dropping by product and lot."
+                "Expecting a single lot number " "when dropping by product and lot.",
             )
 
     def test04_get_suggested_location_by_product_lot_multiple_products(self):
@@ -313,17 +309,14 @@ class TestSuggestedLocation(common.BaseUDES):
         uf_lot = self.create_lot(self.uglyfruit.id, "TEST_UF_LOT001")
         products_info = [
             {"product": self.tangerine, "qty": 10, "lot": self.test_stock_quant_01.lot_id},
-            {"product": self.uglyfruit, "qty": 10, "lot": uf_lot}
+            {"product": self.uglyfruit, "qty": 10, "lot": uf_lot},
         ]
         picking = self.create_and_assign_putaway_picking(products_info, drop_policy)
 
         # Assert that suggesting locations raises an error
         with self.assertRaises(ValidationError) as e:
             picking.get_suggested_locations(picking.move_line_ids)
-            self.assertEqual(
-                e.exception.name,
-                "Cannot drop different products by lot number."
-            )
+            self.assertEqual(e.exception.name, "Cannot drop different products by lot number.")
 
     def test05_get_suggested_location_by_product_lot_not_tracked(self):
         """Test that when a product is not lot tracked, locations of that product
@@ -392,32 +385,35 @@ class TestSuggestedLocation(common.BaseUDES):
         """Test that we don't suggest locations associated with partially
         available move lines.
         """
-        Location = self.env['stock.location']
+        Location = self.env["stock.location"]
 
         drop_policy = "by_height_speed"
         products_info = [{"product": self.apple, "qty": 10}]
-        self.product_category_slow = self.create_category(name='Slow')
-        self.product_category_ground = self.create_category(name='Ground')
+        self.product_category_slow = self.create_category(name="Slow")
+        self.product_category_ground = self.create_category(name="Ground")
         self.apple.u_height_category_id = self.product_category_ground
         self.apple.u_speed_category_id = self.product_category_slow
 
         # We need another empty location
-        self.test_location_05 = Location.create({
-            "name": "Test location 05",
-            "barcode": "LTEST05",
-            "location_id": self.stock_location.id,
-        })
+        self.test_location_05 = Location.create(
+            {
+                "name": "Test location 05",
+                "barcode": "LTEST05",
+                "location_id": self.stock_location.id,
+            }
+        )
 
         picking1 = self.create_and_assign_putaway_picking(products_info, drop_policy)
         picking2 = self.create_and_assign_putaway_picking(products_info, drop_policy)
         picking1.apply_drop_location_policy()
         picking1.move_lines[0].product_uom_qty += 1
-        self.assertEqual(picking1.move_line_ids.state, 'partially_available')
+        self.assertEqual(picking1.move_line_ids.state, "partially_available")
 
         suggested_locations = picking2.get_suggested_locations(picking2.move_line_ids)
 
         self.assertNotIn(picking1.move_line_ids.location_dest_id, suggested_locations)
         self.assertEqual(suggested_locations, self.test_location_05)
+
 
 class TestPickingWarning(common.BaseUDES):
     """Test the generation of warning messages for user-set pre-conditions"""
@@ -425,13 +421,15 @@ class TestPickingWarning(common.BaseUDES):
     @classmethod
     def setUpClass(cls):
         super(TestPickingWarning, cls).setUpClass()
-        Picking = cls.env['stock.picking']
+        Picking = cls.env["stock.picking"]
 
-        cls.products_info = [{'product': cls.apple, 'qty': 10}]
-        cls.test_picking = cls.create_picking(cls.picking_type_in,
-                                              origin="test_picking_origin",
-                                              products_info=cls.products_info,
-                                              confirm=True)
+        cls.products_info = [{"product": cls.apple, "qty": 10}]
+        cls.test_picking = cls.create_picking(
+            cls.picking_type_in,
+            origin="test_picking_origin",
+            products_info=cls.products_info,
+            confirm=True,
+        )
         cls.next_picking = cls.test_picking.u_next_picking_ids
         # Setup picking type so that the pre-condition is met
         cls.next_picking.picking_type_id.u_warn_picking_precondition = "pickings_pending"
@@ -444,14 +442,13 @@ class TestPickingWarning(common.BaseUDES):
         """
         # Get message for picking without previous picking
         self.assertFalse(
-            self.test_picking.u_prev_picking_ids,
-            "Assert there are no previous pickings"
+            self.test_picking.u_prev_picking_ids, "Assert there are no previous pickings"
         )
         message_not_pending = self.test_picking.warn_picking_pickings_pending()
 
         self.assertFalse(
             message_not_pending,
-            "Assert a message is not returned when there are no previous pickings"
+            "Assert a message is not returned when there are no previous pickings",
         )
 
     def test_warn_picking_pickings_pending(self):
@@ -462,7 +459,6 @@ class TestPickingWarning(common.BaseUDES):
         message_pending = self.next_picking.warn_picking_pickings_pending()
 
         self.assertTrue(
-            message_pending,
-            "Assert a message is returned when previous pickings are incomplete"
+            message_pending, "Assert a message is returned when previous pickings are incomplete"
         )
         self.assertIsInstance(message_pending, str)
