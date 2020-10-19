@@ -69,8 +69,7 @@ class StockPickingType(models.Model):
     u_user_scans = fields.Selection(
         [("pallet", "Pallets"), ("package", "Packages"), ("product", "Products")],
         string="What the User Scans",
-        help="What the user scans when asked to "
-        "scan something from pickings of this type",
+        help="What the user scans when asked to " "scan something from pickings of this type",
     )
 
     # TODO(ale): misleading, as this also depends on `u_user_scans` and
@@ -87,16 +86,13 @@ class StockPickingType(models.Model):
         help="Flag to indicate reservations should be rounded up to entire packages.",
     )
 
-    u_scan_tracking = fields.Selection([
-        ('no', 'No'),
-        ('yes', 'Yes'),
-        ('first_last', 'First/Last'),
-    ],
+    u_scan_tracking = fields.Selection(
+        [("no", "No"), ("yes", "Yes"), ("first_last", "First/Last"),],
         required=True,
-        default='yes',
-        string='Scan Tracked Products',
-        help='Scan tracked products: yes; no; first and last serial number.',
-        oldname='u_confirm_tracking',
+        default="yes",
+        string="Scan Tracked Products",
+        help="Scan tracked products: yes; no; first and last serial number.",
+        oldname="u_confirm_tracking",
     )
 
     u_confirm_expiry_date = fields.Boolean(
@@ -170,8 +166,7 @@ class StockPickingType(models.Model):
     u_enable_unpickable_items = fields.Boolean(
         string="Enable Unpickable Items",
         default=False,
-        help="Flag to indicate if the current picking type has unpickable "
-        "items enabled.",
+        help="Flag to indicate if the current picking type has unpickable " "items enabled.",
     )
 
     u_enable_exception_handling = fields.Boolean(
@@ -189,8 +184,7 @@ class StockPickingType(models.Model):
     u_enable_confirmations = fields.Boolean(
         string="Enable Confirmations",
         default=False,
-        help="Flag to indicate if user has to perform any confirmation after "
-        "picking a product.",
+        help="Flag to indicate if user has to perform any confirmation after " "picking a product.",
     )
 
     u_auto_assign_batch_pick = fields.Boolean(
@@ -239,10 +233,7 @@ class StockPickingType(models.Model):
 
     u_drop_location_policy = fields.Selection(
         [
-            (
-                "exactly_match_move_line",
-                "Exactly Match The Move Line Destination Location",
-            ),
+            ("exactly_match_move_line", "Exactly Match The Move Line Destination Location",),
             ("by_products", "By Products"),
             ("by_product_lot", "By Product and Lot Number"),
             ("by_packages", "By Products in Packages"),
@@ -257,8 +248,7 @@ class StockPickingType(models.Model):
     u_drop_location_preprocess = fields.Boolean(
         string="Add destination location on pick assignement",
         default=False,
-        help="Flag to indicate if picking assignment should select "
-        "destination locations",
+        help="Flag to indicate if picking assignment should select " "destination locations",
     )
 
     # Picking lifecycle actions
@@ -270,8 +260,7 @@ class StockPickingType(models.Model):
     )
 
     u_move_key_format = fields.Char(
-        "Move Grouping Key",
-        help="""A field name on stock.move that can be to group move.""",
+        "Move Grouping Key", help="""A field name on stock.move that can be to group move.""",
     )
 
     u_post_confirm_action = fields.Selection(
@@ -342,44 +331,41 @@ class StockPickingType(models.Model):
         If set, transfers can only be validated if all move lines have the same lot.
         This does not apply to serial number or non-tracked products. However, transfers which
         contain both set lot and empty lot move lines are restricted.
-        """
+        """,
     )
 
     u_reserve_pallet_per_picking = fields.Boolean(
         string="Reserve one pallet per picking",
         default=False,
-        help="If enabled, each picking in a batch will be associated with an "
-        "individual pallet")
+        help="If enabled, each picking in a batch will be associated with an " "individual pallet",
+    )
 
     u_max_reservable_pallets = fields.Integer(
         string="Maximum pallets that may be simultaneously reserved in a batch.",
         default=10,
-        help="This setting is only applied when u_reserve_pallet_per_picking is True"
+        help="This setting is only applied when u_reserve_pallet_per_picking is True",
     )
 
     u_warn_picking_precondition = fields.Selection(
-        selection=[
-            ("pickings_pending", "Pickings pending"),
-        ],
+        selection=[("pickings_pending", "Pickings pending"),],
         string="Warn during a picking if the precondition is met",
         help="Choose a condition to be checked when performing a picking. "
-             "Will be checked when validating a picking on the dekstop UI. "
-             "Currently only implimented for pallet move on the mobile UI.",
+        "Will be checked when validating a picking on the dekstop UI. "
+        "Currently only implimented for pallet move on the mobile UI.",
     )
 
     u_damaged_location_id = fields.Many2one(
         comodel_name="stock.location",
         string="Default Damage Location",
         help="The damaged location is a location outside Stock (it cannot be a"
-             " location under Stock/), because we do not want damaged stock to"
-             " be picked",
+        " location under Stock/), because we do not want damaged stock to"
+        " be picked",
     )
     u_good_location_id = fields.Many2one(
         comodel_name="stock.location",
         string="Default Goods Location",
         help="Goods receive location used by mobile client",
     )
-
 
     def do_refactor_action(self, action, moves):
         """Resolve and call the method to be executed on the moves.
@@ -452,55 +438,56 @@ class StockPickingType(models.Model):
             if self.u_drop_criterion == "all"
             else Batch.get_drop_off_instructions(self.u_drop_criterion)
         )
-        return {'id': self.id,
-                'code': self.code,
-                'count_picking_ready': self.count_picking_ready,
-                'display_name': self.display_name,
-                'name': self.name,
-                'sequence': self.sequence,
-                'default_location_dest_id': self.default_location_dest_id.id,
-                'default_location_src_id': self.default_location_src_id.id,
-                'u_allow_swapping_packages': self.u_allow_swapping_packages,
-                'u_skip_allowed': self.u_skip_allowed,
-                'u_split_on_drop_off_picked': self.u_split_on_drop_off_picked,
-                'u_suggest_qty': self.u_suggest_qty,
-                'u_under_receive': self.u_under_receive,
-                'u_over_receive': self.u_over_receive,
-                'u_validate_real_time': self.u_validate_real_time,
-                'u_target_storage_format': self.u_target_storage_format,
-                'u_user_scans': self.u_user_scans,
-                'u_scan_parent_package_end': self.u_scan_parent_package_end,
-                'u_display_summary': self.u_display_summary,
-                'u_reserve_as_packages': self.u_reserve_as_packages,
-                'u_handle_partials': self.u_handle_partials,
-                'u_create_procurement_group': self.u_create_procurement_group,
-                'u_scan_tracking': self.u_scan_tracking,
-                'u_confirm_expiry_date': self.u_confirm_expiry_date,
-                'u_drop_criterion': self.u_drop_criterion,
-                'drop_criterion_instructions': drop_off_instructions,
-                'u_drop_location_constraint': self.u_drop_location_constraint,
-                'u_drop_location_policy': self.u_drop_location_policy,
-                'u_new_package_policy': self.u_new_package_policy,
-                'u_auto_batch_pallet': self.u_auto_batch_pallet,
-                'u_continue_picking': self.u_continue_picking,
-                'u_check_work_available': self.u_check_work_available,
-                'u_use_product_packaging': self.u_use_product_packaging,
-                'u_assign_batch_to_user': self.u_assign_batch_to_user,
-                'u_create_batch_for_user': self.u_create_batch_for_user,
-                'u_check_picking_priorities': self.u_check_picking_priorities,
-                'u_use_location_categories': self.u_use_location_categories,
-                'u_enable_exception_handling': self.u_enable_exception_handling,
-                'u_confirm_batch': self.u_confirm_batch,
-                'u_enable_confirmations': self.u_enable_confirmations,
-                'u_use_part_pallets': self.u_use_part_pallets,
-                'u_num_reservable_pickings': self.u_num_reservable_pickings,
-                'u_reserve_batches': self.u_reserve_batches,
-                'u_restrict_multi_lot_pickings': self.u_restrict_multi_lot_pickings,
-                'u_reserve_pallet_per_picking': self.u_reserve_pallet_per_picking,
-                'u_max_reservable_pallets': self.u_max_reservable_pallets,
-                'u_damaged_location_id': self.u_damaged_location_id.id,
-                'u_good_location_id': self.u_good_location_id.id,
-                }
+        return {
+            "id": self.id,
+            "code": self.code,
+            "count_picking_ready": self.count_picking_ready,
+            "display_name": self.display_name,
+            "name": self.name,
+            "sequence": self.sequence,
+            "default_location_dest_id": self.default_location_dest_id.id,
+            "default_location_src_id": self.default_location_src_id.id,
+            "u_allow_swapping_packages": self.u_allow_swapping_packages,
+            "u_skip_allowed": self.u_skip_allowed,
+            "u_split_on_drop_off_picked": self.u_split_on_drop_off_picked,
+            "u_suggest_qty": self.u_suggest_qty,
+            "u_under_receive": self.u_under_receive,
+            "u_over_receive": self.u_over_receive,
+            "u_validate_real_time": self.u_validate_real_time,
+            "u_target_storage_format": self.u_target_storage_format,
+            "u_user_scans": self.u_user_scans,
+            "u_scan_parent_package_end": self.u_scan_parent_package_end,
+            "u_display_summary": self.u_display_summary,
+            "u_reserve_as_packages": self.u_reserve_as_packages,
+            "u_handle_partials": self.u_handle_partials,
+            "u_create_procurement_group": self.u_create_procurement_group,
+            "u_scan_tracking": self.u_scan_tracking,
+            "u_confirm_expiry_date": self.u_confirm_expiry_date,
+            "u_drop_criterion": self.u_drop_criterion,
+            "drop_criterion_instructions": drop_off_instructions,
+            "u_drop_location_constraint": self.u_drop_location_constraint,
+            "u_drop_location_policy": self.u_drop_location_policy,
+            "u_new_package_policy": self.u_new_package_policy,
+            "u_auto_batch_pallet": self.u_auto_batch_pallet,
+            "u_continue_picking": self.u_continue_picking,
+            "u_check_work_available": self.u_check_work_available,
+            "u_use_product_packaging": self.u_use_product_packaging,
+            "u_assign_batch_to_user": self.u_assign_batch_to_user,
+            "u_create_batch_for_user": self.u_create_batch_for_user,
+            "u_check_picking_priorities": self.u_check_picking_priorities,
+            "u_use_location_categories": self.u_use_location_categories,
+            "u_enable_exception_handling": self.u_enable_exception_handling,
+            "u_confirm_batch": self.u_confirm_batch,
+            "u_enable_confirmations": self.u_enable_confirmations,
+            "u_use_part_pallets": self.u_use_part_pallets,
+            "u_num_reservable_pickings": self.u_num_reservable_pickings,
+            "u_reserve_batches": self.u_reserve_batches,
+            "u_restrict_multi_lot_pickings": self.u_restrict_multi_lot_pickings,
+            "u_reserve_pallet_per_picking": self.u_reserve_pallet_per_picking,
+            "u_max_reservable_pallets": self.u_max_reservable_pallets,
+            "u_damaged_location_id": self.u_damaged_location_id.id,
+            "u_good_location_id": self.u_good_location_id.id,
+        }
 
     def get_info(self):
         """ Return a list with the information of each picking_type in self.
@@ -516,9 +503,7 @@ class StockPickingType(models.Model):
         """
         picking_type = self.browse(picking_type_id)
         if not picking_type.exists():
-            raise ValidationError(
-                _("Cannot find picking type with id %s") % picking_type_id
-            )
+            raise ValidationError(_("Cannot find picking type with id %s") % picking_type_id)
         return picking_type
 
     def get_action_picking_tree_draft(self):
