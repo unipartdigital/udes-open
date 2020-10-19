@@ -1395,8 +1395,14 @@ class StockPicking(models.Model):
             the storage format is product/package/pallet of products
         """
         pallet_package_pickings = self.filtered(
-            lambda p: p.picking_type_id.u_target_storage_format
-            not in ("product", "pallet_products", "package")
+            lambda p: (
+                p.picking_type_id.u_target_storage_format
+                not in ("product", "pallet_products", "package")
+            )
+            and not (
+                p.picking_type_id.u_target_storage_format == "pallet_packages"
+                and p.picking_type_id.u_user_scans == "package"
+            )
         )
         super(StockPicking, pallet_package_pickings)._set_u_result_parent_package_id()
 

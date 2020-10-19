@@ -168,6 +168,18 @@ class TestGoodsInPicking(common.BaseUDES):
         pick._check_entire_pack()
         self.assertFalse(pick.move_line_ids.u_result_parent_package_id)
 
+    def test13_pallet_of_packages_has_no_parent_package_if_user_scans_is_package(self):
+        """
+            Test that only product have a parent package added by
+           _check_entire_pack/_set_u_result_parent_package_id
+        """
+
+        self.picking_type_in.u_target_storage_format = "pallet_packages"
+        self.picking_type_in.u_user_scans = "package"
+        _, pick = self.generate_picks_and_pallets_for_check_entire_pack()
+        pick._check_entire_pack()
+        self.assertFalse(pick.move_line_ids.u_result_parent_package_id)
+
 class TestSuggestedLocation(common.BaseUDES):
 
     @classmethod
