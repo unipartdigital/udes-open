@@ -1,5 +1,5 @@
 {
-    "name": "udes_delivery_control",
+    "name": "UDES Delivery Control",
     "summary": """
         UDES Delivery Control
     """,
