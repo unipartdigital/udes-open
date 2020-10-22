@@ -22,3 +22,9 @@ class PushedFlow(models.Model):
         if push_steps:
             return push_steps.sorted(key=lambda p: p.location_from_id.parent_left, reverse=True)[0]
         return self.browse()
+
+    def _apply(self, moves):
+        """Do not apply rules with push from drop enabled"""
+        if self.u_push_on_drop:
+            return
+        super()._apply(moves)
