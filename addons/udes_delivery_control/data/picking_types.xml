@@ -28,5 +28,10 @@
       <field name="u_is_delivery_control">True</field>
     </record>
 
+    <!-- Update "Goods In" picking type -->
+    <record id="stock.picking_type_in" model="stock.picking.type">
+      <field name="u_handle_partials" eval="False"/>
+    </record>
+
   </data>
 </odoo>
