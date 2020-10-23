@@ -3,8 +3,12 @@ from odoo.http import request
 
 
 class ControllerProductClassifications(http.Controller):
-
-    @http.route('/api/product-product/get_product_classifications/', type='json', methods=['GET'], auth='user')
+    @http.route(
+        "/api/product-product/get_product_classifications/",
+        type="json",
+        methods=["GET"],
+        auth="user",
+    )
     def get_classification_messages_for_product_picking(
         self, product_barcode, picking_type_id=None
     ):
@@ -26,7 +30,7 @@ class ControllerProductClassifications(http.Controller):
 
         else:
             classifications = product_classifications.filtered(
-                lambda c: picking_type_id in c.picking_type_ids.mapped('id')
+                lambda c: picking_type_id in c.picking_type_ids.mapped("id")
             )
 
         return [
