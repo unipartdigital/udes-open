@@ -367,6 +367,20 @@ class StockPickingType(models.Model):
              "Currently only implimented for pallet move on the mobile UI.",
     )
 
+    u_damaged_location_id = fields.Many2one(
+        comodel_name="stock.location",
+        string="Default Damage Location",
+        help="The damaged location is a location outside Stock (it cannot be a"
+             " location under Stock/), because we do not want damaged stock to"
+             " be picked",
+    )
+    u_good_location_id = fields.Many2one(
+        comodel_name="stock.location",
+        string="Default Goods Location",
+        help="Goods receive location used by mobile client",
+    )
+
+
     def do_refactor_action(self, action, moves):
         """Resolve and call the method to be executed on the moves.
 
@@ -484,6 +498,8 @@ class StockPickingType(models.Model):
                 'u_restrict_multi_lot_pickings': self.u_restrict_multi_lot_pickings,
                 'u_reserve_pallet_per_picking': self.u_reserve_pallet_per_picking,
                 'u_max_reservable_pallets': self.u_max_reservable_pallets,
+                'u_damaged_location_id': self.u_damaged_location_id.id,
+                'u_good_location_id': self.u_good_location_id.id,
                 }
 
     def get_info(self):

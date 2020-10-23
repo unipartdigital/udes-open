@@ -72,6 +72,10 @@
                 </group>
             </xpath>
 
+            <xpath expr="//field[@name='default_location_dest_id']" position="after">
+                <field name="u_damaged_location_id" options="{'no_create': True}"/>
+                <field name="u_good_location_id" options="{'no_create': True}"/>
+            </xpath>
         </field>
     </record>
 
