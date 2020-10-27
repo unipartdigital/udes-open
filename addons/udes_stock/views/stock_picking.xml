@@ -59,7 +59,7 @@
 
             <!-- Partner field filtered to only see suppliers -->
             <xpath expr="//field[@name='partner_id']" position="replace">
-                <field name="partner_id" domain="[('supplier', '=', True)]" options="{'no_create': True}"/>
+                <field name="partner_id" domain="[('supplier', '=', True)]"/>
             </xpath>
 
             <!-- Destination location field changed to read-only for goods-in -->
