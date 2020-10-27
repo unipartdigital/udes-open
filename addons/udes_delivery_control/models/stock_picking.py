@@ -22,6 +22,7 @@ EXTRA_FIELDS = {
     "u_backload_supplier",
     "u_backload_pallet_count",
     "u_backload_stillage_count",
+    "u_backload_box_count",
     "u_backload_cover_count",
     "u_backload_reject_count",
     "u_backload_start_date",
@@ -67,6 +68,7 @@ class StockPicking(models.Model):
     )
     u_backload_pallet_count = fields.Integer(related="u_extras_id.backload_pallet_count",)
     u_backload_stillage_count = fields.Integer(related="u_extras_id.backload_stillage_count",)
+    u_backload_box_count = fields.Integer(related="u_extras_id.backload_box_count",)
     u_backload_cover_count = fields.Integer(related="u_extras_id.backload_cover_count",)
     u_backload_reject_count = fields.Integer(related="u_extras_id.backload_reject_count",)
     u_backload_start_date = fields.Datetime(related="u_extras_id.backload_start_date")
