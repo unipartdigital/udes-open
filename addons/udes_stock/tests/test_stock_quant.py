@@ -73,7 +73,7 @@ class TestStockQuant(common.BaseUDES):
         self.assertEqual(reserved_quant, self.quant2)
 
     def test_fifo_with_nones(self):
-        """Check that the FIFO strategies correctly applies when you have unpopulated `in_date` 
+        """Check that the FIFO strategies correctly applies when you have unpopulated `in_date`
         and `package_id` fields.
 
                |   in_date   |  package_id |
@@ -96,3 +96,39 @@ class TestStockQuant(common.BaseUDES):
         self.assertFalse(reserved_quant.in_date)
         self.assertFalse(reserved_quant.package_id)
         self.assertEqual(reserved_quant, self.quant2)
+
+    def test_get_mls_from_quant_basic(self):
+        """Test get_mls_from_quant basic functionality"""
+        picking = self.create_picking(
+            self.picking_type_pick,
+            products_info=[{"product": self.apple, "qty": 2}],
+            confirm=True,
+            assign=True,
+        )
+        picking_ml = picking.move_line_ids
+        ml_quant1 = self.quant1.get_move_lines()
+        ml_quant2 = self.quant2.get_move_lines()
+        self.assertEqual(picking_ml, ml_quant1)
+        self.assertEqual(picking_ml, ml_quant2)
+
+    def test_get_mls_from_quant_with_aux_domain(self):
+        """Test that can add an extra search domain to correctly return the mls we want"""
+        # Create two pickings, then filter the searches by the picking ids
+        picking1 = self.create_picking(
+            self.picking_type_pick,
+            products_info=[{"product": self.banana, "qty": 3}],
+            confirm=True,
+            assign=True,
+        )
+        picking2 = self.create_picking(
+            self.picking_type_pick,
+            products_info=[{"product": self.banana, "qty": 1}],
+            confirm=True,
+            assign=True,
+        )
+        picking1_mls = picking1.move_line_ids
+        picking2_mls = picking2.move_line_ids
+        mls1 = self.quant4.get_move_lines(aux_domain=[("picking_id", "=", picking1.id)])
+        mls2 = self.quant4.get_move_lines(aux_domain=[("picking_id", "=", picking2.id)])
+        self.assertEqual(mls1, picking1_mls)
+        self.assertEqual(mls2, picking2_mls)

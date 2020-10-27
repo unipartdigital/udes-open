@@ -141,3 +141,21 @@ class StockQuant(models.Model):
     @api.constrains("location_id")
     def quant_location_policy(self):
         self.location_id.apply_quant_policy()
+
+    def get_move_lines(self, aux_domain=None):
+        """Get the move lines associated with a quant
+        :param aux_domain: Extra domain arguments to add to the search
+        :returns: Associated move lines
+        """
+        self.ensure_one()
+        MoveLine = self.env["stock.move.line"]
+        domain = [
+            ("product_id", "=", self.product_id.id),
+            ("package_id", "=", self.package_id.id),
+            ("location_id", "=", self.location_id.id),
+            ("lot_id", "=", self.lot_id.id),
+            ("owner_id", "=", self.owner_id.id),
+        ]
+        if aux_domain is not None:
+            domain.extend(aux_domain)
+        return MoveLine.search(domain)
