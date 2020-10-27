@@ -62,6 +62,7 @@ class StockPickingExtras(models.Model):
     backload_stillage_count = fields.Integer(
         "Stillage Count", help="Number of stillages backloaded", default=0,
     )
+    backload_box_count = fields.Integer("Box Count", help="Number of boxes backloaded", default=0,)
     backload_cover_count = fields.Integer(
         "Cover Count", help="Number of covers backloaded", default=0,
     )

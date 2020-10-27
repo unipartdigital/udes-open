@@ -64,6 +64,7 @@
                             <field name="u_backload_reject_count"/>
                             <field name="u_backload_pallet_count"/>
                             <field name="u_backload_stillage_count"/>
+                            <field name="u_backload_box_count"/>
                             <field name="u_backload_cover_count"/>
                         </group>
 
