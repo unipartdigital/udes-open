@@ -2,6 +2,7 @@
 
 from odoo import models, _, api
 from odoo.exceptions import ValidationError
+from odoo.tools.float_utils import float_compare, float_round
 
 from collections import defaultdict
 
@@ -159,3 +160,50 @@ class StockQuant(models.Model):
         if aux_domain is not None:
             domain.extend(aux_domain)
         return MoveLine.search(domain)
+
+    @api.multi
+    def _split(self, qty):
+        """Split a quant into two quants, a new quant with quantity `qty` and the original quantity
+        of self reduced by qty. If qty > quantity, it just returns self (original quant).
+        It gives the new quantity priority over reserved quantities.
+
+        :param qty: Quantity to split from self, creating a new quant of quantity `qty`
+        :return: new quant or self if it cannot be split
+
+        Note: The quants are split and are the same but for the quantity and reserved quantity.
+        This means when using get_quants() on a picking's the move lines it searches
+        by location, product, lot, owner and package so the quants `new_quant` and `self` are
+        exactly the same in get_quants() opinion. In this case using get_quants() on a picking's
+        mls returns a candidate list of quants that match this criteria, and either an extra filter
+        needs to be used or when completing a picking it should first order the quants by the
+        amount reserved.
+        """
+        self.ensure_one()
+        rounding = self.product_id.uom_id.rounding
+        if (
+            float_compare(abs(self.quantity), abs(qty), precision_rounding=rounding) <= 0
+        ):  # if quant <= qty in abs, take it entirely
+            return self
+        # Update the quantities
+        new_qty_round = float_round(qty, precision_rounding=rounding)
+        qty_round = float_round(self.quantity - qty, precision_rounding=rounding)
+        # Handle reserved quants
+        reserved_quantity = self.reserved_quantity
+        old_qty_round_reserved = float_round(
+            self.reserved_quantity - qty, precision_rounding=rounding
+        )
+        new_quant = self.sudo().copy(
+            default={
+                "quantity": new_qty_round,
+                "reserved_quantity": new_qty_round
+                if old_qty_round_reserved > 0
+                else reserved_quantity,
+            }
+        )
+        self.sudo().write(
+            {
+                "quantity": qty_round,
+                "reserved_quantity": old_qty_round_reserved if old_qty_round_reserved > 0 else 0,
+            }
+        )
+        return new_quant

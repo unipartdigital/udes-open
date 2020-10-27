@@ -23,6 +23,9 @@ class TestStockQuant(common.BaseUDES):
         cls.quant2 = cls.create_quant(cls.apple.id, cls.test_location_01.id, 1.0)
         cls.quant3 = cls.create_quant(cls.apple.id, cls.test_location_01.id, 1.0)
 
+        # Create a banana quant for testing split
+        cls.quant4 = cls.create_quant(cls.banana.id, cls.test_location_01.id, 5.0)
+
     def test_fifo_without_nones(self):
         """Check that the FIFO strategies are correctly applied"""
         # Give each quant a package_id and in_date
@@ -132,3 +135,57 @@ class TestStockQuant(common.BaseUDES):
         mls2 = self.quant4.get_move_lines(aux_domain=[("picking_id", "=", picking2.id)])
         self.assertEqual(mls1, picking1_mls)
         self.assertEqual(mls2, picking2_mls)
+
+    def test_split_quant_basic(self):
+        """Test splitting a quant when everything is reserved"""
+        picking = self.create_picking(
+            self.picking_type_pick,
+            products_info=[{"product": self.banana, "qty": 5}],
+            confirm=True,
+            assign=True,
+        )
+        self.assertEqual(self.quant4.quantity, 5)
+        self.assertEqual(self.quant4.reserved_quantity, 5)
+
+        # Split the quantity
+        new_quant = self.quant4._split(2)
+        self.assertEqual(new_quant.reserved_quantity, 2)
+        self.assertEqual(new_quant.quantity, 2)
+        self.assertEqual(self.quant4.reserved_quantity, 3)
+        self.assertEqual(self.quant4.quantity, 3)
+
+    def test_split_quant_below_reserved_quantity(self):
+        """Test splitting a quant by a quantity below the reserved quantity"""
+        picking = self.create_picking(
+            self.picking_type_pick,
+            products_info=[{"product": self.banana, "qty": 3}],
+            confirm=True,
+            assign=True,
+        )
+        self.assertEqual(self.quant4.quantity, 5)
+        self.assertEqual(self.quant4.reserved_quantity, 3)
+
+        # Split the quantity
+        new_quant = self.quant4._split(2)
+        self.assertEqual(new_quant.quantity, 2)
+        self.assertEqual(new_quant.reserved_quantity, 2)
+        self.assertEqual(self.quant4.quantity, 3)
+        self.assertEqual(self.quant4.reserved_quantity, 1)
+
+    def test_split_quant_above_reserved_quantity(self):
+        """Test splitting a quant by a quantity above the reserved quantity"""
+        picking = self.create_picking(
+            self.picking_type_pick,
+            products_info=[{"product": self.banana, "qty": 3}],
+            confirm=True,
+            assign=True,
+        )
+        self.assertEqual(self.quant4.quantity, 5)
+        self.assertEqual(self.quant4.reserved_quantity, 3)
+
+        # Split the quantity
+        new_quant = self.quant4._split(4)
+        self.assertEqual(new_quant.quantity, 4)
+        self.assertEqual(new_quant.reserved_quantity, 3)
+        self.assertEqual(self.quant4.quantity, 1)
+        self.assertEqual(self.quant4.reserved_quantity, 0)
