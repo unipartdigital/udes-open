@@ -907,41 +907,44 @@ class StockPicking(models.Model):
                 return True
         return False
 
-    def _backorder_movelines(self, mls=None):
-        """ Creates a backorder pick from self (expects a singleton)
+    def _backorder_movelines(self, mls=None, dest_picking=None):
+        """ Creates a backorder picking from self (expects a singleton)
             and a subset of stock.move.lines are then moved into it.
-            The move from which the move lines have been transferred
-            has the ordered_qty decremented by the amount of the
-            transferred lines.
+            The moves from which the move lines have been transferred
+            will be split if needed.
+            Completed move lines will be selected unless mls is set.
+            Optionally receive a picking into where the mls will be moved.
         """
         Move = self.env["stock.move"]
         # Based on back order creation in stock_move._action_done
         self.ensure_one()
 
+        # Select completed move lines when not passed
         if mls is None:
             mls = self.move_line_ids.filtered(lambda x: x.qty_done > 0)
 
-        # test that the interaction of mls and move lines in picking
-        # therefore we have some relevant move lines
+        # Check the intersection of mls and move lines in picking to ensure
+        # there are relevant move lines
         if not (mls & self.move_line_ids):
             raise ValidationError(
                 _("There are no move lines within picking %s to backorder" % self.name)
             )
 
         new_moves = Move.browse()
-
         for current_move in mls.mapped("move_id"):
             current_mls = mls.filtered(lambda x: x.move_id == current_move)
             new_moves |= current_move.split_out_move_lines(current_mls)
 
-        # Create picking for completed move lines
-        bk_picking = self.copy(
-            {"name": "/", "move_lines": [], "move_line_ids": [], "backorder_id": self.id}
-        )
-        new_moves.write({"picking_id": bk_picking.id})
-        new_moves.mapped("move_line_ids").write({"picking_id": bk_picking.id})
+        if dest_picking is None:
+            # Create picking for selected move lines
+            dest_picking = self.copy(
+                {"name": "/", "move_lines": [], "move_line_ids": [], "backorder_id": self.id}
+            )
 
-        return bk_picking
+        new_moves.write({"picking_id": dest_picking.id})
+        new_moves.mapped("move_line_ids").write({"picking_id": dest_picking.id})
+
+        return dest_picking
 
     def _real_time_update(self, mls):
         """ Checks to see if the transfer of the move_lines would leave the
