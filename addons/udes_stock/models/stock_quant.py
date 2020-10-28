@@ -50,8 +50,7 @@ class StockQuant(models.Model):
             )
 
     def assert_valid_location(self, location_id):
-        """ Ensure the recorset self contains quants child of location_id
-        """
+        """Ensure the recorset self contains quants child of location_id"""
         # TODO: check this function again, create generic is_valid/are_valid?
         Location = self.env["stock.location"]
         n_quant_locs = len(self.mapped("location_id"))
@@ -65,10 +64,10 @@ class StockQuant(models.Model):
             )
 
     def _gather(self, product_id, location_id, **kwargs):
-        """ Call default _gather function, if quant_ids context variable
-            is set the resulting quants are filtered by id.
+        """Call default _gather function, if quant_ids context variable
+        is set the resulting quants are filtered by id.
 
-            Context variable quant_ids might contain quants of different products.
+        Context variable quant_ids might contain quants of different products.
         """
         quants = super(StockQuant, self)._gather(product_id, location_id, **kwargs)
         quant_ids = self.env.context.get("quant_ids")
@@ -77,13 +76,12 @@ class StockQuant(models.Model):
         return quants
 
     def total_quantity(self):
-        """ Returns the total quantity of the quants in self
-        """
+        """Returns the total quantity of the quants in self"""
         return sum(self.mapped("quantity"))
 
     def group_quantity_by_product(self, only_available=False):
-        """ Returns a dictionary with the total quantity per product,
-            mapped by product_id.
+        """Returns a dictionary with the total quantity per product,
+        mapped by product_id.
         """
         products = defaultdict(int)
         for quant in self:
@@ -95,14 +93,14 @@ class StockQuant(models.Model):
 
     def _prepare_info(self):
         """
-            Prepares the following info of the quant in self:
-            - id: int
-            - package_id: {stock.quant.package}
-            - parent_package_id: {stock.quant.package}
-            - product_id: {product.product}
-            - quantity: float
-            - reserved_quantity: float
-            - lot_id (optional): {stock.production.lot}
+        Prepares the following info of the quant in self:
+        - id: int
+        - package_id: {stock.quant.package}
+        - parent_package_id: {stock.quant.package}
+        - product_id: {product.product}
+        - quantity: float
+        - reserved_quantity: float
+        - lot_id (optional): {stock.production.lot}
         """
         self.ensure_one()
 
@@ -130,8 +128,7 @@ class StockQuant(models.Model):
         return res
 
     def get_info(self):
-        """ Return a list with the information of each quant in self.
-        """
+        """Return a list with the information of each quant in self."""
         res = []
         for quant in self:
             res.append(quant._prepare_info())
