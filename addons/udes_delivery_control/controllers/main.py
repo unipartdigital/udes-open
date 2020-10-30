@@ -25,7 +25,7 @@ class PickingApi(UdesApi):
         return [picking.read(fields_to_fetch)[0] for picking in pickings]
 
     @http.route("/api/delivery-control/stock-picking/", type="json", methods=["GET"], auth="user")
-    def get_pickings(self, fields_to_fetch=None, **kwargs):
+    def get_pickings_delivery_control(self, fields_to_fetch=None, **kwargs):
         """ Search for pickings by various criteria and return an
             array of stock.picking objects that match a given criteria.
 
