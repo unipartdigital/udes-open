@@ -97,6 +97,7 @@ class StockQuant(models.Model):
             Prepares the following info of the quant in self:
             - id: int
             - package_id: {stock.quant.package}
+            - parent_package_id: {stock.quant.package}
             - product_id: {product.product}
             - quantity: float
             - reserved_quantity: float
@@ -106,12 +107,16 @@ class StockQuant(models.Model):
 
         location_info = self.location_id.get_info()
         package_info = False
+        parent_package_info = False
         if self.package_id:
             package_info = self.package_id.get_info()[0]
+            if self.package_id.package_id:
+                parent_package_info = self.package_id.package_id.get_info()[0]
 
         res = {
             "id": self.id,
             "package_id": package_info,
+            "parent_package_id": parent_package_info,
             "product_id": self.product_id.get_info()[0],
             "location_id": location_info[0],
             "quantity": self.quantity,
