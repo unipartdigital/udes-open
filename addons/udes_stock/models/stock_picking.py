@@ -1217,7 +1217,11 @@ class StockPicking(models.Model):
     def get_result_packages_names(self):
         """ Return a list of the names of the parent packages
         """
-        return list(set(self.mapped("move_line_ids.result_package_id.name")))
+        move_lines = self.mapped("move_line_ids")
+        packages = move_lines.mapped(
+            lambda ml: ml.u_result_parent_package_id or ml.result_package_id
+        )
+        return packages.mapped("name")
 
     @api.model
     def get_priorities(self):
