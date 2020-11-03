@@ -353,7 +353,32 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         self.assertEqual(unpickable_picking.state, 'assigned',
                          'stock investigation picking creation has not completed')
 
-    def test16_unpickable_item_package_not_found(self):
+    def test16_unpickable_item_single_move_line_pallet_of_packages(self):
+        """
+        Tests that the picking is confirmed and an stock investigation transfer
+        is created correctly when a pallet of packages is unpickable. The picking remains
+        confirmed because there isn't more stock available.
+        """
+        pallet = self.create_package()
+        self.package_one.package_id = pallet.id
+        picking, batch = self._create_valid_batch()
+        move_line = picking.move_line_ids[0]
+        reason = 'missing item'
+        batch.unpickable_item(package_name=pallet.name,
+                              reason=reason)
+        unpickable_picking = self.package_one.find_move_lines().picking_id
+
+        self.assertEqual(picking.state, 'confirmed',
+                         'picking was not confirmed')
+        self.assertEqual(batch.state, 'done',
+                         'batch state was not completed')
+        self.assertEqual(unpickable_picking.picking_type_id,
+                         self.picking_type_internal,
+                         'stock investigation picking type not set by unpickable_item')
+        self.assertEqual(unpickable_picking.state, 'assigned',
+                         'stock investigation picking creation has not completed')
+
+    def test17_unpickable_item_package_not_found(self):
         """
         Tests that a ValidationError is raised if the package cannot be
         found in the system
@@ -372,7 +397,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
             batch.unpickable_item(package_name=package_name,
                                   reason=reason)
 
-    def test17_unpickable_item_wrong_batch(self):
+    def test18_unpickable_item_wrong_batch(self):
         """
         Tests that a ValidationError is raised if the package is not on
         the Batch that we requested.
@@ -396,7 +421,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
             batch.unpickable_item(package_name=move_line.package_id.name,
                                   reason=reason)
 
-    def test18_unpickable_item_invalid_state_cancel(self):
+    def test19_unpickable_item_invalid_state_cancel(self):
         """
         Tests that a ValidationError is raised if the package move lines
         cannot be found in the wave because the picking is on a state of
@@ -417,7 +442,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
             batch.unpickable_item(package_name=move_line.package_id.name,
                                   reason=reason)
 
-    def test19_unpickable_item_invalid_state_done(self):
+    def test20_unpickable_item_invalid_state_done(self):
         """
         Tests that a ValidationError is raised if the package move lines
         cannot be found in the wave because the picking is on a state of
@@ -437,7 +462,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
             batch.unpickable_item(package_name=move_line.package_id.name,
                                   reason=reason)
 
-    def test20_unpickable_item_multiple_move_lines_different_packages(self):
+    def test21_unpickable_item_multiple_move_lines_different_packages(self):
         """
         Tests that a backorder is created and confirmed if there are multiple
         move lines on the picking. The original picking should continue to
@@ -496,7 +521,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         # Check one backorder has been created
         self.assertEqual(len(picking.u_created_back_orders), 1)
 
-    def test21_unpickable_item_multiple_move_lines_different_packages_available(self):
+    def test22_unpickable_item_multiple_move_lines_different_packages_available(self):
         """
         Tests that when the unpickable item is available, a new move line
         is added to the picking.
@@ -541,7 +566,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         # Check no backorder has been created
         self.assertEqual(len(picking.u_created_back_orders), 0)
 
-    def test22_unpickable_item_multiple_move_lines_same_package(self):
+    def test23_unpickable_item_multiple_move_lines_same_package(self):
         """
         Tests that if there are multiple move lines on the same package
         that the picking remains in state confirmed and a new picking
@@ -584,7 +609,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         self.assertEqual(new_picking.group_id.name, reason,
                          'reason was not assigned correctly')
 
-    def test23_unpickable_item_product_validation_error_missing_location(self):
+    def test24_unpickable_item_product_validation_error_missing_location(self):
         """
         Tests that calling unpickable item for a product without location
         raises an error.
@@ -615,7 +640,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
             batch.unpickable_item(product_id=move_line.product_id.id,
                                   reason=reason)
 
-    def test24_unpickable_item_product_ok(self):
+    def test25_unpickable_item_product_ok(self):
         """
         Tests that calling unpickable item for a product with location
         ends up with all the quant reserved for the stock investigation
@@ -652,7 +677,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         # Check no backorder has been created
         self.assertEqual(len(picking.u_created_back_orders), 0)
 
-    def test25_unpickable_item_product_ok_multiple_lines(self):
+    def test26_unpickable_item_product_ok_multiple_lines(self):
         """
         Tests that calling unpickable item for a product with location
         ends up with all the quant reserved for the stock investigation.
@@ -696,7 +721,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         # Check backorder state
         self.assertEqual(picking.u_created_back_orders.state, 'confirmed')
 
-    def test26_unpickable_item_product_ok_multiple_lines(self):
+    def test27_unpickable_item_product_ok_multiple_lines(self):
         """
         Tests that calling unpickable item for a product with location
         ends up with all the quant reserved for the stock investigation.
@@ -778,7 +803,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         # no backorder has been created
         self.assertEqual(len(picking.u_created_back_orders), 0)
 
-    def test27_unpickable_item_product_ok_two_picks(self):
+    def test28_unpickable_item_product_ok_two_picks(self):
         """
         Tests that calling unpickable item for a product with location
         ends up with all the quant reserved for the stock investigation
@@ -834,7 +859,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         self.assertEqual(len(inv_picking.move_line_ids), 1)
         self.assertEqual(inv_picking.move_line_ids[0].product_qty, 3)
 
-    def test28_unpickable_item_product_ok_in_two_picks(self):
+    def test29_unpickable_item_product_ok_in_two_picks(self):
         """
         Tests that calling unpickable item for a product with location
         ends up with all the quant reserved for the stock investigation
@@ -889,7 +914,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         self.assertEqual(len(inv_picking.move_line_ids), 1)
         self.assertEqual(inv_picking.move_line_ids.product_qty, 4)
 
-    def test29_unpickable_item_product_ok_plus_two_picks(self):
+    def test30_unpickable_item_product_ok_plus_two_picks(self):
         """
         Tests that calling unpickable item for a product with location
         ends up with all the quant reserved for the stock investigation
@@ -948,7 +973,7 @@ class TestGoodsInPickingBatch(common.BaseUDES):
         self.assertEqual(len(inv_picking.move_line_ids), 1)
         self.assertEqual(inv_picking.move_line_ids[0].product_qty, 3)
 
-    def test30_backorder_generated_unpickable_item_product_ok_in_two_picks_and_two_products(self):
+    def test31_backorder_generated_unpickable_item_product_ok_in_two_picks_and_two_products(self):
         """
         Tests that calling unpickable item with a product in two pickings, one
         of which also includes a line for another product, preserves the move
