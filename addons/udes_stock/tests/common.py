@@ -11,7 +11,8 @@ SECURITY_GROUPS = [
 ]
 
 
-
+@common.at_install(False)
+@common.post_install(True)
 class UnconfiguredBaseUDES(common.SavepointCase):
     """Defines helper methods without automatic warehouse setup."""
 
@@ -547,8 +548,6 @@ class UnconfiguredBaseUDES(common.SavepointCase):
         return StockInventory.create(vals)
 
 
-@common.at_install(False)
-@common.post_install(True)
 class BaseUDES(UnconfiguredBaseUDES):
 
     @classmethod
