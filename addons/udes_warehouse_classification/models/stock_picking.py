@@ -14,7 +14,8 @@ class StockPicking(models.Model):
                 lambda c: self.picking_type_id in c.picking_type_ids
             ).sorted("sequence")
             product_classifications[product.barcode] = [
-                {"message": classification.alert_message} for classification in classifications
+                {"message": classification.alert_message, "name": classification.name}
+                for classification in classifications
             ]
         return product_classifications
 
