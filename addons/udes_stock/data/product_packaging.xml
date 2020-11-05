@@ -2,5 +2,16 @@
 <odoo>
     <record id="privacy_wrapping" model="product.packaging">
         <field name="name">Privacy</field>
+        <field name="sequence">1</field>
+    </record>
+
+    <record id="product_packaging_pallet" model="product.packaging">
+        <field name="name">Pallet</field>
+        <field name="sequence">2</field>
+    </record>
+
+    <record id="product_packaging_stillage" model="product.packaging">
+        <field name="name">Stillage</field>
+        <field name="sequence">3</field>
     </record>
 </odoo>
