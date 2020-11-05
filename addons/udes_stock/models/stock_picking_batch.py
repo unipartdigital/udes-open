@@ -79,6 +79,12 @@ class StockPickingBatch(models.Model):
         "use.",
     )
 
+    def _get_priority_dict(self):
+        return dict(self._fields["priority"].selection)
+
+    def _get_priority_name(self):
+        return self._get_priority_dict().get(self.priority)
+
     @api.depends("picking_ids", "picking_ids.u_location_category_id")
     @api.one
     def _compute_location_category(self):

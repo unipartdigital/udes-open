@@ -1206,17 +1206,22 @@ class StockPicking(models.Model):
 
         return {key: value(self) for key, value in info.items() if key in fields_to_fetch}
 
+    def _get_priority_dict(self):
+        return OrderedDict(self._fields["priority"].selection)
+
+    def _get_priority_name(self):
+        return self._get_priority_dict().get(self.priority)
+
     def get_picking_guidance(self):
         """ Return dict of guidance info to aid user when picking """
-        info = {"Priorities": dict(self._fields["priority"].selection).get(self.priority)}
-        return info
+        return {"Priorities": self._get_priority_name()}
 
     def get_info(self, **kwargs):
         """ Return a list with the information of each picking in self.
         """
         # create a dict of priority_id:priority_name to avoid
         # to do it for each picking
-        priorities = OrderedDict(self._fields["priority"].selection)
+        priorities = self._get_priority_dict()
         res = []
         for picking in self:
             res.append(picking._prepare_info(priorities, **kwargs))
