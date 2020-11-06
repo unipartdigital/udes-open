@@ -137,7 +137,7 @@ class StockQuant(models.Model):
 
         return res
 
+    @api.one
     @api.constrains("location_id")
     def quant_location_policy(self):
-        self.ensure_one()
         self.location_id.apply_quant_policy()
