@@ -725,6 +725,14 @@ class StockPickingBatch(models.Model):
 
         return mls, summary
 
+    def _get_next_drop_off_by_packages(self, item_identity, mls_to_drop):
+        mls = mls_to_drop.filtered(
+            lambda ml: ml.result_package_id == item_identity
+        )
+        summary = mls._drop_off_criterion_summary()
+
+        return mls, summary
+
     def _get_drop_off_instructions_by_products(self):
         return _("Please scan the product that you want to drop off")
 
