@@ -1942,7 +1942,7 @@ class StockPicking(models.Model):
 
         return location
 
-    def _get_suggested_location_empty_locations(self):
+    def _get_suggested_location_empty_location(self, move_line_ids):
         """Get suggested locations by finding locations which are empty.
         """
         return self.get_empty_locations()

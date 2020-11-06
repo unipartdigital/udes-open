@@ -212,6 +212,7 @@ class StockPickingType(models.Model):
             ("all", "Drop off everything in one location"),
             ("by_products", "Group items by product"),
             ("by_orders", "Group items by order"),
+            ("by_packages", "Drop off everything by package"),
         ],
         default="all",
         string="Drop Off Criterion",
@@ -239,6 +240,7 @@ class StockPickingType(models.Model):
             ("by_packages", "By Products in Packages"),
             ("by_height_speed", "By Height and Speed Category"),
             ("by_orderpoint", "By Order Point"),
+            ("empty_location", "Only Empty Locations")
         ],
         string="Suggest Locations Policy",
         default="exactly_match_move_line",
