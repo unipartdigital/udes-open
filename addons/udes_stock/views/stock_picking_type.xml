@@ -60,6 +60,8 @@
                     <field name="u_reserve_pallet_per_picking" />
                     <field name="u_max_reservable_pallets" />
                     <field name="u_selection_method" />
+                    <field name="u_check_package_type" />
+                    <field name="u_default_package_type_id" options="{'no_create': True, 'no_open': True}" />
                 </group>
                 <group string="Pick Refactoring" groups='base.group_no_one'>
                     <field name="u_move_line_key_format" />

@@ -714,6 +714,7 @@ class StockPicking(models.Model):
         result_package_name=None,
         package_name=None,
         move_parent_package=False,
+        parent_package_packaging_id=None,
         product_ids=None,
         picking_info=None,
         validate_real_time=None,
@@ -751,6 +752,9 @@ class StockPicking(models.Model):
             @param (optional) move_parent_package: Boolean
                 Used in pallets/nested packages, to maintain the move of the entire pallet.
                 Defaults to False
+            @param (optional) parent_package_packaging_id: int
+                ID of the packaging record (product.packaging)
+                to be applied to the parent package
             @param package_name: string
                 Name of the package of the picking to be marked as done
             @param product_ids: Array of dictionaries
@@ -873,6 +877,11 @@ class StockPicking(models.Model):
             move_lines_done = move_lines.get_lines_done()
             move_lines_done.write({"location_dest_id": loc_dest_instance.id})
 
+        if parent_package_packaging_id:
+            picking.move_line_ids.mapped("u_result_parent_package_id").write(
+                {"packaging_id": parent_package_packaging_id}
+            )
+        
         if force_validate or validate:
             if picking.move_line_ids.get_lines_todo() and not create_backorder:
                 raise ValidationError(

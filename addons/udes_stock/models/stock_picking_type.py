@@ -379,6 +379,20 @@ class StockPickingType(models.Model):
         ),
     )
 
+    u_check_package_type = fields.Boolean(
+        string="Check Package Type",
+        default=False,
+        help="If set, the user may be asked to confirm the type of the package they are scanning"
+        " during the picking workflow",
+    )
+    
+    u_default_package_type_id = fields.Many2one(
+        comodel_name="product.packaging",
+        string="Default Package Type (For Check)",
+        help="Default value for when user is asked to confirm type of package they are scanning"
+        " (this only applies if 'Check Package Type' is enabled)",
+    )
+
     def do_refactor_action(self, action, moves):
         """Resolve and call the method to be executed on the moves.
 
@@ -443,6 +457,8 @@ class StockPickingType(models.Model):
             - u_reserve_pallet_per_picking: boolean
             - u_max_reservable_pallets: int
             - u_selection_method: string
+            - u_check_package_type: boolean
+            - u_default_package_type_id: int
         """
         self.ensure_one()
         Batch = self.env["stock.picking.batch"]
@@ -501,6 +517,8 @@ class StockPickingType(models.Model):
             "u_damaged_location_id": self.u_damaged_location_id.id,
             "u_good_location_id": self.u_good_location_id.id,
             "u_selection_method": self.u_selection_method,
+            "u_check_package_type": self.u_check_package_type,
+            "u_default_package_type_id": self.u_default_package_type_id.id,
         }
 
     def get_info(self):
