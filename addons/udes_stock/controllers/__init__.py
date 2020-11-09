@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from . import main
+from . import product_packaging
 from . import product_product
 from . import stock_location
 from . import stock_location_category
