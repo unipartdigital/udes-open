@@ -835,7 +835,8 @@ class StockPickingBatch(models.Model):
             if not location:
                 location = package.location_id
 
-            move_lines = move_lines.filtered(lambda ml: ml.package_id == package)
+            move_lines = move_lines.filtered(lambda ml: ml.package_id == package or
+                                                        ml.package_id.package_id == package)
             quants = package._get_contained_quants()
             msg = _('Unpickable package %s at location %s') % (package.name, location.name)
         else:
