@@ -19,6 +19,15 @@ class StockWarehouse(models.Model):
 
         return [('id', 'not in', stock_children_locations)]
 
+    def _domain_warehouse_picking_types(self):
+        """
+        Domain for getting picking types in the current warehouse
+        """
+        User = self.env["res.users"]
+
+        warehouse = User.get_user_warehouse()
+        return [("warehouse_id", "=", warehouse.id)]
+
     u_handle_damages_picking_type_ids = fields.Many2many(
         comodel_name='stock.picking.type',
         relation='stock_warehouse_damages_picking_types_rel',
@@ -101,6 +110,15 @@ class StockWarehouse(models.Model):
         help="Allow users to inventory adjust reserved stock."
     )
 
+    u_disable_no_backorder_button_picking_type_ids = fields.Many2many(
+        comodel_name="stock.picking.type",
+        relation="stock_warehouse_disable_no_backorder_button_rel",
+        string="Which Picking Types to hide the `No Backorder`",
+        help="Which Picking Types have to always create backorders on validate when the pickings "
+             "are not fully available, so hide the `No backorder` button.",
+        domain=_domain_warehouse_picking_types
+    )
+
     @lazy_property
     def reserved_package_name(self):
         return list(
@@ -124,6 +142,7 @@ class StockWarehouse(models.Model):
             - u_dangerous_location_id: int
             - u_handle_damages_picking_type_ids: list(int)
             - u_print_labels_picking_type_ids: list(int)
+            - u_disable_no_backorder_button_picking_type_ids: list(int)
             - u_pallet_barcode_regex: string
             - u_package_barcode_regex: string
             - u_show_rpc_timing: boolean
@@ -149,6 +168,7 @@ class StockWarehouse(models.Model):
             'u_dangerous_location_id': self.u_dangerous_location_id.id,
             'u_handle_damages_picking_type_ids': self.u_handle_damages_picking_type_ids.ids,
             'u_print_labels_picking_type_ids': self.u_print_labels_picking_type_ids.ids,
+            "u_disable_no_backorder_button_picking_type_ids": self.u_disable_no_backorder_button_picking_type_ids.ids,
             'u_pallet_barcode_regex': self.u_pallet_barcode_regex,
             'u_package_barcode_regex': self.u_package_barcode_regex,
             'u_pi_count_move_picking_type': self.u_pi_count_move_picking_type.id,
