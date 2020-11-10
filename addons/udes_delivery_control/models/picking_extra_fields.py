@@ -28,7 +28,7 @@ class StockPickingExtras(models.Model):
         help="The amount of time taken to complete unloading in HH:MM format",
     )
     vehicle_type = fields.Many2one("stock.picking.vehicle.type")
-    trailer_number = fields.Char()
+    trailer_number = fields.Integer()
     lane_number = fields.Char()
     pallet_count = fields.Integer(default=0)
     stillage_count = fields.Integer(default=0)

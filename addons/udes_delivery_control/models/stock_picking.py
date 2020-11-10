@@ -50,7 +50,7 @@ class StockPicking(models.Model):
     u_vehicle_type = fields.Many2one(
         "stock.picking.vehicle.type", related="u_extras_id.vehicle_type"
     )
-    u_trailer_number = fields.Char(related="u_extras_id.trailer_number")
+    u_trailer_number = fields.Integer(related="u_extras_id.trailer_number")
     u_lane_number = fields.Char(related="u_extras_id.lane_number")
     u_pallet_count = fields.Integer(related="u_extras_id.pallet_count")
     u_stillage_count = fields.Integer(related="u_extras_id.stillage_count")
