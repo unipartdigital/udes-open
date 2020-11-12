@@ -181,25 +181,26 @@ A move of a specific, handleable item of stock - such as 5 phones, or 1 car door
 
 Configuration information for the an entire warehouse.
 
-| Field Name                         | Type             | Description                    |
-| ---------------------------------- | ---------------- | ------------------------------ |
-| u_handle_damages_picking_type_ids  | [int]            | |
-| u_print_labels_picking_type_ids    | [int]            | |
-| in_type_id                         | int              | |
-| out_type_id                        | int              | |
-| pack_type_id                       | int              | |
-| pick_type_id                       | int              | |
-| int_type_id                        | int              | |
-| u_missing_stock_location_id        | int              | |
-| u_damaged_location_id              | int              | |
-| u_temp_dangerous_location_id       | int              | |
-| u_probres_location_id              | int              | |
-| u_incomplete_location_id           | int              | |
-| u_dangerous_location_id            | int              | |
-| u_package_barcode_regex            | string           | |
-| u_pallet_barcode_regex             | string           | |
-| u_pi_count_move_picking_type       | string           | |
-| u_stock_investigation_picking_type | string           | |
+| Field Name                                     | Type             | Description                    |
+| ---------------------------------------------- | ---------------- | ------------------------------ |
+| u_handle_damages_picking_type_ids              | [int]            | |
+| u_print_labels_picking_type_ids                | [int]            | |
+| u_disable_no_backorder_button_picking_type_ids | [int]            | A list of picking type ids where the user must awlays create a backorder if that is an option |
+| in_type_id                                     | int              | |
+| out_type_id                                    | int              | |
+| pack_type_id                                   | int              | |
+| pick_type_id                                   | int              | |
+| int_type_id                                    | int              | |
+| u_missing_stock_location_id                    | int              | |
+| u_damaged_location_id                          | int              | |
+| u_temp_dangerous_location_id                   | int              | |
+| u_probres_location_id                          | int              | |
+| u_incomplete_location_id                       | int              | |
+| u_dangerous_location_id                        | int              | |
+| u_package_barcode_regex                        | string           | |
+| u_pallet_barcode_regex                         | string           | |
+| u_pi_count_move_picking_type                   | string           | |
+| u_stock_investigation_picking_type             | string           | |
 
 ## Picking Batches (model: stock.picking.batch)
 

@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<odoo>
+    <data>
+        <!-- Change backorder confirmation -->
+        <record id="view_backorder_confirmation" model="ir.ui.view">
+            <field name="name">udes_stock.stock.backorder.confirmation</field>
+            <field name="model">stock.backorder.confirmation</field>
+            <field name="inherit_id" ref="stock.view_backorder_confirmation"/>
+            <field name="arch" type="xml">
+                <xpath expr="//form" position="inside">
+                    <field name="u_disable_no_backorder_button" invisible="1"/>
+                </xpath>
+                <!-- Hide the description as it is no longer ambiguous if the `No backorder` button is disabled -->
+                <xpath expr="//group/p[hasclass('text-muted')]" position="attributes">
+                    <attribute name="attrs">{'invisible': [('u_disable_no_backorder_button', '=', True)]}</attribute>
+                </xpath>
+                <!-- Hide the `No backorder` button for that picking type if necessary-->
+                <xpath expr="//button[@name='process_cancel_backorder']" position="attributes">
+                    <attribute name="attrs">{'invisible': [('u_disable_no_backorder_button', '=', True)]}</attribute>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>

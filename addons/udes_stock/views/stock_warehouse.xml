@@ -28,6 +28,14 @@
                                    nolabel="1"
                             />
                         </group>
+                        <group name="backorders_picking_type" string="Picking types which must always create a backorder">
+                            <field name="u_disable_no_backorder_button_picking_type_ids"
+                                   widget="many2many_tags"
+                                   placeholder="Picking Types"
+                                   options="{'no_create_edit': True}"
+                                   nolabel="1"
+                            />
+                        </group>
                         <group name="udes_stock_config" string="Stock Config">
                             <field name="u_missing_stock_location_id" />
                             <field name="u_damaged_location_id" />

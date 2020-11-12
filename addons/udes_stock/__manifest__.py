@@ -63,6 +63,7 @@
         'wizard/refactor_views.xml',
         'wizard/replen_views.xml',
         'wizard/reservation_views.xml',
+        "wizard/stock_backorder_confirmation.xml",
         'wizard/stock_picking_to_batch_views.xml',
         'security/ir.model.access.csv',
         'security/ir_module_category.xml',
