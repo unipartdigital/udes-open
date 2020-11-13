@@ -1237,8 +1237,20 @@ class StockPicking(models.Model):
         )
         return packages.mapped("name")
 
+    def _priorities_has_ready_pickings(self, priorities, picking_type_id):
+        domain = [
+            ("picking_type_id", "=", picking_type_id),
+            ("priority", "in", priorities),
+            ("state", "=", "assigned"),
+        ]
+        return self.search_count(domain) >= 1
+
     @api.model
-    def get_priorities(self):
+    def _get_priority_groups(self):
+        return list(common.PRIORITY_GROUPS.values())
+
+    @api.model
+    def get_priorities(self, picking_type_id=None):
         """ Return a list of dicts containing the priorities of the
             all defined priority groups, in the following format:
                 [
@@ -1255,7 +1267,16 @@ class StockPicking(models.Model):
                     ...
                 ]
         """
-        return list(common.PRIORITY_GROUPS.values())
+
+        if picking_type_id is None:
+            return self._get_priority_groups()
+
+        groups_with_pickings = []
+        for group in self._get_priority_groups():
+            priorities = [p["id"] for p in group["priorities"]]
+            if self._priorities_has_ready_pickings(priorities, picking_type_id):
+                groups_with_pickings.append(group)
+        return groups_with_pickings
 
     @api.multi
     def get_move_lines_done(self):

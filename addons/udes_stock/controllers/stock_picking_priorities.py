@@ -7,10 +7,8 @@ from .main import UdesApi
 
 
 class PickingPriorities(UdesApi):
-
-    @http.route('/api/stock-picking-priorities/',
-                type='json', methods=['GET'], auth='user')
-    def get_priority_groups(self):
+    @http.route("/api/stock-picking-priorities/", type="json", methods=["GET"], auth="user")
+    def get_priority_groups(self, picking_type_id=None):
         """
         Return a list of dictionaries, each containing the
         priorities of a given priority group, by following the
@@ -30,5 +28,5 @@ class PickingPriorities(UdesApi):
                 ...
             ]
         """
-        Picking = request.env['stock.picking']
-        return Picking.get_priorities()
+        Picking = request.env["stock.picking"]
+        return Picking.get_priorities(picking_type_id=picking_type_id)

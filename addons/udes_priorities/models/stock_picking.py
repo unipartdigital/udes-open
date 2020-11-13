@@ -13,18 +13,19 @@ class StockPicking(models.Model):
 
     priority = fields.Selection(selection="get_priorities_for_selection", default=_default_priority)
 
-    def _priority_and_priority_group_domain(self):
+    def _priority_and_priority_group_domain(self, picking_type_ids=None):
 
         domain = []
-        picking_type_ids = []
+        if picking_type_ids is None:
+            picking_type_ids = []
 
-        picking_types = self.mapped("picking_type_id")
-        default_picking_type_id = self.env.context.get("default_picking_type_id", None)
+            picking_types = self.mapped("picking_type_id")
+            default_picking_type_id = self.env.context.get("default_picking_type_id", None)
 
-        if picking_types:
-            picking_type_ids = picking_types.ids
-        elif default_picking_type_id:
-            picking_type_ids = [default_picking_type_id]
+            if picking_types:
+                picking_type_ids = picking_types.ids
+            elif default_picking_type_id:
+                picking_type_ids = [default_picking_type_id]
 
         if picking_type_ids:
             domain.extend(
@@ -37,15 +38,15 @@ class StockPicking(models.Model):
 
         return domain
 
-    def _priority_domain(self):
+    def _priority_domain(self, picking_type_ids=None):
         # _priority_domain and _priority_group_domain may diverge in certain circumstances
         # To allow for this they are proxies to the default function
-        return self._priority_and_priority_group_domain()
+        return self._priority_and_priority_group_domain(picking_type_ids=picking_type_ids)
 
-    def _priority_group_domain(self):
+    def _priority_group_domain(self, picking_type_ids=None):
         # _priority_domain and _priority_group_domain may diverge in certain circumstances
         # To allow for this they are proxies to the default function
-        return self._priority_and_priority_group_domain()
+        return self._priority_and_priority_group_domain(picking_type_ids=picking_type_ids)
 
     @api.model
     def get_priorities_for_selection(self):
@@ -61,7 +62,7 @@ class StockPicking(models.Model):
         return Priorities.search(pick._priority_domain()).get_selection_values()
 
     @api.model
-    def get_priorities(self):
+    def get_priorities(self, picking_type_id=None):
         """ Return a list of dicts containing the priorities of
             all defined priority groups, in the following format:
                 [
@@ -81,13 +82,23 @@ class StockPicking(models.Model):
         PriorityGroup = self.env["udes_priorities.priority_group"]
         groups = []
 
-        for group in PriorityGroup.search(self._priority_group_domain()):
-            groups.append(
-                {
-                    "name": group.name,
-                    "priorities": [{"id": p.reference, "name": p.name} for p in group.priority_ids],
-                }
-            )
+        group_domain_kwargs = {}
+        if picking_type_id is None:
+            group_domain_kwargs["picking_type_ids"] = [picking_type_id]
+
+        for group in PriorityGroup.search(self._priority_group_domain(**group_domain_kwargs)):
+            priorities = group.priority_ids.mapped("reference")
+            if picking_type_id is None or self._priorities_has_ready_pickings(
+                priorities, picking_type_id
+            ):
+                groups.append(
+                    {
+                        "name": group.name,
+                        "priorities": [
+                            {"id": p.reference, "name": p.name} for p in group.priority_ids
+                        ],
+                    }
+                )
         return groups
 
     def _prepare_info(self, priorities=None, fields_to_fetch=None):
