@@ -1,7 +1,4 @@
 from odoo import fields, models, api, _
-import logging
-
-_logger = logging.getLogger(__name__)
 
 
 class StockMove(models.Model):

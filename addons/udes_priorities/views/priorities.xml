@@ -15,7 +15,7 @@
     </record>
 
     <record model="ir.ui.view" id="udes_priorities.form">
-      <field name="name">Priorities Form</field>
+      <field name="name">UDES Priorities Form</field>
       <field name="model">udes_priorities.priority</field>
       <field name="arch" type="xml">
         <form string="UDES Picking Priorities">

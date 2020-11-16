@@ -151,7 +151,7 @@ class StockPicking(models.Model):
                 self.priority = priority.reference
             else:
                 raise ValueError(
-                    "Priority of move (priority: '%s') not in allowed priorities for picking '%s'. Falling back to default.",
+                    "Priority of move (priority: '%s') not in allowed priorities for picking '%s'.",
                     priority.name,
                     picking_type_priorities.mapped("name"),
                 )
