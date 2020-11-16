@@ -1,0 +1,28 @@
+<odoo>
+  <data noupdate="1">
+    <record id="not_urgent" model="udes_priorities.priority">
+      <field name="name">Not Urgent</field>
+      <field name="reference">0</field>
+      <field name="sequence">3</field>
+      <field name="priority_group_ids" eval="[(4, ref('udes_priorities.picking_group'))]"/>
+    </record>
+    <record id="normal" model="udes_priorities.priority">
+      <field name="name">Normal</field>
+      <field name="reference">1</field>
+      <field name="sequence">2</field>
+      <field name="priority_group_ids" eval="[(4, ref('udes_priorities.picking_group'))]"/>
+    </record>
+    <record id="urgent" model="udes_priorities.priority">
+      <field name="name">Urgent</field>
+      <field name="reference">2</field>
+      <field name="sequence">1</field>
+      <field name="priority_group_ids" eval="[(4, ref('udes_priorities.picking_group'))]"/>
+    </record>
+    <record id="very_urgent" model="udes_priorities.priority">
+      <field name="name">Very Urgent</field>
+      <field name="reference">3</field>
+      <field name="sequence">0</field>
+      <field name="priority_group_ids" eval="[(4, ref('udes_priorities.picking_group'))]"/>
+    </record>
+  </data>
+</odoo>

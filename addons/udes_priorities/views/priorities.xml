@@ -1,0 +1,57 @@
+<odoo>
+  <data>
+    <record model="ir.ui.view" id="udes_priorities.list">
+      <field name="name">udes_priorities_list</field>
+      <field name="model">udes_priorities.priority</field>
+      <field name="arch" type="xml">
+        <tree>
+          <field name="sequence" widget="handle"/>
+          <field name="name"/>
+          <field name="reference"/>
+          <field name="picking_type_ids" widget="many2many_tags"/>
+          <field name="priority_group_ids" widget="many2many_tags"/>
+        </tree>
+      </field>
+    </record>
+
+    <record model="ir.ui.view" id="udes_priorities.form">
+      <field name="name">Priorities Form</field>
+      <field name="model">udes_priorities.priority</field>
+      <field name="arch" type="xml">
+        <form string="UDES Picking Priorities">
+          <sheet>
+            <div class="oe_button_box" name="button_box">
+              <button name="toggle_active" type="object" class="oe_stat_button" icon="fa-archive">
+                <field name="active" widget="boolean_button" options='{"terminology": "archive"}'/>
+              </button>
+            </div>
+            <div class="oe_title">
+              <label for="name" class="oe_edit_only"/>
+              <h1>
+                <field name="name" placeholder="e.g. Normal"/>
+              </h1>
+            </div>
+            <group>
+              <group name="basic">
+                <field name="sequence"/>
+                <field name="reference"/>
+                <field name="description"/>
+                <field name="picking_type_ids"/>
+                <field name="priority_group_ids"/>
+              </group>
+            </group>
+          </sheet>
+        </form>
+      </field>
+    </record>
+
+    <record model="ir.actions.act_window" id="udes_priorities.action_window">
+      <field name="name">Priorities</field>
+      <field name="res_model">udes_priorities.priority</field>
+      <field name="view_mode">tree,form</field>
+      <field name="view_id" ref="udes_priorities.list"/>
+    </record>
+
+    <menuitem name="Priorites" id="udes_priorities.list_action" parent="stock.menu_warehouse_config" action="udes_priorities.action_window" />
+  </data>
+</odoo>

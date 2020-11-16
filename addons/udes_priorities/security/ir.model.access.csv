@@ -1,0 +1,6 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_udes_priorities_priority,udes_priorities.priority,model_udes_priorities_priority,,1,0,0,0
+access_udes_priorities_priority_group,udes_priorities.priority_group,model_udes_priorities_priority_group,,1,0,0,0
+access_udes_priorities_priority_trusted,udes_priorities.priority_trusted,model_udes_priorities_priority,udes_security.group_trusted_user,1,1,1,1
+access_udes_priorities_priority_group_trusted,udes_priorities.priority_group_trusted,model_udes_priorities_priority_group,udes_security.group_trusted_user,1,1,1,1
+access_sequence,access_sequence_group_trusted,base.model_ir_sequence,udes_security.group_trusted_user,1,1,1,1
