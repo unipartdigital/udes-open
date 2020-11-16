@@ -39,6 +39,7 @@ class UdesPriority(models.Model):
     )
     priority_group_ids = fields.Many2many(
         "udes_priorities.priority_group",
+        store=True,
         column1="priority_id",
         column2="group_id",
         help="Priority groups are the priorities shown on the hand held terminal",

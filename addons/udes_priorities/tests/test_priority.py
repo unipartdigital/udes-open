@@ -21,7 +21,6 @@ class TestPriorities(common.BasePriorities):
             self.assertEqual(retrieved, ordered, "Incorrect ordering")
 
         # Modify ordering
-
         new_order = list(reversed(correct_order))
 
         for i, rec in enumerate(new_order):

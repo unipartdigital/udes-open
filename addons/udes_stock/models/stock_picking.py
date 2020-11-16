@@ -882,7 +882,7 @@ class StockPicking(models.Model):
             picking.move_line_ids.mapped("u_result_parent_package_id").write(
                 {"packaging_id": parent_package_packaging_id}
             )
-        
+
         if force_validate or validate:
             if picking.move_line_ids.get_lines_todo() and not create_backorder:
                 raise ValidationError(
@@ -1174,11 +1174,7 @@ class StockPicking(models.Model):
                 Dictionary of priority_id:priority_name
         """
         self.ensure_one()
-
-        if not priorities:
-            priorities = OrderedDict(self._fields["priority"].selection)
-
-        priority_name = priorities[self.priority]
+        priority_name = self._get_priority_name()
 
         # @todo: (ale) move this out of the method as it's static code
         info = {
@@ -1238,8 +1234,20 @@ class StockPicking(models.Model):
         )
         return packages.mapped("name")
 
+    def _priorities_has_ready_pickings(self, priorities, picking_type_id):
+        domain = [
+            ("picking_type_id", "=", picking_type_id),
+            ("priority", "in", priorities),
+            ("state", "=", "assigned"),
+        ]
+        return self.search_count(domain) >= 1
+
     @api.model
-    def get_priorities(self):
+    def _get_priority_groups(self):
+        return list(common.PRIORITY_GROUPS.values())
+
+    @api.model
+    def get_priorities(self, picking_type_id=None):
         """ Return a list of dicts containing the priorities of the
             all defined priority groups, in the following format:
                 [
@@ -1256,7 +1264,16 @@ class StockPicking(models.Model):
                     ...
                 ]
         """
-        return list(common.PRIORITY_GROUPS.values())
+
+        if picking_type_id is None:
+            return self._get_priority_groups()
+
+        groups_with_pickings = []
+        for group in self._get_priority_groups():
+            priorities = [p["id"] for p in group["priorities"]]
+            if self._priorities_has_ready_pickings(priorities, picking_type_id):
+                groups_with_pickings.append(group)
+        return groups_with_pickings
 
     @api.multi
     def get_move_lines_done(self):
