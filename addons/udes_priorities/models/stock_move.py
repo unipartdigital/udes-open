@@ -56,7 +56,7 @@ class StockMove(models.Model):
     @api.constrains("priority")
     @api.depends("priority")
     @api.onchange("priority")
-    @api.one
     def _priority_cant_be_empty(self):
-        if not self.priority:
-            self.priority = self.env.ref("udes_priorities.normal").reference
+        for move in self:
+            if not move.priority:
+                move.priority = self.env.ref("udes_priorities.normal").reference
