@@ -881,7 +881,7 @@ class StockPicking(models.Model):
             picking.move_line_ids.mapped("u_result_parent_package_id").write(
                 {"packaging_id": parent_package_packaging_id}
             )
-        
+
         if force_validate or validate:
             if picking.move_line_ids.get_lines_todo() and not create_backorder:
                 raise ValidationError(
@@ -1173,11 +1173,7 @@ class StockPicking(models.Model):
                 Dictionary of priority_id:priority_name
         """
         self.ensure_one()
-
-        if not priorities:
-            priorities = OrderedDict(self._fields["priority"].selection)
-
-        priority_name = priorities[self.priority]
+        priority_name = self._get_priority_name()
 
         # @todo: (ale) move this out of the method as it's static code
         info = {
