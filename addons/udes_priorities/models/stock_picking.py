@@ -70,7 +70,7 @@ class StockPicking(models.Model):
         if self and self.priority not in priorities:
             # Theres some race conditions around where data is aviable to search on this means
             # that sometimes an invalid default can be set
-            self.priority = normal
+            self.priority = normal.reference
 
         return priorities.get_selection_values()
 
