@@ -422,6 +422,27 @@ class TestAssignSplitting(common.BaseUDES):
         self.assertEqual(elderberry_mls.product_uom_qty, 2)
         self.assertEqual(elderberry_mls.qty_done, 0)
 
+    def test11_simple_recompute_disabled(self):
+        """Reserve self.picking with one pallet of each product and check it
+        splits correctly when reserved. Same as test01_simple but with context
+        variable recompute=False"""
+        Picking = self.env["stock.picking"]
+        apple_pallet_01 = self.create_package()
+        self.create_quant(self.apple.id, self.test_location_01.id, 10, package_id=apple_pallet_01.id)
+        apple_pallet_02 = self.create_package()
+        self.create_quant(self.apple.id, self.test_location_01.id, 10, package_id=apple_pallet_02.id)
+
+        self.create_move(self.apple, 20, self.picking)
+        self.picking.with_context(recompute=False).action_assign()
+
+        apple_pick_01 = Picking.get_pickings(package_name=apple_pallet_01.name)
+        apple_pick_02 = Picking.get_pickings(package_name=apple_pallet_02.name)
+
+        self.assertEqual(apple_pick_01.state, "assigned")
+        self.assertEqual(apple_pick_02.state, "assigned")
+        self.assertEqual(apple_pick_01.group_id.name, apple_pallet_01.name)
+        self.assertEqual(apple_pick_02.group_id.name, apple_pallet_02.name)
+
 
 class TestValidateSplitting(common.BaseUDES):
     def setUp(self):

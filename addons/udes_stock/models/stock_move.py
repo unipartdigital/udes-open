@@ -195,15 +195,16 @@ class StockMove(models.Model):
                 }
             )
 
+            if self.move_orig_ids:
+                (bk_move | self).update_orig_ids(self.move_orig_ids)
+
             # When not complete, splitting a move may change its state,
             # so recompute
             incomplete_moves = (self | bk_move).filtered(lambda mv: mv.state != "done")
+            incomplete_moves.recompute()
             incomplete_moves._recompute_state()
 
             move_lines.write({"state": bk_move.state})
-
-            if self.move_orig_ids:
-                (bk_move | self).update_orig_ids(self.move_orig_ids)
 
         return bk_move
 
