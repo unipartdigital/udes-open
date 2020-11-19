@@ -154,4 +154,4 @@ class StockPicking(models.Model):
     @api.one
     def _priority_cant_be_empty(self):
         if not self.priority:
-            self.priority = self.env.ref("udes_priorities.normal")
+            self.priority = self.env.ref("udes_priorities.normal").reference
