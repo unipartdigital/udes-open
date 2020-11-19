@@ -36,10 +36,10 @@ class StockPickingBatch(models.Model):
         normal = self.env.ref("udes_priorities.normal")
         priorities |= normal
 
-        if self and self.priority not in priorities:
+        for batch in self.filtered(lambda b: b.priority not in priorities):
             # Theres some race conditions around where data is aviable to search on this means
             # that sometimes an invalid default can be set
-            self.priority = normal.reference
+            batch.priority = normal.reference
 
         return priorities.get_selection_values()
 
