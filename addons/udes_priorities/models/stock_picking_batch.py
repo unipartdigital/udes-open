@@ -42,3 +42,10 @@ class StockPickingBatch(models.Model):
             self.priority = normal
 
         return priorities.get_selection_values()
+
+    @api.constrains("priority")
+    @api.depends("priority")
+    @api.one
+    def _priority_cant_be_empty(self):
+        if not self.priority:
+            self.priority = self.env.ref("udes_priorities.normal")

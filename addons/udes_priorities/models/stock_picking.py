@@ -147,3 +147,10 @@ class StockPicking(models.Model):
             self.priority = priority.reference
         else:
             self.priority = self._default_priority()
+
+    @api.constrains("priority")
+    @api.depends("priority")
+    @api.one
+    def _priority_cant_be_empty(self):
+        if not self.priority:
+            self.priority = self.env.ref("udes_priorities.normal")
