@@ -108,6 +108,8 @@ A lot of custom UDES functionality is specfied at the picking type level. This i
 | sequence                   | int     | Used for ordering picking types in a display. |
 | u_allow_swapping_packages  | boolean | During a specified pick, this field determines whether we can we swap one package for another if they contain exactly the same. |
 | u_skip_allowed             | boolean | Is the user allowed to skip to the next item to pick? |
+| u_skip_item_by             | boolean | When an item is skipped, determine what is skipped by the given criteria. |
+| u_return_to_skipped        | boolean | Can the user return to a skipped item when picking a batch? |
 | u_split_on_drop_off        | boolean | |
 | u_suggest_qty              | boolean | Do we display the suggested quantity, or get the user to enter it without any vision of what is expected. When we suggest it, the risk is that users will be automatically confirming it without a thorough check. |
 | u_over_receive             | boolean | Is the system able to receive more than is expected. |

@@ -279,7 +279,12 @@ class StockPickingBatch(models.Model):
 
         return lambda ml: tuple(chain(*[part(ml) for part in parts]))
 
-    def get_next_task(self, skipped_product_ids=None, task_grouping_criteria=None):
+    def get_next_task(
+        self,
+        skipped_product_ids=None,
+        skipped_move_line_ids=None,
+        task_grouping_criteria=None
+    ):
         """
         Get the next not completed task of the batch to be done.
         Expect a singleton.
@@ -298,63 +303,128 @@ class StockPickingBatch(models.Model):
         They are enabled by picking type and should be filled at
         _prepare_task_info(), by default it is not required to confirm anything.
         """
+        MoveLine = self.env["stock.move.line"]
+
         self.ensure_one()
 
-        available_mls = self.get_available_move_lines()
+        all_available_mls = self.get_available_move_lines()
+        skipped_mls = MoveLine.browse()
 
-        if skipped_product_ids is not None:
-            available_mls = available_mls.filtered(
-                lambda ml: ml.product_id.id not in skipped_product_ids
-            )
+        # Filter out skipped move lines
+        if skipped_product_ids:
+            skipped_mls = all_available_mls.filtered(
+                lambda ml: ml.product_id.id in skipped_product_ids)
+        elif skipped_move_line_ids:
+            skipped_mls = all_available_mls.filtered(
+                lambda ml: ml.id in skipped_move_line_ids)
+        available_mls = all_available_mls - skipped_mls
 
         num_tasks_picked = len(available_mls.filtered(lambda ml: ml.qty_done == ml.product_qty))
+
+        todo_mls = available_mls.get_lines_todo().sort_by_location_product()
+
+        priority_ml = False
+        # If we do not have any todo movelines, check if there are
+        # any skipped move lines we can return to (if allowed)
+        if not todo_mls:
+            returnable_move_lines = skipped_mls.filtered(
+                lambda ml: ml.picking_id.picking_type_id.u_return_to_skipped
+            ).get_lines_todo()
+            if returnable_move_lines:
+                todo_mls = returnable_move_lines.sort_by_location_product()
+                # Check if there is a move line to give priority to
+                priority_ml = self._determine_priority_skipped_moveline(
+                    todo_mls,
+                    skipped_product_ids,
+                    skipped_move_line_ids,
+                )
+            else:
+                # No viable movelines
+                _logger.debug(_("Batch '%s': no available move lines for creating "
+                                "a task"), self.name)
+        task = self._populate_next_task(todo_mls, task_grouping_criteria, priority_ml)
+        task["tasks_picked"] = num_tasks_picked > 0
+        return task
+
+    def _determine_priority_skipped_moveline(
+        self,
+        move_lines,
+        skipped_product_ids=None,
+        skipped_move_line_ids=None
+    ):
+        """Returns a priority move line based on the first moveline found
+        that matches either the skipped product ids or skipped move_line_ids.
+        """
+        if not move_lines:
+            return False
+
+        priority_mls = False
+        # Provided skipped lists are ordered, first matching move line will have priority
+        if skipped_product_ids:
+            for skipped_prod_id in skipped_product_ids:
+                priority_mls = move_lines.filtered(
+                    lambda ml: ml.product_id.id == skipped_prod_id
+                )
+                if priority_mls:
+                    break
+        if skipped_move_line_ids:
+            for skipped_ml in skipped_move_line_ids:
+                priority_mls = move_lines.filtered(lambda ml: ml.id == skipped_ml)
+                if priority_mls:
+                    break
+        # Check if we found a priority move lines
+        if priority_mls:
+            return priority_mls[0]
+        else:
+            return False
+
+    def _populate_next_task(self, move_lines, task_grouping_criteria, priority_ml=False):
+        """Populate the next task from the available move lines and grouping.
+
+        Optionally specify a priority moveline to be in the next task.
+        """
         task = {
-            "tasks_picked": num_tasks_picked > 0,
             "num_tasks_to_pick": 0,
             "move_line_ids": [],
             "confirmations": [],
         }
-        todo_mls = available_mls.get_lines_todo().sort_by_location_product()
+        if not move_lines:
+            return task
 
-        if todo_mls:
-            if task_grouping_criteria is None:
-                task_grouping_criteria = self._get_task_grouping_criteria()
+        if task_grouping_criteria is None:
+            task_grouping_criteria = self._get_task_grouping_criteria()
 
-            grouped_mls = todo_mls.groupby(task_grouping_criteria)
-            _key, task_mls = next(grouped_mls)
-            num_mls = len(task_mls)
-            pick_seq = task_mls[0].picking_id.sequence
-            _logger.debug(
-                _(
-                    "Batch '%s': creating a task for %s move line%s; "
-                    "the picking sequence of the first move line is %s"
-                ),
-                self.name,
-                num_mls,
-                "" if num_mls == 1 else "s",
-                pick_seq if pick_seq is not False else "not determined",
-            )
+        grouped_mls = move_lines.groupby(task_grouping_criteria)
+        _key, task_mls = next(grouped_mls)
+        # Iterate through grouped_mls until we find the group with the
+        # priority move line in it
+        if priority_ml:
+            while priority_ml not in task_mls:
+                _key, task_mls = next(grouped_mls)
+        num_mls = len(task_mls)
+        pick_seq = task_mls[0].picking_id.sequence
+        _logger.debug(_("Batch '%s': creating a task for %s move line%s; "
+                        "the picking sequence of the first move line is %s"),
+                      self.name,
+                      num_mls,
+                      "" if num_mls == 1 else "s",
+                      pick_seq if pick_seq is not False else "not determined")
 
-            # NB: adding all the MLs state to the task; this is what
-            # ends up in the batch::next response!
-            # HERE: this will break in case we cannot guarantee that all
-            # the move lines of the task belong to the same picking
-            task.update(task_mls._prepare_task_info())
+        # NB: adding all the MLs state to the task; this is what
+        # ends up in the batch::next response!
+        # HERE: this will break in case we cannot guarantee that all
+        # the move lines of the task belong to the same picking
+        task.update(task_mls._prepare_task_info())
 
-            if task_mls[0].picking_id.picking_type_id.u_user_scans == "product":
-                # NB: adding 1 to consider the group removed by next()
-                task["num_tasks_to_pick"] = len(list(grouped_mls)) + 1
-                task["move_line_ids"] = task_mls.ids
-            else:
-                # TODO: check pallets of packages if necessary
-                task["num_tasks_to_pick"] = len(todo_mls.mapped("package_id"))
-                task["move_line_ids"] = todo_mls.filtered(
-                    lambda ml: ml.package_id == task_mls[0].package_id
-                ).ids
+        if task_mls[0].picking_id.picking_type_id.u_user_scans == "product":
+            # NB: adding 1 to consider the group removed by next()
+            task["num_tasks_to_pick"] = len(list(grouped_mls)) + 1
+            task["move_line_ids"] = task_mls.ids
         else:
-            _logger.debug(
-                _("Batch '%s': no available move lines for creating " "a task"), self.name
-            )
+            # TODO: check pallets of packages if necessary
+            task["num_tasks_to_pick"] = len(move_lines.mapped("package_id"))
+            task["move_line_ids"] = move_lines.filtered(
+                lambda ml: ml.package_id == task_mls[0].package_id).ids
 
         return task
 

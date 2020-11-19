@@ -1087,48 +1087,111 @@ class TestBatchGetNextTask(common.BaseUDES):
     @classmethod
     def setUpClass(cls):
         super(TestBatchGetNextTask, cls).setUpClass()
-        cls.pack_2prods_info = [{'product': cls.apple, 'qty': 4},
-                                {'product': cls.banana, 'qty': 4}]
+        Package = cls.env['stock.quant.package']
+
+        quant_quantity = 4
+
+        cls.package_a = Package.get_package("1", create=True)
+        cls.package_b = Package.get_package("2", create=True)
+        cls.apple_quant = cls.create_quant(
+            cls.apple.id,
+            cls.test_location_01.id,
+            quant_quantity,
+            package_id=cls.package_a.id
+        )
+        cls.banana_quant = cls.create_quant(
+            cls.banana.id,
+            cls.test_location_02.id,
+            quant_quantity,
+            package_id=cls.package_b.id
+        )
+        pack_2prods_info = [{'product': cls.apple, 'qty': quant_quantity},
+                            {'product': cls.banana, 'qty': quant_quantity}]
+        cls.picking = cls.create_picking(
+            cls.picking_type_pick,
+            products_info=pack_2prods_info,
+            confirm=True,
+            assign=True
+        )
+        cls.batch = cls.create_batch(user=cls.outbound_user)
+        cls.picking.batch_id = cls.batch.id
 
     def test01_picking_ordering_is_persisted_in_task(self):
         """ Ensure that get_next_task respects the ordering criteria """
-        Package = self.env['stock.quant.package']
-        package_a = Package.get_package("1", create=True)
-        package_b = Package.get_package("2", create=True)
-
-        self.create_quant(self.apple.id, self.test_location_01.id, 4,
-                          package_id=package_a.id)
-        self.create_quant(self.banana.id, self.test_location_02.id, 4,
-                          package_id=package_b.id)
-        picking = self.create_picking(self.picking_type_pick,
-                                      products_info=self.pack_2prods_info,
-                                      confirm=True,
-                                      assign=True)
-        batch = self.create_batch(user=self.outbound_user)
-        picking.batch_id = batch.id
-
         criteria = lambda ml: (int(ml.package_id.name))
-        task = batch.get_next_task(task_grouping_criteria=criteria)
+        task = self.batch.get_next_task(task_grouping_criteria=criteria)
 
         # We should get the move line related to package named '1'
         self.assertEqual(task['package_id']['name'], '1')
 
-        task = batch.get_next_task(task_grouping_criteria=criteria)
+        task = self.batch.get_next_task(task_grouping_criteria=criteria)
 
         # Calling get_next_task again should give the same task
         self.assertEqual(task['package_id']['name'], '1')
 
-        package_a.write({'name': '10'})
-        task = batch.get_next_task(task_grouping_criteria=criteria)
+        self.package_a.write({'name': '10'})
+        task = self.batch.get_next_task(task_grouping_criteria=criteria)
 
         # As package_a is now named '10', the criteria should give the '2'
         self.assertEqual(task['package_id']['name'], '2')
 
-        package_b.write({'name': '12341234'})
-        task = batch.get_next_task(task_grouping_criteria=criteria)
+        self.package_b.write({'name': '12341234'})
+        task = self.batch.get_next_task(task_grouping_criteria=criteria)
 
         # In the same way, we should now get '10'
         self.assertEqual(task['package_id']['name'], '10')
+
+    def test02_skip_products(self):
+        """Test that get_next_task respects skipped products"""
+        # Assert that the specified product is not in the next task
+        for product_id in [self.apple.id, self.banana.id]:
+            task = self.batch.get_next_task(skipped_product_ids=[product_id])
+            task_quants = task['package_id']['quant_ids']
+            task_products = [quant["product_id"]["id"] for quant in task_quants]
+            self.assertNotIn(product_id, task_products)
+
+    def test03_skip_products_return(self):
+        """Test that get_next_task can return to skipped products
+        if u_return_to_skipped is True.
+        """
+        # First assert if we skip everything with default config, the returned task is empty
+        task = self.batch.get_next_task(skipped_product_ids=[self.apple.id, self.banana.id])
+        self.assertFalse(task["move_line_ids"])
+        self.assertFalse(task.get("package_id"))
+        # Change config to allow returning to skipped tasks
+        self.picking_type_pick.u_return_to_skipped = True
+        # First returned task should include the first skipped product
+        for product_ids in [[self.apple.id, self.banana.id], [self.banana.id, self.apple.id]]:
+            task = self.batch.get_next_task(skipped_product_ids=product_ids)
+            task_quants = task['package_id']['quant_ids']
+            task_products = [quant["product_id"]["id"] for quant in task_quants]
+            self.assertIn(product_ids[0], task_products)
+            self.assertNotIn(product_ids[1], task_products)
+
+    def test04_skip_move_lines(self):
+        """Test that get_next_task respects skipped products"""
+        move_line_ids = self.batch.picking_ids.mapped("move_line_ids.id")
+        # Assert that the specified move_line_id is not in the next task
+        for move_line_id in move_line_ids:
+            task = self.batch.get_next_task(skipped_move_line_ids=[move_line_id])
+            self.assertNotIn(move_line_id, task['move_line_ids'])
+
+    def test05_skip_move_lines_return(self):
+        """Test that get_next_task can return to skipped products
+        if u_return_to_skipped is True.
+        """
+        move_line_ids = self.batch.picking_ids.mapped("move_line_ids.id")
+        # First assert if we skip everything with default config, the returned task is empty
+        task = self.batch.get_next_task(skipped_move_line_ids=move_line_ids)
+        self.assertFalse(task["move_line_ids"])
+        self.assertFalse(task.get("package_id"))
+        # Change config to allow returning to skipped tasks
+        self.picking_type_pick.u_return_to_skipped = True
+        # First returned task should include the first skipped move_line_id
+        for skipped_move_line_ids in [move_line_ids, [ml for ml in reversed(move_line_ids)]]:
+            task = self.batch.get_next_task(skipped_move_line_ids=skipped_move_line_ids)
+            self.assertIn(skipped_move_line_ids[0], task['move_line_ids'])
+            self.assertNotIn(skipped_move_line_ids[1], task['move_line_ids'])
 
 
 class TestBatchAddRemoveWork(common.BaseUDES):

@@ -23,6 +23,19 @@ class StockPickingType(models.Model):
         help="Flag to indicate if the skip button will be shown.",
     )
 
+    u_skip_item_by = fields.Selection(
+        [("product", "Product"), ("move_line_id", "Move Line")],
+        string="Skip Item By",
+        default="product",
+        help="When an item is skipped, determine what is skipped by the given criteria.",
+    )
+
+    u_return_to_skipped = fields.Boolean(
+        string="Return to Skipped Items",
+        default=False,
+        help="Flag to indicate if the skipped items will be returned to in the same batch.",
+    )
+
     u_split_on_drop_off_picked = fields.Boolean("Split on drop off picked")
 
     u_suggest_qty = fields.Boolean(
@@ -387,7 +400,7 @@ class StockPickingType(models.Model):
         help="If set, the user may be asked to confirm the type of the package they are scanning"
         " during the picking workflow",
     )
-    
+
     u_default_package_type_id = fields.Many2one(
         comodel_name="product.packaging",
         string="Default Package Type (For Check)",
@@ -458,6 +471,8 @@ class StockPickingType(models.Model):
             - default_location_src_id: int
             - u_allow_swapping_packages: boolean
             - u_skip_allowed: boolean
+            - u_return_to_skipped: boolean
+            - u_skip_item_by: string
             - u_split_on_drop_off_picked: boolean
             - u_suggest_qty: boolean
             - u_under_receive: boolean
@@ -510,6 +525,8 @@ class StockPickingType(models.Model):
             "default_location_src_id": self.default_location_src_id.id,
             "u_allow_swapping_packages": self.u_allow_swapping_packages,
             "u_skip_allowed": self.u_skip_allowed,
+            "u_return_to_skipped": self.u_return_to_skipped,
+            "u_skip_item_by": self.u_skip_item_by,
             "u_split_on_drop_off_picked": self.u_split_on_drop_off_picked,
             "u_suggest_qty": self.u_suggest_qty,
             "u_under_receive": self.u_under_receive,
