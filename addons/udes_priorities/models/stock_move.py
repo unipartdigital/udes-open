@@ -8,7 +8,9 @@ class StockMove(models.Model):
     def _default_priority(self):
         Priorities = self.env["udes_priorities.priority"]
         priorities = Priorities.search(self._priority_domain(), limit=1)
-        return priorities.reference if priorities else None
+        return (
+            priorities.reference if priorities else self.env.ref("udes_priorities.normal").reference
+        )
 
     priority = fields.Selection(selection="get_priorities_for_selection", default=_default_priority)
 
@@ -39,4 +41,21 @@ class StockMove(models.Model):
     def get_priorities_for_selection(self):
         Priorities = self.env["udes_priorities.priority"]
         priorities = Priorities.search(self._priority_domain())
+
+        # hard coded default value means there is always a priority to set
+        normal = self.env.ref("udes_priorities.normal")
+        priorities |= normal
+
+        if self and self.priority not in priorities:
+            # Theres some race conditions around where data is aviable to search on this means
+            # that sometimes an invalid default can be set
+            self.priority = normal
+
         return priorities.get_selection_values()
+
+    @api.constrains("priority")
+    @api.depends("priority")
+    @api.one
+    def _priority_cant_be_empty(self):
+        if not self.priority:
+            self.priority = self.env.ref("udes_priorities.normal")

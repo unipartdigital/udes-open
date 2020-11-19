@@ -29,4 +29,16 @@ class StockPickingBatch(models.Model):
             active_pick = self.browse(active_id).exists()
             if active_pick:
                 pick = active_pick
-        return Priorities.search(pick._priority_domain()).get_selection_values()
+
+        priorities = Priorities.search(pick._priority_domain())
+
+        # hard coded default value means there is always a priority to set
+        normal = self.env.ref("udes_priorities.normal")
+        priorities |= normal
+
+        if self and self.priority not in priorities:
+            # Theres some race conditions around where data is aviable to search on this means
+            # that sometimes an invalid default can be set
+            self.priority = normal
+
+        return priorities.get_selection_values()
