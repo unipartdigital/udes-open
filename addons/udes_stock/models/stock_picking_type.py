@@ -395,6 +395,13 @@ class StockPickingType(models.Model):
         " (this only applies if 'Check Package Type' is enabled)",
     )
 
+    u_hide_drop_zone = fields.Boolean(
+        string="Hide drop zone screens",
+        default=False,
+        help="If set, the user will bypass dropzone screens and go straight to scanning a"
+        " location",
+    )
+
     def do_refactor_action(self, action, moves):
         """Resolve and call the method to be executed on the moves.
 
@@ -461,6 +468,7 @@ class StockPickingType(models.Model):
             - u_selection_method: string
             - u_check_package_type: boolean
             - u_default_package_type_id: int
+            - u_hide_drop_zone: boolean
         """
         self.ensure_one()
         Batch = self.env["stock.picking.batch"]
@@ -521,6 +529,7 @@ class StockPickingType(models.Model):
             "u_selection_method": self.u_selection_method,
             "u_check_package_type": self.u_check_package_type,
             "u_default_package_type_id": self.u_default_package_type_id.id,
+            "u_hide_drop_zone": self.u_hide_drop_zone
         }
 
     def get_info(self):
