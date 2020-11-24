@@ -1,4 +1,7 @@
 from odoo import fields, models, api, _
+import logging
+
+_logger = logging.getLogger(__name__)
 
 
 class StockMove(models.Model):
@@ -8,14 +11,15 @@ class StockMove(models.Model):
     def _default_priority(self):
         Priorities = self.env["udes_priorities.priority"]
         priorities = Priorities.search(self._priority_domain(), limit=1)
-        return priorities.reference if priorities else None
+        return (
+            priorities.reference if priorities else self.env.ref("udes_priorities.normal").reference
+        )
 
     priority = fields.Selection(selection="get_priorities_for_selection", default=_default_priority)
 
     def _priority_domain(self):
         domain = []
         picking_type_ids = []
-
         picking_types = self.mapped("picking_type_id")
         default_picking_type_id = self.env.context.get("default_picking_type_id", None)
 
@@ -39,4 +43,32 @@ class StockMove(models.Model):
     def get_priorities_for_selection(self):
         Priorities = self.env["udes_priorities.priority"]
         priorities = Priorities.search(self._priority_domain())
+
+        # hard coded default value means there is always a priority to set
+        normal = self.env.ref("udes_priorities.normal")
+        priorities |= normal
+
+        for move in self.filtered(lambda m: m.priority not in priorities.mapped("reference")):
+            # Theres some race conditions around where data is aviable to search on this means
+            # that sometimes an invalid default can be set
+            move.priority = normal.reference
+
         return priorities.get_selection_values()
+
+    @api.constrains("priority")
+    @api.onchange("priority")
+    def _priority_cant_be_empty(self):
+        for move in self:
+            if not move.priority:
+                move.priority = self.env.ref("udes_priorities.normal").reference
+
+    @api.model
+    def create(self, values):
+        context = {}
+        picking_type_id = values.get("picking_type_id", None)
+        if picking_type_id:
+            context = {"default_picking_type_id": picking_type_id}
+        res = super(
+            StockMove, self.with_context(**context),
+        ).create(values)
+        return res

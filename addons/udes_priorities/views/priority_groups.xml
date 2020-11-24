@@ -47,6 +47,6 @@
       <field name="view_id" ref="udes_priorities.group_list"/>
     </record>
 
-    <menuitem name="Prioriy Groups" id="udes_priorities.priority_group_list" parent="stock.menu_warehouse_config" action="udes_priorities.group_action_window" groups="base.group_no_one"/>
+    <menuitem name="Priority Groups" id="udes_priorities.priority_group_list" parent="stock.menu_warehouse_config" action="udes_priorities.group_action_window" groups="base.group_no_one"/>
   </data>
 </odoo>
