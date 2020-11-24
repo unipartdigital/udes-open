@@ -25,4 +25,10 @@
         </field>
     </record>
 
+    <!--Open default list view of quants-->
+    <record model="ir.actions.act_window" id="location_open_quants">
+        <field name="name">Package Stock</field>
+        <field name="res_model">stock.quant</field>
+    </record>
+
 </odoo>
