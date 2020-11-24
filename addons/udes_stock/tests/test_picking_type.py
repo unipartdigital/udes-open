@@ -10,6 +10,9 @@ class TestPickingType(common.BaseUDES):
     @classmethod
     def setUpClass(cls):
         super(TestPickingType, cls).setUpClass()
+        Location = cls.env['stock.location']
+        cls.picking_type_check = cls.env.ref("udes_stock.picking_type_check")
+
         cls.pack_4apples_info = [
             {'product': cls.apple, 'qty': 4}
         ]
@@ -37,6 +40,12 @@ class TestPickingType(common.BaseUDES):
         cls.banana.write(cls.tall_fast)
         cls.test_location_01.write(cls.short_slow)
         cls.test_location_02.write(cls.tall_fast)
+        cls.check_location = Location.create(
+            {"name": "Checking", "barcode": "CHECKPARENT01", "usage": "view"}
+        )
+        cls.check_location_child_01 = Location.create(
+            {"name": "Checking", "barcode": "CHECKCHILD01", "location_id": cls.check_location.id}
+        )
 
     def setUp(self):
         super(TestPickingType, self).setUp()
@@ -839,3 +848,17 @@ class TestPickingType(common.BaseUDES):
     def test24_returns_reserve_pallet_per_picking_in_info(self):
         info = self.picking_type_pick.get_info()
         self.assertIn('u_max_reservable_pallets', info[0])
+
+    def test25_count_packages_of_check_picking(self):
+        """Test the package count of picking type checking"""
+        # Enable package count and set package location
+        self.picking_type_check.u_show_package_count = True
+        self.picking_type_check.default_location_src_id = self.check_location.id
+        self.create_quant(
+            self.apple.id, self.check_location_child_01.id, 2, package_id=self.create_package().id
+        )
+        self.create_quant(
+            self.apple.id, self.check_location_child_01.id, 3, package_id=self.create_package().id
+        )
+        pack_count = self.picking_type_check.u_package_count
+        self.assertEqual(pack_count, 2, "Expected package count is 2 but found %s" % (pack_count))

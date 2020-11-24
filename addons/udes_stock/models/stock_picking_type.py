@@ -395,6 +395,36 @@ class StockPickingType(models.Model):
         " (this only applies if 'Check Package Type' is enabled)",
     )
 
+    # Package count options
+    u_show_package_count = fields.Boolean(
+        string="Show Package Count",
+        default=False,
+        help="Enables Package count button on kanban view",
+    )
+    u_package_count_button_name = fields.Char(
+        translate=True,
+        default=_("Package Count"),
+        string="Pack Count Text",
+        help="Custom text for Pack button on picking type tiles",
+    )
+    u_package_count = fields.Integer(compute="_compute_package_count")
+
+    # Transfer button options
+    u_show_transfer_count = fields.Boolean(
+        string="Show Transfer Count",
+        default=True,
+        help="Enable/Disable Transfer count button on kanban view",
+    )
+
+    def _compute_package_count(self):
+        """Counts number of packages at parent and child locations"""
+        StockQuantPackage = self.env["stock.quant.package"]
+        for record in self.filtered("u_show_package_count"):
+            location_id = record.default_location_src_id.ids
+            record.u_package_count = StockQuantPackage.search_count(
+                [("location_id", "child_of", location_id)]
+            )
+
     def do_refactor_action(self, action, moves):
         """Resolve and call the method to be executed on the moves.
 
@@ -542,3 +572,13 @@ class StockPickingType(models.Model):
 
     def get_action_picking_tree_draft(self):
         return self._get_action("udes_stock.action_picking_tree_draft")
+
+    def get_action_package_tree(self):
+        location_ids = self.default_location_src_id.ids
+        action = self._get_action("udes_stock.location_open_quants")
+        # Check if context exists and is of type dictionary
+        if not isinstance(action.get("context", 0), dict):
+            action["context"] = {}
+        action["context"]["active_ids"] = location_ids
+        action["domain"] = [("location_id", "child_of", location_ids)]
+        return action

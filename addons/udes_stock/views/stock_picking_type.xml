@@ -75,10 +75,17 @@
                 </group>
             </xpath>
 
+            <field name="show_operations" position="after">
+                <field name="u_show_transfer_count"/>
+                <field name="u_show_package_count"/>
+            </field>
             <xpath expr="//field[@name='default_location_dest_id']" position="after">
                 <field name="u_damaged_location_id" options="{'no_create': True}"/>
                 <field name="u_good_location_id" options="{'no_create': True}"/>
             </xpath>
+            <field name="warehouse_id" position="after">
+                <field name="u_package_count_button_name" attrs="{'required':[('u_show_package_count', '=', True)]}"/>
+            </field>
         </field>
     </record>
 

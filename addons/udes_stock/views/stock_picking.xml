@@ -260,6 +260,22 @@
             <xpath expr="//a[@name='%(stock.action_picking_form)d' and not(@context)]" position="attributes">
                 <attribute name="invisible">1</attribute>
             </xpath>
+            <xpath expr="//div[@class='col-xs-6 o_kanban_primary_left']" position="inside">
+                <field name="u_show_package_count" invisible="1"/>
+                <field name="u_package_count_button_name" invisible="1"/>
+                <field name="u_package_count" invisible="1"/>
+                <field name="u_show_transfer_count" invisible="1"/>
+                <t t-if="record.u_show_package_count.raw_value">
+                    <button class="btn btn-primary" name="get_action_package_tree" type="object" id="btn_package_count">
+                        <span>
+                            <t t-esc="record.u_package_count.value"/> <t t-esc="record.u_package_count_button_name.raw_value"/>
+                        </span>
+                    </button>
+                </t>
+            </xpath>
+            <xpath expr="//button[@name='get_action_picking_tree_ready']" position="attributes">
+                <attribute name="t-if">record.u_show_transfer_count.raw_value</attribute>
+            </xpath>
         </field>
     </record>
 
