@@ -408,6 +408,12 @@ class StockPickingType(models.Model):
         " (this only applies if 'Check Package Type' is enabled)",
     )
 
+    u_show_all_tasks = fields.Boolean(
+        string="Show All Tasks",
+        default=False,
+        help="If set, the user will be shown the list of all tasks during the picking workflow"
+    )
+
     # Package count options
     u_show_package_count = fields.Boolean(
         string="Show Package Count",
@@ -506,6 +512,7 @@ class StockPickingType(models.Model):
             - u_selection_method: string
             - u_check_package_type: boolean
             - u_default_package_type_id: int
+            - u_show_all_tasks: boolean
         """
         self.ensure_one()
         Batch = self.env["stock.picking.batch"]
@@ -568,6 +575,7 @@ class StockPickingType(models.Model):
             "u_selection_method": self.u_selection_method,
             "u_check_package_type": self.u_check_package_type,
             "u_default_package_type_id": self.u_default_package_type_id.id,
+            "u_show_all_tasks": self.u_show_all_tasks,
         }
 
     def get_info(self):

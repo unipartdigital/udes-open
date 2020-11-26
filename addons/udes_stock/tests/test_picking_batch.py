@@ -1141,7 +1141,20 @@ class TestBatchGetNextTask(common.BaseUDES):
         # In the same way, we should now get '10'
         self.assertEqual(task['package_id']['name'], '10')
 
-    def test02_skip_products(self):
+    def test02_get_next_tasks(self):
+        """Test that get_next_tasks returns multiple remaining tasks"""
+        criteria = lambda ml: (int(ml.package_id.name))
+        tasks = self.batch.get_next_tasks(
+            task_grouping_criteria=criteria,
+            limit=100
+        )
+        self.assertEqual(len(tasks), 2)
+        # The first task should be for package '1'
+        self.assertEqual(tasks[0]['package_id']['name'], '1')
+        # The second task should be for package '2'
+        self.assertEqual(tasks[1]['package_id']['name'], '2')
+
+    def test03_skip_products(self):
         """Test that get_next_task respects skipped products"""
         # Assert that the specified product is not in the next task
         for product_id in [self.apple.id, self.banana.id]:
@@ -1150,7 +1163,7 @@ class TestBatchGetNextTask(common.BaseUDES):
             task_products = [quant["product_id"]["id"] for quant in task_quants]
             self.assertNotIn(product_id, task_products)
 
-    def test03_skip_products_return(self):
+    def test04_skip_products_return(self):
         """Test that get_next_task can return to skipped products
         if u_return_to_skipped is True.
         """
@@ -1168,7 +1181,7 @@ class TestBatchGetNextTask(common.BaseUDES):
             self.assertIn(product_ids[0], task_products)
             self.assertNotIn(product_ids[1], task_products)
 
-    def test04_skip_move_lines(self):
+    def test05_skip_move_lines(self):
         """Test that get_next_task respects skipped products"""
         move_line_ids = self.batch.picking_ids.mapped("move_line_ids.id")
         # Assert that the specified move_line_id is not in the next task
@@ -1176,7 +1189,7 @@ class TestBatchGetNextTask(common.BaseUDES):
             task = self.batch.get_next_task(skipped_move_line_ids=[move_line_id])
             self.assertNotIn(move_line_id, task['move_line_ids'])
 
-    def test05_skip_move_lines_return(self):
+    def test06_skip_move_lines_return(self):
         """Test that get_next_task can return to skipped products
         if u_return_to_skipped is True.
         """
@@ -1193,6 +1206,23 @@ class TestBatchGetNextTask(common.BaseUDES):
             self.assertIn(skipped_move_line_ids[0], task['move_line_ids'])
             self.assertNotIn(skipped_move_line_ids[1], task['move_line_ids'])
 
+    def test07_get_completed_tasks(self):
+        """Test that we can retrieve a list of completed tasks"""
+        move_lines = self.batch.picking_ids.mapped("move_line_ids")
+        # First check we dont get any tasks when no tasks have been completed
+        tasks = self.batch.get_completed_tasks()
+        self.assertFalse(tasks)
+
+        # Set move lines to complete
+        for ml in move_lines:
+            ml.qty_done = ml.product_uom_qty
+        tasks = self.batch.get_completed_tasks()
+        # Check that returned tasks have the move lines in them
+        self.assertEqual(len(tasks), 2)
+        completed_move_line_ids = []
+        for task in tasks:
+            completed_move_line_ids += task["move_line_ids"]
+        self.assertCountEqual(completed_move_line_ids, move_lines.mapped("id"))
 
 class TestBatchAddRemoveWork(common.BaseUDES):
 

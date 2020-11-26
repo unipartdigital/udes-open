@@ -64,6 +64,7 @@
                     <field name="u_selection_method" />
                     <field name="u_check_package_type" />
                     <field name="u_default_package_type_id" options="{'no_create': True, 'no_open': True}" />
+                    <field name="u_show_all_tasks" />
                 </group>
                 <group string="Pick Refactoring" groups='base.group_no_one'>
                     <field name="u_move_line_key_format" />

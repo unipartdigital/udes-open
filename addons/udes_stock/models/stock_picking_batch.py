@@ -283,10 +283,28 @@ class StockPickingBatch(models.Model):
         self,
         skipped_product_ids=None,
         skipped_move_line_ids=None,
-        task_grouping_criteria=None
+        task_grouping_criteria=None,
+    ):
+        """Get the next not completed task of the batch to be done.
+        Expect a singleton.
+        """
+        task = self.get_next_tasks(
+            skipped_product_ids=skipped_product_ids,
+            skipped_move_line_ids=skipped_move_line_ids,
+            task_grouping_criteria=task_grouping_criteria,
+            limit=1
+        )[0]
+        return task
+
+    def get_next_tasks(
+        self,
+        skipped_product_ids=None,
+        skipped_move_line_ids=None,
+        task_grouping_criteria=None,
+        limit=1,
     ):
         """
-        Get the next not completed task of the batch to be done.
+        Get the next not completed tasks of the batch to be done.
         Expect a singleton.
 
         Note that the criteria for sorting and grouping move lines
@@ -322,29 +340,75 @@ class StockPickingBatch(models.Model):
         num_tasks_picked = len(available_mls.filtered(lambda ml: ml.qty_done == ml.product_qty))
 
         todo_mls = available_mls.get_lines_todo().sort_by_location_product()
+        have_tasks_been_picked = num_tasks_picked > 0
 
-        priority_ml = False
-        # If we do not have any todo movelines, check if there are
-        # any skipped move lines we can return to (if allowed)
-        if not todo_mls:
-            returnable_move_lines = skipped_mls.filtered(
-                lambda ml: ml.picking_id.picking_type_id.u_return_to_skipped
-            ).get_lines_todo()
-            if returnable_move_lines:
-                todo_mls = returnable_move_lines.sort_by_location_product()
-                # Check if there is a move line to give priority to
-                priority_ml = self._determine_priority_skipped_moveline(
-                    todo_mls,
-                    skipped_product_ids,
-                    skipped_move_line_ids,
-                )
-            else:
-                # No viable movelines
-                _logger.debug(_("Batch '%s': no available move lines for creating "
-                                "a task"), self.name)
-        task = self._populate_next_task(todo_mls, task_grouping_criteria, priority_ml)
-        task["tasks_picked"] = num_tasks_picked > 0
-        return task
+        # Get tasks for movelines that haven't been skipped
+        remaining_tasks = self._populate_next_tasks(
+            todo_mls,
+            have_tasks_been_picked,
+            task_grouping_criteria=task_grouping_criteria,
+            limit=limit,
+        )
+
+        # Get tasks for movelines that have been skipped (if allowed)
+        todo_mls = skipped_mls.filtered(
+            lambda ml: ml.picking_id.picking_type_id.u_return_to_skipped
+        ).get_lines_todo().sort_by_location_product()
+        # Determine the remaining limit (Need to do a distninct check as False != 0)
+        remaining_limit = False
+        if type(limit) == int:
+            remaining_limit = limit - len(remaining_tasks)
+        remaining_tasks += self._populate_next_tasks(
+            todo_mls,
+            have_tasks_been_picked,
+            skipped_product_ids=skipped_product_ids,
+            skipped_move_line_ids=skipped_move_line_ids,
+            task_grouping_criteria=task_grouping_criteria,
+            limit=remaining_limit,
+        )
+
+        if not remaining_tasks:
+            # No viable movelines, create an empty task
+            _logger.debug(_("Batch '%s': no available move lines for creating "
+                            "a task"), self.name)
+            task = self._populate_next_task(todo_mls, task_grouping_criteria)
+            task["tasks_picked"] = have_tasks_been_picked
+            remaining_tasks.append(task)
+
+        return remaining_tasks
+
+    def _populate_next_tasks(
+        self,
+        move_lines,
+        have_tasks_been_picked,
+        skipped_product_ids=None,
+        skipped_move_line_ids=None,
+        task_grouping_criteria=None,
+        limit=1,
+    ):
+        """Populate the next tasks according to the given criteria"""
+        tasks = []
+        while move_lines:
+            priority_ml = False
+            # Check if there is a move line to give priority to
+            priority_ml = self._determine_priority_skipped_moveline(
+                move_lines,
+                skipped_product_ids,
+                skipped_move_line_ids,
+            )
+            task = self._populate_next_task(
+                move_lines,
+                task_grouping_criteria,
+                priority_ml
+            )
+            task["tasks_picked"] = have_tasks_been_picked
+            tasks.append(task)
+            if limit and len(tasks) >= limit:
+                break
+            move_lines = move_lines.filtered(
+                lambda ml: ml.id not in task["move_line_ids"]
+            )
+        return tasks
 
     def _determine_priority_skipped_moveline(
         self,
@@ -427,6 +491,29 @@ class StockPickingBatch(models.Model):
                 lambda ml: ml.package_id == task_mls[0].package_id).ids
 
         return task
+
+    def get_completed_tasks(self, task_grouping_criteria=None, limit=False):
+        """Get all completed tasks of the batch
+
+        NOTE: These tasks will be in their original order. So if we skip and
+        return to a task, the order they are returned in may not be the order
+        the tasks were completed in.
+        """
+        self.ensure_one()
+        completed_tasks = []
+
+        # Get completed movelines
+        all_mls = self.get_available_move_lines()
+        completed_mls = (all_mls - all_mls.get_lines_todo()).sort_by_location_product()
+
+        # Generate tasks for the completed move lines
+        completed_tasks = self._populate_next_tasks(
+            completed_mls,
+            True,
+            task_grouping_criteria=task_grouping_criteria,
+            limit=limit,
+        )
+        return completed_tasks
 
     def _check_user_id(self, user_id):
         if user_id is None:
