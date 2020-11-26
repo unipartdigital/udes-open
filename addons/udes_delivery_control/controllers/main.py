@@ -19,7 +19,7 @@ class PickingApi(UdesApi):
         Returns:
             list: Returns list of picking dictionary
         """
-        info = ["id", "name", "origin", "state", "u_is_backload"]
+        info = ["id", "name", "origin", "state", "u_is_backload", "u_is_unload"]
         if not fields_to_fetch:
             fields_to_fetch = info
         return [picking.read(fields_to_fetch)[0] for picking in pickings]

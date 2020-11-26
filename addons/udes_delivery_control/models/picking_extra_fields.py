@@ -13,11 +13,34 @@ class StockPickingExtras(models.Model):
     picking_ids = fields.One2many(
         comodel_name="stock.picking", inverse_name="u_extras_id", string="Pickings"
     )
-    # Unloading Fields
+    loading_type = fields.Selection(
+        [
+            ("unload", "Unloading"),
+            ("backload", "Backloading"),
+            ("unload_backload", "Unloading and Backloading"),
+        ],
+        string="Select Loading Type",
+    )
+
+    # Common Fields
     user_id = fields.Many2one("res.users", string="User", help="Picking completed by user")
-    location_id = fields.Many2one("stock.location", domain=[("usage", "=", "internal")])
     vehicle_arrival_date = fields.Datetime("Arrival Date/Time", help="Arrival time of Vehicle")
     week = fields.Integer(compute="_compute_week", store=True, default=0)
+    vehicle_type = fields.Many2one("stock.picking.vehicle.type")
+    trailer_number = fields.Integer()
+    is_planned = fields.Boolean(
+        "Planned", help="Indicates whether the door control was planned or not", default=False
+    )
+    is_late = fields.Boolean(
+        "Late", help="Indicates whether the unloading was late if booking slot set", default=False
+    )
+    is_fast_track = fields.Boolean(
+        "Fast Track", help="Indicates whether the unloading has been fast tracked", default=False
+    )
+
+    # Unloading Fields
+    is_unload = fields.Boolean(compute="_compute_loading_type")
+    location_id = fields.Many2one("stock.location", domain=[("usage", "=", "internal")])
     unloading_start_date = fields.Datetime("Start Date/Time", help="Unloading start date/time")
     unloading_end_date = fields.Datetime("End Date/Time", help="Unloading completed date/time")
     unloading_time_taken = fields.Float(
@@ -27,29 +50,13 @@ class StockPickingExtras(models.Model):
         readonly=True,
         help="The amount of time taken to complete unloading in HH:MM format",
     )
-    vehicle_type = fields.Many2one("stock.picking.vehicle.type")
-    trailer_number = fields.Integer()
     lane_number = fields.Char()
     pallet_count = fields.Integer(default=0)
     stillage_count = fields.Integer(default=0)
     box_count = fields.Integer(default=0)
-    is_planned = fields.Boolean(
-        "Planned", help="Indicates whether the door control was planned or not", default=False,
-    )
-    is_late = fields.Boolean(
-        "Late", help="Indicates whether the unloading was late if booking slot set", default=False,
-    )
-    is_fast_track = fields.Boolean(
-        "Fast Track", help="Indicates whether the unloading has been fast tracked", default=False,
-    )
 
     # Back Loading Fields
-    is_backload = fields.Boolean(
-        string="Backload Required ?",
-        help="Indicate whether a backload is required. \
-            (e.g. to take back cages used for past deliveries)",
-        default=False,
-    )
+    is_backload = fields.Boolean(compute="_compute_loading_type")
     backload_supplier = fields.Many2one(
         "res.partner",
         "Supplier",
@@ -57,14 +64,14 @@ class StockPickingExtras(models.Model):
         help="Supplier from the backload",
     )
     backload_pallet_count = fields.Integer(
-        "Pallet Count", help="Number of pallets backloaded", default=0,
+        "Pallet Count", help="Number of pallets backloaded", default=0
     )
     backload_stillage_count = fields.Integer(
-        "Stillage Count", help="Number of stillages backloaded", default=0,
+        "Stillage Count", help="Number of stillages backloaded", default=0
     )
-    backload_box_count = fields.Integer("Box Count", help="Number of boxes backloaded", default=0,)
+    backload_box_count = fields.Integer("Box Count", help="Number of boxes backloaded", default=0)
     backload_cover_count = fields.Integer(
-        "Cover Count", help="Number of covers backloaded", default=0,
+        "Cover Count", help="Number of covers backloaded", default=0
     )
     backload_reject_count = fields.Integer(
         "Reject Count",
@@ -113,6 +120,13 @@ class StockPickingExtras(models.Model):
                 record.backload_time_taken = date_diff(
                     record.backload_start_date, record.backload_end_date
                 )
+
+    @api.depends("loading_type")
+    def _compute_loading_type(self):
+        """Compute is_backloading and is_unloading from loading_type"""
+        for record in self:
+            record.is_unload = "unload" in record.loading_type
+            record.is_backload = "backload" in record.loading_type
 
     @api.constrains("unloading_start_date", "unloading_end_date")
     def _check_unloading_dates(self):

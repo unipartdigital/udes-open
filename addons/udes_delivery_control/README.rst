@@ -12,6 +12,16 @@ feature of delivery control.
 Changelog
 =========
 
+11.0.1.1.0 (2020-12-11)
+~~~~~~~~~~~~~~~~~~~~~~~
+
+* Have common fields between backload and unload
+* Delivery Control can now have backload or unload or both
+* Convert u_backload field to functional
+* Adds new u_unload functional field
+* Adds new selection field loading type to determine the loading type for Delivery Control
+
+
 11.0.1.0.0 (2020-10-30)
 ~~~~~~~~~~~~~~~~~~~~~~~
 
