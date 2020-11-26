@@ -128,7 +128,7 @@ class PickingApi(UdesApi):
         location_dest = location_barcode or location_name or location_id   
 
         if not location_dest:
-            raise ValidationError(_('You need to provide a location barcode.'))
+            raise ValidationError(_("You need to provide a location barcode."))
 
         loc_dest_instance = Location.get_location(location_dest)
         if not picking.is_valid_location_dest_id(loc_dest_instance):
@@ -140,4 +140,3 @@ class PickingApi(UdesApi):
             )
 
         return True
-        
