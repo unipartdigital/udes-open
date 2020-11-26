@@ -19,6 +19,7 @@ class TestDeliveryControl(common.BaseUDES):
             "name": "DC Pick",
             "partner_id": cls.test_supplier.id,
             "origin": "DCTesting",
+            "u_loading_type": "unload",
         }
         cls.delivery_control_picking = cls.create_picking(
             cls.delivery_control_picking_type, **delivery_control_picking_vals

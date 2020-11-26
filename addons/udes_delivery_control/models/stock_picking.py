@@ -18,7 +18,7 @@ EXTRA_FIELDS = {
     "u_is_late",
     "u_is_fast_track",
     # backloading fields
-    "u_is_backload",
+    "u_loading_type",
     "u_backload_supplier",
     "u_backload_pallet_count",
     "u_backload_stillage_count",
@@ -36,44 +36,129 @@ class StockPicking(models.Model):
     _inherit = "stock.picking"
 
     u_is_delivery_control = fields.Boolean(
-        related="picking_type_id.u_is_delivery_control", readonly=1
+        related="picking_type_id.u_is_delivery_control",
+        readonly=1,
+        states={"done": [("readonly", True)], "cancel": [("readonly", True)]},
     )
     u_extras_id = fields.Many2one("stock.picking.extras", copy=False)
-    # Unloading Fields
-    u_user_id = fields.Many2one("res.users", related="u_extras_id.user_id",)
-    u_location_id = fields.Many2one("stock.location", related="u_extras_id.location_id")
-    u_vehicle_arrival_date = fields.Datetime(related="u_extras_id.vehicle_arrival_date",)
-    u_week = fields.Integer(related="u_extras_id.week")
-    u_unloading_start_date = fields.Datetime(related="u_extras_id.unloading_start_date")
-    u_unloading_end_date = fields.Datetime(related="u_extras_id.unloading_end_date")
-    u_unloading_time_taken = fields.Float(readonly=True, related="u_extras_id.unloading_time_taken")
-    u_vehicle_type = fields.Many2one(
-        "stock.picking.vehicle.type", related="u_extras_id.vehicle_type"
+    u_loading_type = fields.Selection(
+        related="u_extras_id.loading_type",
+        states={"done": [("readonly", True)], "cancel": [("readonly", True)]},
     )
-    u_trailer_number = fields.Integer(related="u_extras_id.trailer_number")
-    u_lane_number = fields.Char(related="u_extras_id.lane_number")
-    u_pallet_count = fields.Integer(related="u_extras_id.pallet_count")
-    u_stillage_count = fields.Integer(related="u_extras_id.stillage_count")
-    u_box_count = fields.Integer(related="u_extras_id.box_count")
-    u_is_planned = fields.Boolean(related="u_extras_id.is_planned",)
-    u_is_late = fields.Boolean(related="u_extras_id.is_late",)
-    u_is_fast_track = fields.Boolean(related="u_extras_id.is_fast_track",)
+
+    # Common fields
+    u_user_id = fields.Many2one(
+        "res.users",
+        related="u_extras_id.user_id",
+        states={"done": [("readonly", True)], "cancel": [("readonly", True)]},
+    )
+    u_vehicle_arrival_date = fields.Datetime(
+        related="u_extras_id.vehicle_arrival_date",
+        states={"done": [("readonly", True)], "cancel": [("readonly", True)]},
+    )
+    u_week = fields.Integer(
+        related="u_extras_id.week",
+        states={"done": [("readonly", True)], "cancel": [("readonly", True)]},
+    )
+    u_vehicle_type = fields.Many2one(
+        "stock.picking.vehicle.type",
+        related="u_extras_id.vehicle_type",
+        states={"done": [("readonly", True)], "cancel": [("readonly", True)]},
+    )
+    u_trailer_number = fields.Integer(
+        related="u_extras_id.trailer_number",
+        states={"done": [("readonly", True)], "cancel": [("readonly", True)]},
+    )
+    u_is_planned = fields.Boolean(
+        related="u_extras_id.is_planned",
+        states={"done": [("readonly", True)], "cancel": [("readonly", True)]},
+    )
+    u_is_late = fields.Boolean(
+        related="u_extras_id.is_late",
+        states={"done": [("readonly", True)], "cancel": [("readonly", True)]},
+    )
+    u_is_fast_track = fields.Boolean(
+        related="u_extras_id.is_fast_track",
+        states={"done": [("readonly", True)], "cancel": [("readonly", True)]},
+    )
+
+    # Unloading Fields
+    u_is_unload = fields.Boolean(related="u_extras_id.is_unload")
+    u_location_id = fields.Many2one(
+        "stock.location",
+        related="u_extras_id.location_id",
+        states={"done": [("readonly", True)], "cancel": [("readonly", True)]},
+    )
+    u_unloading_start_date = fields.Datetime(
+        related="u_extras_id.unloading_start_date",
+        states={"done": [("readonly", True)], "cancel": [("readonly", True)]},
+    )
+    u_unloading_end_date = fields.Datetime(
+        related="u_extras_id.unloading_end_date",
+        states={"done": [("readonly", True)], "cancel": [("readonly", True)]},
+    )
+    u_unloading_time_taken = fields.Float(
+        readonly=True,
+        related="u_extras_id.unloading_time_taken",
+        states={"done": [("readonly", True)], "cancel": [("readonly", True)]},
+    )
+    u_lane_number = fields.Char(
+        related="u_extras_id.lane_number",
+        states={"done": [("readonly", True)], "cancel": [("readonly", True)]},
+    )
+    u_pallet_count = fields.Integer(
+        related="u_extras_id.pallet_count",
+        states={"done": [("readonly", True)], "cancel": [("readonly", True)]},
+    )
+    u_stillage_count = fields.Integer(
+        related="u_extras_id.stillage_count",
+        states={"done": [("readonly", True)], "cancel": [("readonly", True)]},
+    )
+    u_box_count = fields.Integer(
+        related="u_extras_id.box_count",
+        states={"done": [("readonly", True)], "cancel": [("readonly", True)]},
+    )
 
     # Backloading Fields
-    u_is_backload = fields.Boolean(related="u_extras_id.is_backload",)
+    u_is_backload = fields.Boolean(related="u_extras_id.is_backload")
     u_backload_supplier = fields.Many2one(
         "res.partner",
         default=lambda self: self._default_u_supplier_id(),
         related="u_extras_id.backload_supplier",
+        states={"done": [("readonly", True)], "cancel": [("readonly", True)]},
     )
-    u_backload_pallet_count = fields.Integer(related="u_extras_id.backload_pallet_count",)
-    u_backload_stillage_count = fields.Integer(related="u_extras_id.backload_stillage_count",)
-    u_backload_box_count = fields.Integer(related="u_extras_id.backload_box_count",)
-    u_backload_cover_count = fields.Integer(related="u_extras_id.backload_cover_count",)
-    u_backload_reject_count = fields.Integer(related="u_extras_id.backload_reject_count",)
-    u_backload_start_date = fields.Datetime(related="u_extras_id.backload_start_date")
-    u_backload_end_date = fields.Datetime(related="u_extras_id.backload_end_date")
-    u_backload_time_taken = fields.Float(related="u_extras_id.backload_time_taken")
+    u_backload_pallet_count = fields.Integer(
+        related="u_extras_id.backload_pallet_count",
+        states={"done": [("readonly", True)], "cancel": [("readonly", True)]},
+    )
+    u_backload_stillage_count = fields.Integer(
+        related="u_extras_id.backload_stillage_count",
+        states={"done": [("readonly", True)], "cancel": [("readonly", True)]},
+    )
+    u_backload_box_count = fields.Integer(
+        related="u_extras_id.backload_box_count",
+        states={"done": [("readonly", True)], "cancel": [("readonly", True)]},
+    )
+    u_backload_cover_count = fields.Integer(
+        related="u_extras_id.backload_cover_count",
+        states={"done": [("readonly", True)], "cancel": [("readonly", True)]},
+    )
+    u_backload_reject_count = fields.Integer(
+        related="u_extras_id.backload_reject_count",
+        states={"done": [("readonly", True)], "cancel": [("readonly", True)]},
+    )
+    u_backload_start_date = fields.Datetime(
+        related="u_extras_id.backload_start_date",
+        states={"done": [("readonly", True)], "cancel": [("readonly", True)]},
+    )
+    u_backload_end_date = fields.Datetime(
+        related="u_extras_id.backload_end_date",
+        states={"done": [("readonly", True)], "cancel": [("readonly", True)]},
+    )
+    u_backload_time_taken = fields.Float(
+        related="u_extras_id.backload_time_taken",
+        states={"done": [("readonly", True)], "cancel": [("readonly", True)]},
+    )
 
     u_delivery_control_picking_id = fields.Many2one(
         "stock.picking",
@@ -165,6 +250,14 @@ class StockPicking(models.Model):
 
         for picking in self.filtered("u_is_delivery_control"):
             picking.show_mark_as_todo = picking.state == "draft"
+
+    @api.onchange("u_loading_type")
+    def _compute_loading_type(self):
+        """Compute u_is_backload and u_is_unload from u_loading_type"""
+        for record in self:
+            if record.u_loading_type:
+                record.u_is_unload = "unload" in record.u_loading_type
+                record.u_is_backload = "backload" in record.u_loading_type
 
     def _create_picking_extras_data(self, values):
         """ Create a transport information for each picking that doesn't
@@ -267,7 +360,7 @@ class StockPicking(models.Model):
         for picking in self.filtered("u_is_delivery_control"):
             picking.write({"state": "done", "date_done": fields.Datetime.now()})
 
-            if not picking.u_goods_in_picking_id:
+            if not picking.u_goods_in_picking_id and picking.u_is_unload:
                 self.create_goods_in_from_delivery_control()
             elif picking.u_goods_in_picking_id.state == "waiting":
                 picking.u_goods_in_picking_id.action_confirm()

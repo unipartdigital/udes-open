@@ -28,29 +28,39 @@
                 <page string="Delivery Control" name="door_control" attrs="{'invisible': [('u_is_delivery_control', '=', False)]}">
                     <field name="u_extras_id" invisible="1"/>
                     <field name="u_is_delivery_control" invisible="1"/>
-                    <group colspan="4">
-                        <field name="u_is_backload"/>
-                    </group>
-                    <group string="Unloading" name="unloading">
-                        <group name="unloading_group1">
+                    <group name="loding_type_main">
+                        <group name="loading_type">
+                            <field name="u_loading_type" attrs="{'required': [('u_is_delivery_control', '=', True)]}"/>
+                        </group>
+                        <group name="loading_visible">
+                            <field name="u_is_backload" invisible="1"/>
+                            <field name="u_is_unload" invisible="1"/>
+                        </group>
+                        <group name="extra_info" string="Extra Info">
                             <field name="u_user_id"/>
-                            <field name="u_location_id"/>
-                            <field name="u_lane_number"/>
+                            <field name="u_is_planned"/>
+                            <field name="u_is_late"/>
+                            <field name="u_is_fast_track"/>
+                        </group>
+                        <group name="vehicle_info" string="Vehicle Info">
                             <field name="u_vehicle_arrival_date"/>
                             <field name="u_week" force_save="1"/>
+                            <field name="u_vehicle_type" options="{'no_create': True, 'no_open': True}"/>
+                            <field name="u_trailer_number"/>
+                        </group>
+                    </group>
+                    <group string="Unloading" name="unloading" attrs="{'invisible': [('u_is_unload', '=', False)]}">
+                        <group name="unloading_group1">
+                            <field name="u_location_id"/>
+                            <field name="u_lane_number"/>
                             <field name="u_unloading_start_date"/>
                             <field name="u_unloading_end_date"/>
                             <field name="u_unloading_time_taken" widget="float_time"/>
                         </group>
                         <group name="unloading_group2">
-                            <field name="u_vehicle_type" options="{'no_create': True, 'no_open': True}"/>
-                            <field name="u_trailer_number"/>
                             <field name="u_pallet_count"/>
                             <field name="u_stillage_count"/>
                             <field name="u_box_count"/>
-                            <field name="u_is_planned"/>
-                            <field name="u_is_late"/>
-                            <field name="u_is_fast_track"/>
                         </group>
                     </group>
                     <group string="Backloading" name="back_loading" attrs="{'invisible': [('u_is_backload', '=', False)]}">

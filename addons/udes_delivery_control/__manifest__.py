@@ -7,7 +7,7 @@
     "website": "https://www.unipart.io",
     "category": "Inventory",
     "license": "LGPL-3",
-    "version": "11.0.1.0.0",
+    "version": "11.0.1.1.0",
     "depends": ["udes_stock"],
     "data": [
         "data/picking_types.xml",
