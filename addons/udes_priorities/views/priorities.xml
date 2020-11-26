@@ -52,6 +52,6 @@
       <field name="view_id" ref="udes_priorities.list"/>
     </record>
 
-    <menuitem name="Priorites" id="udes_priorities.list_action" parent="stock.menu_warehouse_config" action="udes_priorities.action_window" />
+    <menuitem name="Priorities" id="udes_priorities.list_action" parent="stock.menu_warehouse_config" action="udes_priorities.action_window" />
   </data>
 </odoo>

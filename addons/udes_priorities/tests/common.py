@@ -9,7 +9,7 @@ class BasePriorities(common.BaseUDES):
         super().setUpClass()
 
         Priorities = cls.env["udes_priorities.priority"]
-        Priorities.search([]).write({"active": False})
+        (Priorities.search([]) - cls.env.ref("udes_priorities.normal")).write({"active": False})
 
         cls.urgent = Priorities.create(
             {
