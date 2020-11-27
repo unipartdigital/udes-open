@@ -463,3 +463,53 @@ class TestPickingWarning(common.BaseUDES):
             message_pending, "Assert a message is returned when previous pickings are incomplete"
         )
         self.assertIsInstance(message_pending, str)
+
+
+class TestPickingLocked(common.BaseUDES):
+    """Test that unlocked pickings are locked when confirmed or completed"""
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestPickingLocked, cls).setUpClass()
+
+        cls.picking = cls.create_picking(
+            cls.picking_type_in, is_locked=False
+        )
+        cls.apple_qty = 10
+
+    def test_assert_confirmed_unlocked_picking_locked(self):
+        """Assert that an unlocked picking is locked once it has been confirmed."""
+        # Create move for picking
+        self.create_move(self.apple, self.apple_qty, self.picking)
+
+        # Confirm picking and assert it has been locked
+        self.picking.action_confirm()
+        self.assertTrue(
+            self.picking.is_locked, "Picking should have been locked after being confirmed"
+        )
+
+    def test_assert_completed_unlocked_picking_locked(self):
+        """
+        Assert that an unlocked picking with manually created move lines
+        is locked once it has been completed.
+        """
+        MoveLine = self.env["stock.move.line"]
+
+        # Manually create the move lines (allowed because picking is unlocked)
+        move_line_vals = {
+            "picking_id": self.picking.id,
+            "location_id": self.picking.location_id.id,
+            "location_dest_id": self.picking.location_dest_id.id,
+            "product_id": self.apple.id,
+            "product_uom_id": self.apple.uom_id.id,
+            "product_uom_qty": self.apple_qty,
+            "qty_done": self.apple_qty,
+        }
+        MoveLine.create(move_line_vals)
+
+        # Mark picking as completed and assert it has been locked
+        self.picking.action_done()
+
+        self.assertTrue(
+            self.picking.is_locked, "Picking should have been locked after being completed"
+        )
