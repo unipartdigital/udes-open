@@ -163,3 +163,14 @@ class StockPicking(models.Model):
         for pick in self:
             if not pick.priority:
                 pick.priority = self.env.ref("udes_priorities.normal").reference
+
+    @api.model
+    def create(self, values):
+        context = {}
+        picking_type_id = values.get("picking_type_id", None)
+        if picking_type_id:
+            context = {"default_picking_type_id": picking_type_id}
+        res = super(
+            StockPicking, self.with_context(**context),
+        ).create(values)
+        return res
