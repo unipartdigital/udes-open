@@ -23,10 +23,10 @@ class StockPickingBatch(models.Model):
     @api.model
     def get_priorities_for_selection(self):
         Priorities = self.env["udes_priorities.priority"]
-        active_id = self.env.context.get("active_id", None)
+        batch_id = self.env.context.get("id", None)
         pick = self
-        if active_id:
-            active_pick = self.browse(active_id).exists()
+        if batch_id:
+            active_pick = self.browse(batch_id).exists()
             if active_pick:
                 pick = active_pick
 

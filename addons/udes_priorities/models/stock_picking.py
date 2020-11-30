@@ -1,4 +1,4 @@
-from odoo import fields, models, api, _
+from odoo import fields, models, api, _, tools
 from collections import defaultdict, OrderedDict
 
 
@@ -20,7 +20,6 @@ class StockPicking(models.Model):
         domain = []
         if picking_type_ids is None:
             picking_type_ids = []
-
             picking_types = self.mapped("picking_type_id")
             default_picking_type_id = self.env.context.get("default_picking_type_id", None)
 
@@ -51,12 +50,13 @@ class StockPicking(models.Model):
         return self._priority_and_priority_group_domain(picking_type_ids=picking_type_ids)
 
     @api.model
+    @tools.ormcache()
     def get_priorities_for_selection(self):
         Priorities = self.env["udes_priorities.priority"]
-        active_id = self.env.context.get("active_id", None)
+        pick_id = self.env.context.get("id", None)
         pick = self
-        if active_id:
-            active_pick = self.browse(active_id).exists()
+        if not pick and pick_id:
+            active_pick = self.browse(pick_id).exists()
             if active_pick:
                 pick = active_pick
 
@@ -141,7 +141,8 @@ class StockPicking(models.Model):
         picking_type_priorities = Priorities.search(
             self._priority_and_priority_group_domain(self.picking_type_id.id)
         )
-        if self.mapped("move_lines") and self.mapped("move_lines.priority") != [False]:
+        self.get_priorities_for_selection()  # Fix cache values
+        if self.mapped("move_lines") and not isinstance(self.id, models.NewId):
             priority = Priorities.search(
                 [("reference", "in", self.mapped("move_lines.priority"))],
                 limit=1,  # Assume _order is "highest" priority first
@@ -170,7 +171,5 @@ class StockPicking(models.Model):
         picking_type_id = values.get("picking_type_id", None)
         if picking_type_id:
             context = {"default_picking_type_id": picking_type_id}
-        res = super(
-            StockPicking, self.with_context(**context),
-        ).create(values)
+        res = super(StockPicking, self.with_context(**context),).create(values)
         return res
