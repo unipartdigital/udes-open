@@ -26,27 +26,6 @@ PG_CONCURRENCY_ERRORS_TO_RETRY = (
 MAX_TRIES_ON_CONCURRENCY_FAILURE = 5
 
 
-def _update_move_lines_and_log_swap(move_lines, packs, other_pack):
-    """ Set the package ids of the specified move lines to the one
-        of the other package and signal the package swap by posting
-        a message to the picking instance of the first move line.
-
-        Assumes that both packages are singletons and that the
-        specified move lines are a non empty recordset.
-    """
-    lots = other_pack.mapped("quant_ids.lot_id")
-    values = {
-        "package_id": other_pack.id,
-        "result_package_id": other_pack.id,
-        "lot_id": lots.id if len(lots) == 1 else False,
-    }
-    move_lines.with_context(bypass_reservation_update=True).write(values)
-    msg_args = (", ".join(packs.mapped("name")), other_pack.name)
-    msg = _("Package %s swapped for package %s.") % msg_args
-    move_lines.mapped("picking_id").message_post(body=msg)
-    _logger.info(msg)
-
-
 def allow_preprocess(func):
     func._allow_preprocess = True
     return func
@@ -1513,6 +1492,32 @@ class StockPicking(models.Model):
         group = self.env["procurement.group"].create({"name": self.name})
         self.move_lines.write({"group_id": group.id})
 
+    def _update_move_lines_and_log_swap(self, move_lines, packs, other_pack):
+        """ Set the package ids of the specified move lines to the one
+            of the other package and signal the package swap by posting
+            a message to the picking instance of the first move line.
+
+            Assumes that both packages are singletons and that the
+            specified move lines are a non empty recordset.
+        """
+        values = {}
+
+        values.update(self._values_for_move_lines_swap(other_pack, values))
+        move_lines.with_context(bypass_reservation_update=True).write(values)
+        msg_args = (", ".join(packs.mapped("name")), other_pack.name)
+        msg = _("Package %s swapped for package %s.") % msg_args
+        move_lines.mapped("picking_id").message_post(body=msg)
+        _logger.info(msg)
+
+    def _values_for_move_lines_swap(self, other_pack, values):
+        lots = other_pack.mapped("quant_ids.lot_id")
+        values.update({
+            "package_id": other_pack.id,
+            "result_package_id": other_pack.id,
+            "lot_id": lots.id if len(lots) == 1 else False,
+        })
+        return values
+
     def _swap_adjust_reserved_quantity(self, quants, prod_quantities):
         """Adjust the reserved quantity by removing `prod_quantities` from the
         reserved_quantity of the quants.
@@ -1566,7 +1571,7 @@ class StockPicking(models.Model):
         self._swap_adjust_reserved_quantity(
             scanned_package._get_contained_quants(), exp_pack_mls._get_all_products_quantities()
         )
-        _update_move_lines_and_log_swap(exp_pack_mls, expected_package, scanned_package)
+        self._handle_move_line_swap(exp_pack_mls, expected_package, scanned_package)
 
     def _swap_entire_package(
         self, scanned_package, expected_package, scanned_pack_mls, exp_pack_mls
@@ -1577,8 +1582,12 @@ class StockPicking(models.Model):
         if scanned_pack_mls and exp_pack_mls:
             # Both packages are in move lines; we simply change
             # the package ids of both scanned and expected move lines
-            _update_move_lines_and_log_swap(scanned_pack_mls, scanned_package, expected_package)
-            _update_move_lines_and_log_swap(exp_pack_mls, expected_package, scanned_package)
+            self._handle_move_line_swap(
+                scanned_pack_mls,
+                scanned_package,
+                expected_package,
+                exp_pack_mls
+            )
         elif exp_pack_mls:
             # No scanned_pack_mls so scanned_pack is not reserved
             self._swap_unreserved(scanned_package, expected_package, exp_pack_mls)
@@ -1586,6 +1595,16 @@ class StockPicking(models.Model):
             raise AssertionError("No expected pack move lines")
 
         return exp_pack_mls
+
+    def _handle_move_line_swap(self, move_lines, packs, other_pack, additional_mls=False):
+        if additional_mls:
+            # Both packages are in move lines; we simply change
+            # the package ids of both scanned and expected move lines
+            self._update_move_lines_and_log_swap(move_lines, packs, other_pack)
+            self._update_move_lines_and_log_swap(additional_mls, other_pack, packs)
+        
+        else:
+             self._update_move_lines_and_log_swap(move_lines, packs, other_pack)
 
     def _swap_package_contents(
         self, scanned_package, expected_packages, scanned_pack_mls, exp_pack_mls
@@ -1598,14 +1617,14 @@ class StockPicking(models.Model):
 
         if scanned_pack_mls and exp_pack_mls:
             # Swap expected packs for scanned pack
-            _update_move_lines_and_log_swap(exp_pack_mls, expected_packages, scanned_package)
+            self._handle_move_line_swap(exp_pack_mls, expected_packages, scanned_package)
 
             candidate_scan_mls = scanned_pack_mls[:]
             for pack in expected_packages:
                 scan_mls, excess_ml = pack.mls_can_fulfil(candidate_scan_mls)
                 candidate_scan_mls -= scan_mls
                 candidate_scan_mls += excess_ml
-                _update_move_lines_and_log_swap(scan_mls, scanned_package, pack)
+                self._handle_move_line_swap(scan_mls, scanned_package, pack)
         elif exp_pack_mls:
             self._swap_unreserved(scanned_package, expected_packages, exp_pack_mls)
         else:
