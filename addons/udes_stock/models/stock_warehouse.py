@@ -78,6 +78,8 @@ class StockWarehouse(models.Model):
                                          default='^PAL(\\d)+$')
     u_package_barcode_regex = fields.Char('Package Barcode Format',
                                           default='^PACK(\\d)+$')
+    u_product_barcode_regex = fields.Char('Product Barcode Replacement Regex',
+                                         default='')
     u_pi_count_move_picking_type = fields.Many2one(
         comodel_name='stock.picking.type',
         string='PI Count Picking Type',
@@ -145,6 +147,7 @@ class StockWarehouse(models.Model):
             - u_disable_no_backorder_button_picking_type_ids: list(int)
             - u_pallet_barcode_regex: string
             - u_package_barcode_regex: string
+            - u_product_barcode_regex: string
             - u_show_rpc_timing: boolean
         """
         self.ensure_one()
@@ -171,6 +174,7 @@ class StockWarehouse(models.Model):
             "u_disable_no_backorder_button_picking_type_ids": self.u_disable_no_backorder_button_picking_type_ids.ids,
             'u_pallet_barcode_regex': self.u_pallet_barcode_regex,
             'u_package_barcode_regex': self.u_package_barcode_regex,
+            'u_product_barcode_regex': self.u_product_barcode_regex,
             'u_pi_count_move_picking_type': self.u_pi_count_move_picking_type.id,
             'u_stock_investigation_picking_type': self.u_stock_investigation_picking_type.id,
             'u_show_rpc_timing': self.u_show_rpc_timing,

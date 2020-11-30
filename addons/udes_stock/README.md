@@ -201,6 +201,7 @@ Configuration information for the an entire warehouse.
 | u_dangerous_location_id                        | int              | |
 | u_package_barcode_regex                        | string           | |
 | u_pallet_barcode_regex                         | string           | |
+| u_product_barcode_regex                        | string           | Characters to replace in a scanned product barcode |
 | u_pi_count_move_picking_type                   | string           | |
 | u_stock_investigation_picking_type             | string           | |
 
