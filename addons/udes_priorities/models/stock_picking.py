@@ -54,24 +54,21 @@ class StockPicking(models.Model):
     def get_priorities_for_selection(self):
         Priorities = self.env["udes_priorities.priority"]
         pick_id = self.env.context.get("id", None)
-        pick = self
-        if not pick and pick_id:
+        picks = self
+        if not picks and pick_id:
             active_pick = self.browse(pick_id).exists()
             if active_pick:
-                pick = active_pick
+                picks = active_pick
 
-        priorities = Priorities.search(pick._priority_domain())
+        priorities = Priorities.search(picks._priority_domain())
 
         # hard coded default value means there is always a priority to set
         normal = self.env.ref("udes_priorities.normal")
         priorities |= normal
-
-        for pick in self.filtered(lambda p: p.priority not in priorities.mapped("reference")):
-            # Theres some race conditions around where data is aviable to search on this means
-            # that sometimes an invalid default can be set
-            pick.priority = normal.reference
-
-        return priorities.get_selection_values()
+        # Fail gracefully if some how the priority is something it shouldn't be allowed then
+        # add it so everything doesn't explode
+        pick_priorities = Priorities.search([("reference", "in", picks.mapped("priority"))])
+        return (priorities | pick_priorities).get_selection_values()
 
     @api.model
     def get_priorities(self, picking_type_id=None):
