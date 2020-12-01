@@ -24,24 +24,22 @@ class StockPickingBatch(models.Model):
     def get_priorities_for_selection(self):
         Priorities = self.env["udes_priorities.priority"]
         batch_id = self.env.context.get("id", None)
-        pick = self
+        batch = self
         if batch_id:
-            active_pick = self.browse(batch_id).exists()
-            if active_pick:
-                pick = active_pick
+            active_batch = self.browse(batch_id).exists()
+            if active_batch:
+                batch = active_batch
 
-        priorities = Priorities.search(pick._priority_domain())
+        priorities = Priorities.search(batch._priority_domain())
 
         # hard coded default value means there is always a priority to set
         normal = self.env.ref("udes_priorities.normal")
         priorities |= normal
 
-        for batch in self.filtered(lambda b: b.priority not in priorities.mapped("reference")):
-            # Theres some race conditions around where data is aviable to search on this means
-            # that sometimes an invalid default can be set
-            batch.priority = normal.reference
-
-        return priorities.get_selection_values()
+        # Fail gracefully if some how the priority is something it shouldn't be allowed then
+        # add it so everything doesn't explode
+        batch_priorities = Priorities.search([("reference", "in", batch.mapped("priority"))])
+        return (priorities | batch_priorities).get_selection_values()
 
     @api.constrains("priority")
     @api.onchange("priority")

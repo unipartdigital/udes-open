@@ -6,11 +6,7 @@ class StockMove(models.Model):
 
     @api.model
     def _default_priority(self):
-        Priorities = self.env["udes_priorities.priority"]
-        priorities = Priorities.search(self._priority_domain(), limit=1)
-        return (
-            priorities.reference if priorities else self.env.ref("udes_priorities.normal").reference
-        )
+        return self.env.ref("udes_priorities.normal").reference
 
     priority = fields.Selection(selection="get_priorities_for_selection", default=_default_priority)
 
@@ -44,13 +40,10 @@ class StockMove(models.Model):
         # hard coded default value means there is always a priority to set
         normal = self.env.ref("udes_priorities.normal")
         priorities |= normal
-
-        for move in self.filtered(lambda m: m.priority not in priorities.mapped("reference")):
-            # Theres some race conditions around where data is aviable to search on this means
-            # that sometimes an invalid default can be set
-            move.priority = normal.reference
-
-        return priorities.get_selection_values()
+        # Fail gracefully if some how the priority is something it shouldn't be allowed then
+        # add it so everything doesn't explode
+        move_priorities = Priorities.search([("reference", "in", self.mapped("priority"))])
+        return (priorities | move_priorities).get_selection_values()
 
     @api.constrains("priority")
     @api.onchange("priority")
@@ -65,7 +58,5 @@ class StockMove(models.Model):
         picking_type_id = values.get("picking_type_id", None)
         if picking_type_id:
             context = {"default_picking_type_id": picking_type_id}
-        res = super(
-            StockMove, self.with_context(**context),
-        ).create(values)
+        res = super(StockMove, self.with_context(**context),).create(values)
         return res
