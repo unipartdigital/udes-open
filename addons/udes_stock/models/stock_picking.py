@@ -372,6 +372,7 @@ class StockPicking(models.Model):
             **extra_context
         ).run()
         if self:
+            self.lock_pickings()
             (self | next_pickings).unlink_empty()
         return res
 
@@ -1347,7 +1348,9 @@ class StockPicking(models.Model):
         ):
             pick._create_own_procurement_group()
         res = super(StockPicking, self).action_confirm()
+
         if self:
+            self.lock_pickings()
             self.unlink_empty()
         return res
 
@@ -1372,6 +1375,12 @@ class StockPicking(models.Model):
             if not records:
                 break
             yield records
+
+    def lock_pickings(self):
+        """Lock any unlocked pickings in self"""
+        self.filtered(lambda p: not p.is_locked).write({
+            "is_locked": True,
+        })
 
     def unlink_empty(self):
         """

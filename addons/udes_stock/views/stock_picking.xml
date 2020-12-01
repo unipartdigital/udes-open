@@ -83,8 +83,18 @@
                 <field name="u_location_category_id"/>
             </xpath>
 
-            <!--Hide unlock/lock button-->
-            <xpath expr="//button[@name='action_toggle_is_locked']" position="attributes">
+            <!-- 
+                Both unlock and lock buttons use the "action_toggle_is_locked" method,
+                so each button needs to be hidden individually 
+            -->
+
+            <!--Hide unlock button-->
+            <xpath expr="//button[@name='action_toggle_is_locked'][1]" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <!--Hide lock button-->
+            <xpath expr="//button[@name='action_toggle_is_locked'][2]" position="attributes">
                 <attribute name="invisible">1</attribute>
             </xpath>
 
