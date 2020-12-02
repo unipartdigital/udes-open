@@ -131,6 +131,14 @@ class PickingApi(UdesApi):
             raise ValidationError(_("You need to provide a location barcode."))
 
         loc_dest_instance = Location.get_location(location_dest)
+
+        if loc_dest_instance.u_blocked:
+            raise ValidationError(
+                _(
+                    "The location '%s' is blocked" % (loc_dest_instance.name)
+                )
+            )
+
         if not picking.is_valid_location_dest_id(loc_dest_instance):
             raise ValidationError(
                 _(
