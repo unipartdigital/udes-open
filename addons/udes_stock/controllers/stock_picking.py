@@ -111,3 +111,40 @@ class PickingApi(UdesApi):
 
         picking = Picking.browse(ident)
         return picking.action_warn_picking_precondition()
+
+    @http.route('/api/stock-picking/<int:ident>/is_valid_location/',
+                type='json', methods=['GET'], auth='user')
+    def is_valid_location(self, ident, location_barcode=None,
+                          location_name=None,
+                          location_id=None):
+        """
+            Checks that the location is valid
+        """
+        Location = request.env["stock.location"]
+        Picking = request.env["stock.picking"]
+
+        picking = Picking.browse(ident)
+
+        location_dest = location_barcode or location_name or location_id   
+
+        if not location_dest:
+            raise ValidationError(_("You need to provide a location barcode."))
+
+        loc_dest_instance = Location.get_location(location_dest)
+
+        if loc_dest_instance.u_blocked:
+            raise ValidationError(
+                _(
+                    "The location '%s' is blocked" % (loc_dest_instance.name)
+                )
+            )
+
+        if not picking.is_valid_location_dest_id(loc_dest_instance):
+            raise ValidationError(
+                _(
+                    "The location '%s' is not a child of the picking destination "
+                    "location '%s'" % (loc_dest_instance.name, picking.location_dest_id.name)
+                )
+            )
+
+        return True
