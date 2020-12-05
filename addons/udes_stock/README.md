@@ -131,6 +131,8 @@ A lot of custom UDES functionality is specfied at the picking type level. This i
 | u_reserve_pallet_per_picking | boolean | Flag to indicate whether pallets are reserved on pickings rather than batches. |
 | u_max_reservable_pallets   | int     | The maximum number of pallets that may be simultaneously reserved in a batch, if `u_reserve_pallets_per_picking` is `True`. |
 | u_warn_picking_precondition     | string  |  | Display a warning messsage when trying to validate a picking when a given precondition is not met. |
+| u_show_all_tasks | boolean | Flag to indicate whether all tasks are shown to the user during the picking flow. |
+
 
 More on the enumeration fields below.
 

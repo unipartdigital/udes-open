@@ -118,6 +118,75 @@ class PickingBatchApi(UdesApi):
 
         return task
 
+    @http.route('/api/stock-picking-batch/<ident>/remaining',
+                type='json', methods=['GET'], auth='user')
+    def get_remaining_tasks(
+        self,
+        ident,
+        skipped_product_ids=None,
+        skipped_move_line_ids=None,
+        limit=False
+    ):
+        """
+        Returns remaining pick tasks from the picking
+        batch in progress for the current user.
+        A task will include one or more move lines from
+        different pickings.
+
+        Raises a ValidationError if the specified batch does
+        not exist.
+
+        In case the batch is not completed, returns a list
+        of objects containing information regarding the
+        next task: picking_id and package/product information.
+        Returns an empty list otherwise.
+        """
+        batch = _get_batch(request.env, ident)
+
+        with batch.statistics() as stats:
+            tasks = batch.get_next_tasks(
+                skipped_product_ids=skipped_product_ids,
+                skipped_move_line_ids=skipped_move_line_ids,
+                limit=limit
+            )
+        _logger.info("Get remaining tasks (user %s) in %.2fs, %d queries",
+                     request.env.uid, stats.elapsed, stats.count)
+
+        return tasks
+
+    @http.route('/api/stock-picking-batch/<ident>/completed',
+                type='json', methods=['GET'], auth='user')
+    def get_completed_tasks(
+        self,
+        ident,
+        limit=False
+    ):
+        """
+        Returns all completed pick tasks from the picking
+        batch in progress for the current user.
+        A task will include one or more move lines from
+        different pickings.
+
+        Raises a ValidationError if the specified batch does
+        not exist.
+
+        If tasks have been completed returns a list of
+        objects containing information regarding the
+        completed tasks: picking_id and package/product
+        information.
+        Returns an empty list otherwise.
+        """
+        batch = _get_batch(request.env, ident)
+
+        with batch.statistics() as stats:
+            tasks = batch.get_completed_tasks(limit=limit)
+        _logger.info("Get completed tasks (user %s) in %.2fs, %d queries",
+                     request.env.uid, stats.elapsed, stats.count)
+
+        return tasks
+
+
+
     @http.route('/api/stock-picking-batch/assign/',
                 type='json', methods=['POST'], auth='user')
     def assign_batch_to_user(self, picking_type_id):
