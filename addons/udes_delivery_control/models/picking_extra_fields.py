@@ -125,8 +125,9 @@ class StockPickingExtras(models.Model):
     def _compute_loading_type(self):
         """Compute is_backloading and is_unloading from loading_type"""
         for record in self:
-            record.is_unload = "unload" in record.loading_type
-            record.is_backload = "backload" in record.loading_type
+            if record.loading_type:
+                record.is_unload = "unload" in record.loading_type
+                record.is_backload = "backload" in record.loading_type
 
     @api.constrains("unloading_start_date", "unloading_end_date")
     def _check_unloading_dates(self):
