@@ -235,3 +235,18 @@ class TestPushFromDrop(PushFromDropBase):
                       'location_dest_id': self.location_qc_01.id})
         putaway.action_done()
         self.assertEqual(putaway.state, 'done')
+
+    def test05_picking_info_propagated(self):
+        """Test that when a picking is created by push_from_drop it contains
+        the origin and partner of the source picking."""
+        for ml in self.move_lines:
+            ml.write({'qty_done': ml.product_uom_qty,
+                      'location_dest_id': self.received_damaged_location.id})
+        new_partner = self.create_partner('Test partner')
+        self.goods_in.partner_id = new_partner
+        new_origin = 'Test origin'
+        self.goods_in.origin = new_origin
+        self.goods_in.action_done()
+        putaway = self.goods_in.u_next_picking_ids
+        self.assertEqual(putaway.origin, new_origin)
+        self.assertEqual(putaway.partner_id, new_partner)
