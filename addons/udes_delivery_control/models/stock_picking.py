@@ -19,15 +19,7 @@ EXTRA_FIELDS = {
     "u_is_fast_track",
     # backloading fields
     "u_loading_type",
-    "u_backload_supplier",
-    "u_backload_pallet_count",
-    "u_backload_stillage_count",
-    "u_backload_box_count",
-    "u_backload_cover_count",
-    "u_backload_reject_count",
-    "u_backload_start_date",
-    "u_backload_end_date",
-    "u_backload_time_taken",
+    "u_backload_ids",
 }
 
 
@@ -40,7 +32,7 @@ class StockPicking(models.Model):
         readonly=1,
         states={"done": [("readonly", True)], "cancel": [("readonly", True)]},
     )
-    u_extras_id = fields.Many2one("stock.picking.extras", copy=False)
+    u_extras_id = fields.Many2one("stock.picking.extras", copy=False, ondelete="cascade")
     u_loading_type = fields.Selection(
         related="u_extras_id.loading_type",
         states={"done": [("readonly", True)], "cancel": [("readonly", True)]},
@@ -121,44 +113,7 @@ class StockPicking(models.Model):
 
     # Backloading Fields
     u_is_backload = fields.Boolean(related="u_extras_id.is_backload")
-    u_backload_supplier = fields.Many2one(
-        "res.partner",
-        default=lambda self: self._default_u_supplier_id(),
-        related="u_extras_id.backload_supplier",
-        states={"done": [("readonly", True)], "cancel": [("readonly", True)]},
-    )
-    u_backload_pallet_count = fields.Integer(
-        related="u_extras_id.backload_pallet_count",
-        states={"done": [("readonly", True)], "cancel": [("readonly", True)]},
-    )
-    u_backload_stillage_count = fields.Integer(
-        related="u_extras_id.backload_stillage_count",
-        states={"done": [("readonly", True)], "cancel": [("readonly", True)]},
-    )
-    u_backload_box_count = fields.Integer(
-        related="u_extras_id.backload_box_count",
-        states={"done": [("readonly", True)], "cancel": [("readonly", True)]},
-    )
-    u_backload_cover_count = fields.Integer(
-        related="u_extras_id.backload_cover_count",
-        states={"done": [("readonly", True)], "cancel": [("readonly", True)]},
-    )
-    u_backload_reject_count = fields.Integer(
-        related="u_extras_id.backload_reject_count",
-        states={"done": [("readonly", True)], "cancel": [("readonly", True)]},
-    )
-    u_backload_start_date = fields.Datetime(
-        related="u_extras_id.backload_start_date",
-        states={"done": [("readonly", True)], "cancel": [("readonly", True)]},
-    )
-    u_backload_end_date = fields.Datetime(
-        related="u_extras_id.backload_end_date",
-        states={"done": [("readonly", True)], "cancel": [("readonly", True)]},
-    )
-    u_backload_time_taken = fields.Float(
-        related="u_extras_id.backload_time_taken",
-        states={"done": [("readonly", True)], "cancel": [("readonly", True)]},
-    )
+    u_backload_ids = fields.One2many(related="u_extras_id.backload_ids")
 
     u_delivery_control_picking_id = fields.Many2one(
         "stock.picking",
@@ -251,8 +206,15 @@ class StockPicking(models.Model):
         for picking in self.filtered("u_is_delivery_control"):
             picking.show_mark_as_todo = picking.state == "draft"
 
+    @api.onchange("picking_type_id")
+    def _onchange_picking_type_id(self):
+        for record in self:
+            if record.picking_type_id.u_is_delivery_control:
+                record.u_loading_type = "unload"
+                record.u_is_unload = True
+
     @api.onchange("u_loading_type")
-    def _compute_loading_type(self):
+    def _onchange_loading_type(self):
         """Compute u_is_backload and u_is_unload from u_loading_type"""
         for record in self:
             if record.u_loading_type:
@@ -284,6 +246,18 @@ class StockPicking(models.Model):
 
     @api.model
     def create(self, values):
+        picking_type_dc = self.env.ref("udes_delivery_control.picking_type_delivery_control")
+        picking_type_id = values.get("picking_type_id")
+        if (
+            picking_type_id
+            and picking_type_id == picking_type_dc.id
+            and not values.get("u_loading_type")
+        ):
+            # Set loading type to unload if picking is of delivery control type
+            # Note: u_loading_type is of related type field and compute attribute
+            # is not compatible/called. Hence, we are setting it's default value in create method
+            values["u_loading_type"] = "unload"
+
         res = super(StockPicking, self).create(values)
         res._create_picking_extras_data(values)
         return res

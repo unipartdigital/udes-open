@@ -1,5 +1,6 @@
 from odoo import api, fields, models, _
 from ..misc import date_diff, validate_dates
+from odoo.exceptions import ValidationError
 
 
 class StockPickingExtras(models.Model):
@@ -57,36 +58,7 @@ class StockPickingExtras(models.Model):
 
     # Back Loading Fields
     is_backload = fields.Boolean(compute="_compute_loading_type")
-    backload_supplier = fields.Many2one(
-        "res.partner",
-        "Supplier",
-        domain="[('supplier', '=', True)]",
-        help="Supplier from the backload",
-    )
-    backload_pallet_count = fields.Integer(
-        "Pallet Count", help="Number of pallets backloaded", default=0
-    )
-    backload_stillage_count = fields.Integer(
-        "Stillage Count", help="Number of stillages backloaded", default=0
-    )
-    backload_box_count = fields.Integer("Box Count", help="Number of boxes backloaded", default=0)
-    backload_cover_count = fields.Integer(
-        "Cover Count", help="Number of covers backloaded", default=0
-    )
-    backload_reject_count = fields.Integer(
-        "Reject Count",
-        help="Number of pallets/stillages/covers rejected and not backloaded",
-        default=0,
-    )
-    backload_start_date = fields.Datetime("Start Date/Time", help="Backload Start Date/Time")
-    backload_end_date = fields.Datetime("End Date/Time", help="Backload End Date/time")
-    backload_time_taken = fields.Float(
-        "Backloading Time HH:MM",
-        compute="_compute_backload_time_taken",
-        store=True,
-        readonly=True,
-        help="The amount of time taken to complete backloading in HH:MM format",
-    )
+    backload_ids = fields.One2many(comodel_name="stock.picking.backload", inverse_name="extras_id")
 
     @api.multi
     @api.depends("vehicle_arrival_date")
@@ -110,17 +82,6 @@ class StockPickingExtras(models.Model):
                     record.unloading_start_date, record.unloading_end_date
                 )
 
-    @api.multi
-    @api.depends("backload_start_date", "backload_end_date")
-    def _compute_backload_time_taken(self):
-        """ Compute backload_time_taken field """
-        for record in self:
-            record.backload_time_taken = 0
-            if record.backload_start_date and record.backload_end_date:
-                record.backload_time_taken = date_diff(
-                    record.backload_start_date, record.backload_end_date
-                )
-
     @api.depends("loading_type")
     def _compute_loading_type(self):
         """Compute is_backloading and is_unloading from loading_type"""
@@ -134,10 +95,10 @@ class StockPickingExtras(models.Model):
         msg = _("Unloading start time cannot be greater than end time")
         validate_dates(self.unloading_start_date, self.unloading_end_date, msg)
 
-    @api.constrains("backload_start_date", "backload_end_date")
-    def _check_backload_dates(self):
-        msg = _("Backloading start time cannot be greater than end time")
-        validate_dates(self.backload_start_date, self.backload_end_date, msg)
+    @api.constrains("loading_type", "backload_ids")
+    def _check_backload_ids(self):
+        if self.is_backload and not self.backload_ids:
+            raise ValidationError(_("Please add backloads."))
 
     @api.model
     def create(self, values):

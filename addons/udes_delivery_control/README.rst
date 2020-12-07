@@ -12,9 +12,12 @@ feature of delivery control.
 Changelog
 =========
 
-11.0.1.1.0 (2020-12-11)
-~~~~~~~~~~~~~~~~~~~~~~~
+11.0.2.0.0 (2020-12-11)
 
+* Change supplier field on backload to required
+* Change endpoint urls
+* Auto set parent parent as supplier on backload
+* Handle multiple backloads
 * Have common fields between backload and unload
 * Delivery Control can now have backload or unload or both
 * Convert u_backload field to functional
