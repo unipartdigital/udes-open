@@ -8,7 +8,7 @@ import logging
 _logger = logging.getLogger(__name__)
 
 
-class PickingApi(UdesApi):
+class DeliveryControlApi(UdesApi):
     def _get_picking_info(self, pickings, fields_to_fetch=None):
         """Return a list with the information of each picking in pickings.
 
@@ -19,13 +19,22 @@ class PickingApi(UdesApi):
         Returns:
             list: Returns list of picking dictionary
         """
-        info = ["id", "name", "origin", "state", "u_is_backload", "u_is_unload"]
+        vals = []
+        info = ["id", "name", "origin", "state", "u_is_backload", "u_is_unload", "u_backload_ids"]
         if not fields_to_fetch:
             fields_to_fetch = info
-        return [picking.read(fields_to_fetch)[0] for picking in pickings]
+        for picking in pickings:
+            picking_dict = picking.read(fields_to_fetch)[0]
+            if "u_backload_ids" in fields_to_fetch:
+                picking_dict["u_backload_ids"] = [
+                    {"id": x.id, "supplier_name": x.supplier_id.name}
+                    for x in picking.u_backload_ids
+                ]
+            vals.append(picking_dict)
+        return vals
 
-    @http.route("/api/delivery-control/stock-picking/", type="json", methods=["GET"], auth="user")
-    def get_pickings_delivery_control(self, fields_to_fetch=None, **kwargs):
+    @http.route("/api/delivery-control/", type="json", methods=["GET"], auth="user")
+    def get_delivery_control(self, fields_to_fetch=None, **kwargs):
         """ Search for pickings by various criteria and return an
             array of stock.picking objects that match a given criteria.
 
@@ -36,14 +45,9 @@ class PickingApi(UdesApi):
         pickings = Picking.get_pickings(**kwargs)
         return self._get_picking_info(pickings, fields_to_fetch)
 
-    @http.route(
-        "/api/delivery-control/stock-picking/<int:ident>",
-        type="json",
-        methods=["POST"],
-        auth="user",
-    )
-    def confirm_picking(self, ident, **kwargs):
-        """ Update and confirm picking """
+    @http.route("/api/delivery-control/<int:ident>", type="json", methods=["POST"], auth="user")
+    def confirm_delivery_control(self, ident, **kwargs):
+        """ Update and confirm delivery control """
         Picking = request.env["stock.picking"]
         picking = Picking.browse(ident)
 
