@@ -3,6 +3,7 @@
 from odoo import api, models, fields, _
 from odoo.exceptions import ValidationError, UserError
 from odoo.addons import decimal_precision as dp
+from odoo.osv import expression
 
 
 class StockInventory(models.Model):
@@ -76,6 +77,96 @@ class StockInventory(models.Model):
                 return True
         return False
 
+    def _get_filter(self):
+        """
+        Returns a dictionary with the following values based on how Inventory record is setup:
+
+        * filter_domain - a search domain (list) for identifying relevant quant records
+        * products_to_filter - a recordset of Products that match either match the specified product 
+                               or are a child of the specified category
+        """
+        Product = self.env["product.product"]
+
+        filter_domain = [("location_id", "child_of", self.location_id.id)]
+        products_to_filter = Product.browse()
+
+        # case 1: Filter on One owner only or One product for a specific owner
+        if self.partner_id:
+            partner_domain = [("owner_id", "=", self.partner_id.id)]
+            filter_domain = expression.AND([filter_domain, partner_domain])
+
+        # case 2: Filter on One Lot/Serial Number
+        if self.lot_id:
+            lot_domain = [("lot_id", "=", self.lot_id.id)]
+            filter_domain = expression.AND([filter_domain, lot_domain])
+
+        # case 3: Filter on One product
+        if self.product_id:
+            products_to_filter |= self.product_id
+
+            product_domain = [("product_id", "=", self.product_id.id)]
+            filter_domain = expression.AND([filter_domain, product_domain])
+
+        # case 4: Filter on A Pack
+        if self.package_id:
+            package_domain = [("package_id", "=", self.package_id.id)]
+            filter_domain = expression.AND([filter_domain, package_domain])
+
+        # case 5: Filter on One product category + Exhausted Products
+        if self.category_id:
+            category_products = Product.search([("categ_id", "=", self.category_id.id)])
+            products_to_filter |= category_products
+
+            product_category_domain = [("product_id", "in", category_products.mapped("id"))]
+            filter_domain = expression.AND([filter_domain, product_category_domain])
+
+        inventory_filter = {
+            "filter_domain": filter_domain,
+            "products_to_filter": products_to_filter,
+        }
+
+        return inventory_filter
+
+    def _get_inventory_lines_values(self):
+        """
+        Override to refactor logic into separate functions that can be overridden in other modules
+        """
+        InventoryLine = self.env["stock.inventory.line"]
+        Quant = self.env["stock.quant"]
+        Product = self.env["product.product"]
+
+        inventory_filter = self._get_filter()
+
+        filter_domain = inventory_filter["filter_domain"]
+        products_to_filter = inventory_filter["products_to_filter"]
+
+        quants = Quant.search(filter_domain)
+        quant_products = Product.browse()
+
+        quant_dict = {}
+
+        for quant in quants:
+            quant_line_vals = InventoryLine._get_quant_line_vals(quant)
+            quant_key = InventoryLine._get_quant_key(quant_line_vals)
+
+            # If quant_key already exists, update the current quantity
+            if quant_key in quant_dict:
+                updated_qty = quant_dict[quant_key]["product_qty"] + quant.quantity
+                quant_dict[quant_key]["product_qty"] = updated_qty
+                quant_dict[quant_key]["theoretical_qty"] = updated_qty
+            else:
+                quant_dict[quant_key] = quant_line_vals
+
+            quant_products |= quant.product_id
+
+        vals = list(quant_dict.values())
+
+        if self.exhausted:
+            exhausted_vals = self._get_exhausted_inventory_line(products_to_filter, quant_products)
+            vals.extend(exhausted_vals)
+
+        return vals
+
     @api.multi
     def write(self, values):
         if 'done' in self.mapped('state'):
@@ -116,3 +207,49 @@ class StockInventoryLine(models.Model):
                 self.product_uom_id
             )
         self.reserved_qty = reserved_qty
+
+    def _get_quants_domain(self):
+        """Returns a domain used for retrieving relevant Quant records"""
+        return [
+            ("company_id", "=", self.company_id.id),
+            ("location_id", "=", self.location_id.id),
+            ("lot_id", "=", self.prod_lot_id.id),
+            ("product_id", "=", self.product_id.id),
+            ("owner_id", "=", self.partner_id.id),
+            ("package_id", "=", self.package_id.id),
+        ]
+
+    def _get_quants(self):
+        """
+        Override to use domain returned by `_get_quants_domain` which can be easily overriden in 
+        other modules, rather than a hard coded search to get relevant Quant records
+        """
+        Quant = self.env["stock.quant"]
+        return Quant.search(self._get_quants_domain())
+
+    def _get_quant_line_vals(self, quant):
+        """Returns a dictionary of values used to create Inventory Line from supplied Quant"""
+        quant.ensure_one()
+
+        quant_line_vals = {
+            "product_id": quant.product_id.id,
+            "product_uom_id": quant.product_id.uom_id.id,
+            "product_qty": quant.quantity,
+            "theoretical_qty": quant.quantity,
+            "location_id": quant.location_id.id,
+            "prod_lot_id": quant.lot_id.id,
+            "package_id": quant.package_id.id,
+            "partner_id": quant.owner_id.id,
+        }
+        return quant_line_vals
+
+    def _get_quant_key(self, quant_line_vals):
+        """Generate key used for identifying unique Quant records"""
+        quant_key = (
+            quant_line_vals["product_id"],
+            quant_line_vals["location_id"],
+            quant_line_vals["package_id"],
+            quant_line_vals["prod_lot_id"],
+            quant_line_vals["partner_id"],
+        )
+        return quant_key
