@@ -122,7 +122,6 @@ class TestStockInventory(common.BaseUDES):
 
 
 class TestStockInventoryLine(common.BaseUDES):
-
     @classmethod
     def setUpClass(cls):
         """Add a quant in a location to the setUpClass method."""
@@ -134,20 +133,50 @@ class TestStockInventoryLine(common.BaseUDES):
         super(TestStockInventoryLine, self).setUp()
         self.apple_quant.reserved_quantity = 1.0
         self.test_stock_inventory = self.create_stock_inventory(name="Test Stock Check")
-        self.test_stock_inventory.action_start()
 
     def test01_calculate_reserved_qty(self):
         """Test that reserved quantity is calculated correctly."""
+        self.test_stock_inventory.action_start()
+
         self.assertEqual(len(self.test_stock_inventory.line_ids), 1)
 
         self.assertEqual(self.test_stock_inventory.line_ids.reserved_qty, 1)
 
     def test02_calculate_reserved_qty_recalculate(self):
         """Test that reserved quantity can be correctly recalculated."""
+        self.test_stock_inventory.action_start()
+
         self.apple_quant.reserved_quantity = 2
 
         self.test_stock_inventory.line_ids._compute_reserved_qty()
         self.assertEqual(self.test_stock_inventory.line_ids.reserved_qty, 2)
+
+    def test03_assert_same_key_quants_merged(self):
+        """
+        Assert that quants with the same key (product, location, package, lot, partner)
+        are rolled into one Inventory Line, with the quantity of each quant summed
+        """
+        # Duplicate apple quant to double apple quantity
+        self.apple_quant.copy()
+
+        self.test_stock_inventory.action_start()
+
+        # Assert that both apple quants were merged into one inventory line
+        inventory_line = self.test_stock_inventory.line_ids[0]
+        self.assertEqual(
+            len(inventory_line), 1, f"{self.apple} quants should have been merged into one line"
+        )
+
+        expected_qty = sum(self.apple.stock_quant_ids.mapped("quantity"))
+        qty_fields = ["product_qty", "theoretical_qty"]
+
+        # Assert that quantity and theoretical quantity fields on inventory line
+        # match summed total of apple quants
+        for field in qty_fields:
+            field_qty = inventory_line[field]
+            self.assertEqual(
+                field_qty, expected_qty, f"Line {field} should be {expected_qty}, got {field_qty}"
+            )
 
 
 class TestStockInventoryFilters(common.BaseUDES):
