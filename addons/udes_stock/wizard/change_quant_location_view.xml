@@ -17,10 +17,30 @@
                             options='{"no_create": 1, "no_create_edit": 1}'/>
                     </group>
                     <footer>
-                        <button name="create_picking"
+                        <button name="check_reserved"
                                 string="Create"
                                 type="object"/>
                         <button special="cancel" string="Cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="view_move_reserved_package_check" model="ir.ui.view">
+            <field name="name">Create Picking for Reserved Package(s)?</field>
+            <field name="model">change_quant_location</field>
+            <field name="priority">20</field>
+            <field name="arch" type="xml">
+                <form string="Create Picking for Reserved Package(s)?">
+                    <group>
+                        <p>
+                            One or more packages/pallets you are attempting to create a picking for have
+                            reserved quants. Continue?
+                        </p>
+                    </group>
+                    <footer>
+                        <button name="create_picking" string="_Continue" type="object" class="btn-primary"/>
+                        <button string="Cancel" class="btn-default" special="cancel" />
                     </footer>
                 </form>
             </field>

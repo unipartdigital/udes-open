@@ -30,6 +30,8 @@
         'data/product_categories.xml',
         'data/product_packaging.xml',
         'data/picking_print.xml',
+        'data/res_groups.xml',
+        'data/res_users.xml',
         'data/ir_cron.xml',
         'report/product_product_templates.xml',
         'report/report_stockpicking_operations.xml',

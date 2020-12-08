@@ -206,6 +206,7 @@ Configuration information for the an entire warehouse.
 | u_product_barcode_regex                        | string           | Characters to replace in a scanned product barcode |
 | u_pi_count_move_picking_type                   | string           | |
 | u_stock_investigation_picking_type             | string           | |
+| u_allow_create_picking_reserved_package        | boolean          |  Allow Pickings for Packages with Reserved Quants |
 
 ## Picking Batches (model: stock.picking.batch)
 
