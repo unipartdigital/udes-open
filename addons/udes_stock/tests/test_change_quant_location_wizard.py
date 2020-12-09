@@ -14,10 +14,7 @@ class TestChangeQuantLocationWizard(common.BaseUDES):
         cls.product_quantity = 10
 
         cls.quant1 = cls.create_quant(
-            cls.apple.id,
-            cls.test_location_01.id,
-            cls.product_quantity,
-            package_id=cls.package1.id
+            cls.apple.id, cls.test_location_01.id, cls.product_quantity, package_id=cls.package1.id
         )
 
         cls.products_info = [{"product": cls.apple, "qty": cls.product_quantity}]
@@ -27,19 +24,23 @@ class TestChangeQuantLocationWizard(common.BaseUDES):
         due to permissions/settings"""
         with self.assertRaises(ValidationError) as e:
             cql.create_picking()
-        self.assertTrue(e.exception.name.startswith(
-            "Items are reserved and cannot be moved. "
-            "Please speak to a team leader to resolve the issue."
-        ))
+        self.assertTrue(
+            e.exception.name.startswith(
+                "Items are reserved and cannot be moved. "
+                "Please speak to a team leader to resolve the issue."
+            )
+        )
 
     def assert_cannot_create_partially_reserved(self, cql):
         """Assert we get a validation error when we try to move a reserved package
         as it is partially reserved"""
         with self.assertRaises(ValidationError) as e:
             cql.create_picking()
-        self.assertTrue(e.exception.name.startswith(
-            "Packages/Pallets must be either entirely reserved or unreserved."
-        ))
+        self.assertTrue(
+            e.exception.name.startswith(
+                "Packages/Pallets must be either entirely reserved or unreserved."
+            )
+        )
 
     def give_permission_to_move_reserved(self, user):
         """Setup the user and their warehouse to allow them to move reserved packages"""
@@ -52,9 +53,9 @@ class TestChangeQuantLocationWizard(common.BaseUDES):
         """Check that we can create a picking for a package"""
         self.assertFalse(self.quant1.reserved_quantity)
 
-        cql = self.change_quant_location.with_context(
-            active_ids=[self.package1.id]
-        ).create({"picking_type_id": self.picking_type_pick.id})
+        cql = self.change_quant_location.with_context(active_ids=[self.package1.id]).create(
+            {"picking_type_id": self.picking_type_pick.id}
+        )
         cql.create_picking()
 
         new_picking = self.package1.move_line_ids.picking_id
@@ -65,10 +66,7 @@ class TestChangeQuantLocationWizard(common.BaseUDES):
         """Check that we can create a picking for multiple packages"""
         package2 = self.create_package()
         quant2 = self.create_quant(
-            self.apple.id,
-            self.test_location_01.id,
-            self.product_quantity,
-            package_id=package2.id
+            self.apple.id, self.test_location_01.id, self.product_quantity, package_id=package2.id
         )
 
         self.assertFalse(self.quant1.reserved_quantity)
@@ -99,9 +97,9 @@ class TestChangeQuantLocationWizard(common.BaseUDES):
         test_picking.action_assign()
         self.assertEqual(self.quant1.quantity, self.quant1.reserved_quantity)
 
-        cql = self.change_quant_location.with_context(
-            active_ids=[self.package1.id]
-        ).create({"picking_type_id": self.picking_type_out.id})
+        cql = self.change_quant_location.with_context(active_ids=[self.package1.id]).create(
+            {"picking_type_id": self.picking_type_out.id}
+        )
 
         # We cannot create a picking without user permission for either value
         # of u_allow_create_picking_reserved_package
@@ -132,9 +130,9 @@ class TestChangeQuantLocationWizard(common.BaseUDES):
         self.give_permission_to_move_reserved(self.outbound_user)
         self.quant1.reserved_quantity = 1
 
-        cql = self.change_quant_location.with_context(
-            active_ids=[self.package1.id]
-        ).create({"picking_type_id": self.picking_type_pick.id})
+        cql = self.change_quant_location.with_context(active_ids=[self.package1.id]).create(
+            {"picking_type_id": self.picking_type_pick.id}
+        )
 
         self.assert_cannot_create_partially_reserved(cql)
 
@@ -155,10 +153,7 @@ class TestChangeQuantLocationWizard(common.BaseUDES):
         # Create second package
         package2 = self.create_package()
         quant2 = self.create_quant(
-            self.apple.id,
-            self.test_location_01.id,
-            self.product_quantity,
-            package_id=package2.id
+            self.apple.id, self.test_location_01.id, self.product_quantity, package_id=package2.id
         )
 
         cql = self.change_quant_location.with_context(

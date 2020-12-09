@@ -4,23 +4,17 @@ from odoo.exceptions import ValidationError
 
 
 class ChangeQuantLocation(models.TransientModel):
-    _name = 'change_quant_location'
+    _name = "change_quant_location"
 
     def _default_stock(self):
-        Users = self.env['res.users']
+        Users = self.env["res.users"]
         warehouse = Users.get_user_warehouse()
         return warehouse.lot_stock_id.id
 
-    location_dest_id = fields.Many2one(
-        'stock.location',
-        string='New destination location',
-    )
+    location_dest_id = fields.Many2one("stock.location", string="New destination location",)
 
-    picking_type_id = fields.Many2one(
-        'stock.picking.type',
-        string='Optional picking type',
-    )
-    reference = fields.Char('Reference')
+    picking_type_id = fields.Many2one("stock.picking.type", string="Optional picking type",)
+    reference = fields.Char("Reference")
 
     @api.multi
     def check_reserved(self):
@@ -28,7 +22,7 @@ class ChangeQuantLocation(models.TransientModel):
         Package = self.env["stock.quant.package"]
 
         self.ensure_one()
-        packages = Package.browse(self.env.context['active_ids'])
+        packages = Package.browse(self.env.context["active_ids"])
         quants = packages._get_contained_quants()
         reserved = any([quant.reserved_quantity for quant in quants])
         if reserved:
@@ -66,8 +60,8 @@ class ChangeQuantLocation(models.TransientModel):
 
     @api.multi
     def create_picking(self):
-        Picking = self.env['stock.picking']
-        Package = self.env['stock.quant.package']
+        Picking = self.env["stock.picking"]
+        Package = self.env["stock.quant.package"]
 
         self.ensure_one()
         packages = Package.browse(self.env.context["active_ids"])
@@ -97,10 +91,10 @@ class ChangeQuantLocation(models.TransientModel):
             "picking_type_id": self.picking_type_id.id,
             "location_dest_id": (
                 self.location_dest_id.id or self.picking_type_id.default_location_dest_id.id
-            )
+            ),
         }
         if self.reference:
-            params['origin'] = self.reference
+            params["origin"] = self.reference
 
         # If quants are reserved move them to a new picking
         if total_quantity_reserved:
