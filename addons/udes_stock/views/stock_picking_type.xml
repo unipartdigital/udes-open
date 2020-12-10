@@ -16,7 +16,7 @@
 
             <!-- Add udes fields -->
             <xpath expr="//form/sheet/group[last()]" position="after">
-                <group string="UDES Config" groups='base.group_no_one'>
+                <group class="udes_wide_list" string="UDES Config" groups='base.group_no_one'>
                     <field name="u_target_storage_format" />
                     <field name="u_user_scans" />
                     <field name="u_scan_parent_package_end" />
@@ -66,14 +66,14 @@
                     <field name="u_default_package_type_id" options="{'no_create': True, 'no_open': True}" />
                     <field name="u_show_all_tasks" />
                 </group>
-                <group string="Pick Refactoring" groups='base.group_no_one'>
+                <group class="udes_wide_list" string="Pick Refactoring" groups='base.group_no_one'>
                     <field name="u_move_line_key_format" />
                     <field name="u_move_key_format" />
                     <field name="u_post_confirm_action" />
                     <field name="u_post_assign_action" />
                     <field name="u_post_validate_action" />
                 </group>
-                <group string="Pick Warnings" groups='base.group_no_one'>
+                <group class="udes_wide_list" string="Pick Warnings" groups='base.group_no_one'>
                     <field name="u_warn_picking_precondition" />
                 </group>
             </xpath>

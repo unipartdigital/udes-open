@@ -36,7 +36,7 @@
                                    nolabel="1"
                             />
                         </group>
-                        <group name="udes_stock_config" string="Stock Config">
+                        <group class="udes_wide_list" name="udes_stock_config" string="Stock Config">
                             <field name="u_missing_stock_location_id" />
                             <field name="u_damaged_location_id" />
                             <field name="u_pi_count_move_picking_type" />
