@@ -261,9 +261,9 @@ class StockPickingType(models.Model):
     )
 
     u_drop_location_preprocess = fields.Boolean(
-        string="Add destination location on pick assignement",
+        string="Add destination location on pick assignment",
         default=False,
-        help="Flag to indicate if picking assignment should select " "destination locations",
+        help="Flag to indicate if picking assignment should select destination locations",
     )
 
     # Picking lifecycle actions
