@@ -303,5 +303,6 @@ class StockQuantPackage(models.Model):
     def get_move_lines(self, aux_domain=None):
         MoveLine = self.env["stock.move.line"]
         domain = [("package_id", "child_of", self.ids)]
-        domain.extend(aux_domain)
+        if aux_domain is not None:
+            domain.extend(aux_domain)
         return MoveLine.search(domain)

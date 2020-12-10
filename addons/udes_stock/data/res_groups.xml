@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="group_manage_reserved_packages" model="res.groups">
+        <field name="name">Manage Reserved Packages</field>
+        <field name="category_id" ref="base.module_category_extra"/>
+    </record>
+
+</odoo>

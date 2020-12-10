@@ -121,6 +121,14 @@ class StockWarehouse(models.Model):
         domain=_domain_warehouse_picking_types
     )
 
+    u_allow_create_picking_reserved_package = fields.Boolean(
+        string="Allow Pickings for Packages/Pallets with Reserved Quants",
+        default=False,
+        help="Allow on the fly pickings to be created for packages with reserved quants "
+        "from the package view. "
+        "Users must also be a member of the group_manage_reserved_packages group.",
+    )
+
     @lazy_property
     def reserved_package_name(self):
         return list(
@@ -149,6 +157,7 @@ class StockWarehouse(models.Model):
             - u_package_barcode_regex: string
             - u_product_barcode_regex: string
             - u_show_rpc_timing: boolean
+            - u_allow_create_picking_reserved_package: boolean
         """
         self.ensure_one()
 
@@ -178,6 +187,7 @@ class StockWarehouse(models.Model):
             'u_pi_count_move_picking_type': self.u_pi_count_move_picking_type.id,
             'u_stock_investigation_picking_type': self.u_stock_investigation_picking_type.id,
             'u_show_rpc_timing': self.u_show_rpc_timing,
+            'u_allow_create_picking_reserved_package': self.u_allow_create_picking_reserved_package,
         }
 
     def get_info(self):
