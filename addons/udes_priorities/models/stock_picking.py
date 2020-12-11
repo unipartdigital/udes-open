@@ -1,4 +1,4 @@
-from odoo import fields, models, api, _, tools
+from odoo import fields, models, api, _
 from collections import defaultdict, OrderedDict
 
 
@@ -7,11 +7,7 @@ class StockPicking(models.Model):
 
     @api.model
     def _default_priority(self):
-        Priorities = self.env["udes_priorities.priority"]
-        priorities = Priorities.search(self._priority_domain(), limit=1)
-        return (
-            priorities.reference if priorities else self.env.ref("udes_priorities.normal").reference
-        )
+        return self.env.ref("udes_priorities.normal").reference
 
     priority = fields.Selection(selection="get_priorities_for_selection", default=_default_priority)
 
@@ -50,7 +46,6 @@ class StockPicking(models.Model):
         return self._priority_and_priority_group_domain(picking_type_ids=picking_type_ids)
 
     @api.model
-    @tools.ormcache()
     def get_priorities_for_selection(self):
         Priorities = self.env["udes_priorities.priority"]
         pick_id = self.env.context.get("id", None)
@@ -138,7 +133,6 @@ class StockPicking(models.Model):
         picking_type_priorities = Priorities.search(
             self._priority_and_priority_group_domain(self.picking_type_id.id)
         )
-        self.get_priorities_for_selection()  # Fix cache values
         if self.mapped("move_lines") and not isinstance(self.id, models.NewId):
             priority = Priorities.search(
                 [("reference", "in", self.mapped("move_lines.priority"))],
@@ -168,5 +162,5 @@ class StockPicking(models.Model):
         picking_type_id = values.get("picking_type_id", None)
         if picking_type_id:
             context = {"default_picking_type_id": picking_type_id}
-        res = super(StockPicking, self.with_context(**context),).create(values)
+        res = super(StockPicking, self.with_context(**context)).create(values)
         return res
