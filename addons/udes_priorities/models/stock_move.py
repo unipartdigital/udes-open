@@ -33,6 +33,7 @@ class StockMove(models.Model):
         return domain
 
     @api.model
+    @tools.ormcache()
     def get_priorities_for_selection(self):
         Priorities = self.env["udes_priorities.priority"]
         priorities = Priorities.search(self._priority_domain())
