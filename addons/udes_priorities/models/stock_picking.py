@@ -168,5 +168,8 @@ class StockPicking(models.Model):
         picking_type_id = values.get("picking_type_id", None)
         if picking_type_id:
             context = {"default_picking_type_id": picking_type_id}
-        res = super(StockPicking, self.with_context(**context),).create(values)
+
+        self = self.with_context(**context)
+        self.get_priorities_for_selection()  # fix orm cache
+        res = super(StockPicking, self).create(values)
         return res
