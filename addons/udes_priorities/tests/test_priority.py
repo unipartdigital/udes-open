@@ -34,6 +34,7 @@ class TestPriorities(common.BasePriorities):
         self.urgent.reference = "This is allowed"
 
         picking = self.create_picking(self.picking_type_pick)
+        picking.priority = self.urgent.reference
         with self.assertRaises(
             UserError, msg="Allowed to change reference while there is outstanding an picking"
         ):
