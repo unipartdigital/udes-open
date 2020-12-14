@@ -96,6 +96,12 @@ class UdesPriority(models.Model):
 
     @api.multi
     def _check_for_oustanding_pickings(self):
+
+        install_mode = self.env.context.get("install_mode", False)
+
+        if install_mode:
+            return
+
         priorities_with_outstanding_picks = self.browse()
         for priority in self:
             if priority._number_of_oustanding_pickings() > 0:
