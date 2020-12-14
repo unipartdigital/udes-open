@@ -29,3 +29,4 @@ from . import test_package_hierarchy
 from . import test_stock_inventory
 from . import test_stock_quant
 from . import test_change_quant_location_wizard
+from . import test_stock_location_picking_zone

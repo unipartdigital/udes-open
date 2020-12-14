@@ -106,6 +106,11 @@ class StockLocation(models.Model):
         "and its descendants.",
     )
 
+    u_is_picking_zone = fields.Boolean(
+        string="Is A Picking Zone",
+        help="Picking Zones are the level to which warehouse-wide Picks are broken down.",
+    )
+
     def _prepare_info(self, extended=False, load_quants=False):
         """
             Prepares the following info of the location in self:
@@ -582,6 +587,26 @@ class StockLocation(models.Model):
         if package and package.location_id:
             return package.location_id  == self
         return True
+
+    @api.multi
+    def get_picking_zone(self):
+        """
+        Get the location that is the picking zone for the location in self.
+        A picking zone is a location with u_is_picking_zone == True.
+        If self is a picking zone, it is returned, otherwise successive parent
+        locations are checked, and the first one which is a picking zone
+        is returned.
+        If no picking zone is found, returns an empty stock.location recordset.
+        :return: A stock.location() recordset with 1 or 0 records in.
+        """
+        self.ensure_one()
+        zone = self.browse()
+        location = self
+        while location and not zone:
+            if location.u_is_picking_zone:
+                zone = location
+            location = location.location_id
+        return zone
 
 
 class Orderpoint(models.Model):
