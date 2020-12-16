@@ -955,6 +955,7 @@ class StockPickingBatch(models.Model):
         package_name=None,
         lot_name=None,
         raise_stock_investigation=True,
+        bypass_reassignment=False,
     ):
         """
         Given an unpickable product or package, find the related
@@ -1063,31 +1064,31 @@ class StockPickingBatch(models.Model):
             ).raise_stock_inv(
                 reason=reason, quants=quants, location=location,
             )
-
-            for picking in to_investigate:
-                moves = picking.move_lines
-                original_picking_id = original_picking_ids[picking]
-                if (
-                    picking.exists()
-                    and picking.state == "assigned"
-                    and original_picking_id is not None
-                    and not picking.picking_type_id.u_post_assign_action
-                ):
-                    # A backorder has been created, but the stock is
-                    # available; get rid of the backorder after linking the
-                    # move lines to the original picking, so it can be
-                    # directly processed
-                    picking.move_line_ids.write({"picking_id": original_picking_id})
-                    picking.move_lines.write({"picking_id": original_picking_id})
-                    picking.unlink()
-                else:
-                    # Moves may be part of a new picking after refactor, this should
-                    # be added back to the batch
-                    moves.mapped("picking_id").filtered(lambda p: p.state == "assigned").write(
-                        {"batch_id": self.id}
-                    )
-                self._remove_unready_picks()
-                self._compute_state()
+            if not bypass_reassignment:
+                for picking in to_investigate:
+                    moves = picking.move_lines
+                    original_picking_id = original_picking_ids[picking]
+                    if (
+                        picking.exists()
+                        and picking.state == "assigned"
+                        and original_picking_id is not None
+                        and not picking.picking_type_id.u_post_assign_action
+                    ):
+                        # A backorder has been created, but the stock is
+                        # available; get rid of the backorder after linking the
+                        # move lines to the original picking, so it can be
+                        # directly processed
+                        picking.move_line_ids.write({"picking_id": original_picking_id})
+                        picking.move_lines.write({"picking_id": original_picking_id})
+                        picking.unlink()
+                    else:
+                        # Moves may be part of a new picking after refactor, this should
+                        # be added back to the batch
+                        moves.mapped("picking_id").filtered(lambda p: p.state == "assigned").write(
+                            {"batch_id": self.id}
+                        )
+            self._remove_unready_picks()
+            self._compute_state()
         return True
 
     def get_available_move_lines(self):
