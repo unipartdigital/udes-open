@@ -2198,7 +2198,7 @@ class StockPicking(models.Model):
 
         # create new "investigation pick"
         Picking.create_picking(
-            quant_ids=quants.ids,
+            quant_ids=quants.exists().ids,
             location_id=location.id,
             picking_type_id=stock_inv_pick_type.id,
             group_id=group.id,
