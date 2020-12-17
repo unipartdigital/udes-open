@@ -1479,7 +1479,12 @@ class StockPicking(models.Model):
                         # to avoid to be called again inside _create_moves()
                         picking.with_context(
                             bypass_reserve_full_packages=True, quant_ids=all_quants.ids
-                        )._create_moves(remaining_qtys, confirm=True, assign=True)
+                        )._create_moves(
+                            remaining_qtys,
+                            values={"priority": picking.priority},
+                            confirm=True,
+                            assign=True,
+                        )
 
     def _create_own_procurement_group(self):
         """Create a procurement group for self with the same name as self."""
