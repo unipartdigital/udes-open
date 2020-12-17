@@ -306,3 +306,12 @@ class StockQuantPackage(models.Model):
         if aux_domain is not None:
             domain.extend(aux_domain)
         return MoveLine.search(domain)
+
+    @api.depends("package_id")
+    def _compute_display_name(self):
+        """Override to hide parent package if context set"""
+        if self.env.context.get("display_package_name_only", False):
+            for package in self:
+                package.display_name = package.name
+        else:
+            super(StockQuantPackage, self)._compute_display_name()

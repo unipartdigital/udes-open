@@ -59,5 +59,9 @@
                 </form>
             </field>
         </record>
+
+        <record id="stock.action_inventory_form" model="ir.actions.act_window">
+            <field name="context">{'display_package_name_only': True}</field>
+        </record>
     </data>
 </odoo>
