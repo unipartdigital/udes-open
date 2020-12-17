@@ -27,6 +27,10 @@
                 </xpath>
                 <xpath expr="//sheet/notebook/page/field/tree" position="attributes">
                     <attribute name="decoration-danger">reserved_qty or theoretical_qty &lt; 0</attribute>
+                <xpath expr="//sheet/notebook/page/field/tree/field[@name='package_id']" position="after">
+                    <field name="u_result_parent_package_id" attrs="{'readonly': [('package_id', '=', False)]}"/>
+                    <field name="u_package_parent_package_id" invisible="1"/>
+                    <field name="u_line_updated" invisible="1"/>
                 </xpath>
                 <xpath expr="//sheet/notebook/page/field/tree/field[@name='theoretical_qty']" position="before">
                     <field name="reserved_qty" readonly="1"/>
