@@ -545,6 +545,8 @@ class StockPicking(models.Model):
             values["location_dest_id"] = self.location_dest_id.id
         if not "picking_type_id" in values:
             values["picking_type_id"] = self.picking_type_id.id
+        if not "group_id" in values:
+            values["group_id"] = self.group_id.id
         if not "product_uom" in values:
             default_uom_id = self.env.ref("product.product_uom_unit").id
             values["product_uom"] = default_uom_id
