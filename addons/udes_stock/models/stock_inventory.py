@@ -206,6 +206,13 @@ class StockInventoryLine(models.Model):
         'on the Inventory Line has been updated'
     )
 
+    u_line_updated = fields.Boolean(
+        'Line Updated?',
+        compute='_compute_line_updated',
+        help='Indicates whether this line has been updated, '
+        'which in turn will mean quants are to be adjusted'
+    )
+
     @api.one
     @api.depends(
         'location_id',
@@ -226,6 +233,18 @@ class StockInventoryLine(models.Model):
             )
         self.reserved_qty = reserved_qty
 
+    @api.multi
+    @api.depends(
+        'product_qty',
+        'theoretical_qty',
+        'u_result_parent_package_id',
+        'u_package_parent_package_id',
+    )
+    def _compute_line_updated(self):
+        """Apply value of `_get_line_updated` to `u_line_updated` for each line in self"""
+        for line in self:
+            line.u_line_updated = line._get_line_updated()
+
     @api.onchange('package_id')
     def onchange_package_id(self):
         """
@@ -235,6 +254,18 @@ class StockInventoryLine(models.Model):
         parent_package = self.package_id.package_id
         self.u_result_parent_package_id = parent_package
         self.u_package_parent_package_id = parent_package
+
+    def _get_line_updated(self):
+        """Returns True if line quantity or parent package has been updated, otherwise False"""
+        self.ensure_one()
+        line_updated = False
+
+        if self.product_qty != self.theoretical_qty:
+            line_updated = True
+        elif self.u_result_parent_package_id != self.u_package_parent_package_id:
+            line_updated = True
+
+        return line_updated
 
     def _get_quants_domain(self):
         """Returns a domain used for retrieving relevant Quant records"""
