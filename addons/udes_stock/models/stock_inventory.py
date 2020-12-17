@@ -69,6 +69,13 @@ class StockInventory(models.Model):
         else:
             return self.action_done()
 
+    def action_check(self):
+        """Override to update Parent Package on Package if needed."""
+        inventories_to_check = self.filtered(lambda i: i.state not in ("done", "cancel"))
+        for inventory in inventories_to_check:
+            inventory.line_ids._update_package_parent()
+        return super(StockInventory, self).action_check()
+
     def _is_adjusting_reserved(self):
         """Check if a user is adjusting reserved stock."""
         self.ensure_one()
@@ -188,6 +195,17 @@ class StockInventoryLine(models.Model):
         store=False
     )
 
+    u_result_parent_package_id = fields.Many2one(
+        'stock.quant.package', 'Parent Destination Package'
+    )
+
+    u_package_parent_package_id = fields.Many2one(
+        'stock.quant.package',
+        'Current Parent Package',
+        help='The current parent package, used to determine if the parent package '
+        'on the Inventory Line has been updated'
+    )
+
     @api.one
     @api.depends(
         'location_id',
@@ -207,6 +225,16 @@ class StockInventoryLine(models.Model):
                 self.product_uom_id
             )
         self.reserved_qty = reserved_qty
+
+    @api.onchange('package_id')
+    def onchange_package_id(self):
+        """
+        Set values for u_result_parent_package_id and u_package_parent_package_id
+        when package is changed
+        """
+        parent_package = self.package_id.package_id
+        self.u_result_parent_package_id = parent_package
+        self.u_package_parent_package_id = parent_package
 
     def _get_quants_domain(self):
         """Returns a domain used for retrieving relevant Quant records"""
@@ -240,6 +268,8 @@ class StockInventoryLine(models.Model):
             "prod_lot_id": quant.lot_id.id,
             "package_id": quant.package_id.id,
             "partner_id": quant.owner_id.id,
+            "u_result_parent_package_id": quant.package_id.package_id.id,
+            "u_package_parent_package_id": quant.package_id.package_id.id,
         }
         return quant_line_vals
 
@@ -253,3 +283,25 @@ class StockInventoryLine(models.Model):
             quant_line_vals["partner_id"],
         )
         return quant_key
+
+    def _get_move_values(self, qty, location_id, location_dest_id, out):
+        """Override to include Parent Package, if set"""
+        move_values = super(StockInventoryLine, self)._get_move_values(
+            qty, location_id, location_dest_id, out
+        )
+        move_line_vals = move_values["move_line_ids"][0][2]
+        move_line_vals["u_result_parent_package_id"] = self.u_result_parent_package_id.id
+        return move_values
+
+    def _update_package_parent(self):
+        """Update Package's Parent Package if it has been updated on the Inventory Line"""
+        for line in self.filtered(
+            lambda l: l.package_id and l.u_result_parent_package_id != l.u_package_parent_package_id
+        ):
+            line.package_id.sudo().write({"package_id": line.u_result_parent_package_id.id})
+
+    @api.constrains("package_id", "u_result_parent_package_id")
+    def _parent_package_check(self):
+        """Remove `u_result_parent_package_id` if `package_id` not set"""
+        lines_to_update = self.filtered(lambda l: not l.package_id and l.u_result_parent_package_id)
+        lines_to_update.write({"u_result_parent_package_id": False})
