@@ -285,6 +285,8 @@
             </xpath>
             <xpath expr="//button[@name='get_action_picking_tree_ready']" position="attributes">
                 <attribute name="t-if">record.u_show_transfer_count.raw_value</attribute>
+                <!-- Add spacing between the Transfers and Package Count buttons -->
+                <attribute name="style">margin-bottom: 4px</attribute>
             </xpath>
         </field>
     </record>
