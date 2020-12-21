@@ -321,7 +321,9 @@ class StockInventoryLine(models.Model):
             qty, location_id, location_dest_id, out
         )
         move_line_vals = move_values["move_line_ids"][0][2]
-        move_line_vals["u_result_parent_package_id"] = self.u_result_parent_package_id.id
+
+        result_parent_package_id = (not out) and self.u_result_parent_package_id.id
+        move_line_vals["u_result_parent_package_id"] = result_parent_package_id
         return move_values
 
     def _update_package_parent(self):
