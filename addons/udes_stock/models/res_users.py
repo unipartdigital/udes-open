@@ -29,6 +29,8 @@ class ResUser(models.Model):
         string='Location Category',
     )
 
+    notification_type = fields.Selection(default='inbox')
+
     def get_user_warehouse(self):
         """ Get the warehouse of the user by chain of the company
         """
