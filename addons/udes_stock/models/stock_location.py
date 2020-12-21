@@ -21,7 +21,7 @@ VALID_SERIAL_TRACKING_QUANTITIES = [1, 0]
 ## Auxiliary types
 #
 
-StockInfoPI = namedtuple('StockInfoPI', ['product_id', 'package_id', 'lot_id'])
+StockInfoPI = namedtuple('StockInfoPI', ['product_id', 'package_id', 'parent_package_id', 'lot_id'])
 
 
 class PIOutcome:
@@ -346,6 +346,7 @@ class StockLocation(models.Model):
         quants = None
         quant_ids = []
         package = False
+        result_parent_package = False
         if 'package_id' in count_move:
             package = Package.browse(int(count_move['package_id'])).exists()
         if package:
@@ -353,6 +354,10 @@ class StockLocation(models.Model):
             # there's no previous schema validation
             quants = package._get_contained_quants()
             quant_ids = quants.ids
+            if 'parent_package_barcode' in count_move:
+                result_parent_package = Package.search(
+                    [('name', '=', count_move['parent_package_barcode'])]
+                )
         elif 'quant_ids' in count_move:
             quant_ids = [int(x) for x in count_move['quant_ids']]
             quants = Quant.browse(quant_ids)
@@ -374,6 +379,8 @@ class StockLocation(models.Model):
                                          location_id,
                                          picking_type_id=picking_type_id,
                                          location_dest_id=location_dest_id)
+        if result_parent_package:
+            picking.move_line_ids.write({"u_result_parent_package_id": result_parent_package.id})
         picking.move_line_ids.mark_as_done()
         return picking
 
@@ -428,6 +435,7 @@ class StockLocation(models.Model):
               'product_qty':  quantity,
               'location_id':  self.id,
               'package_id':   stock_info.package_id,
+              'u_result_parent_package_id': stock_info.parent_package_id,
               'prod_lot_id':  stock_info.lot_id})
 
         return inventory_adjustment
@@ -474,6 +482,7 @@ class StockLocation(models.Model):
             new_adjs.append({
             'product_id': product,
             'package_name': 'NO_PACKAGE',
+            'parent_package_name': 'NO_PACKAGE',
             'quantity': quantity,
             })
         adjustments_request.extend(new_adjs)
@@ -507,6 +516,15 @@ class StockLocation(models.Model):
 
             package_id = False if package is None else package.id
 
+            # Similarly for parent_packages
+            parent_package_name = adj['parent_package_name']
+            parent_package = None
+            # It might be a new package, so create=True
+            if NO_PACKAGE_TOKEN not in package_name:
+                parent_package = Package.get_package(parent_package_name, create=True)
+
+            parent_package_id = False if parent_package is None else parent_package.id
+
             # determine the lot
 
             lot_id = False
@@ -516,7 +534,7 @@ class StockLocation(models.Model):
 
             # add the entry
 
-            info = StockInfoPI(product.id, package_id, lot_id)
+            info = StockInfoPI(product.id, package_id, parent_package_id, lot_id)
             stock_drift[info] = adj['quantity']
 
         return stock_drift
