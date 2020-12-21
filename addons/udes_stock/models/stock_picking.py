@@ -1961,7 +1961,7 @@ class StockPicking(models.Model):
                     if func:
                         result = func(move_line_ids)
 
-        return result
+        return result.sorted(lambda l: l.name)
 
     def get_empty_locations(self):
         """ Returns the recordset of locations that are child of the
@@ -1970,7 +1970,7 @@ class StockPicking(models.Model):
         """
         return self._get_child_dest_locations(
             [("u_blocked", "=", False), ("barcode", "!=", False), ("quant_ids", "=", False)]
-        )
+        ).sorted(lambda l: l.name)
 
     def _check_picking_move_lines_suggest_location(self, move_line_ids):
         pick_move_lines = self.mapped("move_line_ids").filtered(lambda ml: ml in move_line_ids)
