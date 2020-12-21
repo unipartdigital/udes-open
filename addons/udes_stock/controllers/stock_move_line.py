@@ -37,7 +37,7 @@ class StockMoveLineApi(UdesApi):
 
         if locations:
             response.append({"title": "",
-                             "locations": locations.sorted(lambda l: l.name).get_info()})
+                             "locations": locations.get_info()})
 
             if empty_locations:
                 # Ensure we don't have duplicates in the two recordsets
@@ -45,6 +45,6 @@ class StockMoveLineApi(UdesApi):
 
         if empty_locations:
             response.append({"title": "empty",
-                             "locations": empty_locations.sorted(lambda l: l.name).get_info()})
+                             "locations": empty_locations.get_info()})
 
         return response
