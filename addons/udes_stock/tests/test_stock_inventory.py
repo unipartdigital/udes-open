@@ -178,6 +178,64 @@ class TestStockInventoryLine(common.BaseUDES):
                 field_qty, expected_qty, f"Line {field} should be {expected_qty}, got {field_qty}"
             )
 
+    def test04_assert_parent_package_retained(self):
+        """
+        Assert that parent package is retained on the quant after updating product quantity on
+        inventory line
+        """
+        # Create pallet with a package and assign package to apple quant
+        pallet = self.create_package()
+        package = self.create_package(package_id=pallet.id)
+        self.apple_quant.package_id = package.id
+
+        self.test_stock_inventory.action_start()
+
+        # Set new quantity on inventory line
+        inventory_line = self.test_stock_inventory.line_ids[0]
+        old_qty = inventory_line.product_qty
+        new_qty = old_qty + 1
+        inventory_line.product_qty = new_qty
+
+        # Validate inventory adjustment and assert that quantity was updated
+        # and parent package retained for package
+        self.test_stock_inventory.action_done()
+
+        self.assertEqual(
+            self.apple_quant.quantity,
+            new_qty,
+            f"{self.apple.name} quant qty should be {new_qty}, got: {self.apple_quant.quantity}",
+        )
+
+        self.assertEqual(
+            package.package_id,
+            pallet,
+            f"{package} parent package should be {pallet}, got: {package.package_id}",
+        )
+
+    def test05_assert_parent_package_updated(self):
+        """
+        Assert that parent package is updated on the quant after being updated on inventory line
+        """
+        # Create package and assign it to apple quant
+        package = self.create_package()
+        self.apple_quant.package_id = package.id
+
+        self.test_stock_inventory.action_start()
+
+        # Create pallet and set it as new parent package on inventory line
+        pallet = self.create_package()
+        inventory_line = self.test_stock_inventory.line_ids[0]
+        inventory_line.u_result_parent_package_id = pallet
+
+        # Validate inventory adjustment and assert that parent package was updated
+        self.test_stock_inventory.action_done()
+
+        self.assertEqual(
+            package.package_id,
+            pallet,
+            f"{package} parent package should be {pallet}, got: {package.package_id}",
+        )
+
 
 class TestStockInventoryFilters(common.BaseUDES):
     @classmethod
