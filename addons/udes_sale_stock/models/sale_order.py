@@ -121,8 +121,7 @@ class SaleOrder(models.Model):
         if unfulfillable_lines:
             # Cancel these lines
             with self.statistics() as stats:
-                unfulfillable_lines.action_cancel()
-                unfulfillable_lines.write({"is_cancelled_due_shortage": True})
+                unfulfillable_lines.with_context(cancelled_stock_shortage=True).action_cancel()
 
             _logger.info(
                 "Sale lines on orders %s cancelled in %.2fs, %d queries, due to" " stock shortage,",
