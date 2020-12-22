@@ -479,12 +479,7 @@ class StockLocation(models.Model):
                 adj_reqs.append(adj)
                 continue
             if NO_PACKAGE_TOKEN in pn or pn in wh.reserved_package_name:
-                parent_package = adj.get('parent_package_name')
-                key = (
-                    adj['product_id'],
-                    parent_package
-                )
-                no_package_vals[key] += adj['quantity']
+                no_package_vals[adj['product_id']] += adj['quantity']
             else:
                 adj_reqs.append(adj)
 
@@ -493,11 +488,10 @@ class StockLocation(models.Model):
 
         # Read them to adjustments_request
         new_adjs = []
-        for product_key, quantity in no_package_vals.items():
+        for product_id, quantity in no_package_vals.items():
             new_adjs.append({
-            'product_id': product_key[0],
+            'product_id': product_id,
             'package_name': 'NO_PACKAGE',
-            'parent_package_name': product_key[1],
             'quantity': quantity,
             })
         adjustments_request.extend(new_adjs)
