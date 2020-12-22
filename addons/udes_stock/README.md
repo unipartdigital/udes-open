@@ -876,9 +876,11 @@ URI: /api/print-printer/spool-report
 HTTP Method: POST
 Old method(s): spool_report
 ```
-Prints a report using users default printer.
+Prints a report.
 
 * @param object_ids Array (int) - the object ids to add to report
 * @param report_name (string) - name of the report template
 * @param (optional) copies (int, default=1) - the number of copies to print
+* @param (optional) printer_barcode (string) - barcode of the printer to use,
+defaults to the user's default printer
 * @param (optional) kwargs - other data passed to report

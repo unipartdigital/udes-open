@@ -12,8 +12,8 @@ class Printer(UdesApi):
 
     @http.route('/api/print-printer/spool-report', type='json',
                 methods=['POST'], auth='user')
-    def spool_report(self, object_ids, report_name, copies=1, **kwargs):
-        """ Prints a report using users default printer.
+    def spool_report(self, object_ids, report_name, copies=1, printer_barcode=None, **kwargs):
+        """ Prints a report.
 
             @param object_ids Array (int)
                 The object ids to add to report
@@ -21,11 +21,22 @@ class Printer(UdesApi):
                 Name of the report template
             @param (optional) copies (int, default=1)
                 The number of copies to print
+            @param (optional) printer_barcode (string)
+                Barcode of the printer to use, defaults to the user's default printer
             @param (optional) kwargs
                 Other data passed to report
         """
         Printer = request.env['print.printer']
-        return Printer.spool_report(object_ids, report_name, copies=copies,
+
+        if printer_barcode:
+            printer = Printer.search([('barcode', '=', printer_barcode)])
+            if not printer:
+                raise ValidationError(
+                    _('Cannot find printer with barcode: %s') % printer_barcode)
+        else:
+            printer = Printer.browse([])
+
+        return printer.spool_report(object_ids, report_name, copies=copies,
                                     **kwargs)
 
     @http.route('/api/print-printer/set-user-printer', type='json',
