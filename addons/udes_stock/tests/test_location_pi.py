@@ -767,3 +767,54 @@ class TestLocationPI(common.BaseUDES):
 
         self.test_location_01._validate_perpetual_inventory_request(req)
         self.assertTrue(True)
+
+    def test28_validate_pi_request_parent_package(self):
+        """
+        No error raised if the request contains an inventory adjustment entry
+        with a parent package specified
+        """
+        req = {
+            'location_id': self.test_location_01.id,
+            'inventory_adjustments': [
+                {
+                    'product_id': self.apple.id,
+                    'package_name': self.package_one.name,
+                    'parent_package_name': self.package_two.name,
+                    'quantity': 1,
+                }
+            ]
+        }
+
+        self.test_location_01._validate_perpetual_inventory_request(req)
+        self.assertTrue(True)
+
+    def test29_get_stock_drift_parent_package(self):
+        """
+        Returns the correct metadata for the picking creation if
+        a request item contains a parent package
+        """
+        self.create_quant(self.apple.id, self.test_location_01.id, 4)
+        adjs_req = [{"product_id": self.apple.id,
+                     "package_name": self.package_one.name,
+                     "parent_package_name": self.package_two.name,
+                     "quantity": 8}]
+
+        stock_drift = self.test_location_01._get_stock_drift(adjs_req)
+
+        self.assertEqual(len(stock_drift), 1, "Not a unique stock drift entry")
+
+        (stock_info, qty), = stock_drift.items()
+
+        self.assertEqual(qty, 8, "Wrong adjustment quantity")
+        self.assertEqual(stock_info.product_id, self.apple.id,
+                         "Wrong product id")
+        self.assertEqual(stock_info.package_id, self.package_one.id, "Wrongly added a product id")
+        self.assertEqual(
+            stock_info.result_parent_package_id,
+            self.package_two.id,
+            "Result parent package incorrectly set"
+        )
+        self.assertFalse(
+            stock_info.original_parent_package_id,
+            "Original parent package incorrectly set"
+        )
