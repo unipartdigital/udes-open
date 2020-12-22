@@ -491,7 +491,7 @@ class StockLocation(models.Model):
         for product_id, quantity in no_package_vals.items():
             new_adjs.append({
             'product_id': product_id,
-            'package_name': 'NO_PACKAGE',
+            'package_name': NO_PACKAGE_TOKEN,
             'quantity': quantity,
             })
         adjustments_request.extend(new_adjs)
@@ -531,7 +531,7 @@ class StockLocation(models.Model):
 
             parent_package_name = adj.get('parent_package_name')
             parent_package = False
-            if parent_package_name:
+            if parent_package_name and NO_PACKAGE_TOKEN not in parent_package_name:
                 parent_package = Package.get_package(parent_package_name, create=True)
 
             parent_package_id = parent_package.id if parent_package else False
