@@ -192,7 +192,7 @@ class StockMoveLine(models.Model):
             move_lines = move_lines.get_lines_todo()
             # TODO all in one function?
             move_lines = move_lines._check_enough_quantity(
-                products_info_by_product, picking_id=picking
+                products_info_by_product, picking=picking
             )
 
             if not package and move_lines.mapped("package_id"):
@@ -511,7 +511,7 @@ class StockMoveLine(models.Model):
 
         return products_info
 
-    def _check_enough_quantity(self, products_info, picking_id=None):
+    def _check_enough_quantity(self, products_info, picking=None):
         """ Check that move_lines in self can fulfill the quantity done
             in products_info, otherwise create unexpected parts if
             applicable.
@@ -538,7 +538,7 @@ class StockMoveLine(models.Model):
         if products_todo:
             # TODO: move function into picking?
             # if not move_line in self, there is no picking
-            picking = self.mapped("picking_id") or picking_id
+            picking = self.mapped("picking_id") or picking
             new_move_lines = picking.add_unexpected_parts(products_todo)
             move_lines |= new_move_lines
 
@@ -654,6 +654,7 @@ class StockMoveLine(models.Model):
                     "ordered_qty": ordered_quantity_left_todo,
                     "qty_done": 0.0,
                     "result_package_id": False,
+                    "u_result_parent_package_id": False,
                     "lot_name": False,
                 }
             )
