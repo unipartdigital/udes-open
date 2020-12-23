@@ -3,13 +3,13 @@
 from . import common
 
 
-class TestAssignSplitting(common.BaseUDES):
+class TestRefactoringAssignSplitting(common.BaseUDES):
     def setUp(self):
         """
         Create stock: pallet with apples, pallet with bananas
         create picking: for all of both
         """
-        super(TestAssignSplitting, self).setUp()
+        super(TestRefactoringAssignSplitting, self).setUp()
 
         # group by package post assign
         self.picking_type_pick.write(
@@ -444,13 +444,13 @@ class TestAssignSplitting(common.BaseUDES):
         self.assertEqual(apple_pick_02.group_id.name, apple_pallet_02.name)
 
 
-class TestValidateSplitting(common.BaseUDES):
+class TestRefactoringValidateSplitting(common.BaseUDES):
     def setUp(self):
         """
         Create stock: pallet with apples, pallet with bananas
         create picking: for all of both
         """
-        super(TestValidateSplitting, self).setUp()
+        super(TestRefactoringValidateSplitting, self).setUp()
 
         # group by destination location post validation
         self.picking_type_pick.write(
@@ -652,13 +652,13 @@ class TestValidateSplitting(common.BaseUDES):
         self.assertEqual(banana_move.picking_id.date_done, banana_move.date)
 
 
-class TestConfirmSplitting(common.BaseUDES):
+class TestRefactoringConfirmSplitting(common.BaseUDES):
     def setUp(self):
         """
         Create stock: pallet with apples, pallet with bananas
         create picking: for all of both
         """
-        super(TestConfirmSplitting, self).setUp()
+        super(TestRefactoringConfirmSplitting, self).setUp()
 
         # group by package post confirm
         self.picking_type_pick.write(
@@ -698,11 +698,11 @@ class TestConfirmSplitting(common.BaseUDES):
         self.assertEqual(banana_pick.state, "confirmed")
 
 
-class TestAutoUnlinkEmpty(common.BaseUDES):
+class TestRefactoringAutoUnlinkEmpty(common.BaseUDES):
     def setUp(self):
         """ Setup picking type config
         """
-        super(TestAutoUnlinkEmpty, self).setUp()
+        super(TestRefactoringAutoUnlinkEmpty, self).setUp()
 
         # group by product post confirm at goods-out
         self.picking_type_out.write(

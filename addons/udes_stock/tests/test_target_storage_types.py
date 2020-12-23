@@ -317,14 +317,22 @@ class TestGoodsInTargetStorageTypes(common.BaseUDES):
         self.picking_type_in.u_target_storage_format = 'pallet_packages'
         product_ids = [{'barcode': self.apple.barcode, 'qty': 4}]
         picking.update_picking(product_ids=product_ids, result_package_name=package.name)
-        self.validate_move_lines(picking.move_line_ids, self.apple, 2, 4,
+        original_mls = picking.move_line_ids
+        self.validate_move_lines(original_mls, self.apple, 2, 4,
                                  package_name=package.name, **validation_args)
+        # Book in a whole new unexpected package
+        product_ids_2 = [{'barcode': self.apple.barcode, 'qty': 3}]
+        picking.update_picking(product_ids=product_ids_2, result_package_name=package.name)
+        new_mls = picking.move_line_ids - original_mls
+        self.validate_move_lines(new_mls, self.apple, 0, 3,
+                                 package_name=package.name, **validation_args)
+
         picking.update_picking(validate=True)
         validation_args.update({
-                                    'num_packages_expected': 1,
+                                    'num_packages_expected': 2,
                                     'expected_location': self.picking_type_in.default_location_dest_id
                                 })
-        expected_quants = [{'product': self.apple, 'qty': 4}]
+        expected_quants = [{'product': self.apple, 'qty': 4}, {'product': self.apple, 'qty': 3}]
         self.validate_quants(package=package, expected_quants=expected_quants, **validation_args)
 
     def test09_target_storage_format_package_serial_numbers_product(self):

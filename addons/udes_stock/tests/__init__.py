@@ -20,7 +20,7 @@ from . import test_refactor_wizard
 from . import test_replen
 from . import test_picking_batch
 from . import test_res_users
-from . import test_splitting
+from . import test_refactoring_splitting
 from . import test_target_storage_types
 from . import test_update_picking
 from . import test_picking_print_strategy
