@@ -34,7 +34,13 @@ class SaleOrderLine(models.Model):
             return False
 
         now_date = datetime.now()
-        to_cancel.write({"is_cancelled": True, "cancel_date": fields.Datetime.to_string(now_date)})
+        cancel_vals = {
+            "is_cancelled": True,
+            "cancel_date": fields.Datetime.to_string(now_date),
+            "is_cancelled_due_shortage": self.env.context.get("cancelled_stock_shortage", False),
+        }
+        to_cancel.write(cancel_vals)
+
         to_cancel.mapped("move_ids").filtered(
             lambda m: m.state not in ("done", "cancel")
         )._action_cancel()
