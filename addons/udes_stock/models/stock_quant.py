@@ -85,10 +85,15 @@ class StockQuant(models.Model):
         """
         products = defaultdict(int)
         for quant in self:
+            product_id = quant.product_id.id
             value = quant.quantity
             if only_available:
                 value -= quant.reserved_quantity
-            products[quant.product_id.id] += value
+            # Only update if needed
+            if value != 0:
+                products[product_id] += value
+        # Remove any empty product from the dict
+        products = dict([(k, v) for k, v in products.items() if v != 0])
         return products
 
     def _prepare_info(self):

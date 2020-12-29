@@ -554,6 +554,8 @@ class StockPicking(models.Model):
         for product_id, qty in products_info.items():
             if product_quantity:
                 qty = product_quantity
+            if not qty:
+                raise ValidationError(_("No quantity specified creating move for product %s") % product_id)
             move_vals = {
                 "name": "{} {}".format(qty, Product.browse(product_id).display_name),
                 "product_id": product_id,
