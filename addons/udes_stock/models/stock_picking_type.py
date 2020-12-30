@@ -253,7 +253,7 @@ class StockPickingType(models.Model):
             ("by_packages", "By Products in Packages"),
             ("by_height_speed", "By Height and Speed Category"),
             ("by_orderpoint", "By Order Point"),
-            ("empty_location", "Only Empty Locations")
+            ("empty_location", "Only Empty Locations"),
         ],
         string="Suggest Locations Policy",
         default="exactly_match_move_line",
@@ -411,7 +411,7 @@ class StockPickingType(models.Model):
     u_show_all_tasks = fields.Boolean(
         string="Show All Tasks",
         default=False,
-        help="If set, the user will be shown the list of all tasks during the picking workflow"
+        help="If set, the user will be shown the list of all tasks during the picking workflow",
     )
 
     # Package count options
@@ -440,6 +440,13 @@ class StockPickingType(models.Model):
         string="Show Scanned Pallets",
         default=False,
         help="Show a list of scanned pallets at the scan pallet screen",
+    )
+
+    # Enable printing of delivery notes
+    u_enable_delivery_note_printing = fields.Boolean(
+        string="Enable front end DN printing",
+        default=False,
+        help="Enable printing of delivery notes from the front end",
     )
 
     def _compute_package_count(self):
@@ -521,6 +528,7 @@ class StockPickingType(models.Model):
             - u_default_package_type_id: int
             - u_show_all_tasks: boolean
             - u_show_scanned_pallets: boolean
+            - u_enable_printing: boolean
         """
         self.ensure_one()
         Batch = self.env["stock.picking.batch"]
@@ -585,6 +593,7 @@ class StockPickingType(models.Model):
             "u_default_package_type_id": self.u_default_package_type_id.id,
             "u_show_all_tasks": self.u_show_all_tasks,
             "u_show_scanned_pallets": self.u_show_scanned_pallets,
+            "u_enable_printing": self.u_enable_delivery_note_printing,
         }
 
     def get_info(self):

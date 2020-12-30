@@ -6,6 +6,7 @@ from odoo.exceptions import ValidationError
 from odoo.tools.translate import _
 
 from .main import UdesApi
+from ..tools import get_printer_by_barcode
 
 
 class Printer(UdesApi):
@@ -26,16 +27,7 @@ class Printer(UdesApi):
             @param (optional) kwargs
                 Other data passed to report
         """
-        Printer = request.env['print.printer']
-
-        if printer_barcode:
-            printer = Printer.search([('barcode', '=', printer_barcode)])
-            if not printer:
-                raise ValidationError(
-                    _('Cannot find printer with barcode: %s') % printer_barcode)
-        else:
-            printer = Printer.browse([])
-
+        printer = get_printer_by_barcode(request.env, printer_barcode)
         return printer.spool_report(object_ids, report_name, copies=copies,
                                     **kwargs)
 
@@ -56,3 +48,11 @@ class Printer(UdesApi):
                 _('Cannot find printer with barcode: %s') % barcode)
 
         return printer.set_user_default()
+
+    @http.route(
+        "/api/print-printer/spool-delivery-note", type="json", methods=["POST"], auth="user"
+    )
+    def spool_delivery_note(
+        self, object_ids, report_name=None, copies=1, printer_barcode=None, **kwargs
+    ):
+        raise NotImplementedError

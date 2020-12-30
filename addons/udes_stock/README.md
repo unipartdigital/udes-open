@@ -134,6 +134,8 @@ A lot of custom UDES functionality is specfied at the picking type level. This i
 | u_warn_picking_precondition     | string  |  | Display a warning messsage when trying to validate a picking when a given precondition is not met. |
 | u_show_all_tasks | boolean | Flag to indicate whether all tasks are shown to the user during the picking flow. |
 | u_show_scanned_pallets | boolean | Flag to show a list of scanned pallets at the scan pallet screen |
+| u_enable_delivery_note_printing | boolean | Flag to indicate whether the front end may request printing of delivery notes. |
+
 
 More on the enumeration fields below.
 

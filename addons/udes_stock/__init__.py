@@ -5,4 +5,5 @@ from . import models
 from . import common
 from . import controllers
 from . import tests
+from . import tools
 from . import wizard
