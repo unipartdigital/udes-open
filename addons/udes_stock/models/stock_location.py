@@ -364,9 +364,10 @@ class StockLocation(models.Model):
             quants = package._get_contained_quants()
             quant_ids = quants.ids
             if 'parent_package_barcode' in count_move:
-                result_parent_package = Package.search(
-                    [('name', '=', count_move['parent_package_barcode'])]
-                )
+                parent_package_name = count_move['parent_package_barcode']
+                if NO_PACKAGE_TOKEN in parent_package_name or NEW_PACKAGE_TOKEN in parent_package_name:
+                    raise ValidationError(_("Unnexpected parent package name: forbidden token"))
+                result_parent_package = Package.get_package(parent_package_name, create=True)
         elif 'quant_ids' in count_move:
             quant_ids = [int(x) for x in count_move['quant_ids']]
             quants = Quant.browse(quant_ids)
