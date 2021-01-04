@@ -599,11 +599,21 @@ class StockPickingType(models.Model):
         return self._get_action("udes_stock.action_picking_tree_draft")
 
     def get_action_package_tree(self):
+        """
+        Return action to show quants for the picking type source location.
+
+        Add context to display quant create date in the tree view.
+        """
         location_ids = self.default_location_src_id.ids
         action = self._get_action("udes_stock.location_open_quants")
         # Check if context exists and is of type dictionary
         if not isinstance(action.get("context", 0), dict):
             action["context"] = {}
-        action["context"]["active_ids"] = location_ids
+
+        action["context"].update({
+            "active_ids": location_ids,
+            "hide_create_date": False,
+        })
         action["domain"] = [("location_id", "child_of", location_ids)]
+
         return action
