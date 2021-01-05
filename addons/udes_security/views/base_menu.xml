@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- Remove groups from top Settings menu so that it will show if user has access to any sub-menus -->
+    <record model="ir.ui.menu" id="base.menu_administration">
+        <field name="groups_id" eval="[(6, 0, [])]"/>
+    </record>
+
+    <!-- Hide Users and Companies menu for users without administration settings or access rights permission -->
+    <record model="ir.ui.menu" id="base.menu_users">
+        <field name="groups_id" eval="[(6, 0, [ref('base.group_system'), ref('base.group_erp_manager')])]"/>
+    </record>
+</odoo>
