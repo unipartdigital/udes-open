@@ -11,6 +11,8 @@ Security enhancements used by UDES
     "category": "Authentication",
     "data": [
         "security/ir.model.access.csv",
+        "views/base_language_install_view.xml",
+        "views/base_menu.xml",
         "views/blocked_file_type_views.xml",
         "views/res_users_views.xml",
         "views/webclient_templates.xml",
