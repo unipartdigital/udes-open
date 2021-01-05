@@ -16,8 +16,10 @@ class UdesPriorityGroup(models.Model):
         string="Stock Transfer Types",
         help="The stock picking types this priority is visible on",
         compute="_compute_picking_types",
+        store=True,
     )
 
+    @api.depends("priority_ids")
     @api.multi
     def _compute_picking_types(self):
         for group in self:
