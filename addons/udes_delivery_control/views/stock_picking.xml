@@ -35,6 +35,7 @@
                         <group name="loading_visible">
                             <field name="u_is_backload" invisible="1"/>
                             <field name="u_is_unload" invisible="1"/>
+                            <field name="u_backload_added" invisible="1"/>
                         </group>
                         <group name="extra_info" string="Extra Info">
                             <field name="u_user_id"/>
@@ -64,7 +65,7 @@
                         </group>
                     </group>
                     <group string="Backloading" name="back_loading" attrs="{'invisible': [('u_is_backload', '=', False)]}">
-                        <field name="u_backload_ids" nolabel="1" context="{'supplier': partner_id}">
+                        <field name="u_backload_ids" nolabel="1" context="{'picking_supplier_id': partner_id, 'u_backload_added': u_backload_added}">
                             <tree editable="bottom">
                                 <field name="supplier_id" context="{'default_supplier': 1, 'default_customer': 0}" required="1"/>
                                 <field name="start_date"/>

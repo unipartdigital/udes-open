@@ -114,6 +114,11 @@ class StockPicking(models.Model):
     # Backloading Fields
     u_is_backload = fields.Boolean(related="u_extras_id.is_backload")
     u_backload_ids = fields.One2many(related="u_extras_id.backload_ids")
+    u_backload_added = fields.Boolean(
+        compute="_compute_backload_added",
+        string="Backload Added",
+        help="True if a backload record exists on the picking",
+    )
 
     u_delivery_control_picking_id = fields.Many2one(
         "stock.picking",
@@ -205,6 +210,12 @@ class StockPicking(models.Model):
 
         for picking in self.filtered("u_is_delivery_control"):
             picking.show_mark_as_todo = picking.state == "draft"
+
+    @api.depends("u_backload_ids")
+    def _compute_backload_added(self):
+        """Set to True if Backload record has been added to Picking"""
+        for picking in self.filtered(lambda p: p.u_is_backload and p.u_backload_ids):
+            picking.u_backload_added = True
 
     @api.onchange("picking_type_id")
     def _onchange_picking_type_id(self):
