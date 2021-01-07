@@ -87,7 +87,7 @@ class StockPicking(models.Model):
         groups = []
 
         group_domain_kwargs = {}
-        if picking_type_id is None:
+        if picking_type_id is not None:
             group_domain_kwargs["picking_type_ids"] = [picking_type_id]
 
         for group in PriorityGroup.search(self._priority_group_domain(**group_domain_kwargs)):
