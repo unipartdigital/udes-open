@@ -1505,22 +1505,129 @@ class StockPicking(models.Model):
             specified move lines are a non empty recordset.
         """
         values = {}
-
-        values.update(self._values_for_move_lines_swap(other_pack, values))
+        values.update(self._swap_moveline_info_at_pack_level(other_pack, values))
         move_lines.with_context(bypass_reservation_update=True).write(values)
+        self._swap_moveline_info_below_pack_level(move_lines, other_pack)
         msg_args = (", ".join(packs.mapped("name")), other_pack.name)
         msg = _("Package %s swapped for package %s.") % msg_args
         move_lines.mapped("picking_id").message_post(body=msg)
         _logger.info(msg)
 
-    def _values_for_move_lines_swap(self, other_pack, values):
-        lots = other_pack.mapped("quant_ids.lot_id")
+    def _swap_moveline_info_at_pack_level(self, pack, values):
         values.update({
-            "package_id": other_pack.id,
-            "result_package_id": other_pack.id,
-            "lot_id": lots.id if len(lots) == 1 else False,
+            "package_id": pack.id,
+            "result_package_id": pack.id,
         })
         return values
+
+    def _swap_moveline_info_below_pack_level(self, move_lines_to_use, pack):
+        """
+           Swapping of fields which are more granular than pack level - from quant to move_lines
+           specifically, the lots.
+        """
+        MoveLine = self.env["stock.move.line"]
+        move_lines_to_skip = MoveLine.browse()
+        for (product, lot), quant_ids in pack.mapped("quant_ids").groupby(lambda quant: (quant.product_id, quant.lot_id)):
+            move_lines_to_write = MoveLine.browse()
+            product_lot_qty_in_quants = sum(quant_ids.mapped("quantity"))
+            product_move_lines = move_lines_to_use.filtered(
+                lambda move_line: move_line.product_id == product and move_line not in move_lines_to_skip
+            )
+            result_of_move_line_fulfillment = self._quantity_matching_of_move_lines(product_move_lines, product_lot_qty_in_quants)
+            move_lines_to_write |= result_of_move_line_fulfillment["used_move_lines"]
+            if result_of_move_line_fulfillment["new_move_line"]:
+                move_lines_to_use |= result_of_move_line_fulfillment["new_move_line"]
+            move_lines_to_skip |= move_lines_to_write
+            move_lines_to_write.with_context(bypass_reservation_update=True).write({"lot_id": lot.id})
+
+    def _quantity_matching_of_move_lines(self, move_lines_to_fulfill, quantity_to_fulfill):
+        """Helper function to abstract tuple returned from move_line quantity fulfillment call"""
+        result_of_move_line_fulfillment = move_lines_to_fulfill.move_lines_for_qty(quantity_to_fulfill)
+        return {
+            "used_move_lines": result_of_move_line_fulfillment[0],
+            "new_move_line": result_of_move_line_fulfillment[1],
+            "unfulfilled_requested_quantity": result_of_move_line_fulfillment[2]
+        }
+
+    def _swap_quant_fields(self, packs, pack_prime, fields_to_swap):
+        """Method to swap arbitrary quant fields between different packs
+           the fields_to_swap are the string values of the fields which
+           we are to swap between packs
+        """
+
+        Quant = self.env["stock.quant"]
+
+        new_quants = Quant.browse()
+        quants_to_skip = Quant.browse()
+
+        def _split_quant_swap_field(smaller_quant, larger_quant, fields_to_swap):
+            """
+            Helper function to split quants and swap fields, while retaining the total quantity
+            for given fields.
+
+            During splitting, the larger_quant will be the remainder of the splitting, that
+            is to say it will be the original quant with updated values, this means that
+            during the swapping of fields we retain the total quantity for each fields.
+
+            i.e. smaller_quant = 3 x product_1 with field_X_val_1
+                 larger_quant = 5 x product_1 with field_X_val_2
+
+                 Applying split will return a new quant with 3 x product_1
+                 so then we have:
+                 smaller_quant = 3 x product_1 with field_X_val_1
+                 larger_quant = 2 x product_1 with field_X_val_2
+                 quant_split = 3 x product_1 with field_X_val_2
+
+                 We then switch the fields to get:
+                 smaller_quant = 3 x product_1 with field_X_val_2
+                 larger_quant = 2 x product_1 with field_X_val_2
+                 quant_split = 3 x product_1 with field_X_val_1
+            """
+            quant_split = larger_quant._split(smaller_quant.quantity)
+            for field in fields_to_swap:
+                quant_split[field] = smaller_quant[field]
+                smaller_quant[field] = larger_quant[field]
+            return quant_split
+
+        packs_quants = packs.mapped("quant_ids")
+        pack_prime_quants = pack_prime.quant_ids
+
+        # Cycle through quants in candidate packs used for swapping
+        for packs_quant in packs_quants:
+            # Filter the quants in the original pack being swapped to match the product in packs quant
+            pack_prime_product_quants = pack_prime_quants.filtered(lambda q: q.product_id==packs_quant.product_id and q not in quants_to_skip)
+            # Cycle through the quants for product within the pack being swapped (as this may not be singular for a field)
+            for pack_prime_quant in pack_prime_product_quants:
+                # Check that the quants haven't already been depleted elsewhere
+                if pack_prime_quant.quantity and packs_quant.quantity:
+                    # In the case of matching quantity, simply swap the field values
+                    if packs_quant.quantity == pack_prime_quant.quantity:
+                        # remove the quant from the usable set
+                        for field in fields_to_swap:
+                            holding_field = packs_quant[field]
+                            packs_quant[field] = pack_prime_quant[field]
+                            pack_prime_quant[field] = holding_field
+                        quants_to_skip |= pack_prime_quant
+                        break
+
+                    # In other cases, split the larger by the smaller
+                    elif packs_quant.quantity < pack_prime_quant.quantity:
+                        new_quants |= _split_quant_swap_field(packs_quant, pack_prime_quant, fields_to_swap)
+                        # As the quant from packs in this case has been fulfilled, break to the original pack quant loop
+                        break
+
+                    else: # packs_quant.quantity > pack_prime_quant.quantity case
+                        new_quants |= _split_quant_swap_field(pack_prime_quant, packs_quant, fields_to_swap)
+                        quants_to_skip |= pack_prime_quant
+
+        # Merge and delete where appropriate
+        all_quants = packs_quants | pack_prime_quants | new_quants
+        self._quant_cleanup(all_quants)
+
+    def _quant_cleanup(self, quants):
+        location_ids = quants.mapped('location_id').ids
+        quants._merge_quants(location_ids)
+        self.env.clear()
 
     def _swap_adjust_reserved_quantity(self, quants, prod_quantities):
         """Adjust the reserved quantity by removing `prod_quantities` from the
