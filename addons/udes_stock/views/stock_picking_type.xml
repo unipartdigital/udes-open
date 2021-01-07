@@ -81,6 +81,7 @@
             <field name="show_operations" position="after">
                 <field name="u_show_transfer_count"/>
                 <field name="u_show_package_count"/>
+                <field name="u_show_scanned_pallets"/>
             </field>
             <xpath expr="//field[@name='default_location_dest_id']" position="after">
                 <field name="u_damaged_location_id" options="{'no_create': True}"/>

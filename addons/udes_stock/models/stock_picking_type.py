@@ -435,6 +435,13 @@ class StockPickingType(models.Model):
         help="Enable/Disable Transfer count button on kanban view",
     )
 
+    # Pallet count options
+    u_show_scanned_pallets = fields.Boolean(
+        string="Show Scanned Pallets",
+        default=False,
+        help="Show a list of scanned pallets at the scan pallet screen",
+    )
+
     def _compute_package_count(self):
         """Counts number of packages at parent and child locations"""
         StockQuantPackage = self.env["stock.quant.package"]
@@ -513,6 +520,7 @@ class StockPickingType(models.Model):
             - u_check_package_type: boolean
             - u_default_package_type_id: int
             - u_show_all_tasks: boolean
+            - u_show_scanned_pallets: boolean
         """
         self.ensure_one()
         Batch = self.env["stock.picking.batch"]
@@ -576,6 +584,7 @@ class StockPickingType(models.Model):
             "u_check_package_type": self.u_check_package_type,
             "u_default_package_type_id": self.u_default_package_type_id.id,
             "u_show_all_tasks": self.u_show_all_tasks,
+            "u_show_scanned_pallets": self.u_show_scanned_pallets,
         }
 
     def get_info(self):
