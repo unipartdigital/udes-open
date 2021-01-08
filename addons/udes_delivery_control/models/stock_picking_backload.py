@@ -47,9 +47,23 @@ class StockPickingBackload(models.Model):
 
     @api.onchange("supplier_id")
     def _onchange_supplier_id(self):
-        supplier_id = self._context.get("supplier", False)
-        if not self.supplier_id and supplier_id:
-            self.supplier_id = supplier_id
+        """
+        Set supplier from picking on backload record if:
+
+            * It is the first backload record
+            * It is a new backload record and the supplier value hasn't already been modified
+            * Picking supplier has been set
+        """
+        # Check if field specific context has been set from form view.
+        # This can be used to determine if the supplier value has been 
+        # modified by the user on a new backload record.
+        field_context_set = "default_supplier" in self._context
+
+        # Backload record is the first record if the picking does not have other backload records
+        is_first_record = not self._context.get("u_backload_added", False)
+
+        if is_first_record and not self._origin and not self.supplier_id and not field_context_set:
+            self.supplier_id = self._context.get("picking_supplier_id", False)
 
     @api.constrains("start_date", "end_date")
     def _check_backload_dates(self):
