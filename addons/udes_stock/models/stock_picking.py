@@ -2193,6 +2193,13 @@ class StockPicking(models.Model):
                 batches._remove_unready_picks()
                 batches._compute_state()
 
+    @staticmethod
+    def get_stock_investigation_message(quants):
+        """
+        Dummy method to be overridden on a per customer basis.
+        """
+        return ""
+
     def raise_stock_inv(self, reason, quants, location):
         """Unreserve stock create stock investigation for reserve_stock and
            attempt to reserve new stock
@@ -2206,12 +2213,17 @@ class StockPicking(models.Model):
         group = Group.get_group(group_identifier=reason, create=True)
 
         # create new "investigation pick"
-        Picking.create_picking(
+        picking = Picking.create_picking(
             quant_ids=quants.exists().ids,
             location_id=location.id,
             picking_type_id=stock_inv_pick_type.id,
             group_id=group.id,
         )
+
+        picking_details = self.get_stock_investigation_message(quants.exists())
+
+        if picking_details:
+            picking.message_post(body=_(picking_details))
 
         # Try to re-assign the picking after, by creating the
         # investigation, we've reserved the problematic stock
