@@ -50,6 +50,14 @@
             <field name="search_view_id" ref="warehouse_product_classification_search_view"/>
             <field name="view_id" ref="warehouse_product_classification_list_view"/>
         </record>
+        <act_window id="action_add_product_classification"
+          name="Add Product Classification"
+          src_model="product.warehouse.classification"
+          res_model="udes_warehouse_classification.add_product_classification"
+          view_type="form"
+          view_mode="form"
+          key2="client_action_multi"
+          target="new"/>
     </data>
     <menuitem id="menu_warehouse_product_classification" name="Warehouse Classifications"
               groups="stock.group_stock_manager"

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from odoo import models, fields
+from odoo import models, fields, api, _
 
 
 class ProductWarehouseClassification(models.Model):
@@ -31,3 +31,19 @@ class ProductWarehouseClassification(models.Model):
     show_when = fields.Char(
         help="A string to dictate at which actions/events the message is shown."
     )
+
+    @api.multi
+    def open_add_product_classification_form_view(self):
+        self.ensure.one()
+        view_id = self.env.ref("udes_warehouse_classification.add_product_classification_form").id
+        return {
+            "name": _("Add Product Warehouse Classifications"),
+            "type": "ir.actions.act_window",
+            "view_type": "form",
+            "view_mode": "form",
+            "res.model": "product.template",
+            "views": [(view_id, "form")],
+            "view_id": view_id,
+            "res_id": self.id,
+            "context": dict(self.env.context),
+        }
