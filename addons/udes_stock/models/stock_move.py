@@ -304,8 +304,10 @@ class StockMove(models.Model):
         by refactoring.
         """
         res = super(StockMove, self)._action_assign()
-
-        assign_moves = self.exists()._action_refactor(stage="assign")
+        if not self.env.context.get("bypass_refactor"):
+            assign_moves = self.exists()._action_refactor(stage="assign")
+        else:
+            assign_moves = self.exists()
 
         for picking_type, moves in assign_moves.groupby("picking_type_id"):
             # location suggestions

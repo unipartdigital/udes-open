@@ -108,7 +108,7 @@ class StockPickingBatch(models.Model):
         self.write({"state": "waiting"})  # Get it out of draft
 
         try:
-            p = pickings_todo.with_context(lock_batch_state=True).action_assign()
+            p = pickings_todo.with_context(bypass_refactor=True,lock_batch_state=True).action_assign()
             self._compute_state()
 
             return p
