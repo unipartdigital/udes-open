@@ -8,6 +8,28 @@
         <field name="inherit_id" ref="stock.view_picking_form"/>
         <field name="arch" type="xml">
 
+            <!-- Show Unreserve button for partially reserved pickings in the
+                 Waiting or Confirmed state -->
+            <!--
+                 Also hides the Unreserve button for Ready pickings with no
+                 move lines as a side effect.
+                 See odoo/addons/stock/views/stock_picking_views.xml for the
+                 original `invisible` condition.
+            -->
+            <xpath expr="//button[@name='do_unreserve']" position="attributes">
+                <attribute name="attrs">
+                    {
+                        'invisible': [
+                            '|', '|', '|',
+                            ('picking_type_code', '=', 'incoming'),
+                            ('state', 'not in', ('confirmed', 'waiting', 'assigned', 'partially_available')),
+                            ('move_line_ids', '=', []),
+                            ('is_locked', '=', False)
+                        ]
+                    }
+                </attribute>
+            </xpath>
+
             <!-- Show reserved pallet -->
             <xpath expr="//field[@name='backorder_id']" position="after">
               <field name="u_reserved_pallet" groups="udes_security.group_trusted_user"/>
