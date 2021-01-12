@@ -2330,7 +2330,8 @@ class StockPicking(models.Model):
         picking_details = self.get_stock_investigation_message(quants.exists())
 
         if picking_details:
-            picking.message_post(body=_(picking_details))
+            picking_header = "Stock Investigation created with: <br>"
+            picking.message_post(body=_(picking_header + picking_details))
 
         # Try to re-assign the picking after, by creating the
         # investigation, we've reserved the problematic stock
