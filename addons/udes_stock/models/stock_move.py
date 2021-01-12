@@ -375,6 +375,21 @@ class StockMove(models.Model):
         if pickings:
             pickings.unlink_empty()
 
+    def _get_push_move_vals(self, move_lines):
+        """
+        Create and return a dict of values from single move in self,
+        used to create new move for push rule.
+
+        Set quantity from total of move's move lines and set link to original move.
+        """
+        self.ensure_one()
+
+        move_vals = {
+            "product_uom_qty": sum(move_lines.mapped("qty_done")),
+            "move_orig_ids": [(6, 0, self.ids)],
+        }
+        return move_vals
+
     @api.model
     def _create_moves_for_push(self, push, move_lines):
         """Create moves for a push rule to cover the quantity in move_lines"""
@@ -391,12 +406,7 @@ class StockMove(models.Model):
         }
         for move, mls in mls_by_move:
             move_vals = base_vals.copy()
-            move_vals.update(
-                {
-                    "product_uom_qty": sum(mls.mapped("qty_done")),
-                    "move_orig_ids": [(6, 0, move.ids)],
-                }
-            )
+            move_vals.update(move._get_push_move_vals(mls))
             created_moves |= move.copy(move_vals)
         return created_moves
 
