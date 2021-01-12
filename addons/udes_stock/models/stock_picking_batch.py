@@ -553,6 +553,8 @@ class StockPickingBatch(models.Model):
     def _prepare_info(self, allowed_picking_states):
         pickings = self.picking_ids
 
+        has_done_pickings = any(x.state == "done" for x in pickings)
+
         if allowed_picking_states:
             pickings = pickings.filtered(lambda x: x.state in allowed_picking_states)
 
@@ -564,6 +566,7 @@ class StockPickingBatch(models.Model):
             "picking_ids": pickings.get_info(),
             "result_package_names": pickings.get_result_packages_names(),
             "u_original_name": self.u_original_name,
+            "has_done_pickings": has_done_pickings,
         }
 
     def get_info(self, allowed_picking_states):
