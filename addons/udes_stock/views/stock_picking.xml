@@ -65,6 +65,7 @@
                     </group>
                     <group>
                         <field name="u_num_pallets" />
+                        <field name="u_num_packages" />
                     </group>
                     <group>
                         <field name="u_quantity_done" />

@@ -15,6 +15,7 @@ _logger = logging.getLogger(__name__)
 
 import random
 import time
+import re
 
 from psycopg2 import OperationalError, errorcodes
 
@@ -121,6 +122,13 @@ class StockPicking(models.Model):
         help="Total number of different pallets in the picking",
     )
 
+    u_num_packages = fields.Integer(
+        "Total Packages count",
+        compute="_compute_picking_packages",
+        store=False,
+        help="Total number of different packages in the picking",
+    )
+
     u_location_category_id = fields.Many2one(
         comodel_name="stock.location.category",
         compute="_compute_location_category",
@@ -170,8 +178,25 @@ class StockPicking(models.Model):
     @api.depends("move_line_ids", "move_line_ids.result_package_id")
     @api.one
     def _compute_picking_packages(self):
-        """ Compute the number of pallets from the operations """
-        self.u_num_pallets = len(self.move_line_ids.mapped("result_package_id"))
+        """ Compute the number of pallets and packages from the operations """
+        User = self.env['res.users']
+
+        warehouse = User.get_user_warehouse()
+        pallet_regex = warehouse.u_pallet_barcode_regex
+        package_regex = warehouse.u_package_barcode_regex
+
+        all_packages = self.move_line_ids.mapped("result_package_id") | self.move_line_ids.mapped("u_result_parent_package_id")
+        num_pallets = 0
+        num_packages = 0
+        if pallet_regex:
+            pallets = all_packages.filtered(lambda p: re.match(pallet_regex, p.name))
+            num_pallets = len(pallets)
+        self.u_num_pallets = num_pallets
+
+        if package_regex:
+            packages = all_packages.filtered(lambda p: re.match(package_regex, p.name))
+            num_packages = len(packages)
+        self.u_num_packages = num_packages
 
     # Calculate previous/next pickings
     @api.depends(
