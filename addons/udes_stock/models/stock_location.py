@@ -392,6 +392,13 @@ class StockLocation(models.Model):
         if result_parent_package:
             picking.move_line_ids.write({"u_result_parent_package_id": result_parent_package.id})
         picking.move_line_ids.mark_as_done()
+
+        picking_details = Picking.get_stock_investigation_message(quants)
+
+        if picking_details:
+            picking_header = "PI Count Move created with: <br>"
+            picking.message_post(body=_(picking_header + picking_details))
+
         return picking
 
     # PI Inventory Adjustments
