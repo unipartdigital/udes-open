@@ -1145,7 +1145,7 @@ class StockPicking(models.Model):
         if not self.batch_id:
             batch = PickingBatch.create({"user_id": user.id, "u_ephemeral": True})
             self.batch_id = batch.id
-            batch.confirm_picking()
+            batch.mark_as_todo()
 
     def _get_package_search_domain(self, package):
         """ Generate the domain for searching pickings of a package
@@ -1738,7 +1738,7 @@ class StockPicking(models.Model):
             # the package ids of both scanned and expected move lines
             self._update_move_lines_and_log_swap(move_lines, packs, other_pack)
             self._update_move_lines_and_log_swap(additional_mls, other_pack, packs)
-        
+
         else:
              self._update_move_lines_and_log_swap(move_lines, packs, other_pack)
 

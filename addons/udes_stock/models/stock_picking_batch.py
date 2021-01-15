@@ -654,7 +654,7 @@ class StockPickingBatch(models.Model):
         batch = PickingBatch.sudo().create({"user_id": user_id})
         picking.write({"batch_id": batch.id})
         batch.write({"u_ephemeral": True})
-        batch.confirm_picking()
+        batch.mark_as_todo()
 
         return batch
 
