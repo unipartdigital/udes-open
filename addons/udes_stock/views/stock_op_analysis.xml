@@ -1,0 +1,75 @@
+<?xml version="1.0"?>
+<odoo>
+  <data>
+    <!-- Move Line Report tree view -->
+    <record id="udes_stock.stock_op_analysis_tree" model="ir.ui.view">
+      <field name="name">udes_stock.stock.move.line.tree</field>
+      <field name="model">stock.move.line</field>
+      <field name="arch" type="xml">
+
+        <tree string="Move Line" create="0" decoration-muted="state == 'cancel'" decoration-danger="(state not in ('cancel','done'))">
+      	  <field name="id" invisible="1"/>
+          <field name="location_id"/>
+          <field name="u_done_by" />
+          <field name="u_done_datetime"/>
+          <field name="result_package_id"/>
+          <field name="package_id"/>
+          <field name="create_date"/>
+          <field name="create_uid"/>
+          <field name="u_picking_type_id"/>
+          <field name="state"/>
+        </tree>
+      </field>
+    </record>
+
+    <!-- Move Line Report search filter -->
+    <record id="udes_stock.stock_op_analysis_search" model="ir.ui.view">
+      <field name="name">udes_stock.stock.move.line.search</field>
+      <field name="model">stock.move.line</field>
+      <field name="arch" type="xml">
+      	<search string="Move Line Report">
+          <filter string="To Do" name="future" domain="[('state','in',('assigned','confirmed','waiting'))]" help="Confirmed, Available or Waiting"/>
+          <filter string="Done" name="done" domain="[('state','=','done')]" help="Stock moves that have been processed"/>
+          <separator/>
+          <filter string="Completed Yesterday" domain="[('u_done_datetime','&gt;=', ((context_today()-datetime.timedelta(days=1)).strftime('%Y-%m-%d 00:00:00'))), ('write_date','&lt;=', ((context_today()+datetime.timedelta(days=0)).strftime('%Y-%m-%d 00:00:00')))]"/>
+          <filter string="Last 7 Days" name="last_seven_days" domain="[('date','&#62;=', ((context_today()+datetime.timedelta(days=-7)).strftime('%Y-%m-%d')))]"/>
+          <filter string="Today" domain="[('date','&lt;=', datetime.datetime.combine(context_today(), datetime.time(23,59,59))), ('date','&gt;=', datetime.datetime.combine(context_today(), datetime.time(0,0,0)))]" help="Orders processed Today or planned for Today"/>
+
+          <group expand="0" string="Group By">
+            <filter string="Created on (hour)" name="groupby_create_date" domain="[]" context="{'group_by':'create_date:hour'}"/>
+            <filter string="Last Updated on (hour)" name="groupby_write_date" domain="[]" context="{'group_by':'write_date:hour'}"/>
+            <filter string="Completed on (hour)" name="groupby_u_done_datetime" domain="[]" context="{'group_by':'u_done_datetime:hour'}"/>
+            <filter string="Picking Type" name="groupby_u_picking_type_id" domain="[]" context="{'group_by':'u_picking_type_id'}"/>
+            <filter string="Created by" name="groupby_create_uid" domain="[]" context="{'group_by':'create_uid'}"/>
+            <filter string="Last Updated by" name="groupby_write_uid" domain="[]" context="{'group_by':'write_uid'}"/>
+            <filter string="Completed by" name="groupby_u_done_by" domain="[('u_done_by', '!=', False)]" context="{'group_by':'u_done_by'}"/>
+	  </group>
+        </search>
+      </field>
+    </record>
+
+    <!-- Move Line Report action window -->
+    <record id="udes_stock.stock_op_analysis_action" model="ir.actions.act_window">
+      <field name="name">Move Line Report</field>
+      <field name="type">ir.actions.act_window</field>
+      <field name="res_model">stock.move.line</field>
+      <field name="view_type">form</field>
+      <field name="view_id" ref="udes_stock.stock_op_analysis_tree"/>
+      <field name="search_view_id" ref="udes_stock.stock_op_analysis_search"/>
+      <field name="context">{'search_default_last_seven_days': 1, 'search_default_groupby_u_done_datetime': 1, 'search_default_groupby_u_picking_type_id': 1, 'search_default_groupby_u_done_by': 1}</field>
+      <field name="help" type="html">
+	<p class="oe_view_nocontent_create">
+	  Click to view Move Line Report
+	</p>
+	<p>
+	  Filters and groups predefined in order to report move lines.
+	</p>
+      </field>
+    </record>
+
+    <!-- Menu items -->
+    <menuitem id="udes_stock.stock_op_analysis_menu" action="udes_stock.stock_op_analysis_action"
+	      parent="stock.menu_warehouse_report" sequence="100"/>
+
+  </data>
+</odoo>
