@@ -10,7 +10,7 @@ Security enhancements used by UDES
     "depends": ["web", "password_security", "auth_brute_force", "auth_session_timeout"],
     "category": "Authentication",
     "data": [
-        "data/res_groups.xml",
+        "security/res_groups.xml",
         "security/ir.model.access.csv",
         "security/ir_rule.xml",
         "views/base_language_install_view.xml",
