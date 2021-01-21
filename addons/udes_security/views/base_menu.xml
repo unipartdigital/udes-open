@@ -9,4 +9,8 @@
     <record model="ir.ui.menu" id="base.menu_users">
         <field name="groups_id" eval="[(6, 0, [ref('base.group_system'), ref('base.group_erp_manager')])]"/>
     </record>
+
+    <!-- Add User Settings menu just before Administration Settings -->
+    <menuitem id="menu_user_settings" name="User Settings" sequence="499"/>
+
 </odoo>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="group_trusted_user" model="res.groups">
+        <field name="name">Trusted User</field>
+        <field name="category_id" ref="base.module_category_extra"/>
+    </record>
+
+    <record id="group_debug_user" model="res.groups">
+        <field name="name">Debug User</field>
+        <field name="category_id" ref="base.module_category_extra"/>
+    </record>
+
+    <record id="group_password_manager" model="res.groups">
+        <field name="name">Password Manager</field>
+        <field name="category_id" ref="base.module_category_extra"/>
+    </record>
+
+    <!-- Users with user Access Rights permissions will automatically get Password Manager -->
+    <record id="base.group_erp_manager" model="res.groups">
+        <field name="implied_ids"
+            eval="[(4, ref('udes_security.group_password_manager'))]"/>
+    </record>
+
+</odoo>

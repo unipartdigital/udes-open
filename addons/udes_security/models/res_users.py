@@ -104,7 +104,7 @@ class Users(models.Model):
     def _auth_timeout_enabled(self):
         """ Pluggable method to check if session timeout is enabled """
         IrConfigParameter = self.env["ir.config_parameter"]
-        
+
         auth_timeout_enabled_parameter = IrConfigParameter.get_param(
             "inactive_session_time_out_enabled"
         )
@@ -119,3 +119,71 @@ class Users(models.Model):
             return
         else:
             return super(Users, self)._auth_timeout_check()
+
+
+class ChangePasswordUser(models.TransientModel):
+    _inherit = "change.password.user"
+
+    def change_password_button(self):
+        """
+        Check that the active user has permission to change the password of the users within
+        self.
+
+        Log which user changed the passwords for the selected users.
+        """
+        self._check_user_password_grant()
+        # Run as sudo as password managers do not explicitly have sufficient rights to edit users
+        self_sudo = self.sudo()
+        res = super(ChangePasswordUser, self_sudo).change_password_button()
+
+        _logger.info(
+            "User %s changed the password of user(s): %s."
+            % (self.env.uid, self.mapped("user_id").ids)
+        )
+
+        return res
+
+    def _log_and_raise_access_error(self, users):
+        """
+        Log and Raise and Access Error as the user tried to change the password for a user
+        without the appropriate permissions.
+
+        :args:
+            - users: Recordset of `res.users` which the active user tried to change 
+                        the passwords of
+        """
+        _logger.warning(
+            "User %s tried to change the password of user(s): %s." % (self.env.uid, users.ids)
+        )
+        raise AccessError(_("You do not have permission to change password of selected user(s)."))
+
+    def _check_user_password_grant(self):
+        """
+        Ensure that active user has permission to change the passwords of users in self.
+        
+        Raise an AccessError and log a warning if either:
+        
+        1. A non-Password Manager user tries to change someone else's password
+        2. A non-admin/debug user (inc. Password Manager) tries to change the password of
+           an admin or debug user.
+        """
+        users = self.mapped("user_id")
+        # Don't need to check for permission if admin or user is just changing their own password
+        if self.env.uid != SUPERUSER_ID and users != self.env.user:
+            pwd_manager_group = "udes_security.group_password_manager"
+            debug_group = "udes_security.group_debug_user"
+
+            pwd_manager = self.env.user.has_group(pwd_manager_group)
+            debug_user = self.env.user.has_group(debug_group)
+
+            if not pwd_manager:
+                # Non-password manager is trying to change the password of another user
+                self._log_and_raise_access_error(users)
+
+            if not debug_user:
+                admin_debug_users_to_update = users.filtered(
+                    lambda u: u.id == SUPERUSER_ID or u.has_group(debug_group)
+                )
+                if admin_debug_users_to_update:
+                    # Non-admin/debug user is trying to change the password of an admin/debug user
+                    self._log_and_raise_access_error(admin_debug_users_to_update)
