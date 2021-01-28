@@ -53,6 +53,7 @@
                             <field name="u_max_package_depth" />
                             <field name="u_inventory_adjust_reserved" />
                             <field name="u_allow_create_picking_reserved_package" />
+                            <field name="u_log_batch_picking" />
                         </group>
                     </page>
                 </xpath>
