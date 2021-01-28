@@ -1268,6 +1268,30 @@ class StockPickingBatch(models.Model):
         else:
             self.write({"u_last_reserved_pallet_name": pallet_name})
 
+    def check_same_picking_priority(self, pickings):
+        """Checks if pickings priorities matches with batch priority
+
+        Args:
+            pickings (stock.picking): set of Picking objects
+        Return:
+            Boolean: Returns False if picking priority is different than batch else True
+        """
+        self.ensure_one()
+        warehouse = self.env.user.get_user_warehouse()
+        user_name = self.env.user.name
+        u_log_batch_picking = warehouse.u_log_batch_picking
+
+        priority = self.priority
+        batch_name = self.name
+        diff_priority_pickings = pickings.filtered(lambda r: r.priority != priority).mapped("name")
+        if u_log_batch_picking:
+            for picking in pickings:
+                msg = _(
+                    "User: %s added picking %s with priority %s to batch %s with priority %s"
+                ) % (user_name, picking.name, picking.priority, batch_name, priority)
+                _logger.info(msg)
+        return diff_priority_pickings
+
 
 def get_next_name(obj, code):
     """

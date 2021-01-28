@@ -129,6 +129,12 @@ class StockWarehouse(models.Model):
         "Users must also be a member of the group_manage_reserved_packages group.",
     )
 
+    u_log_batch_picking = fields.Boolean(
+        string="Log batch picking",
+        default=False,
+        help="Logs details when picking is added to batch picking",
+    )
+
     @lazy_property
     def reserved_package_name(self):
         return list(

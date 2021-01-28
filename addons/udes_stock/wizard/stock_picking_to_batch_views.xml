@@ -8,4 +8,31 @@
             eval="[(4, ref('udes_security.group_trusted_user'))]"/>
     </record>
 
+    <record id="stock_picking_to_batch_form" model="ir.ui.view">
+            <field name="name">stock.picking.to.batch.form.inherit</field>
+            <field name="model">stock.picking.to.batch</field>
+            <field name="inherit_id" ref="stock_picking_batch.stock_picking_to_batch_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//form/separator" position="replace">
+                    <separator string="Select a Batch" attrs="{'invisible': [('is_diff_priority', '=', True)]}"/>
+                </xpath>
+                <xpath expr="//field[@name='batch_id']" position="attributes">
+                    <attribute name="attrs">{'invisible': [('is_diff_priority', '=', True)]}</attribute>
+                </xpath>
+                <xpath expr="//form" position="inside">
+                    <group>
+                        <field name="msg" attrs="{'invisible': [('is_diff_priority', '=', False)]}" widget="html" readonly="1" class="text-danger" nolabel="1"/>
+                        <field name="is_diff_priority" invisible="1" readonly="1"/>
+                        <div attrs="{'invisible': [('is_diff_priority', '=', False)]}">
+                            <field name="confirm_add_picking"/>
+                            <label for="confirm_add_picking"/>
+                        </div>
+                    </group>
+                </xpath>
+                <xpath expr="//button[@name='attach_pickings']" position="attributes">
+                    <attribute name="attrs">{'invisible': [('is_diff_priority', '=', True), ('confirm_add_picking', '=', False)]}</attribute>
+                </xpath>
+            </field>
+        </record>
+
 </odoo>
