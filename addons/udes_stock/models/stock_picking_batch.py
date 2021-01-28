@@ -85,6 +85,29 @@ class StockPickingBatch(models.Model):
     def _get_priority_name(self):
         return self._get_priority_dict().get(self.priority)
 
+    @api.onchange("picking_ids")
+    def onchange_picking_ids(self):
+        """Onchange picking_ids implementation"""
+
+        self.ensure_one()
+        Picking = self.env["stock.picking"]
+        u_log_batch_picking = self.get_log_batch_picking_flag()
+
+        # old record
+        if self._origin.id:
+            old_pickings = Picking.search([("batch_id", "=", self._origin.id)])
+            # get newly added pickings
+            new_pickings = self.picking_ids - old_pickings
+        # Newly created record
+        else:
+            new_pickings = self.picking_ids
+        diff_priority_pickings = self.check_same_picking_priority(new_pickings, mode="desktop")
+        if diff_priority_pickings and u_log_batch_picking:
+            msg = _("Selected pickings %s have different priorities than batch priority.") % (
+                diff_priority_pickings
+            )
+            return {"warning": {"title": _("Picking Warning"), "message": msg}}
+
     @api.depends("picking_ids", "picking_ids.u_location_category_id")
     @api.one
     def _compute_location_category(self):
@@ -638,6 +661,7 @@ class StockPickingBatch(models.Model):
 
         batch = PickingBatch.sudo().create({"user_id": user_id})
         picking.write({"batch_id": batch.id})
+        batch.check_same_picking_priority(picking)
         batch.write({"u_ephemeral": True})
         batch.mark_as_todo()
 
@@ -1251,29 +1275,45 @@ class StockPickingBatch(models.Model):
         else:
             self.write({"u_last_reserved_pallet_name": pallet_name})
 
-    def check_same_picking_priority(self, pickings):
+    def check_same_picking_priority(self, pickings, mode="mobile"):
         """Checks if pickings priorities matches with batch priority
 
         Args:
             pickings (stock.picking): set of Picking objects
         Return:
-            Boolean: Returns False if picking priority is different than batch else True
+            List: Returns list picking priority name which is different than batch priority
         """
         self.ensure_one()
-        warehouse = self.env.user.get_user_warehouse()
-        user_name = self.env.user.name
-        u_log_batch_picking = warehouse.u_log_batch_picking
+        u_log_batch_picking, user_name = self.get_log_batch_picking_flag()
 
-        priority = self.priority
+        old_batch = hasattr(self, "_origin") and self._origin or self
+        priority = old_batch.priority
         batch_name = self.name
         diff_priority_pickings = pickings.filtered(lambda r: r.priority != priority).mapped("name")
         if u_log_batch_picking:
             for picking in pickings:
                 msg = _(
-                    "User: %s added picking %s with priority %s to batch %s with priority %s"
-                ) % (user_name, picking.name, picking.priority, batch_name, priority)
+                    "%s User: %s added picking %s with priority %s to batch %s with priority %s"
+                ) % (
+                    mode.capitalize(),
+                    user_name,
+                    picking.name,
+                    picking.priority,
+                    batch_name,
+                    priority,
+                )
                 _logger.info(msg)
         return diff_priority_pickings
+
+    def get_log_batch_picking_flag(self):
+        """Get u_log_batch_picking configuration from warehouse and user name
+
+        Returns:
+            Boolean: u_log_batch_picking value
+        """
+        User = self.env["res.users"]
+        warehouse = self.env.user.get_user_warehouse()
+        return warehouse.u_log_batch_picking, User.browse(self._context.get("uid")).name
 
 
 def get_next_name(obj, code):
@@ -1314,4 +1354,3 @@ def get_next_name(obj, code):
         root = obj.name
         new_sequence = 1
     return "{}-{:0>2}".format(root, new_sequence)
-
