@@ -4,3 +4,4 @@ from . import refactor_views
 from . import replen_views
 from . import reservation_views
 from . import stock_backorder_confirmation
+from . import stock_picking_to_batch

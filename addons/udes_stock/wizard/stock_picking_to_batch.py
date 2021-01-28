@@ -22,13 +22,17 @@ class StockPickingToBatch(models.TransientModel):
         self.ensure_one()
         self.msg = ""
         self.is_diff_priority = False
-        if self.batch_id:
-            pickings = self.env["stock.picking"].browse(self.env.context.get("active_ids"))
-            diff_priority_pickings = self.batch_id.check_same_picking_priority(pickings)
+        warehouse = self.env.user.get_user_warehouse()
+        u_log_batch_picking = warehouse.u_log_batch_picking
+        if self.batch_id and u_log_batch_picking:
+            Picking = self.env["stock.picking"]
+            pickings = Picking.browse(self.env.context.get("active_ids"))
+            diff_priority_pickings = self.batch_id.check_same_picking_priority(
+                pickings, mode="desktop"
+            )
             if diff_priority_pickings:
                 self.msg = _(
-                    "Selected pickings %s has different priority than batch priority. "
+                    "Selected pickings %s have different priorities than batch priority. "
                     "Do you wish to continue?"
                 ) % (diff_priority_pickings)
                 self.is_diff_priority = True
-
