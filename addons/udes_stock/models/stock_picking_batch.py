@@ -23,7 +23,7 @@ class StockPickingBatch(models.Model):
         index=True,
     )
     scheduled_date = fields.Datetime(
-        string="Scheduled Date", compute="_compute_scheduled_date", store=True, index=True,
+        string="Scheduled Date", compute="_compute_scheduled_date", store=True, index=True
     )
     u_ephemeral = fields.Boolean(
         string="Ephemeral", help="Ephemeral batches are unassigned if the user logs out"
@@ -280,10 +280,7 @@ class StockPickingBatch(models.Model):
         return lambda ml: tuple(chain(*[part(ml) for part in parts]))
 
     def get_next_task(
-        self,
-        skipped_product_ids=None,
-        skipped_move_line_ids=None,
-        task_grouping_criteria=None,
+        self, skipped_product_ids=None, skipped_move_line_ids=None, task_grouping_criteria=None
     ):
         """Get the next not completed task of the batch to be done.
         Expect a singleton.
@@ -292,7 +289,7 @@ class StockPickingBatch(models.Model):
             skipped_product_ids=skipped_product_ids,
             skipped_move_line_ids=skipped_move_line_ids,
             task_grouping_criteria=task_grouping_criteria,
-            limit=1
+            limit=1,
         )[0]
         return task
 
@@ -331,10 +328,10 @@ class StockPickingBatch(models.Model):
         # Filter out skipped move lines
         if skipped_product_ids:
             skipped_mls = all_available_mls.filtered(
-                lambda ml: ml.product_id.id in skipped_product_ids)
+                lambda ml: ml.product_id.id in skipped_product_ids
+            )
         elif skipped_move_line_ids:
-            skipped_mls = all_available_mls.filtered(
-                lambda ml: ml.id in skipped_move_line_ids)
+            skipped_mls = all_available_mls.filtered(lambda ml: ml.id in skipped_move_line_ids)
         available_mls = all_available_mls - skipped_mls
 
         num_tasks_picked = len(available_mls.filtered(lambda ml: ml.qty_done == ml.product_qty))
@@ -351,9 +348,11 @@ class StockPickingBatch(models.Model):
         )
 
         # Get tasks for movelines that have been skipped (if allowed)
-        todo_mls = skipped_mls.filtered(
-            lambda ml: ml.picking_id.picking_type_id.u_return_to_skipped
-        ).get_lines_todo().sort_by_location_product()
+        todo_mls = (
+            skipped_mls.filtered(lambda ml: ml.picking_id.picking_type_id.u_return_to_skipped)
+            .get_lines_todo()
+            .sort_by_location_product()
+        )
         # Determine the remaining limit (Need to do a distninct check as False != 0)
         remaining_limit = False
         if type(limit) == int:
@@ -369,8 +368,9 @@ class StockPickingBatch(models.Model):
 
         if not remaining_tasks:
             # No viable movelines, create an empty task
-            _logger.debug(_("Batch '%s': no available move lines for creating "
-                            "a task"), self.name)
+            _logger.debug(
+                _("Batch '%s': no available move lines for creating " "a task"), self.name
+            )
             task = self._populate_next_task(todo_mls, task_grouping_criteria)
             task["tasks_picked"] = have_tasks_been_picked
             remaining_tasks.append(task)
@@ -392,29 +392,18 @@ class StockPickingBatch(models.Model):
             priority_ml = False
             # Check if there is a move line to give priority to
             priority_ml = self._determine_priority_skipped_moveline(
-                move_lines,
-                skipped_product_ids,
-                skipped_move_line_ids,
+                move_lines, skipped_product_ids, skipped_move_line_ids
             )
-            task = self._populate_next_task(
-                move_lines,
-                task_grouping_criteria,
-                priority_ml
-            )
+            task = self._populate_next_task(move_lines, task_grouping_criteria, priority_ml)
             task["tasks_picked"] = have_tasks_been_picked
             tasks.append(task)
             if limit and len(tasks) >= limit:
                 break
-            move_lines = move_lines.filtered(
-                lambda ml: ml.id not in task["move_line_ids"]
-            )
+            move_lines = move_lines.filtered(lambda ml: ml.id not in task["move_line_ids"])
         return tasks
 
     def _determine_priority_skipped_moveline(
-        self,
-        move_lines,
-        skipped_product_ids=None,
-        skipped_move_line_ids=None
+        self, move_lines, skipped_product_ids=None, skipped_move_line_ids=None
     ):
         """Returns a priority move line based on the first moveline found
         that matches either the skipped product ids or skipped move_line_ids.
@@ -426,9 +415,7 @@ class StockPickingBatch(models.Model):
         # Provided skipped lists are ordered, first matching move line will have priority
         if skipped_product_ids:
             for skipped_prod_id in skipped_product_ids:
-                priority_mls = move_lines.filtered(
-                    lambda ml: ml.product_id.id == skipped_prod_id
-                )
+                priority_mls = move_lines.filtered(lambda ml: ml.product_id.id == skipped_prod_id)
                 if priority_mls:
                     break
         if skipped_move_line_ids:
@@ -447,11 +434,7 @@ class StockPickingBatch(models.Model):
 
         Optionally specify a priority moveline to be in the next task.
         """
-        task = {
-            "num_tasks_to_pick": 0,
-            "move_line_ids": [],
-            "confirmations": [],
-        }
+        task = {"num_tasks_to_pick": 0, "move_line_ids": [], "confirmations": []}
         if not move_lines:
             return task
 
@@ -467,12 +450,16 @@ class StockPickingBatch(models.Model):
                 _key, task_mls = next(grouped_mls)
         num_mls = len(task_mls)
         pick_seq = task_mls[0].picking_id.sequence
-        _logger.debug(_("Batch '%s': creating a task for %s move line%s; "
-                        "the picking sequence of the first move line is %s"),
-                      self.name,
-                      num_mls,
-                      "" if num_mls == 1 else "s",
-                      pick_seq if pick_seq is not False else "not determined")
+        _logger.debug(
+            _(
+                "Batch '%s': creating a task for %s move line%s; "
+                "the picking sequence of the first move line is %s"
+            ),
+            self.name,
+            num_mls,
+            "" if num_mls == 1 else "s",
+            pick_seq if pick_seq is not False else "not determined",
+        )
 
         # NB: adding all the MLs state to the task; this is what
         # ends up in the batch::next response!
@@ -488,7 +475,8 @@ class StockPickingBatch(models.Model):
             # TODO: check pallets of packages if necessary
             task["num_tasks_to_pick"] = len(move_lines.mapped("package_id"))
             task["move_line_ids"] = move_lines.filtered(
-                lambda ml: ml.package_id == task_mls[0].package_id).ids
+                lambda ml: ml.package_id == task_mls[0].package_id
+            ).ids
 
         return task
 
@@ -508,10 +496,7 @@ class StockPickingBatch(models.Model):
 
         # Generate tasks for the completed move lines
         completed_tasks = self._populate_next_tasks(
-            completed_mls,
-            True,
-            task_grouping_criteria=task_grouping_criteria,
-            limit=limit,
+            completed_mls, True, task_grouping_criteria=task_grouping_criteria, limit=limit
         )
         return completed_tasks
 
@@ -708,6 +693,7 @@ class StockPickingBatch(models.Model):
                     % picking_type.u_max_reservable_pallets
                 )
 
+        self.check_same_picking_priority(pickings)
         pickings.write({"batch_id": self.id})
         return True
 
@@ -888,9 +874,7 @@ class StockPickingBatch(models.Model):
         return mls, summary
 
     def _get_next_drop_off_by_packages(self, item_identity, mls_to_drop):
-        mls = mls_to_drop.filtered(
-            lambda ml: ml.result_package_id.name == item_identity
-        )
+        mls = mls_to_drop.filtered(lambda ml: ml.result_package_id.name == item_identity)
         summary = mls._drop_off_criterion_summary()
 
         return mls, summary
@@ -1014,8 +998,9 @@ class StockPickingBatch(models.Model):
             if not location:
                 location = package.location_id
 
-            move_lines = move_lines.filtered(lambda ml: ml.package_id == package or
-                                                        ml.package_id.package_id == package)
+            move_lines = move_lines.filtered(
+                lambda ml: ml.package_id == package or ml.package_id.package_id == package
+            )
             quants = package._get_contained_quants()
             msg = _("Unpickable package %s at location %s") % (package.name, location.name)
         else:
@@ -1063,10 +1048,8 @@ class StockPickingBatch(models.Model):
         if raise_stock_investigation:
             # By default the pick is unreserved
             to_investigate.with_context(
-                lock_batch_state=True, allow_partial=allow_partial,
-            ).raise_stock_inv(
-                reason=reason, quants=quants, location=location,
-            )
+                lock_batch_state=True, allow_partial=allow_partial
+            ).raise_stock_inv(reason=reason, quants=quants, location=location)
             if not bypass_reassignment:
                 for picking in to_investigate:
                     moves = picking.move_lines
