@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from odoo import fields, models, _
+from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
 
 BASE_PRODUCT_IMAGE_URL = "/web/image/product.product/%i"
@@ -97,3 +97,31 @@ class ProductProduct(models.Model):
             )
 
         return results
+
+    @api.multi
+    def sync_active_to_templates(self, activate_templates=True, deactivate_templates=True):
+        """ Copies the active state from products to their templates
+        """
+        ProductTemplate = self.env["product.template"]
+
+        # Prefetch fields
+        self = self.with_context(prefetch_fields=False)
+        self.mapped("active")
+        self.mapped("product_tmpl_id.active")
+
+        # Gather lists of product templates to activate and deactivate
+        templates_to_activate = ProductTemplate.browse()
+        templates_to_deactivate = ProductTemplate.browse()
+        for product in self:
+            if product.active != product.product_tmpl_id.active:
+                if product.active:
+                    templates_to_activate |= product.product_tmpl_id
+                else:
+                    templates_to_deactivate |= product.product_tmpl_id
+
+        # Deactivate first, then activate so that templates with more than
+        # one product remain active if any of their products are active.
+        if deactivate_templates:
+            templates_to_deactivate.write({"active": False})
+        if activate_templates:
+            templates_to_activate.write({"active": True})
