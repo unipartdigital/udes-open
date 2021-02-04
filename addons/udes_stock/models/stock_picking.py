@@ -585,6 +585,7 @@ class StockPicking(models.Model):
                 "name": "{} {}".format(qty, Product.browse(product_id).display_name),
                 "product_id": product_id,
                 "product_uom_qty": qty,
+                "date_expected": self.scheduled_date,
             }
             move_vals.update(values)
             move = Move.create(move_vals)
