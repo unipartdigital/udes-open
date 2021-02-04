@@ -19,8 +19,8 @@ class UdesPriorityGroup(models.Model):
         store=True,
     )
 
-    @api.depends("priority_ids")
     @api.multi
+    @api.depends("priority_ids", "priority_ids.picking_type_ids")
     def _compute_picking_types(self):
         for group in self:
             group.picking_type_ids = group.mapped("priority_ids.picking_type_ids")
