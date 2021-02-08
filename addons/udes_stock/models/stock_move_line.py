@@ -745,10 +745,10 @@ class StockMoveLine(models.Model):
         #       of them.
 
         if sort:
-            sorted_mls = self.sorted(lambda ml: ml.product_qty, reverse=True)
+            sorted_mls = self.sorted(lambda ml: (ml.product_qty, ml.id))
             greater_equal_mls = sorted_mls.filtered(lambda ml: ml.product_qty >= quantity)
-            # last one will be at least equal
-            mls = greater_equal_mls[-1] if greater_equal_mls else sorted_mls
+            # first one will be at least equal
+            mls = greater_equal_mls[0] if greater_equal_mls else sorted_mls[::-1]
         else:
             mls = self
 
