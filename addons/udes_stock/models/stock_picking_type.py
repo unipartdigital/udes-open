@@ -120,6 +120,13 @@ class StockPickingType(models.Model):
         help="Allow processing a transfer when the preceding transfers are not all completed.",
     )
 
+    u_handle_partial_lines = fields.Boolean(
+        string="Handle Partial Move Lines",
+        default=True,
+        help="Allow handling partial move lines. "
+        "Only applicable if handling partial transfers is enabled.",
+    )
+
     u_create_procurement_group = fields.Boolean(
         string="Create Procurement Group",
         default=False,
@@ -561,6 +568,7 @@ class StockPickingType(models.Model):
             "u_display_summary": self.u_display_summary,
             "u_reserve_as_packages": self.u_reserve_as_packages,
             "u_handle_partials": self.u_handle_partials,
+            "u_handle_partial_lines": self.u_handle_partial_lines,
             "u_create_procurement_group": self.u_create_procurement_group,
             "u_scan_tracking": self.u_scan_tracking,
             "u_confirm_expiry_date": self.u_confirm_expiry_date,
