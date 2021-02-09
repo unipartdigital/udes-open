@@ -2409,8 +2409,18 @@ class StockPicking(models.Model):
         """
         # Assign at the move level because refactoring may change
         # the pickings.
+        Move = self.env["stock.move"]
+
         moves = self.mapped("move_lines")
         moves.with_context(lock_batch_state=True)._action_assign()
+
+        # Unreserve any partially reserved lines if not allowed by the picking type
+        moves_to_unreserve =  Move.browse()
+        partial_moves = moves.filtered(lambda m: m.state == "partially_available")
+        for picking_type, grouped_moves in partial_moves.groupby("picking_type_id"):
+            if picking_type.u_handle_partials and not picking_type.u_handle_partial_lines:
+                moves_to_unreserve += grouped_moves
+        moves_to_unreserve._do_unreserve()
 
         return moves.mapped("picking_id")
 

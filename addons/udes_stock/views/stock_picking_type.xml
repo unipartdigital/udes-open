@@ -32,6 +32,7 @@
                     <field name="u_validate_real_time" />
                     <field name="u_reserve_as_packages" />
                     <field name="u_handle_partials" />
+                    <field name="u_handle_partial_lines" />
                     <field name="u_create_procurement_group"/>
                     <field name="u_drop_criterion" />
                     <field name="u_drop_location_constraint" />
