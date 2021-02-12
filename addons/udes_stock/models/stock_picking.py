@@ -2407,12 +2407,11 @@ class StockPicking(models.Model):
             may change the pickings.
             This is a function so it can be extended and/or overriden.
         """
-        # Assign at the move level because refactoring may change
-        # the pickings.
+        # Assign at the move level disabling refactoring
         Move = self.env["stock.move"]
 
         moves = self.mapped("move_lines")
-        moves.with_context(lock_batch_state=True)._action_assign()
+        moves.with_context(lock_batch_state=True, disable_move_refactor=True)._action_assign()
 
         # Unreserve any partially reserved lines if not allowed by the picking type
         moves_to_unreserve =  Move.browse()
@@ -2422,7 +2421,11 @@ class StockPicking(models.Model):
                 moves_to_unreserve += grouped_moves
         moves_to_unreserve._do_unreserve()
 
-        return moves.mapped("picking_id")
+        # Refactor after unreserving
+        refactored_moves = moves._action_refactor()
+
+        return refactored_moves.mapped("picking_id")
+
 
     def reserve_stock(self):
         """
