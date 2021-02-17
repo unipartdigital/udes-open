@@ -120,6 +120,24 @@ class TestStockInventory(common.BaseUDES):
         self.test_stock_inventory.sudo(self.stock_user).action_done()
         self.assertEqual(self.test_stock_inventory.state, "done")
 
+    def test06_theoretical_quantity_changes(self):
+        """Test that the system correctly identifies when the theoretical
+        quantity is different than expected.
+        """
+        self.apple_quant.reserved_quantity = 0
+        self.test_stock_inventory.action_start()
+
+        self.assertFalse(
+            self.test_stock_inventory._has_theoretical_quantity_changed(),
+            "No changes to the theoretical quantity should have been detected"
+        )
+
+        self.apple_quant.quantity += 1
+        self.assertTrue(
+            self.test_stock_inventory._has_theoretical_quantity_changed(),
+            "A change to the theoretical quantity should have been detected"
+        )
+
 
 class TestStockInventoryLine(common.BaseUDES):
     @classmethod

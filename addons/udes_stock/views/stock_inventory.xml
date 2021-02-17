@@ -60,6 +60,26 @@
             </field>
         </record>
 
+        <record id="view_theoretical_changed" model="ir.ui.view">
+            <field name="name">stock.inventory.theoretical.changed.view.form</field>
+            <field name="model">stock.inventory</field>
+            <field name="priority">25</field>
+            <field name="arch" type="xml">
+                <form string="Theoretical Quantity has Changed">
+                    <group>
+                        <p>
+                            The theoretical quantities of the following lines have changed.
+                            Please re-check the location.
+                        </p>
+                    </group>
+                    <field name="u_conflicting_theoretical_qty_message" nolabel="1" readonly="1"/>
+                    <footer>
+                        <button name="action_cancel_draft" string="_Continue" type="object" class="btn-primary"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
         <record id="stock.action_inventory_form" model="ir.actions.act_window">
             <field name="context">{'display_package_name_only': True}</field>
         </record>
