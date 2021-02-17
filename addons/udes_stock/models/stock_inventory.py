@@ -20,6 +20,13 @@ class StockInventory(models.Model):
                                           readonly=True,
                                           index=True)
 
+    u_conflicting_theoretical_qty_message = fields.Html(
+        string="Conflicting Theoretical Quantities",
+        readonly=True,
+        store=False,
+        compute="_compute_conflicting_theoretical_qty_message",
+    )
+
     @api.multi
     def action_done(self):
         """
@@ -50,8 +57,24 @@ class StockInventory(models.Model):
 
     @api.multi
     def button_done(self):
-        """Add a popup to inform a user that they are adjusting reserved stock."""
+        """Add a popup to inform a user when
+           - The theoretical quantity has changed
+           - They are adjusting reserved stock.
+        """
         self.ensure_one()
+        if self._has_theoretical_quantity_changed():
+            return {
+                'name': _('Theoretical Quantity has Changed'),
+                'type': 'ir.actions.act_window',
+                'view_type': 'form',
+                'view_mode': 'form',
+                'res_model': 'stock.inventory',
+                'views': [(self.env.ref('udes_stock.view_theoretical_changed').id, 'form')],
+                'view_id': self.env.ref('udes_stock.view_theoretical_changed').id,
+                'target': 'new',
+                'res_id': self.id,
+                'context': self.env.context,
+            }
 
         if self._is_adjusting_reserved():
             return {
@@ -84,12 +107,39 @@ class StockInventory(models.Model):
                 return True
         return False
 
+    def _has_theoretical_quantity_changed(self):
+        """Check if any theoretical quantity in the location has changed.
+        """
+        self.ensure_one()
+        return any(
+            sum(
+                line._get_quants().mapped("quantity")
+            ) != line.theoretical_qty for line in self.line_ids
+        )
+
+    def _compute_conflicting_theoretical_qty_message(self):
+        """Generate a html message to be displayed to the user when attempting to
+        validate a inventory adjustment when the theoretical quantity has changed
+        """
+        self.ensure_one()
+        message = "<ul>"
+        for line in self.line_ids:
+            current_qty = sum(line._get_quants().mapped("quantity"))
+            if (line.theoretical_qty or current_qty) and current_qty != line.theoretical_qty:
+                message += "<li>" + line._get_line_identifier_string()
+                message += "; " + _("Old Theoretical Quantity: ") + "{}".format(line.theoretical_qty)
+                message += ", <b>" + _("New Theoretical Quantity: ") + "{}".format(current_qty) + "</b>"
+                message += "</li>"
+
+        message += "</ul>"
+        self.u_conflicting_theoretical_qty_message = message
+
     def _get_filter(self):
         """
         Returns a dictionary with the following values based on how Inventory record is setup:
 
         * filter_domain - a search domain (list) for identifying relevant quant records
-        * products_to_filter - a recordset of Products that match either match the specified product 
+        * products_to_filter - a recordset of Products that match either match the specified product
                                or are a child of the specified category
         """
         Product = self.env["product.product"]
@@ -280,7 +330,7 @@ class StockInventoryLine(models.Model):
 
     def _get_quants(self):
         """
-        Override to use domain returned by `_get_quants_domain` which can be easily overriden in 
+        Override to use domain returned by `_get_quants_domain` which can be easily overriden in
         other modules, rather than a hard coded search to get relevant Quant records
         """
         Quant = self.env["stock.quant"]
@@ -338,3 +388,13 @@ class StockInventoryLine(models.Model):
         """Remove `u_result_parent_package_id` if `package_id` not set"""
         lines_to_update = self.filtered(lambda l: not l.package_id and l.u_result_parent_package_id)
         lines_to_update.write({"u_result_parent_package_id": False})
+
+
+    def _get_line_identifier_string(self):
+        """Return a string of the unique identifying information of a stock inventory line"""
+        self.ensure_one()
+
+        message = self.location_id.name + ": " + self.product_id.name
+        message += " " + self.prod_lot_id.name if self.prod_lot_id else ""
+        message += " " + self.package_id.name if self.package_id else ""
+        return message
