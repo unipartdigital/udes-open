@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-
+from odoo.tools import config
 from odoo import fields, api, models
 
 
@@ -38,13 +38,22 @@ class EdiEmailNotifier(models.AbstractModel):
                 email_values = {'attachment_ids': attachments.mapped('id')}
             template.send_mail(rec.id, force_send=True, email_values=email_values)
 
+    def _check_disbaled_edi_notifier(self):
+        return config.get_misc('edi','disable_edi_notifications', False)
+
     @api.multi
     def notify(self, notifier, event_type, recs):
-        """Filter records and send them for notification"""
-        if not recs:
-            recs = notifier.doc_type_ids
-        recs = self.filter_records(notifier, event_type, recs)
-        self._notify(notifier, event_type, recs)
+
+        IrConfig = self.env["ir.config_parameter"].sudo()
+        test = IrConfig.get_param("disable_edi_notification")
+
+        """Check for edi notification safety"""
+        if not self._check_disbaled_edi_notifier():
+            """Filter records and send them for notification"""
+            if not recs:
+                recs = notifier.doc_type_ids
+            recs = self.filter_records(notifier, event_type, recs)
+            self._notify(notifier, event_type, recs)
 
 
 class EdiEmailStateNotifier(models.AbstractModel):
