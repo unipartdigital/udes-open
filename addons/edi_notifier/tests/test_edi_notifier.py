@@ -28,6 +28,7 @@ class EdiNotifierCase(EdiCase):
             {"name": "ToDo list", "doc_type_id": cls.doc_type.id, "state": "draft",}
         )
 
+
     def mute_issues(self):
         return mute_logger("odoo.addons.edi.models.edi_issues")
 
@@ -68,6 +69,41 @@ class EdiNotifierCase(EdiCase):
         self.env["mail.message"].create(
             {"model": res._name, "res_id": res.id, "body": text,}
         )
+
+class TestDisabledEmailNotifier(EdiNotifierCase):
+    """Disable email notifier test"""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        EdiNotifier = cls.env["edi.notifier"]
+        IrModel = cls.env["ir.model"]
+
+        cls.email_template = cls.env.ref(
+            "edi_notifier.email_template_edi_document_success"
+        )
+        cls.notifier = EdiNotifier.create(
+            {
+                "name": "Email on test doc success",
+                "model_id": IrModel._get_id("edi.notifier.email.success"),
+                "doc_type_ids": [(6, False, cls.doc_type.ids)],
+                "template_id": cls.email_template.id,
+                "active": True,
+            }
+        )
+
+        
+
+
+    def test_no_email_sent_on_success_when_safety_set_to_true(self):
+        with self.mock_send_mail() as send_mail_mock:
+            self.assertTrue(self.doc.action_execute())
+        self.assertEqual(self.doc.state, "done")
+        send_mail_mock.assert_called_once()
+        send_mail_mock.assert_called_with(
+            self.email_template, self.doc.id, force_send=True, email_values=None
+        )
+
 
 
 class TestNotifier(EdiNotifierCase):
