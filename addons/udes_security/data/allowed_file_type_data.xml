@@ -101,4 +101,9 @@
 
   </data>
 
+  <data>
+    <!-- Check for active attachments without an allowed file type and set to inactive -->
+    <function model="ir.attachment" name="_set_blocked_attachments_to_inactive" eval="[[False]]"/>
+  </data>
+
 </odoo>

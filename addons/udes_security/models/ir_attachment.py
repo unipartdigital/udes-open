@@ -80,3 +80,21 @@ class IrAttachment(models.Model):
                     attachment.with_context(skip_active_check=True).write({"active": active})
 
         return res
+
+    def _set_blocked_attachments_to_inactive(self):
+        """
+        Identify any active attachments with a file type that is not allowed
+        and set them to inactive
+        """
+        AllowedFileType = self.env["udes.allowed_file_type"]
+
+        allowed_file_types = AllowedFileType.search([]).mapped("name")
+
+        attachment_domain = [
+            ("type", "=", "binary"),
+            ("datas_file_type", "!=", False),
+            ("datas_file_type", "not in", allowed_file_types),
+        ]
+
+        attachments_to_set_inactive = self.search(attachment_domain)
+        attachments_to_set_inactive.write({"active": False})
