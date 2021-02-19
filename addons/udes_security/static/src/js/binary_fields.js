@@ -19,16 +19,16 @@ odoo.define('udes_security.basic_fields', function (require) {
         return fileType;
     }
 
-    function getBlockedFileTypeCount(fileType) {
+    function getAllowedFileTypeCount(fileType) {
         return new Promise(function (resolve, reject) {
             var checkFileType = fileType.toLowerCase();
 
             rpc.query({
-                model: "udes.blocked_file_type",
+                model: "udes.allowed_file_type",
                 method: "search_count",
                 args: [[["name", "=", checkFileType]]],
-            }).then(function (blockedCount) {
-                resolve(blockedCount);
+            }).then(function (allowedCount) {
+                resolve(allowedCount);
             });
         });
     }
@@ -47,8 +47,8 @@ odoo.define('udes_security.basic_fields', function (require) {
                     var fileType = getFileType(file.name);
 
                     if (fileType) {
-                        getBlockedFileTypeCount(fileType).then(function (blockedCount) {
-                            if (blockedCount > 0) {
+                        getAllowedFileTypeCount(fileType).then(function (allowedCount) {
+                            if (allowedCount == 0) {
                                 self.do_warn(warningFTBlockedTitle, warningFTBlockedMessage);
                                 return false;
                             }
@@ -79,8 +79,8 @@ odoo.define('udes_security.basic_fields', function (require) {
                     var fileType = getFileType(file.name);
 
                     if (fileType) {
-                        getBlockedFileTypeCount(fileType).then(function (blockedCount) {
-                            if (blockedCount > 0) {
+                        getAllowedFileTypeCount(fileType).then(function (allowedCount) {
+                            if (allowedCount == 0) {
                                 self.do_warn(warningFTBlockedTitle, warningFTBlockedMessage);
                                 return false;
                             }

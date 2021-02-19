@@ -2,9 +2,9 @@
 
 <odoo>
 
-  <record id="action_udes_blocked_file_types" model="ir.actions.act_window">
-    <field name="name">Blocked File Types</field>
-    <field name="res_model">udes.blocked_file_type</field>
+  <record id="action_udes_allowed_file_types" model="ir.actions.act_window">
+    <field name="name">Allowed File Types</field>
+    <field name="res_model">udes.allowed_file_type</field>
     <field name="view_type">form</field>
     <field name="view_mode">tree,form</field>
     <field name="domain">['|', ('active', '=', True), ('active', '=', False)]</field>
@@ -15,19 +15,19 @@
             parent="base.menu_administration"
             sequence="130"/>
 
-  <menuitem id="menu_udes_blocked_file_types"
-            name="Blocked File Types"
+  <menuitem id="menu_udes_allowed_file_types"
+            name="Allowed File Types"
             parent="menu_udes_uploads_and_downloads"
-            action="action_udes_blocked_file_types"
+            action="action_udes_allowed_file_types"
             groups="base.group_system"/>
 
-  <record id="view_udes_blocked_file_type_form" model="ir.ui.view">
-    <field name="name">udes.blocked_file_type.form</field>
-    <field name="model">udes.blocked_file_type</field>
+  <record id="view_udes_allowed_file_type_form" model="ir.ui.view">
+    <field name="name">udes.allowed_file_type.form</field>
+    <field name="model">udes.allowed_file_type</field>
     <field name="arch" type="xml">
-      <form string="Blocked File Type">
+      <form string="Allowed File Type">
         <sheet>
-          <group string="Blocked File Type Details">
+          <group string="Allowed File Type Details">
             <group>
               <field name="name"
                      attrs="{'readonly': [('id', '!=', False)]}"/>
@@ -44,11 +44,11 @@
     </field>
   </record>
 
-  <record id="view_udes_blocked_file_type_tree" model="ir.ui.view">
-    <field name="name">udes.blocked_file_type.tree</field>
-    <field name="model">udes.blocked_file_type</field>
+  <record id="view_udes_allowed_file_type_tree" model="ir.ui.view">
+    <field name="name">udes.allowed_file_type.tree</field>
+    <field name="model">udes.allowed_file_type</field>
     <field name="arch" type="xml">
-      <tree string="Blocked File Type"
+      <tree string="Allowed File Type"
             decoration-muted="not active">
         <field name="name"/>
         <field name="description"/>
@@ -57,11 +57,11 @@
     </field>
   </record>
 
-  <record id="view_udes_blocked_file_type_search" model="ir.ui.view">
-    <field name="name">udes.blocked_file_type.search</field>
-    <field name="model">udes.blocked_file_type</field>
+  <record id="view_udes_allowed_file_type_search" model="ir.ui.view">
+    <field name="name">udes.allowed_file_type.search</field>
+    <field name="model">udes.allowed_file_type</field>
     <field name="arch" type="xml">
-      <search string="Search Blocked File Types">
+      <search string="Search Allowed File Types">
         <field name="name"/>
         <field name="description"/>
         <filter name="filter_active" string="Active" domain="[('active','=', True)]"/>

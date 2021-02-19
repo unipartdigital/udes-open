@@ -18,14 +18,14 @@ class BinaryExtension(Binary):
            after the last '.' character"""
         return filename.split(".")[-1].lower()
 
-    def _get_file_type_blocked(self, file_type):
-        """Return true if the file type is blocked, otherwise false"""
-        BlockedFileType = request.env["udes.blocked_file_type"].sudo()
+    def _get_file_type_allowed(self, file_type):
+        """Return true if the file type is allowed, otherwise false"""
+        AllowedFileType = request.env["udes.allowed_file_type"].sudo()
 
         search_args = [("name", "=", file_type)]
-        blocked_file_type_count = BlockedFileType.search_count(search_args)
+        allowed_file_type_count = AllowedFileType.search_count(search_args)
 
-        return bool(blocked_file_type_count)
+        return bool(allowed_file_type_count)
 
     def _get_file_type_blocked_error_message(self, file_type):
         """Return an error message stating that the file type has been blocked"""
@@ -77,7 +77,7 @@ class BinaryExtension(Binary):
         user_id = request.session.uid
 
         if user_id != SUPERUSER_ID:
-            # Check if the file type is blocked
+            # Check if the file type is allowed
             if download:
                 record_filename = ""
 
@@ -89,11 +89,11 @@ class BinaryExtension(Binary):
                     record_filename = record[filename_field]
 
                 file_type = self._get_file_type(record_filename)
-                file_type_blocked = self._get_file_type_blocked(file_type)
+                file_type_allowed = self._get_file_type_allowed(file_type)
 
                 # If the user is trying to download a blocked file type then
                 # prevent download and return an error message
-                if file_type_blocked:
+                if not file_type_allowed:
                     self._log_user_file_action_blocked("download", record_filename, user_id)
 
                     download_error = {
@@ -132,11 +132,11 @@ class BinaryExtension(Binary):
 
                 if upload_file and filename:
                     file_type = self._get_file_type(filename)
-                    file_type_blocked = self._get_file_type_blocked(file_type)
+                    file_type_allowed = self._get_file_type_allowed(file_type)
 
                     # If the user is trying to upload a blocked file type then
                     # prevent upload and return an error message
-                    if file_type_blocked:
+                    if not file_type_allowed:
                         self._log_user_file_action_blocked("upload", filename, user_id)
 
                         out = """<script language="javascript" type="text/javascript">

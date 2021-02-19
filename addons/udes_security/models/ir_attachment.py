@@ -18,22 +18,30 @@ class IrAttachment(models.Model):
     active = fields.Boolean(string="Active?", default=True)
 
     def _get_active_value(self, attachment_type, file_type):
-        """Return false if attachment file type is blocked, otherwise true"""
-        BlockedFileType = self.env["udes.blocked_file_type"]
+        """
+        Determines whether the attachment record in self should be set to active or inactive.
+
+        Attachment will be set to inactive if it meets the following criteria:
+
+        1. Is a binary attachment
+        2. Has a file type set
+        3. File type is not set as allowed
+        """
+        AllowedFileType = self.env["udes.allowed_file_type"]
 
         active = True
-        if attachment_type == "binary":
-            blocked_file_type_domain = [("name", "=", file_type)]
-            blocked_file_type_count = BlockedFileType.search_count(blocked_file_type_domain)
+        if attachment_type == "binary" and file_type:
+            active_file_type_domain = [("name", "=", file_type)]
+            active_file_type_count = AllowedFileType.search_count(active_file_type_domain)
 
-            if blocked_file_type_count:
+            if not active_file_type_count:
                 active = False
 
         return active
 
     @api.model
     def create(self, vals):
-        """Override to set active to False if file type is blocked"""
+        """Override to set active to False if file type is not allowed"""
         attachment = super(IrAttachment, self).create(vals)
 
         # Check if the attachment file type is blocked
