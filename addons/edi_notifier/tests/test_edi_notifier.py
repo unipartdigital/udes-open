@@ -1,4 +1,5 @@
 from unittest.mock import patch
+from unittest import mock
 from datetime import datetime, timedelta
 
 from odoo import fields
@@ -92,10 +93,9 @@ class TestDisabledEmailNotifier(EdiNotifierCase):
             }
         )
 
-        
-
-
-    def test_no_email_sent_on_success_when_safety_set_to_true(self):
+    
+    @mock.patch("addons.edi_notifier.EdiEmailNotifier.check_disbaled_edi_notifier", return_value=True)
+    def test_no_email_sent_on_success_when_safety_set_to_true(self, mock_config):
         with self.mock_send_mail() as send_mail_mock:
             self.assertTrue(self.doc.action_execute())
         self.assertEqual(self.doc.state, "done")
@@ -103,7 +103,6 @@ class TestDisabledEmailNotifier(EdiNotifierCase):
         send_mail_mock.assert_called_with(
             self.email_template, self.doc.id, force_send=True, email_values=None
         )
-
 
 
 class TestNotifier(EdiNotifierCase):
