@@ -35,20 +35,19 @@ class EdiEmailNotifier(models.AbstractModel):
                 template = template.with_context(attachments=attachments)
             email_values = None
             if attachments:
-                email_values = {'attachment_ids': attachments.mapped('id')}
+                email_values = {"attachment_ids": attachments.mapped("id")}
             template.send_mail(rec.id, force_send=True, email_values=email_values)
 
-    def _check_disbaled_edi_notifier(self):
-        return config.get_misc('edi','disable_edi_notifications', False)
+    def check_disbaled_edi_notifier(self):
+        return config.get_misc("edi", "disable_edi_notifications", False)
 
     @api.multi
     def notify(self, notifier, event_type, recs):
 
         IrConfig = self.env["ir.config_parameter"].sudo()
-        test = IrConfig.get_param("disable_edi_notification")
 
         """Check for edi notification safety"""
-        if not self._check_disbaled_edi_notifier():
+        if not self.check_disbaled_edi_notifier():
             """Filter records and send them for notification"""
             if not recs:
                 recs = notifier.doc_type_ids
@@ -62,9 +61,9 @@ class EdiEmailStateNotifier(models.AbstractModel):
     _inherit = "edi.notifier.email"
 
     def _should_notify(self, notifier, event_type, rec):
-        return super()._should_notify(
-            notifier, event_type, rec
-        ) and self._check_state(event_type, rec)
+        return super()._should_notify(notifier, event_type, rec) and self._check_state(
+            event_type, rec
+        )
 
     def _check_state(self, event_type, rec):
         raise NotImplementedError
@@ -86,8 +85,9 @@ class EdiEmailFailedNotifier(models.AbstractModel):
 
     def _check_state(self, event_type, rec):
         # Look for failed action_prepares and failed action_executes
-        return ((event_type == "prepare" and rec.state == "draft") or
-                (event_type == "execute" and rec.state == "prep"))
+        return (event_type == "prepare" and rec.state == "draft") or (
+            event_type == "execute" and rec.state == "prep"
+        )
 
 
 class EdiEmailMissingNotifier(models.AbstractModel):
@@ -104,7 +104,10 @@ class EdiEmailMissingNotifier(models.AbstractModel):
     def _get_time_today(self, cron):
         time = fields.Datetime.from_string(cron.nextcall).time()
         return datetime.now().replace(
-            hour=time.hour, minute=time.minute, second=0, microsecond=0,
+            hour=time.hour,
+            minute=time.minute,
+            second=0,
+            microsecond=0,
         )
 
     def _start_of_day(self):
@@ -161,4 +164,3 @@ class EdiEmailMissingInRangeNotifier(models.AbstractModel):
 
     def _get_date_lower_bound(self, notifier, cron, _rec):
         return self._get_time_today(cron) - timedelta(hours=notifier.lookback_hours)
-
