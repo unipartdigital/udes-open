@@ -17,8 +17,12 @@ class EdiEmailNotifier(models.AbstractModel):
 
     @api.multi
     def _notify(self, notifier, event_type, recs):
+        instance_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
+        context = self.env.context.copy()
+        context.update({'instance_url': instance_url})
         for rec in recs:
-            template = notifier.template_id
+            
+            template = notifier.template_id.with_context(context)
             if notifier.include_issues:
                 template = template.with_context(issues=self._get_issues(rec))
             if notifier.include_notes:
