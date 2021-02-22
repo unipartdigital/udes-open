@@ -4,13 +4,13 @@ from odoo import api, fields, models, _
 from odoo.exceptions import UserError
 
 
-class BlockedFileType(models.Model):
+class AllowedFileType(models.Model):
     """
-    Blocked file type which the user is prevented from uploading or downloading
+    Allowed file type which the user can upload and download
     """
 
-    _name = "udes.blocked_file_type"
-    _description = "Blocked File Type"
+    _name = "udes.allowed_file_type"
+    _description = "Allowed File Type"
     _order = "name"
 
     _sql_constraints = [("name_uniq", "unique (name)", "The File Type must be unique")]
@@ -37,26 +37,26 @@ class BlockedFileType(models.Model):
         return formatted_vals
 
     def _update_attachments_active_status(self, deleted=False):
-        """Set active field on attachments that match the supplied blocked file types"""
+        """Set active field on attachments that match the supplied allowed file types"""
         IrAttachment = self.env["ir.attachment"]
 
         attachments_to_set_active = IrAttachment.browse()
         attachments_to_set_inactive = IrAttachment.browse()
 
-        for blocked_file_type in self:
-            is_blocked_file_type = blocked_file_type.active
+        for allowed_file_type in self:
+            is_allowed_file_type = allowed_file_type.active
 
-            # If a blocked file type record is being deleted then it should be treated as inactive
+            # If an allowed file type record is being deleted then it should be treated as inactive
             if deleted:
-                is_blocked_file_type = False
+                is_allowed_file_type = False
 
-            attachment_search_args = [("datas_file_type", "=", blocked_file_type.name)]
+            attachment_search_args = [("datas_file_type", "=", allowed_file_type.name)]
 
             attachments = IrAttachment.with_context(active_test=False).search(
                 attachment_search_args
             )
 
-            if not is_blocked_file_type:
+            if is_allowed_file_type:
                 attachments_to_set_active += attachments
             else:
                 attachments_to_set_inactive += attachments
@@ -66,16 +66,13 @@ class BlockedFileType(models.Model):
 
         return True
 
-    def _set_inactive_attachments_active_from_file_types(self, file_types):
-        """Set active field to True for attachments that are in the file_types list"""
+    def _set_attachments_inactive_from_file_types(self, file_types):
+        """Set active field to False for attachments that are in the file_types list"""
         IrAttachment = self.env["ir.attachment"]
 
-        attachment_search_args = [
-            ("datas_file_type", "in", file_types),
-            ("active", "=", False),
-        ]
+        attachment_search_args = [("datas_file_type", "in", file_types)]
         attachments = IrAttachment.search(attachment_search_args)
-        attachments.with_context(skip_active_check=True).write({"active": True})
+        attachments.with_context(skip_active_check=True).write({"active": False})
 
         return True
 
@@ -86,10 +83,10 @@ class BlockedFileType(models.Model):
         formatted_vals = self._format_vals(vals)
         vals.update(formatted_vals)
 
-        blocked_file_type = super(BlockedFileType, self).create(vals)
-        blocked_file_type._update_attachments_active_status()
+        allowed_file_type = super().create(vals)
+        allowed_file_type._update_attachments_active_status()
 
-        return blocked_file_type
+        return allowed_file_type
 
     @api.multi
     def write(self, vals):
@@ -98,7 +95,7 @@ class BlockedFileType(models.Model):
         if "name" in vals:
             raise UserError(_("Cannot change File Type, please create a new record instead."))
 
-        res = super(BlockedFileType, self).write(vals)
+        res = super().write(vals)
 
         if "active" in vals:
             self._update_attachments_active_status()
@@ -107,11 +104,11 @@ class BlockedFileType(models.Model):
 
     @api.multi
     def unlink(self):
-        """Set attachments with same file type to active if needed"""
+        """Set attachments with same file type to inactive if needed"""
         file_types = self.mapped("name")
 
-        res = super(BlockedFileType, self).unlink()
+        res = super().unlink()
 
-        self._set_inactive_attachments_active_from_file_types(file_types)
+        self._set_attachments_inactive_from_file_types(file_types)
 
         return res

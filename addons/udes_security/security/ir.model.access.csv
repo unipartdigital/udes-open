@@ -1,2 +1,2 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-udes_blocked_file_type,udes_blocked_file_type,model_udes_blocked_file_type,base.group_user,1,0,0,0
+udes_allowed_file_type,udes_allowed_file_type,model_udes_allowed_file_type,base.group_user,1,0,0,0

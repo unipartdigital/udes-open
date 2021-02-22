@@ -18,22 +18,30 @@ class IrAttachment(models.Model):
     active = fields.Boolean(string="Active?", default=True)
 
     def _get_active_value(self, attachment_type, file_type):
-        """Return false if attachment file type is blocked, otherwise true"""
-        BlockedFileType = self.env["udes.blocked_file_type"]
+        """
+        Determines whether the attachment record in self should be set to active or inactive.
+
+        Attachment will be set to inactive if it meets the following criteria:
+
+        1. Is a binary attachment
+        2. Has a file type set
+        3. File type is not set as allowed
+        """
+        AllowedFileType = self.env["udes.allowed_file_type"]
 
         active = True
-        if attachment_type == "binary":
-            blocked_file_type_domain = [("name", "=", file_type)]
-            blocked_file_type_count = BlockedFileType.search_count(blocked_file_type_domain)
+        if attachment_type == "binary" and file_type:
+            active_file_type_domain = [("name", "=", file_type)]
+            active_file_type_count = AllowedFileType.search_count(active_file_type_domain)
 
-            if blocked_file_type_count:
+            if not active_file_type_count:
                 active = False
 
         return active
 
     @api.model
     def create(self, vals):
-        """Override to set active to False if file type is blocked"""
+        """Override to set active to False if file type is not allowed"""
         attachment = super(IrAttachment, self).create(vals)
 
         # Check if the attachment file type is blocked
@@ -72,3 +80,21 @@ class IrAttachment(models.Model):
                     attachment.with_context(skip_active_check=True).write({"active": active})
 
         return res
+
+    def _set_blocked_attachments_to_inactive(self):
+        """
+        Identify any active attachments with a file type that is not allowed
+        and set them to inactive
+        """
+        AllowedFileType = self.env["udes.allowed_file_type"]
+
+        allowed_file_types = AllowedFileType.search([]).mapped("name")
+
+        attachment_domain = [
+            ("type", "=", "binary"),
+            ("datas_file_type", "!=", False),
+            ("datas_file_type", "not in", allowed_file_types),
+        ]
+
+        attachments_to_set_inactive = self.search(attachment_domain)
+        attachments_to_set_inactive.write({"active": False})
