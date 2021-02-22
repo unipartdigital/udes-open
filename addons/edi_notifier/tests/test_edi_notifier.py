@@ -110,7 +110,7 @@ class TestDisabledEmailNotifier(EdiNotifierCase):
         )
 
     @mock.patch(
-        "addons.edi_notifier.models.email_notifier.EdiEmailNotifier.check_disbaled_edi_notifier",
+        "odoo.addons.edi_notifier.models.email_notifier.EdiEmailNotifier.check_disbaled_edi_notifier",
         return_value=True,
     )
     def test_no_email_sent_on_success_when_safety_set_to_true(self, mock_config):
