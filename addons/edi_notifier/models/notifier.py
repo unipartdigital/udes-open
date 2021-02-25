@@ -190,9 +190,7 @@ class EdiNotifier(models.Model):
         for notifier in self:
             if notifier.check_edi_notifications_enabled():
                 if notifier.active:
-                    self.env[notifier.model_id.model].notify(
-                        notifier, event_type, recs
-                    )
+                    self.env[notifier.model_id.model].notify(notifier, event_type, recs)
 
     @api.onchange("model_id")
     @api.depends("model_id")
