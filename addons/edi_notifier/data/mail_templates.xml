@@ -39,7 +39,11 @@
 </p>
 </br>
 % endif
-<p>This is an automated email and replies will not be monitored.</p>
+% if ctx.get("instance_url"):
+  <p>This is an automated email sent from ${ctx['instance_url']} and replies will not be monitored.</p>
+% else
+  <p>This is an automated email and replies will not be monitored.</p>
+% endif
 </div>
       ]]></field>
     </record>
@@ -87,7 +91,12 @@
 </p>
 </br>
 % endif
-<p>This is an automated email and replies will not be monitored.</p>
+% if ctx.get("instance_url"):
+  <p>This is an automated email sent from ${ctx['instance_url']} and replies will not be monitored.</p>
+% else
+  <p>This is an automated email and replies will not be monitored.</p>
+% endif
+
 </div>
       ]]></field>
     </record>
@@ -105,7 +114,11 @@
 
 <p>No ${object.name | safe} has been received.</p>
 <br/>
-<p>This is an automated email and replies will not be monitored.</p>
+% if ctx.get("instance_url"):
+  <p>This is an automated email sent from ${ctx['instance_url']} and replies will not be monitored.</p>
+% else
+  <p>This is an automated email and replies will not be monitored.</p>
+% endif
 </div>
         ]]></field>
     </record>

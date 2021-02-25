@@ -40,6 +40,7 @@
                   attrs="{'invisible': ['!', '|', ('model_name', 'ilike', 'Failed'), ('model_name', 'ilike', 'Success')]}"
                   groups="udes_security.group_debug_user"/>
                 <field name="active"/>
+                <field name="safety" />
               </group>
             </group>
             <notebook>
