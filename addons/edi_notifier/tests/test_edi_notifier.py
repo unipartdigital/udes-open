@@ -1,4 +1,5 @@
 from unittest.mock import patch
+from unittest import mock
 from datetime import datetime, timedelta
 
 from odoo import fields
@@ -25,16 +26,18 @@ class EdiNotifierCase(EdiCase):
 
         # Create document
         cls.doc = EdiDocument.create(
-            {"name": "ToDo list", "doc_type_id": cls.doc_type.id, "state": "draft",}
+            {
+                "name": "ToDo list",
+                "doc_type_id": cls.doc_type.id,
+                "state": "draft",
+            }
         )
 
     def mute_issues(self):
         return mute_logger("odoo.addons.edi.models.edi_issues")
 
     def mock_send_mail(self):
-        return patch.object(
-            self.env["mail.template"].__class__, "send_mail", autospec=True
-        )
+        return patch.object(self.env["mail.template"].__class__, "send_mail", autospec=True)
 
     def mock_send(self):
         return patch.object(self.env["mail.mail"].__class__, "send", autospec=True)
@@ -51,14 +54,21 @@ class EdiNotifierCase(EdiCase):
             }
         )
         # Create transfers
-        self.transfer = EdiTransfer.create({"gateway_id": self.gateway.id,})
+        self.transfer = EdiTransfer.create(
+            {
+                "gateway_id": self.gateway.id,
+            }
+        )
         self.transfer.doc_ids += doc
 
     def setup_cron(self, nextcall_time):
         IrCron = self.env["ir.cron"]
         action = self.notifier.action_view_cron()
         self.cron = IrCron.with_context(action["context"]).create(
-            {"name": "Test cron job", "nextcall": self._convert_time(nextcall_time),}
+            {
+                "name": "Test cron job",
+                "nextcall": self._convert_time(nextcall_time),
+            }
         )
 
     def _convert_time(self, time):
@@ -66,7 +76,11 @@ class EdiNotifierCase(EdiCase):
 
     def make_note(self, res, text):
         self.env["mail.message"].create(
-            {"model": res._name, "res_id": res.id, "body": text,}
+            {
+                "model": res._name,
+                "res_id": res.id,
+                "body": text,
+            }
         )
 
 
@@ -101,7 +115,11 @@ class TestNotifier(EdiNotifierCase):
         IrCron = self.env["ir.cron"]
         action = self.notifier.action_view_cron()
         self.assertEqual(len(IrCron.search(action["domain"])), 0)
-        cron = IrCron.with_context(action["context"]).create({"name": "Test cron job",})
+        cron = IrCron.with_context(action["context"]).create(
+            {
+                "name": "Test cron job",
+            }
+        )
         self.assertIn(cron, self.notifier.cron_ids)
         self.assertEqual(self.notifier.cron_count, 1)
         action = self.notifier.action_view_cron()
@@ -117,9 +135,7 @@ class TestSuccess(EdiNotifierCase):
         EdiNotifier = cls.env["edi.notifier"]
         IrModel = cls.env["ir.model"]
 
-        cls.email_template = cls.env.ref(
-            "edi_notifier.email_template_edi_document_success"
-        )
+        cls.email_template = cls.env.ref("edi_notifier.email_template_edi_document_success")
         cls.notifier = EdiNotifier.create(
             {
                 "name": "Email on test doc success",
@@ -229,7 +245,7 @@ class TestSuccess(EdiNotifierCase):
         message = send_mock.call_args[0][0]
         self.assertEqual(
             self.doc.notifier_subject_suffix,
-            message.subject[-len(self.doc.notifier_subject_suffix):]
+            message.subject[-len(self.doc.notifier_subject_suffix) :],
         )
 
 
@@ -240,9 +256,7 @@ class TestFailed(EdiNotifierCase):
         EdiNotifier = cls.env["edi.notifier"]
         IrModel = cls.env["ir.model"]
 
-        cls.email_template = cls.env.ref(
-            "edi_notifier.email_template_edi_document_failed"
-        )
+        cls.email_template = cls.env.ref("edi_notifier.email_template_edi_document_failed")
         cls.doc.doc_type_id = cls.doc_type_unknown
         cls.notifier = EdiNotifier.create(
             {
@@ -284,8 +298,9 @@ class TestFailed(EdiNotifierCase):
         self.doc.doc_type_id = self.doc_type
         self.notifier.write({"doc_type_ids": [(6, False, self.doc_type.ids)]})
 
-        with self.mute_issues(), self.mock_send_mail() as send_mail_mock, \
-             self.rig_execute_to_fail(self.doc):
+        with self.mute_issues(), self.mock_send_mail() as send_mail_mock, self.rig_execute_to_fail(
+            self.doc
+        ):
             self.doc.action_execute()
         self.assertEqual(self.doc.state, "prep")
         send_mail_mock.assert_called_once()
@@ -343,7 +358,10 @@ class TestFailed(EdiNotifierCase):
 
     def test_send_notes_and_issues_on_failure(self):
         self.notifier.write(
-            {"include_notes": True, "include_issues": True,}
+            {
+                "include_notes": True,
+                "include_issues": True,
+            }
         )
         note_text = "Note for testing!"
         self.make_note(self.doc, note_text)
@@ -409,7 +427,7 @@ class TestFailed(EdiNotifierCase):
         message = send_mock.call_args[0][0]
         self.assertEqual(
             self.doc.notifier_subject_suffix,
-            message.subject[-len(self.doc.notifier_subject_suffix):]
+            message.subject[-len(self.doc.notifier_subject_suffix) :],
         )
 
 
@@ -420,9 +438,7 @@ class TestMissing(EdiNotifierCase):
         EdiNotifier = cls.env["edi.notifier"]
         IrModel = cls.env["ir.model"]
         cls.doc_type_raw = cls.env.ref("edi.raw_document_type")
-        cls.email_template = cls.env.ref(
-            "edi_notifier.email_template_edi_document_not_received"
-        )
+        cls.email_template = cls.env.ref("edi_notifier.email_template_edi_document_not_received")
 
         cls.notifier = EdiNotifier.create(
             {
@@ -440,7 +456,10 @@ class TestMissing(EdiNotifierCase):
             self.cron.method_direct_trigger()
         send_mail_mock.assert_called_once()
         send_mail_mock.assert_called_with(
-            self.email_template, self.doc_type.id, force_send=True, email_values=None,
+            self.email_template,
+            self.doc_type.id,
+            force_send=True,
+            email_values=None,
         )
 
     def test_cron_trigger_missing_already_reported(self):
@@ -469,9 +488,7 @@ class TestMissingInRange(EdiNotifierCase):
         EdiNotifier = cls.env["edi.notifier"]
         IrModel = cls.env["ir.model"]
         cls.doc_type_raw = cls.env.ref("edi.raw_document_type")
-        cls.email_template = cls.env.ref(
-            "edi_notifier.email_template_edi_document_not_received"
-        )
+        cls.email_template = cls.env.ref("edi_notifier.email_template_edi_document_not_received")
         cls.notifier = EdiNotifier.create(
             {
                 "name": "Email on test doc missing",
@@ -513,4 +530,37 @@ class TestMissingInRange(EdiNotifierCase):
         self.setup_cron(datetime.now() + timedelta(hours=1))
         with self.mock_send_mail() as send_mail_mock:
             self.cron.method_direct_trigger()
+        send_mail_mock.assert_not_called()
+
+
+class TestDisabledNotifier(EdiNotifierCase):
+    """Disable email notifier test"""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        EdiNotifier = cls.env["edi.notifier"]
+        IrModel = cls.env["ir.model"]
+        cls.doc_type_raw = cls.env.ref("edi.raw_document_type")
+        cls.email_template = cls.env.ref("edi_notifier.email_template_edi_document_not_received")
+        cls.notifier = EdiNotifier.create(
+            {
+                "name": "Email on test doc missing",
+                "model_id": IrModel._get_id("edi.notifier.email.missing.in.range"),
+                "doc_type_ids": [(6, False, cls.doc_type.ids)],
+                "template_id": cls.email_template.id,
+                "lookback_hours": 3,
+                "active": True,
+                "safety": "edi.disable_edi_notifications",
+            }
+        )
+
+    @mock.patch(
+        "odoo.addons.edi_notifier.models.notifier.EdiNotifier.check_edi_notifications_enabled",
+        return_value=False,
+    )
+    def test_no_email_sent_on_success_when_safety_set_to_false(self, mock_config):
+        with self.mock_send_mail() as send_mail_mock:
+            self.assertTrue(self.doc.action_execute())
+        self.assertEqual(self.doc.state, "done")
         send_mail_mock.assert_not_called()
