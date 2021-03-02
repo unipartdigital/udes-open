@@ -24,7 +24,7 @@ class ProductProduct(models.Model):
             if lots:
                 raise ValidationError(
                     _("Serial numbers %s already in use for product %s")
-                    % (" ".join(serial_numbers), self.name)
+                    % (" ".join(lots.mapped("name")), self.name)
                 )
 
     def _prepare_info(self, fields_to_fetch=None):
