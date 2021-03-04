@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-
+from odoo.tools import config
 from odoo import fields, api, models, _
 from odoo.exceptions import UserError
 
@@ -28,9 +28,7 @@ class IrModel(models.Model):
             type(model), self.pool["edi.notifier.model"]
         )
         if vals["is_edi_notifier"] and vals["name"] == vals["model"]:
-            vals["name"] = " ".join(
-                ["EDI"] + [x.capitalize() for x in vals["name"].split(".")[1:]]
-            )
+            vals["name"] = " ".join(["EDI"] + [x.capitalize() for x in vals["name"].split(".")[1:]])
 
         return vals
 
@@ -50,9 +48,7 @@ class ServerActions(models.Model):
         """Run EDI Notifer server action"""
         # pylint: disable=unused-argument
         if action.edi_notifier_id:
-            _logger.info(
-                "Running notifier {} via cron".format(action.edi_notifier_id.id)
-            )
+            _logger.info("Running notifier {} via cron".format(action.edi_notifier_id.id))
             action.edi_notifier_id.notify("cron")
 
 
@@ -74,6 +70,15 @@ class EdiNotifier(models.Model):
         help="The number of hours in the past for checking transfer arrival",
     )
 
+    # configurable safety catch
+    safety = fields.Char(
+        string="Safety Catch",
+        help="""Configuration file option required for operation.
+        If present, this option must have a truthy value within the
+        local configuration file to enable Email notifications to be sent out.
+        """,
+    )
+
     @api.depends("model_id")
     def _compute_model_name(self):
         self.model_name = self.model_id.name or ""
@@ -88,9 +93,7 @@ class EdiNotifier(models.Model):
         column2="doc_id",
         string="Document Types",
     )
-    template_id = fields.Many2one(
-        "mail.template", domain=[("is_edi_template", "=", True)]
-    )
+    template_id = fields.Many2one("mail.template", domain=[("is_edi_template", "=", True)])
     cron_ids = fields.One2many(
         "ir.cron",
         "edi_notifier_id",
@@ -134,9 +137,7 @@ class EdiNotifier(models.Model):
     def _check_if_can_set_active(self):
         if len(self.doc_type_ids) == 0 and self.active:
             self.active = False
-            raise UserError(
-                _("Active can not be set to true if there is no document types")
-            )
+            raise UserError(_("Active can not be set to true if there is no document types"))
 
     @api.onchange("active")
     def _check_if_can_set_active_ui(self):
@@ -168,12 +169,28 @@ class EdiNotifier(models.Model):
         return action
 
     @api.multi
-    def notify(self, event_type, recs=None):
-        for notifier in self:
-            if notifier.active:
-                self.env[notifier.model_id.model].notify(
-                    notifier, event_type, recs
+    def check_edi_notifications_enabled(self):
+        """Check safety config parameter is present and return True if it's enable, otherwise False."""
+        self.ensure_one()
+        if self.safety:
+            section, _sep, key = self.safety.rpartition(".")
+            if not config.get_misc(section or self._name, key):
+                _logger.info(
+                    "%s %s disabled, enable by configuring safety %s",
+                    self._name,
+                    self.name,
+                    ".".join((section or self._name, key)),
                 )
+                return False
+        return True
+
+    @api.multi
+    def notify(self, event_type, recs=None):
+        """Check for edi notification safety"""
+        for notifier in self:
+            if notifier.check_edi_notifications_enabled():
+                if notifier.active:
+                    self.env[notifier.model_id.model].notify(notifier, event_type, recs)
 
     @api.onchange("model_id")
     @api.depends("model_id")
@@ -215,9 +232,7 @@ class EdiNotifierModel(models.AbstractModel):
 
     def filter_records(self, notifier, event_type, recs):
         """Yields only records that should be handled"""
-        return recs.filtered(
-            lambda x: self._should_notify(notifier, event_type, x)
-        )
+        return recs.filtered(lambda x: self._should_notify(notifier, event_type, x))
 
     @api.multi
     def _notify(self, notifier, event_type, _recs):
