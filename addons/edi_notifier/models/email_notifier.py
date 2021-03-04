@@ -17,6 +17,7 @@ class EdiEmailNotifier(models.AbstractModel):
 
     @api.multi
     def _notify(self, notifier, event_type, recs):
+        base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
         for rec in recs:
             template = notifier.template_id
             if notifier.include_issues:
@@ -36,6 +37,8 @@ class EdiEmailNotifier(models.AbstractModel):
             email_values = None
             if attachments:
                 email_values = {'attachment_ids': attachments.mapped('id')}
+            if base_url:
+                template = template.with_context(instance_url=base_url)
             template.send_mail(rec.id, force_send=True, email_values=email_values)
 
     @api.multi
