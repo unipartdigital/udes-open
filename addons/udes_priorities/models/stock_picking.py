@@ -1,4 +1,5 @@
 from odoo import fields, models, api, _
+from odoo.tools.misc import log_debug
 from collections import defaultdict, OrderedDict
 
 
@@ -125,6 +126,7 @@ class StockPicking(models.Model):
         """ Return dict of guidance info to aid user when picking """
         return {"Priorities": self._get_priority_name()}
 
+    @log_debug('odoo.sql_db')
     @api.one
     @api.depends("move_lines.priority")
     def _compute_priority(self):

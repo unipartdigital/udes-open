@@ -2,6 +2,7 @@
 
 from odoo import api, models, fields, _
 from odoo.exceptions import UserError
+from odoo.tools.misc import log_debug
 
 import logging
 
@@ -65,6 +66,7 @@ class StockMove(models.Model):
 
         return res
 
+    @log_debug('odoo.sql_db')
     def compute_grouping_key(self):
 
         # TODO MTC: This can be refactored and abstracted at some point with

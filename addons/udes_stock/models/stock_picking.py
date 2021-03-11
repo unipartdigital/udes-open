@@ -5,6 +5,7 @@ from lxml import etree
 
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError, UserError
+from odoo.tools.misc import log_debug
 
 from ..common import check_many2one_validity
 from . import common
@@ -148,6 +149,7 @@ class StockPicking(models.Model):
         "the pallet reserved for this picking.",
     )
 
+    @log_debug('odoo.sql_db')
     @api.depends("move_line_ids", "move_line_ids.location_id")
     @api.one
     def _compute_location_category(self):
@@ -156,6 +158,7 @@ class StockPicking(models.Model):
             categories = self.move_line_ids.mapped("location_id.u_location_category_id")
             self.u_location_category_id = categories if len(categories) == 1 else False
 
+    @log_debug('odoo.sql_db')
     @api.depends("move_lines", "move_lines.quantity_done", "move_lines.ordered_qty")
     @api.one
     def _compute_picking_quantities(self):
@@ -175,6 +178,7 @@ class StockPicking(models.Model):
         self.u_total_quantity = total_qty_todo
         self.u_has_discrepancies = has_discrepancies
 
+    @log_debug('odoo.sql_db')
     @api.depends("move_line_ids", "move_line_ids.result_package_id")
     @api.one
     def _compute_picking_packages(self):
@@ -199,6 +203,7 @@ class StockPicking(models.Model):
         self.u_num_packages = num_packages
 
     # Calculate previous/next pickings
+    @log_debug('odoo.sql_db')
     @api.depends(
         "move_lines",
         "move_lines.move_orig_ids",
@@ -215,6 +220,7 @@ class StockPicking(models.Model):
             picking.u_prev_picking_ids = picking.mapped("move_lines.move_orig_ids.picking_id")
             picking.u_next_picking_ids = picking.mapped("move_lines.move_dest_ids.picking_id")
 
+    @log_debug('odoo.sql_db')
     @api.depends("move_lines", "move_lines.move_orig_ids", "move_lines.move_orig_ids.picking_id")
     def _compute_first_picking_ids(self):
         for picking in self:
@@ -229,6 +235,7 @@ class StockPicking(models.Model):
         self.ensure_one()
         return self.picking_type_id.u_handle_partials
 
+    @log_debug('odoo.sql_db')
     def _compute_pending(self):
         """ Compute if a picking is pending.
         Pending means it has previous pickings that are not yet completed.
@@ -245,6 +252,7 @@ class StockPicking(models.Model):
             else:
                 picking.u_pending = False
 
+    @log_debug('odoo.sql_db')
     @api.depends("move_type", "move_lines.state", "move_lines.picking_id")
     @api.one
     def _compute_state(self):

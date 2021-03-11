@@ -5,6 +5,7 @@ from odoo.exceptions import UserError, ValidationError
 from odoo.tools.float_utils import float_compare, float_round
 from copy import deepcopy
 from collections import Counter, defaultdict
+from odoo.tools.misc import log_debug
 
 
 class StockMoveLine(models.Model):
@@ -885,6 +886,7 @@ class StockMoveLine(models.Model):
 
         return task
 
+    @log_debug('odoo.sql_db')
     def compute_grouping_key(self):
         # The environment must include {'compute_key': True}
         # to allow the keys to be computed.
@@ -944,6 +946,7 @@ class StockMoveLine(models.Model):
 
     ## Drop Location Constraint
 
+    @log_debug('odoo.sql_db')
     @api.constrains("location_dest_id")
     @api.onchange("location_dest_id")
     def _validate_location_dest(self, location=None):
@@ -1087,6 +1090,7 @@ class StockMoveLine(models.Model):
             ["state", "u_result_parent_package_id"],
         )
 
+    @log_debug('odoo.sql_db')
     @api.constrains("result_package_id", "u_result_parent_package_id")
     @api.onchange("result_package_id", "u_result_parent_package_id")
     def _check_resultant_package_level(self):
