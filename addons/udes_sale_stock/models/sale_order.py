@@ -56,6 +56,10 @@ class SaleOrder(models.Model):
     client_order_ref = fields.Char(required=True, copy=True)
     requested_date = fields.Datetime(required=True, copy=True)
 
+    u_allow_manual_sale_order_line_cancellation = fields.Boolean(
+        readonly=True, related="warehouse_id.u_allow_manual_sale_order_line_cancellation",
+    )
+
     @api.depends("order_line.move_ids.picking_id")
     def _compute_picking_ids_by_line(self):
         self.mapped("order_line.move_ids.picking_id")
