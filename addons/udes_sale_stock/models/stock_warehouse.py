@@ -9,3 +9,8 @@ class StockWarehouse(models.Model):
         default=1,
         help="Days ahead to auto confirm sales orders for. " "0 = Today, 1 = Tomorrow, -1 = All",
     )
+
+    u_allow_manual_sale_order_line_cancellation = fields.Boolean(
+        "Allow manual cancellation of individual sale order lines",
+        default=False,
+    )

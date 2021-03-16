@@ -8,6 +8,7 @@
             <xpath expr="//group[@name='print_picking_type']" position="after">
                 <group name="udes_sale_stock_config" string="Sale Stock Config">
                     <field name="u_so_auto_confirm_ahead_days" />
+                    <field name="u_allow_manual_sale_order_line_cancellation" />
                 </group>
             </xpath>
         </field>
