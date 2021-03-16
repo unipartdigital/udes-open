@@ -2,13 +2,17 @@
 
 from datetime import datetime
 
-from odoo import api, models, fields
+from odoo import api, models, fields, _
+from odoo.exceptions import ValidationError
 
 
 class SaleOrderLine(models.Model):
     _inherit = "sale.order.line"
 
     is_cancelled = fields.Boolean(string="Cancelled", readonly=True, default=False, index=True)
+    ui_is_cancelled = fields.Boolean(
+        string="Cancelled", compute="_get_ui_is_cancelled", inverse="_set_ui_is_cancelled"
+    )
     cancel_date = fields.Datetime(
         string="Cancel Date", help="Time of cancellation", readonly=True, index=True
     )
@@ -49,3 +53,60 @@ class SaleOrderLine(models.Model):
     def _action_launch_procurement_rule(self):
         not_cancelled_lines = self.filtered(lambda l: not l.is_cancelled)
         super(SaleOrderLine, not_cancelled_lines)._action_launch_procurement_rule()
+
+    @api.depends("is_cancelled")
+    def _get_ui_is_cancelled(self):
+        """Populates the `ui_is_cancelled` field"""
+        for line in self:
+            line.ui_is_cancelled = line.is_cancelled
+
+    @api.multi
+    def _set_ui_is_cancelled(self):
+        """Triggers cancellation of sale order lines from the UI"""
+        uncancellations = self.filtered(lambda l: l.is_cancelled and not l.ui_is_cancelled)
+        cancellations = self.filtered(lambda l: not l.is_cancelled and l.ui_is_cancelled)
+
+        # Check if the warehouse config allow manual cancellation
+        if cancellations and False in self.mapped(
+            "order_id.warehouse_id.u_allow_manual_sale_order_line_cancellation"
+        ):
+            raise ValidationError(
+                _(
+                    "Manual cancellation of individual order lines is not "
+                    "allowed by the warehouse config"
+                )
+            )
+
+        # Forbid uncancellation of sale order lines
+        if uncancellations:
+            raise ValidationError(
+                _("Cannot uncancel order lines: %s") % (", ".join(uncancellations.mapped("name")),)
+            )
+
+        # Forbid cancellation of completed sale order lines
+        done_lines = cancellations.filtered(lambda l: l.state == "done")
+        if done_lines:
+            raise ValidationError(
+                _("Cannot cancel completed order lines: %s")
+                % (", ".join(done_lines.mapped("name")),)
+            )
+
+        # Forbid cancellation of in progress sale order lines
+        moves = cancellations.mapped("move_ids")
+        in_progress_moves = moves.filtered(
+            # Moves are in progress if
+            # one or more pickings in the route are completed
+            lambda m: m.state == "done"
+            # or the first picking in the route is in progress
+            # NB: `picking_id.move_lines` is not necessarily a subset of `moves`
+            or m.picking_id.batch_id.state == "in_progress"
+            or m.picking_id.move_lines.filtered(lambda m2: m2.quantity_done > 0)
+        )
+        in_progress_lines = in_progress_moves.mapped("sale_line_id")
+        if in_progress_lines:
+            raise ValidationError(
+                _("Cannot cancel order lines with pickings in progress: %s")
+                % (", ".join(in_progress_lines.mapped("name")),)
+            )
+
+        cancellations.action_cancel()
