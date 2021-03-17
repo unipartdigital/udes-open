@@ -2422,7 +2422,7 @@ class StockPicking(models.Model):
         moves_to_unreserve._do_unreserve()
 
         # Refactor after unreserving
-        refactored_moves = moves._action_refactor()
+        refactored_moves = moves._action_refactor(stage="assign")
 
         return refactored_moves.mapped("picking_id")
 
