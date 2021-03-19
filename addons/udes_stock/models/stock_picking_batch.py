@@ -1074,10 +1074,17 @@ class StockPickingBatch(models.Model):
             to_investigate.with_context(
                 lock_batch_state=True, allow_partial=allow_partial
             ).raise_stock_inv(reason=reason, quants=quants, location=location)
+            # Trigger refactor here to allow grouping of pickings by move key on confirm
+            # Need to loop over the pickings from the refactored moves as they might be
+            # in a different picking
+            # No unlinking of the empty pickings is done - this relies on the cron
+            # to do the clean up
+            refactored_moves = to_investigate.mapped("move_lines")._action_refactor(stage="confirm")
+            pickings_to_investigate = refactored_moves.mapped("picking_id")
             if not bypass_reassignment:
-                for picking in to_investigate:
+                for picking in pickings_to_investigate:
                     moves = picking.move_lines
-                    original_picking_id = original_picking_ids[picking]
+                    original_picking_id = original_picking_ids.get(picking, None)
                     if (
                         picking.exists()
                         and picking.state == "assigned"
