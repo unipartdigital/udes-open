@@ -788,10 +788,10 @@ class TestGoodsInPickingBatch(common.BaseUDES):
 
         # after unpickable all the unpickable apple quant should be reserved
         self.assertTrue(reserved_quant_apple.reserved_quantity == 4,
-                        'Not all the apple has been reserved for investingation')
+                        'Not all the apple has been reserved for investigation')
         # and the other apple quant will be used for the picking
         self.assertTrue(unreserved_quant_apple.reserved_quantity == 1,
-                        'Not all the apple has been reserved for investingation')
+                        'Not all the apple has been reserved for investigation')
         # whilt the banana quants shouldn't change
         self.assertTrue(reserved_quant_banana.reserved_quantity == 2,
                         'The banana quant unexpectedly changed')
