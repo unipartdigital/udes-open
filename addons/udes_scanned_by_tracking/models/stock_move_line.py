@@ -12,11 +12,18 @@ class StockMoveLine(models.Model):
     _inherit = "stock.move.line"
 
     u_done_by = fields.Many2one(
-        "res.users", "Scanned by", help="ID of the user to complete the pack op.", index=True
+        "res.users",
+        "Scanned by",
+        help="ID of the user to complete the pack op.",
+        index=True,
+        copy=False,
     )
 
     u_done_datetime = fields.Datetime(
-        "Completion datetime", help="Date and time the operation was completed.", index=True
+        "Completion datetime",
+        help="Date and time the operation was completed.",
+        index=True,
+        copy=False,
     )
 
     @staticmethod
@@ -27,7 +34,6 @@ class StockMoveLine(models.Model):
     @api.model
     def _add_user_tracking_data(self, vals):
         """Inject/overwrite user tracking data into vals"""
-
         if vals.get("qty_done", 0) > 0:
             if not self.env.real_uid:  # real_uid is expected to be added within odoo core
                 _logger.warning(
