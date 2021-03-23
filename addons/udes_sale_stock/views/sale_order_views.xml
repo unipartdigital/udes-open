@@ -11,10 +11,18 @@
         <xpath expr="//field[@name='payment_term_id']" position="after">
           <field name="priority"/>
         </xpath>
+        <xpath expr="//field[@name='order_line']" position="before">
+          <field name="u_allow_manual_sale_order_line_cancellation" invisible="1"/>
+        </xpath>
         <xpath expr="//field[@name='order_line']/tree/field[@name='price_unit']"
                position="before">
           <field name="product_packaging"/>
-          <field name="is_cancelled"/>
+          <field name="is_cancelled" invisible="1"/>
+          <field name="ui_is_cancelled"
+                 attrs="{'readonly': ['|', '|',
+                                      ('parent.u_allow_manual_sale_order_line_cancellation', '=', False),
+                                      ('is_cancelled', '=', True),
+                                      ('state', '=', 'done')]}"/>
         </xpath>
 
         <xpath expr="//field[@name='client_order_ref']" position="replace"/>
