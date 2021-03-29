@@ -1775,8 +1775,8 @@ class StockPicking(models.Model):
 
         if not scanned_package.has_same_content(expected_package):
             raise ValidationError(
-                _("The contents of %s does not match what you have been asked " "to pick.")
-                % expected_package.name
+                _("The contents of %s does not match what you have been asked to pick.")
+                % scanned_package.name
             )
 
         if not scanned_package.is_reserved():
