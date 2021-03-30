@@ -27,8 +27,7 @@ class TestManualSaleOrderLineCancellation(common.BaseSaleUDES):
         cls.sale.warehouse_id.u_allow_manual_sale_order_line_cancellation = True
 
         cls.first_picking = sale.picking_ids.filtered(lambda p: p.state == "assigned")
-        cls.last_picking = cls.first_picking.u_next_picking_ids
-        assert not cls.last_picking.u_next_picking_ids
+        cls.last_picking_type = cls.first_picking.u_next_picking_ids.picking_type_id
 
     def complete_picking_partially(self, picking, product, quantity=None, dest_location=None):
         """Completes a single move line of a picking and backorders the rest"""
@@ -151,7 +150,7 @@ class TestManualSaleOrderLineCancellation(common.BaseSaleUDES):
     def test09_cannot_cancel_full_line_at_disallowed_picking_stage(self):
         """Test that a sale order line at a disallowed picking stage cannot be cancelled"""
         self.sale.warehouse_id.u_disallow_manual_sale_order_line_cancellation_at_picking_type_ids = [
-            (6, 0, [self.last_picking.picking_type_id.id])
+            (6, 0, [self.last_picking_type.id])
         ]
 
         # Pick the entire line of apples
@@ -164,13 +163,13 @@ class TestManualSaleOrderLineCancellation(common.BaseSaleUDES):
         self.assertEqual(
             e.exception.name,
             "Cannot cancel order lines with pickings at the %s stage: %s"
-            % (self.last_picking.picking_type_id.name, self.apple.name,),
+            % (self.last_picking_type.name, self.apple.name,),
         )
 
     def test10_cannot_cancel_partial_line_at_disallowed_picking_stage(self):
         """Test that a sale order line partly at a disallowed picking stage cannot be cancelled"""
         self.sale.warehouse_id.u_disallow_manual_sale_order_line_cancellation_at_picking_type_ids = [
-            (6, 0, [self.last_picking.picking_type_id.id])
+            (6, 0, [self.last_picking_type.id])
         ]
 
         # Pick only a single apple
@@ -183,20 +182,21 @@ class TestManualSaleOrderLineCancellation(common.BaseSaleUDES):
         self.assertEqual(
             e.exception.name,
             "Cannot cancel order lines with pickings at the %s stage: %s"
-            % (self.last_picking.picking_type_id.name, self.apple.name,),
+            % (self.last_picking_type.name, self.apple.name,),
         )
 
     def test11_can_cancel_after_disallowed_picking_stage(self):
         """Test that a sale order line that has partly left the warehouse can be cancelled again"""
         self.sale.warehouse_id.u_disallow_manual_sale_order_line_cancellation_at_picking_type_ids = [
-            (6, 0, [self.last_picking.picking_type_id.id])
+            (6, 0, [self.last_picking_type.id])
         ]
 
         # Pick and dispatch a single apple
         self.complete_picking_partially(
             self.first_picking, self.apple, 1, dest_location=self.test_output_location_01
         )
-        self.complete_picking_partially(self.last_picking, self.apple, 1)
+        last_picking = self.first_picking.u_next_picking_ids
+        self.complete_picking_partially(last_picking, self.apple, 1)
 
         self.assertEqual(self.apple_sale_line.state, "sale")
         self.assertEqual(self.apple_sale_line.qty_delivered, 1)
