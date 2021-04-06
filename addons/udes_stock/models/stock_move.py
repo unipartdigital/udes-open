@@ -89,6 +89,13 @@ class StockMove(models.Model):
             else:
                 move.u_grouping_key = None
 
+    @api.depends("product_id", "has_tracking", "move_line_ids", "location_id", "location_dest_id")
+    def _compute_show_details_visible(self):
+        """ According to this field, the button that calls `action_show_details` will be displayed
+        to work on a move from its picking form view, or not.
+        """
+        return False
+
     def _make_mls_comparison_lambda(self, move_line):
         """ This makes the lambda for
             checking the a move_line
