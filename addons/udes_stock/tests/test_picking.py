@@ -472,9 +472,7 @@ class TestPickingLocked(common.BaseUDES):
     def setUpClass(cls):
         super(TestPickingLocked, cls).setUpClass()
 
-        cls.picking = cls.create_picking(
-            cls.picking_type_in, is_locked=False
-        )
+        cls.picking = cls.create_picking(cls.picking_type_in)
         cls.apple_qty = 10
 
     def test_assert_confirmed_unlocked_picking_locked(self):
@@ -512,4 +510,26 @@ class TestPickingLocked(common.BaseUDES):
 
         self.assertTrue(
             self.picking.is_locked, "Picking should have been locked after being completed"
+        )
+
+    def test_creates_picking_unlocked_picking_by_default(self):
+        """A newly created draft picking should be unlocked."""
+        picking = self.create_picking(self.picking_type_in)
+        self.assertFalse(
+            picking.is_locked, "Picking should default to being unlocked at creation time"
+        )
+
+    def test_confirming_a_move_locks_the_picking(self):
+        """Implicit confirmation should lock the picking."""
+        # Create move for picking
+        move = self.create_move(self.apple, self.apple_qty, self.picking)
+        self.assertEqual(move.state, "draft")
+        self.assertEqual(self.picking.state, "draft")
+
+        # Confirm the move and assert the picking has been locked
+        self.picking.move_lines._action_confirm()
+
+        self.assertEqual(self.picking.state, "confirmed")
+        self.assertTrue(
+            self.picking.is_locked, "Picking should have been locked after its moves are  confirmed"
         )

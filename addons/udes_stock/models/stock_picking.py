@@ -39,6 +39,13 @@ class StockPicking(models.Model):
 
     priority = fields.Selection(selection=common.PRIORITIES)
     sequence = fields.Integer("Sequence", default=0)
+    is_locked = fields.Boolean(
+        compute="_compute_is_locked",
+        store=True,
+        help="When the picking is not done this allows changing the "
+        "initial demand. When the picking is done this allows "
+        "changing the done quantities.",
+    )
 
     u_mark = fields.Boolean(
         "Marked",
@@ -179,13 +186,15 @@ class StockPicking(models.Model):
     @api.one
     def _compute_picking_packages(self):
         """ Compute the number of pallets and packages from the operations """
-        User = self.env['res.users']
+        User = self.env["res.users"]
 
         warehouse = User.get_user_warehouse()
         pallet_regex = warehouse.u_pallet_barcode_regex
         package_regex = warehouse.u_package_barcode_regex
 
-        all_packages = self.move_line_ids.mapped("result_package_id") | self.move_line_ids.mapped("u_result_parent_package_id")
+        all_packages = self.move_line_ids.mapped("result_package_id") | self.move_line_ids.mapped(
+            "u_result_parent_package_id"
+        )
         num_pallets = 0
         num_packages = 0
         if pallet_regex:
@@ -266,6 +275,12 @@ class StockPicking(models.Model):
                 return
 
         super()._compute_state()
+
+    @api.depends("state")
+    @api.one
+    def _compute_is_locked(self):
+        """Derive is_locked from the picking's state."""
+        self.is_locked = self.state != "draft"
 
     @api.model
     def _fields_view_get(self, view_id=None, view_type="form", toolbar=False, submenu=False):
@@ -376,7 +391,6 @@ class StockPicking(models.Model):
             **extra_context
         ).run()
         if self:
-            self.lock_pickings()
             (self | next_pickings).unlink_empty()
         return res
 
@@ -580,7 +594,9 @@ class StockPicking(models.Model):
             if product_quantity:
                 qty = product_quantity
             if not qty:
-                raise ValidationError(_("No quantity specified creating move for product %s") % product_id)
+                raise ValidationError(
+                    _("No quantity specified creating move for product %s") % product_id
+                )
             move_vals = {
                 "name": "{} {}".format(qty, Product.browse(product_id).display_name),
                 "product_id": product_id,
@@ -1371,7 +1387,6 @@ class StockPicking(models.Model):
         res = super(StockPicking, self).action_confirm()
 
         if self:
-            self.lock_pickings()
             self.unlink_empty()
         return res
 
@@ -1396,12 +1411,6 @@ class StockPicking(models.Model):
             if not records:
                 break
             yield records
-
-    def lock_pickings(self):
-        """Lock any unlocked pickings in self"""
-        self.filtered(lambda p: not p.is_locked).write({
-            "is_locked": True,
-        })
 
     def unlink_empty(self):
         """
@@ -1540,10 +1549,9 @@ class StockPicking(models.Model):
         _logger.info(msg)
 
     def _swap_moveline_info_at_pack_level(self, pack, values):
-        values.update({
-            "package_id": pack.id,
-            "result_package_id": pack.id,
-        })
+        values.update(
+            {"package_id": pack.id, "result_package_id": pack.id,}
+        )
         return values
 
     def _swap_moveline_info_below_pack_level(self, move_lines_to_use, pack):
@@ -1553,26 +1561,35 @@ class StockPicking(models.Model):
         """
         MoveLine = self.env["stock.move.line"]
         move_lines_to_skip = MoveLine.browse()
-        for (product, lot), quant_ids in pack.mapped("quant_ids").groupby(lambda quant: (quant.product_id, quant.lot_id)):
+        for (product, lot), quant_ids in pack.mapped("quant_ids").groupby(
+            lambda quant: (quant.product_id, quant.lot_id)
+        ):
             move_lines_to_write = MoveLine.browse()
             product_lot_qty_in_quants = sum(quant_ids.mapped("quantity"))
             product_move_lines = move_lines_to_use.filtered(
-                lambda move_line: move_line.product_id == product and move_line not in move_lines_to_skip
+                lambda move_line: move_line.product_id == product
+                and move_line not in move_lines_to_skip
             )
-            result_of_move_line_fulfillment = self._quantity_matching_of_move_lines(product_move_lines, product_lot_qty_in_quants)
+            result_of_move_line_fulfillment = self._quantity_matching_of_move_lines(
+                product_move_lines, product_lot_qty_in_quants
+            )
             move_lines_to_write |= result_of_move_line_fulfillment["used_move_lines"]
             if result_of_move_line_fulfillment["new_move_line"]:
                 move_lines_to_use |= result_of_move_line_fulfillment["new_move_line"]
             move_lines_to_skip |= move_lines_to_write
-            move_lines_to_write.with_context(bypass_reservation_update=True).write({"lot_id": lot.id})
+            move_lines_to_write.with_context(bypass_reservation_update=True).write(
+                {"lot_id": lot.id}
+            )
 
     def _quantity_matching_of_move_lines(self, move_lines_to_fulfill, quantity_to_fulfill):
         """Helper function to abstract tuple returned from move_line quantity fulfillment call"""
-        result_of_move_line_fulfillment = move_lines_to_fulfill.move_lines_for_qty(quantity_to_fulfill)
+        result_of_move_line_fulfillment = move_lines_to_fulfill.move_lines_for_qty(
+            quantity_to_fulfill
+        )
         return {
             "used_move_lines": result_of_move_line_fulfillment[0],
             "new_move_line": result_of_move_line_fulfillment[1],
-            "unfulfilled_requested_quantity": result_of_move_line_fulfillment[2]
+            "unfulfilled_requested_quantity": result_of_move_line_fulfillment[2],
         }
 
     def _swap_quant_fields(self, packs, pack_prime, fields_to_swap):
@@ -1621,7 +1638,9 @@ class StockPicking(models.Model):
         # Cycle through quants in candidate packs used for swapping
         for packs_quant in packs_quants:
             # Filter the quants in the original pack being swapped to match the product in packs quant
-            pack_prime_product_quants = pack_prime_quants.filtered(lambda q: q.product_id==packs_quant.product_id and q not in quants_to_skip)
+            pack_prime_product_quants = pack_prime_quants.filtered(
+                lambda q: q.product_id == packs_quant.product_id and q not in quants_to_skip
+            )
             # Cycle through the quants for product within the pack being swapped (as this may not be singular for a field)
             for pack_prime_quant in pack_prime_product_quants:
                 # Check that the quants haven't already been depleted elsewhere
@@ -1638,12 +1657,16 @@ class StockPicking(models.Model):
 
                     # In other cases, split the larger by the smaller
                     elif packs_quant.quantity < pack_prime_quant.quantity:
-                        new_quants |= _split_quant_swap_field(packs_quant, pack_prime_quant, fields_to_swap)
+                        new_quants |= _split_quant_swap_field(
+                            packs_quant, pack_prime_quant, fields_to_swap
+                        )
                         # As the quant from packs in this case has been fulfilled, break to the original pack quant loop
                         break
 
-                    else: # packs_quant.quantity > pack_prime_quant.quantity case
-                        new_quants |= _split_quant_swap_field(pack_prime_quant, packs_quant, fields_to_swap)
+                    else:  # packs_quant.quantity > pack_prime_quant.quantity case
+                        new_quants |= _split_quant_swap_field(
+                            pack_prime_quant, packs_quant, fields_to_swap
+                        )
                         quants_to_skip |= pack_prime_quant
 
         # Merge and delete where appropriate
@@ -1651,7 +1674,7 @@ class StockPicking(models.Model):
         self._quant_cleanup(all_quants)
 
     def _quant_cleanup(self, quants):
-        location_ids = quants.mapped('location_id').ids
+        location_ids = quants.mapped("location_id").ids
         quants._merge_quants(location_ids)
         self.env.clear()
 
@@ -1720,10 +1743,7 @@ class StockPicking(models.Model):
             # Both packages are in move lines; we simply change
             # the package ids of both scanned and expected move lines
             self._handle_move_line_swap(
-                scanned_pack_mls,
-                scanned_package,
-                expected_package,
-                exp_pack_mls
+                scanned_pack_mls, scanned_package, expected_package, exp_pack_mls
             )
         elif exp_pack_mls:
             # No scanned_pack_mls so scanned_pack is not reserved
@@ -1741,7 +1761,7 @@ class StockPicking(models.Model):
             self._update_move_lines_and_log_swap(additional_mls, other_pack, packs)
 
         else:
-             self._update_move_lines_and_log_swap(move_lines, packs, other_pack)
+            self._update_move_lines_and_log_swap(move_lines, packs, other_pack)
 
     def _swap_package_contents(
         self, scanned_package, expected_packages, scanned_pack_mls, exp_pack_mls
@@ -2414,7 +2434,7 @@ class StockPicking(models.Model):
         moves.with_context(lock_batch_state=True, disable_move_refactor=True)._action_assign()
 
         # Unreserve any partially reserved lines if not allowed by the picking type
-        moves_to_unreserve =  Move.browse()
+        moves_to_unreserve = Move.browse()
         partial_moves = moves.filtered(lambda m: m.state == "partially_available")
         for picking_type, grouped_moves in partial_moves.groupby("picking_type_id"):
             if picking_type.u_handle_partials and not picking_type.u_handle_partial_lines:
@@ -2425,7 +2445,6 @@ class StockPicking(models.Model):
         refactored_moves = moves._action_refactor(stage="assign")
 
         return refactored_moves.mapped("picking_id")
-
 
     def reserve_stock(self):
         """
