@@ -625,6 +625,7 @@ class StockPickingBatch(models.Model):
         otherwise such batches will be marked as done.
         """
         user_id = self._check_user_id(user_id)
+        self._check_user_batch_has_same_picking_types(user_id)
         self._check_user_batch_in_progress(user_id)
 
         return self._create_batch(
@@ -720,6 +721,20 @@ class StockPickingBatch(models.Model):
         self.check_same_picking_priority(pickings)
         pickings.write({"batch_id": self.id})
         return True
+
+    def _check_user_batch_has_same_picking_types(self, user_id=None):
+        """Check if a user has a batch with different picking types"""
+        batches = self.get_user_batches(user_id=user_id)
+
+        for batch in batches:
+            picking_types_on_batch = batch.mapped("picking_ids.picking_type_id")
+            if len(picking_types_on_batch) > 1:
+                raise ValidationError(
+                    _(
+                        "The batch contains different picking types; this is unexpected.\n"
+                        "Picking types on batch:\n {}"
+                    ).format(",".join([x.name for x in picking_types_on_batch]))
+                )
 
     def _check_user_batch_in_progress(self, user_id=None):
         """Check if a user has a batch in progress"""
