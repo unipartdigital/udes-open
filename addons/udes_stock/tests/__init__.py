@@ -15,6 +15,7 @@ from . import test_package_reservation
 from . import test_package_swap
 from . import test_picking
 from . import test_picking_type
+from . import test_product
 from . import test_push_from_drop
 from . import test_refactor_wizard
 from . import test_replen
