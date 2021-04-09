@@ -575,6 +575,7 @@ class StockPickingBatch(models.Model):
             "result_package_names": pickings.get_result_packages_names(),
             "u_original_name": self.u_original_name,
             "has_done_pickings": has_done_pickings,
+            "u_last_reserved_pallet_name": pickings.get_result_packages_names() and self.u_last_reserved_pallet_name or False,
         }
 
     def get_info(self, allowed_picking_states):
