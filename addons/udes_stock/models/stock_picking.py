@@ -284,6 +284,7 @@ class StockPicking(models.Model):
 
         super()._compute_state()
 
+    @log_debug('odoo.sql_db')
     @api.depends("state")
     @api.one
     def _compute_is_locked(self):
