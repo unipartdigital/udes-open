@@ -100,28 +100,27 @@ class ProductProduct(models.Model):
 
     @api.multi
     def sync_active_to_templates(self, activate_templates=True, deactivate_templates=True):
-        """ Copies the active state from products to their templates
+        """ Copy the active state from products to their templates
+
+        Product templates will be active if any of their product variants are
+        active, including product.products not present in self.
         """
         ProductTemplate = self.env["product.template"]
 
-        # Prefetch fields
         self = self.with_context(prefetch_fields=False)
-        self.mapped("active")
-        self.mapped("product_tmpl_id.active")
+        templates = self.mapped("product_tmpl_id")
 
-        # Gather lists of product templates to activate and deactivate
-        templates_to_activate = ProductTemplate.browse()
-        templates_to_deactivate = ProductTemplate.browse()
-        for product in self:
-            if product.active != product.product_tmpl_id.active:
-                if product.active:
-                    templates_to_activate |= product.product_tmpl_id
-                else:
-                    templates_to_deactivate |= product.product_tmpl_id
+        # Prefetch fields
+        templates.mapped("product_variant_ids")
 
-        # Deactivate first, then activate so that templates with more than
-        # one product remain active if any of their products are active.
+        # Activate or deactivate templates based on product_variant_ids.
+        # product_variant_ids only contains active products because Odoo
+        # automatically adds active=True to its domain.
+
         if deactivate_templates:
+            templates_to_deactivate = templates.filtered(lambda t: not t.product_variant_ids)
             templates_to_deactivate.write({"active": False})
+
         if activate_templates:
+            templates_to_activate = templates.filtered(lambda t: t.product_variant_ids)
             templates_to_activate.write({"active": True})
