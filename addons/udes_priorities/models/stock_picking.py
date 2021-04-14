@@ -130,13 +130,13 @@ class StockPicking(models.Model):
     def _compute_priority(self):
         """Override to select the correct priority"""
         Priorities = self.env["udes_priorities.priority"]
-        picking_type_priorities = Priorities.search(
-            self._priority_and_priority_group_domain(self.picking_type_id.id)
-        )
         if self.mapped("move_lines") and not isinstance(self.id, models.NewId):
             priority = Priorities.search(
                 [("reference", "in", self.mapped("move_lines.priority"))],
                 limit=1,  # Assume _order is "highest" priority first
+            )
+            picking_type_priorities = Priorities.search(
+                self._priority_and_priority_group_domain(self.picking_type_id.id)
             )
             if priority in picking_type_priorities | self.env.ref("udes_priorities.normal"):
                 self.priority = priority.reference
