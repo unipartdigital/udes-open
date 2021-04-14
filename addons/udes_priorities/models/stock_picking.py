@@ -1,6 +1,7 @@
 from odoo import fields, models, api, _
 from odoo.tools.misc import log_debug
 from collections import defaultdict, OrderedDict
+from odoo.tools.misc import log_debug
 
 
 class StockPicking(models.Model):
@@ -132,13 +133,13 @@ class StockPicking(models.Model):
     def _compute_priority(self):
         """Override to select the correct priority"""
         Priorities = self.env["udes_priorities.priority"]
-        picking_type_priorities = Priorities.search(
-            self._priority_and_priority_group_domain(self.picking_type_id.id)
-        )
         if self.mapped("move_lines") and not isinstance(self.id, models.NewId):
             priority = Priorities.search(
                 [("reference", "in", self.mapped("move_lines.priority"))],
                 limit=1,  # Assume _order is "highest" priority first
+            )
+            picking_type_priorities = Priorities.search(
+                self._priority_and_priority_group_domain(self.picking_type_id.id)
             )
             if priority in picking_type_priorities | self.env.ref("udes_priorities.normal"):
                 self.priority = priority.reference
@@ -151,6 +152,7 @@ class StockPicking(models.Model):
         else:
             self.priority = self._default_priority()
 
+    @log_debug('odoo.sql_db')
     @api.constrains("priority")
     @api.onchange("priority")
     def _priority_cant_be_empty(self):

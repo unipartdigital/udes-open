@@ -1,4 +1,5 @@
 from odoo import fields, models, api, _
+from odoo.tools.misc import log_debug
 
 
 class StockMove(models.Model):
@@ -45,6 +46,7 @@ class StockMove(models.Model):
         move_priorities = Priorities.search([("reference", "in", self.mapped("priority"))])
         return (priorities | move_priorities).get_selection_values()
 
+    @log_debug('odoo.sql_db')
     @api.constrains("priority")
     @api.onchange("priority")
     def _priority_cant_be_empty(self):
