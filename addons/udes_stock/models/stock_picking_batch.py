@@ -1131,13 +1131,15 @@ class StockPickingBatch(models.Model):
 
         return available_pickings.mapped("move_line_ids")
 
-    def get_user_batches(self, user_id=None):
+    def get_user_batches(self, user_id=None, **kwargs):
         """ Get all batches for user
         """
         if user_id is None:
             user_id = self.env.user.id
         # Search for in progress batches
-        batches = self.sudo().search([("user_id", "=", user_id), ("state", "=", "in_progress")])
+        kwarg_search_filter = [(key, "=", item) for key, item in kwargs.items()]
+        search_filter = [("user_id", "=", user_id), ("state", "=", "in_progress")]
+        batches = self.sudo().search(search_filter+kwarg_search_filter)
         return batches
 
     def close_user_batches(self):
