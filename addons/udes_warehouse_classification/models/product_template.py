@@ -28,3 +28,11 @@ class ProductTemplate(models.Model):
             .filtered(lambda c: report in c.report_template_ids)
             .mapped("report_message")
         )
+
+    def get_printable_classification_names(self, separator="", order_key="name"):
+        """Return a string of the product classifications in self"""
+        return separator.join(
+            self.mapped("u_product_warehouse_classification_ids")
+            .sorted(order_key)
+            .mapped("name")
+        )
