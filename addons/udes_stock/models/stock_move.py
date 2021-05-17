@@ -219,6 +219,8 @@ class StockMove(models.Model):
         """Refactor all the moves in self. May result in the moves being changed
         and/or their associated pickings being deleted."""
         self._action_refactor()
+        # Prevent MissingErrors on any calls this is within
+        self.env.invalidate_cache()
         return True
 
     def _action_refactor(self, stage=None):
