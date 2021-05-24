@@ -1316,7 +1316,7 @@ class StockPicking(models.Model):
 
         domains.append(("id", "child_of", self.location_dest_id.id))
 
-        return Location.search(domains)
+        return Location.search(domains, limit=50)
 
     def is_valid_location_dest_id(self, location=None, location_ref=None):
         """ Whether the specified location or location reference
