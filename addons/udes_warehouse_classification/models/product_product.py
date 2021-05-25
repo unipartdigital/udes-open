@@ -10,9 +10,4 @@ class ProductProduct(models.Model):
 
     def get_printable_classification_names(self, separator="", order_key="name"):
         """Return a string of the product classifications in self"""
-        return separator.join(
-            self
-            .mapped("u_product_warehouse_classification_ids")
-            .sorted(order_key)
-            .mapped("name")
-        )
+        return self.mapped("product_tmpl_id").get_printable_classification_names(separator, order_key)
