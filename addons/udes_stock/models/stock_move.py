@@ -310,9 +310,19 @@ class StockMove(models.Model):
         don't return any extra moves that may have been created
         by refactoring.
         """
+        Move = self.env["stock.move"]
+
         res = super(StockMove, self)._action_assign()
 
         assign_moves = self.exists()._action_refactor(stage="assign")
+
+        # Unreserve any partially reserved lines if not allowed by the picking type
+        moves_to_unreserve = Move.browse()
+        partial_moves = assign_moves.filtered(lambda m: m.state == "partially_available")
+        for picking_type, grouped_moves in partial_moves.groupby("picking_type_id"):
+            if picking_type.u_handle_partials and not picking_type.u_handle_partial_lines:
+                moves_to_unreserve += grouped_moves
+        moves_to_unreserve._do_unreserve()
 
         for picking_type, moves in assign_moves.groupby("picking_type_id"):
             # location suggestions
