@@ -11,13 +11,12 @@ from . import common
 
 import logging
 
-_logger = logging.getLogger(__name__)
-
-import random
 import time
 import re
 
 from psycopg2 import OperationalError, errorcodes
+
+_logger = logging.getLogger(__name__)
 
 PG_CONCURRENCY_ERRORS_TO_RETRY = (
     errorcodes.LOCK_NOT_AVAILABLE,
