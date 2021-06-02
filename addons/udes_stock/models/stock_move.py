@@ -312,6 +312,7 @@ class StockMove(models.Model):
         """
         res = super(StockMove, self)._action_assign()
 
+        self.exists().unreserve_partial_lines()
         assign_moves = self.exists()._action_refactor(stage="assign")
 
         for picking_type, moves in assign_moves.groupby("picking_type_id"):
@@ -321,6 +322,24 @@ class StockMove(models.Model):
 
         assign_moves.mapped("picking_id")._reserve_full_packages()
         return res
+
+    def unreserve_partial_lines(self):
+        """Unreserve any partially reserved lines if not allowed by the picking type."""
+        # Override to prevent assigning partial lines via the check
+        # availability button when u_handle_partial_lines is False,
+        pass
+
+    def _unreserve_partial_lines(self):
+        """Unreserve any partially reserved lines if not allowed by the picking type."""
+        Move = self.env["stock.move"]
+
+        moves_to_unreserve = Move.browse()
+        partial_moves = self.filtered(lambda m: m.state == "partially_available")
+        for picking_type, grouped_moves in partial_moves.groupby("picking_type_id"):
+            if picking_type.u_handle_partials and not picking_type.u_handle_partial_lines:
+                moves_to_unreserve += grouped_moves
+        moves_to_unreserve._do_unreserve()
+        return None
 
     def _action_done(self):
         """Extend _action_done to trigger refactor action, and push from drop

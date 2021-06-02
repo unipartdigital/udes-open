@@ -2428,18 +2428,11 @@ class StockPicking(models.Model):
             This is a function so it can be extended and/or overriden.
         """
         # Assign at the move level disabling refactoring
-        Move = self.env["stock.move"]
-
         moves = self.mapped("move_lines")
         moves.with_context(lock_batch_state=True, disable_move_refactor=True)._action_assign()
 
         # Unreserve any partially reserved lines if not allowed by the picking type
-        moves_to_unreserve = Move.browse()
-        partial_moves = moves.filtered(lambda m: m.state == "partially_available")
-        for picking_type, grouped_moves in partial_moves.groupby("picking_type_id"):
-            if picking_type.u_handle_partials and not picking_type.u_handle_partial_lines:
-                moves_to_unreserve += grouped_moves
-        moves_to_unreserve._do_unreserve()
+        moves._unreserve_partial_lines()
 
         # Refactor after unreserving
         refactored_moves = moves._action_refactor(stage="assign")
