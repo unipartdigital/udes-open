@@ -358,15 +358,15 @@ class StockMove(models.Model):
     def _get_new_picking_values(self):
         values = super()._get_new_picking_values()
 
-        previous_pickings = self.mapped('move_orig_ids.picking_id')
-        if not values.get('origin'):
-            previous_origin = list(set(previous_pickings.mapped('origin')))
+        previous_pickings = self.mapped("move_orig_ids.picking_id")
+        if not values.get("origin"):
+            previous_origin = list(set(previous_pickings.mapped("origin")))
             if len(previous_origin) == 1:
-                values['origin'] = previous_origin[0]
-        if not values.get('partner_id'):
-            previous_partner = previous_pickings.mapped('partner_id')
+                values["origin"] = previous_origin[0]
+        if not values.get("partner_id"):
+            previous_partner = previous_pickings.mapped("partner_id")
             if len(previous_partner) == 1:
-                values['partner_id'] = previous_partner.id
+                values["partner_id"] = previous_partner.id
 
         return values
 
