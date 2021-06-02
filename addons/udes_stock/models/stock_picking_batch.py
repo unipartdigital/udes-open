@@ -322,6 +322,7 @@ class StockPickingBatch(models.Model):
         skipped_move_line_ids=None,
         task_grouping_criteria=None,
         limit=1,
+        **kwargs,
     ):
         """
         Get the next not completed tasks of the batch to be done.
@@ -345,7 +346,7 @@ class StockPickingBatch(models.Model):
 
         self.ensure_one()
 
-        all_available_mls = self.get_available_move_lines()
+        all_available_mls = self.get_available_move_lines(**kwargs)
         skipped_mls = MoveLine.browse()
 
         # Filter out skipped move lines
@@ -503,7 +504,7 @@ class StockPickingBatch(models.Model):
 
         return task
 
-    def get_completed_tasks(self, task_grouping_criteria=None, limit=False):
+    def get_completed_tasks(self, task_grouping_criteria=None, limit=False, **kwargs):
         """Get all completed tasks of the batch
 
         NOTE: These tasks will be in their original order. So if we skip and
@@ -514,7 +515,7 @@ class StockPickingBatch(models.Model):
         completed_tasks = []
 
         # Get completed movelines
-        all_mls = self.get_available_move_lines()
+        all_mls = self.get_available_move_lines(**kwargs)
         completed_mls = (all_mls - all_mls.get_lines_todo()).sort_by_location_product()
 
         # Generate tasks for the completed move lines
@@ -1123,7 +1124,7 @@ class StockPickingBatch(models.Model):
             self._compute_state()
         return True
 
-    def get_available_move_lines(self):
+    def get_available_move_lines(self, **kwargs):
         """ Get all the move lines from available pickings
         """
         self.ensure_one()
