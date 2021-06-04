@@ -224,12 +224,25 @@ class StockInventory(models.Model):
 
         return vals
 
+    def always_editable_fields(self):
+        """
+        Returns a list of fields that can always be edited regardless
+        of the Inventory Adjustment state (empty by default)
+        """
+        return []
+
     @api.multi
     def write(self, values):
-        if 'done' in self.mapped('state'):
-            raise UserError(
-                _('Cannot write to an adjustment which has already been '
-                  'validated'))
+        """
+        Override to prevent validated adjustments from being edited by raising a UserError.
+
+        Any fields returned by `always_editable_fields` are the exception to this rule and can
+        be edited on alidated adjustments.
+        """
+        if "done" in self.mapped("state") and any(
+            field_name not in self.always_editable_fields() for field_name in values.keys()
+        ):
+            raise UserError(_("Cannot write to an adjustment which has already been validated"))
         return super(StockInventory, self).write(values)
 
 
