@@ -15,7 +15,6 @@ class StockMoveLineApi(UdesApi):
         Search suggested locations - refer to the API specs for details.
         """
         MoveLine = request.env['stock.move.line']
-
         if not move_line_ids:
             raise ValidationError(_("Must specify the 'move_line_ids' entry"))
 
@@ -26,12 +25,13 @@ class StockMoveLineApi(UdesApi):
 
         for pick in mls.mapped('picking_id'):
             pick_mls = mls.filtered(lambda ml: ml.picking_id == pick)
-            pick_locs = pick.get_suggested_locations(pick_mls)
+            pick_locs = pick.get_suggested_locations(pick_mls, limit=50)
+
             locations = pick_locs if locations is None \
                         else locations & pick_locs
 
             if pick.picking_type_id.u_drop_location_constraint == "enforce_with_empty":
-                pick_empty_locs = pick.get_empty_locations()
+                pick_empty_locs = pick.get_empty_locations(limit=50)
                 empty_locations = pick_empty_locs if empty_locations is None \
                                   else empty_locations & pick_empty_locs
 
