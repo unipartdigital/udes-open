@@ -2162,14 +2162,14 @@ class StockPicking(models.Model):
 
         return location
 
-    def _get_suggested_location_empty_location(self, limit=None):
+    def _get_suggested_location_empty_location(self, limit=None, sort=False):
         """Get suggested locations by finding locations which are empty.
         """
-        return self.get_empty_locations(limit=limit)
+        return self.get_empty_locations(limit=limit, sort=sort)
 
-    def _get_suggested_location_by_products(self, move_line_ids, limit=None, products=None):
+    def _get_suggested_location_by_products(self, move_line_ids, limit=None, products=None, sort=False):
         """Get suggested locations by matching product."""
-        return self._suggest_locations_products(move_line_ids, products, limit=limit)
+        return self._suggest_locations_products(move_line_ids, products, limit=limit, sort=sort)
 
     def _get_suggested_location_by_product_lot(self, move_line_ids, products=None):
         """Get suggested locations by matching both product and lot number.
@@ -2179,7 +2179,7 @@ class StockPicking(models.Model):
         """
         return self._suggest_locations_products(move_line_ids, products, match_lots=True)
 
-    def _suggest_locations_products(self, move_line_ids, products=None, match_lots=False, limit=None):
+    def _suggest_locations_products(self, move_line_ids, products=None, match_lots=False, limit=None, sort=False):
         """Get suggested locations by matching product and optionally lot number.
 
         If used on a product that is not tracked by lot then locations will be suggested
@@ -2229,7 +2229,7 @@ class StockPicking(models.Model):
         if not suggested_locations:
             # No drop locations currently used for this product;
             # gather the empty ones
-            suggested_locations = self.get_empty_locations(limit=limit)
+            suggested_locations = self.get_empty_locations(limit=limit, sort=sort)
 
         return suggested_locations
 
