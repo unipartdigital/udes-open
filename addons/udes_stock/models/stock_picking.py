@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import inspect
 from collections import OrderedDict, defaultdict
 from lxml import etree
 
@@ -1301,7 +1301,7 @@ class StockPicking(models.Model):
 
         return move_lines.filtered(lambda o: o.qty_done > 0)
 
-    def _get_child_dest_locations(self, domains=None):
+    def _get_child_dest_locations(self, domains=None, limit=None):
         """ Return the child locations of the instance dest location.
             Extra domains are added to the child locations search query,
             when specified.
@@ -1314,8 +1314,7 @@ class StockPicking(models.Model):
             domains = []
 
         domains.append(("id", "child_of", self.location_dest_id.id))
-
-        return Location.search(domains, limit=50)
+        return Location.search(domains, limit=limit)
 
     def is_valid_location_dest_id(self, location=None, location_ref=None):
         """ Whether the specified location or location reference
@@ -2080,7 +2079,7 @@ class StockPicking(models.Model):
                 if locs:
                     mls.write({"location_dest_id": locs[0].id})
 
-    def get_suggested_locations(self, move_line_ids):
+    def get_suggested_locations(self, move_line_ids, limit=None, sort=True):
         """ Dispatch the configured suggestion location policy to
             retrieve the suggested locations
         """
@@ -2111,20 +2110,35 @@ class StockPicking(models.Model):
                 # If the pre-selected value is blocked
                 if not result:
                     func = getattr(self, "_get_suggested_location_" + policy, None)
-
                     if func:
-                        result = func(move_line_ids)
+                        # The signature of each "get suggested location" method may not
+                        # match, so inspect the method and only pass in the expected args
+                        expected_args = inspect.getfullargspec(func)[0]
+                        keys = ["move_line_ids", "limit", "sort"]
+                        local_vars = locals()
+                        kwargs = {x: local_vars[x] for x in keys if x in expected_args}
+                        result = func(**kwargs)
+                        # If result is sorted by the suggest method, don't re-sort it
+                        if "sort" in expected_args:
+                            sort = False
+        if sort:
+            return result.sorted(lambda l: l.name)
+        else:
+            return result
 
-        return result.sorted(lambda l: l.name)
-
-    def get_empty_locations(self):
+    def get_empty_locations(self, limit=None, sort=True):
         """ Returns the recordset of locations that are child of the
             instance dest location, are not blocked, and are empty.
             Expects a singleton instance.
         """
-        return self._get_child_dest_locations(
-            [("u_blocked", "=", False), ("barcode", "!=", False), ("quant_ids", "=", False)]
-        ).sorted(lambda l: l.name)
+        locations = self._get_child_dest_locations(
+            [("u_blocked", "=", False), ("barcode", "!=", False), ("quant_ids", "=", False)],
+            limit=limit
+        )
+        if sort:
+            return locations.sorted(lambda l: l.name)
+        else:
+            return locations
 
     def _check_picking_move_lines_suggest_location(self, move_line_ids):
         pick_move_lines = self.mapped("move_line_ids").filtered(lambda ml: ml in move_line_ids)
@@ -2148,14 +2162,14 @@ class StockPicking(models.Model):
 
         return location
 
-    def _get_suggested_location_empty_location(self, move_line_ids):
+    def _get_suggested_location_empty_location(self, limit=None, sort=False):
         """Get suggested locations by finding locations which are empty.
         """
-        return self.get_empty_locations()
+        return self.get_empty_locations(limit=limit, sort=sort)
 
-    def _get_suggested_location_by_products(self, move_line_ids, products=None):
+    def _get_suggested_location_by_products(self, move_line_ids, limit=None, products=None, sort=False):
         """Get suggested locations by matching product."""
-        return self._suggest_locations_products(move_line_ids, products)
+        return self._suggest_locations_products(move_line_ids, products, limit=limit, sort=sort)
 
     def _get_suggested_location_by_product_lot(self, move_line_ids, products=None):
         """Get suggested locations by matching both product and lot number.
@@ -2165,7 +2179,7 @@ class StockPicking(models.Model):
         """
         return self._suggest_locations_products(move_line_ids, products, match_lots=True)
 
-    def _suggest_locations_products(self, move_line_ids, products=None, match_lots=False):
+    def _suggest_locations_products(self, move_line_ids, products=None, match_lots=False, limit=None, sort=False):
         """Get suggested locations by matching product and optionally lot number.
 
         If used on a product that is not tracked by lot then locations will be suggested
@@ -2174,7 +2188,9 @@ class StockPicking(models.Model):
         Assumption: match_lots not used for goods in process, i.e. based on lots with ids.
         During goods in, lots of quants on movelines won't be committed to the database so won't
         have ids, only names. To allow this to work for goods in the search would have to be on
-        the name instead which would be less efficicent.
+        the name instead which would be less efficient.
+
+        Limit only limits the number of empty locs to suggest
         """
         Quant = self.env["stock.quant"]
 
@@ -2213,7 +2229,7 @@ class StockPicking(models.Model):
         if not suggested_locations:
             # No drop locations currently used for this product;
             # gather the empty ones
-            suggested_locations = self.get_empty_locations()
+            suggested_locations = self.get_empty_locations(limit=limit, sort=sort)
 
         return suggested_locations
 

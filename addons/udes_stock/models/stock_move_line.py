@@ -987,11 +987,11 @@ class StockMoveLine(models.Model):
                     continue
 
                 # location should be one of the suggested locations
-                locations = picking.get_suggested_locations(mls)
+                locations = picking.get_suggested_locations(mls, sort=False)
 
                 # or an empty location
                 if constraint == "enforce_with_empty":
-                    locations = locations | picking.get_empty_locations()
+                    locations = locations | picking.get_empty_locations(sort=False)
 
                 # or the damaged stock location if the picking type is set up
                 # to handle damages
