@@ -1525,7 +1525,9 @@ class StockPicking(models.Model):
         group = self.env["procurement.group"].create({"name": self.name})
         self.move_lines.write({"group_id": group.id})
 
-    def _update_move_lines_and_log_swap(self, move_lines, packs, other_pack):
+    def _update_move_lines_and_log_swap(
+        self, move_lines, packs, other_pack, fields_to_consider=None, fields_to_update=None
+    ):
         """Set the package ids of the specified move lines to the one
         of the other package and signal the package swap by posting
         a message to the picking instance of the first move line.
@@ -1536,7 +1538,9 @@ class StockPicking(models.Model):
         values = {}
         values.update(self._swap_moveline_info_at_pack_level(other_pack, values))
         move_lines.with_context(bypass_reservation_update=True).write(values)
-        self._swap_moveline_info_below_pack_level(move_lines, other_pack)
+        self._swap_moveline_info_below_pack_level(
+            move_lines, other_pack, fields_to_consider, fields_to_update
+        )
         msg_args = (", ".join(packs.mapped("name")), other_pack.name)
         msg = _("Package %s swapped for package %s.") % msg_args
         move_lines.mapped("picking_id").message_post(body=msg)
@@ -1551,20 +1555,40 @@ class StockPicking(models.Model):
         )
         return values
 
-    def _swap_moveline_info_below_pack_level(self, move_lines_to_use, pack):
+    def _swap_moveline_info_below_pack_level(
+        self, move_lines_to_use, pack, fields_to_consider=None, fields_to_update=None
+    ):
         """
         Swapping of fields which are more granular than pack level - from quant to move_lines
         specifically, the lots.
         """
+
+        if fields_to_update is None:
+            fields_to_update = {"lot_id"}
+        if fields_to_consider is None:
+            fields_to_consider = {"product_id"}
+
+        grouping_fields = fields_to_consider.union(fields_to_update)
+
         MoveLine = self.env["stock.move.line"]
         move_lines_to_skip = MoveLine.browse()
-        for (product, lot), quant_ids in pack.mapped("quant_ids").groupby(
-            lambda quant: (quant.product_id, quant.lot_id)
+        for fields, quant_ids in (
+            pack.mapped("quant_ids")
+            .sorted(key=lambda quant: [getattr(quant, field) for field in grouping_fields])
+            .groupby(
+                lambda quant: {
+                    field: getattr(quant, field)
+                    for field in fields_to_consider.union(fields_to_update)
+                },
+                sort=False,
+            )
         ):
             move_lines_to_write = MoveLine.browse()
             product_lot_qty_in_quants = sum(quant_ids.mapped("quantity"))
             product_move_lines = move_lines_to_use.filtered(
-                lambda move_line: move_line.product_id == product
+                lambda move_line: all(
+                    getattr(move_line, field) == fields[field] for field in fields_to_consider
+                )
                 and move_line not in move_lines_to_skip
             )
             result_of_move_line_fulfillment = self._quantity_matching_of_move_lines(
@@ -1575,7 +1599,7 @@ class StockPicking(models.Model):
                 move_lines_to_use |= result_of_move_line_fulfillment["new_move_line"]
             move_lines_to_skip |= move_lines_to_write
             move_lines_to_write.with_context(bypass_reservation_update=True).write(
-                {"lot_id": lot.id}
+                {field: fields[field].id or fields[field] for field in fields_to_update}
             )
 
     def _quantity_matching_of_move_lines(self, move_lines_to_fulfill, quantity_to_fulfill):
@@ -1589,11 +1613,14 @@ class StockPicking(models.Model):
             "unfulfilled_requested_quantity": result_of_move_line_fulfillment[2],
         }
 
-    def _swap_quant_fields(self, packs, pack_prime, fields_to_swap):
+    def _swap_quant_fields(self, packs, pack_prime, fields_to_swap=None):
         """Method to swap arbitrary quant fields between different packs
         the fields_to_swap are the string values of the fields which
         we are to swap between packs
         """
+
+        if fields_to_swap is None:
+            return False
 
         Quant = self.env["stock.quant"]
 
@@ -1750,15 +1777,29 @@ class StockPicking(models.Model):
 
         return exp_pack_mls
 
-    def _handle_move_line_swap(self, move_lines, packs, other_pack, additional_mls=False):
+    def _handle_move_line_swap(
+        self,
+        move_lines,
+        packs,
+        other_pack,
+        additional_mls=False,
+        fields_to_consider=None,
+        fields_to_update=None,
+    ):
         if additional_mls:
             # Both packages are in move lines; we simply change
             # the package ids of both scanned and expected move lines
-            self._update_move_lines_and_log_swap(move_lines, packs, other_pack)
-            self._update_move_lines_and_log_swap(additional_mls, other_pack, packs)
+            self._update_move_lines_and_log_swap(
+                move_lines, packs, other_pack, fields_to_consider, fields_to_update
+            )
+            self._update_move_lines_and_log_swap(
+                additional_mls, other_pack, packs, fields_to_consider, fields_to_update
+            )
 
         else:
-            self._update_move_lines_and_log_swap(move_lines, packs, other_pack)
+            self._update_move_lines_and_log_swap(
+                move_lines, packs, other_pack, fields_to_consider, fields_to_update
+            )
 
     def _swap_package_contents(
         self, scanned_package, expected_packages, scanned_pack_mls, exp_pack_mls
