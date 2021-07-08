@@ -1560,12 +1560,13 @@ class StockPicking(models.Model):
         MoveLine = self.env["stock.move.line"]
         move_lines_to_skip = MoveLine.browse()
         for (product, lot), quant_ids in pack.mapped("quant_ids").groupby(
-            lambda quant: (quant.product_id, quant.lot_id)
+            lambda quant: (quant.product_id, quant.lot_id), sort=False
         ):
             move_lines_to_write = MoveLine.browse()
             product_lot_qty_in_quants = sum(quant_ids.mapped("quantity"))
             product_move_lines = move_lines_to_use.filtered(
                 lambda move_line: move_line.product_id == product
+                and move_line.lot_id == lot
                 and move_line not in move_lines_to_skip
             )
             result_of_move_line_fulfillment = self._quantity_matching_of_move_lines(
