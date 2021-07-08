@@ -1554,20 +1554,21 @@ class StockPicking(models.Model):
         )
         return values
 
-    def _swap_moveline_info_below_pack_level(self, move_lines_to_use, pack):
+    def _swap_moveline_info_below_pack_level(self, move_lines_to_use, pack, unique_fields=('product_id', 'lot_id')):
         """
            Swapping of fields which are more granular than pack level - from quant to move_lines
            specifically, the lots.
         """
         MoveLine = self.env["stock.move.line"]
         move_lines_to_skip = MoveLine.browse()
-        for (product, lot), quant_ids in pack.mapped("quant_ids").groupby(
-            lambda quant: (quant.product_id, quant.lot_id)
+        for uniques, quant_ids in pack.mapped("quant_ids").groupby(
+            lambda quant: {field: quant.field for field in unique_fields}
         ):
             move_lines_to_write = MoveLine.browse()
             product_lot_qty_in_quants = sum(quant_ids.mapped("quantity"))
             product_move_lines = move_lines_to_use.filtered(
-                lambda move_line: move_line.product_id == product
+                lambda move_line:
+                all([move_line.field == uniques[field] for field in unique_fields])
                 and move_line not in move_lines_to_skip
             )
             result_of_move_line_fulfillment = self._quantity_matching_of_move_lines(
@@ -1578,7 +1579,7 @@ class StockPicking(models.Model):
                 move_lines_to_use |= result_of_move_line_fulfillment["new_move_line"]
             move_lines_to_skip |= move_lines_to_write
             move_lines_to_write.with_context(bypass_reservation_update=True).write(
-                {"lot_id": lot.id}
+                {field: uniques[field] for field in unique_fields}
             )
 
     def _quantity_matching_of_move_lines(self, move_lines_to_fulfill, quantity_to_fulfill):
