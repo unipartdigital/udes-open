@@ -74,6 +74,11 @@
                 </group>
             </xpath>
 
+            <!-- Add state field -->
+            <xpath expr="//field[@name='product_uom']" position="after" >
+                <field name="state" />
+            </xpath>
+
             <!-- Replace cancel button with clearer instruction -->
             <xpath expr="//button[@name='action_cancel']" position="attributes">
                 <attribute name="confirm">Are you sure you wish to cancel this entire pick and all of the contained moves?</attribute>
