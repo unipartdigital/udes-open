@@ -1094,7 +1094,7 @@ class StockPickingBatch(models.Model):
             # in a different picking
             # No unlinking of the empty pickings is done - this relies on the cron
             # to do the clean up
-            refactored_moves = to_investigate.mapped("move_lines")._action_refactor(stage="confirm")
+            refactored_moves = to_investigate.exists().mapped("move_lines")._action_refactor(stage="confirm")
             pickings_to_investigate = refactored_moves.mapped("picking_id")
             if not bypass_reassignment:
                 for picking in pickings_to_investigate:
