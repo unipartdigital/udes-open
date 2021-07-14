@@ -238,7 +238,7 @@ class StockPicking(models.Model):
         return self.picking_type_id.u_handle_partials
 
     def _compute_pending(self):
-        """ Compute if a picking is pending.
+        """Compute if a picking is pending.
         Pending means it has previous pickings that are not yet completed.
         Skip the calculation if the picking type is allowed to handle partials.
         """
@@ -256,12 +256,12 @@ class StockPicking(models.Model):
     @api.depends("move_type", "move_lines.state", "move_lines.picking_id")
     @api.one
     def _compute_state(self):
-        """ Prevent pickings to be in state assigned when not able to handle
-            partials, so they should remain in state waiting or confirmed until
-            they are fully assigned.
+        """Prevent pickings to be in state assigned when not able to handle
+        partials, so they should remain in state waiting or confirmed until
+        they are fully assigned.
 
-            Add the flag 'computing_state' when we call can_handle_partials here to
-            distinguish it from other calls.
+        Add the flag 'computing_state' when we call can_handle_partials here to
+        distinguish it from other calls.
         """
         move_lines = self.move_lines.filtered(lambda move: move.state not in ["cancel", "done"])
         if move_lines and not self.can_handle_partials(computing_state=True):
@@ -403,8 +403,7 @@ class StockPicking(models.Model):
         return res
 
     def write(self, vals):
-        """ If writing picking, check if previous batch is now complete
-        """
+        """If writing picking, check if previous batch is now complete"""
         # This will be used to trigger recompute of the batch state
         # we can't relate on the state after as batch_id might be
         # removed in the write
@@ -413,7 +412,7 @@ class StockPicking(models.Model):
         return super(StockPicking, self.with_context(**context_vals)).write(vals)
 
     def button_validate(self):
-        """ Ensure we don't incorrectly validate pending pickings.
+        """Ensure we don't incorrectly validate pending pickings.
 
         Additionally, display a warning message if the defined condition is not met.
         """
@@ -459,16 +458,16 @@ class StockPicking(models.Model):
                     line.lot_name = line._generate_lot_name(product)
 
     def assert_valid_state(self):
-        """ Checks if the transfer is in a valid state, i.e., not done or cancel
-            otherwise it raises and error
+        """Checks if the transfer is in a valid state, i.e., not done or cancel
+        otherwise it raises and error
         """
         self.ensure_one()
         if self.state in ["done", "cancel"]:
             raise ValidationError(_("Wrong state of picking %s") % self.state)
 
     def add_unexpected_parts(self, product_quantities):
-        """ By default allow to overreceive and it will be extended in
-            a module where the picking type has a flag to decide this.
+        """By default allow to overreceive and it will be extended in
+        a module where the picking type has a flag to decide this.
         """
         Product = self.env["product.product"]
 
@@ -513,8 +512,8 @@ class StockPicking(models.Model):
         return new_move_lines
 
     def _create_moves_from_quants(self, quant_ids, **kwargs):
-        """ Check that the quants are valid to be used in self and
-            create moves calling _create_moves().
+        """Check that the quants are valid to be used in self and
+        create moves calling _create_moves().
         """
         Quant = self.env["stock.quant"]
 
@@ -560,13 +559,13 @@ class StockPicking(models.Model):
         unexpected=False,
         product_quantity=None,
     ):
-        """ Creates moves from products_info and adds it to the picking
-            in self. Where products_info is a dictionary mapped by
-            product ids and the value are the quantities.
+        """Creates moves from products_info and adds it to the picking
+        in self. Where products_info is a dictionary mapped by
+        product ids and the value are the quantities.
 
-            The picking is also confirmed/assigned if the flags are set to True.
-            If result_package is set, it will update the result_package_id of the
-            new move_lines when assign flag is True.
+        The picking is also confirmed/assigned if the flags are set to True.
+        If result_package is set, it will update the result_package_id of the
+        new move_lines when assign flag is True.
         """
         Product = self.env["product.product"]
         Move = self.env["stock.move"]
@@ -638,30 +637,30 @@ class StockPicking(models.Model):
         product_quantity=None,
         create_batch=False,
     ):
-        """ Creates a stock.picking and stock.moves for a given list
-            of stock.quant ids
+        """Creates a stock.picking and stock.moves for a given list
+        of stock.quant ids
 
-            @param quant_ids: Array (int)
-                An array of the quants ID to add to the stock.picking
-            @param location_id: int
-                ID of the location where the stock.picking is moving from.
-            @param (optional) picking_type_id: int
-                The type of the stock.picking.
-            @param (optional) location_dest_id: int
-                ID of the location where the stock is going to be moved to.
-            @param (optional) result_package_id: int
-                The target package ID
-            @param (optional) move_parent_package: Boolean
-                Used in pallets/nested packages, to maintain the move of the entire pallet.
-                Defaults to False
-            @param (optional) origin: string
-                Value of the source document of the new picking
-            @param (optional) group_id: int
-                ID of the group where the stock is being assigned to
-            @param (optional) product_quantity: int
-                Quantity to be moved during internal transfer of loose product rather than whole quant.
-            @param (optional) create_batch: Boolean
-                Used to assign the picking to a batch for the current user e.g. for internal transfer.
+        @param quant_ids: Array (int)
+            An array of the quants ID to add to the stock.picking
+        @param location_id: int
+            ID of the location where the stock.picking is moving from.
+        @param (optional) picking_type_id: int
+            The type of the stock.picking.
+        @param (optional) location_dest_id: int
+            ID of the location where the stock is going to be moved to.
+        @param (optional) result_package_id: int
+            The target package ID
+        @param (optional) move_parent_package: Boolean
+            Used in pallets/nested packages, to maintain the move of the entire pallet.
+            Defaults to False
+        @param (optional) origin: string
+            Value of the source document of the new picking
+        @param (optional) group_id: int
+            ID of the group where the stock is being assigned to
+        @param (optional) product_quantity: int
+            Quantity to be moved during internal transfer of loose product rather than whole quant.
+        @param (optional) create_batch: Boolean
+            Used to assign the picking to a batch for the current user e.g. for internal transfer.
         """
         Picking = self.env["stock.picking"]
         PickingType = self.env["stock.picking.type"]
@@ -741,53 +740,53 @@ class StockPicking(models.Model):
         location_id=None,
         **kwargs
     ):
-        """ Update/mutate the stock picking in self
+        """Update/mutate the stock picking in self
 
-            @param quant_ids: Array (int)
-                An array of the quants ID to add to the stock.picking
-            @param (optional) force_validate: Boolean
-                Forces the transfer to be completed. Depends on parameters
-            @param (optional) validate: Boolean
-                Validate the transfer unless there are move lines todo, in
-                that case it will raise an error.
-            @param (optional) create_backorder: Boolean
-                When true, allows to validate a transfer with move lines todo
-                by creating a backorder.
-            @param (optional) location_dest_id: int
-                ID of the location where the stock is going to be moved to
-            @param (optional) location_dest_name: string
-                Name of the location where the stock is going to be moved to
-            @param (optional) location_dest_barcode: string
-                barcode of the location where the stock is going to be moved to
-            @param (optional) result_package_name: string
-                If it corresponds to an existing package/pallet that is not
-                in an other location, we will set it to the `result_package_id`
-                of the operations of the picking (i.e. transfer)
-                If the target storage format of the picking type is pallet of
-                packages it will set `u_result_parent_package_id` unless
-                result_parent_package_name is set, in such case it will be set
-                as `result_package_id`.
-            @param (optional) result_parent_package_name: string
-                name of the package to be set as `u_result_parent_package_id`
-            @param (optional) move_parent_package: Boolean
-                Used in pallets/nested packages, to maintain the move of the entire pallet.
-                Defaults to False
-            @param (optional) parent_package_packaging_id: int
-                ID of the packaging record (product.packaging)
-                to be applied to the parent package
-            @param package_name: string
-                Name of the package of the picking to be marked as done
-            @param product_ids: Array of dictionaries
-                An array with the products information to be marked as done,
-                where each dictionary contains: barcode, qty and
-                lot numbers if needed
-            @param picking_info: dictionary
-                Generic picking information to update the stock picking with
-            @param (optional) validate_real_time: Boolean
-                Used to specify if the update should be should be processed
-                immediately or on confirmation of the picking.
-            @param (optional) location_id: int
-                Used when validating products from a location.
+        @param quant_ids: Array (int)
+            An array of the quants ID to add to the stock.picking
+        @param (optional) force_validate: Boolean
+            Forces the transfer to be completed. Depends on parameters
+        @param (optional) validate: Boolean
+            Validate the transfer unless there are move lines todo, in
+            that case it will raise an error.
+        @param (optional) create_backorder: Boolean
+            When true, allows to validate a transfer with move lines todo
+            by creating a backorder.
+        @param (optional) location_dest_id: int
+            ID of the location where the stock is going to be moved to
+        @param (optional) location_dest_name: string
+            Name of the location where the stock is going to be moved to
+        @param (optional) location_dest_barcode: string
+            barcode of the location where the stock is going to be moved to
+        @param (optional) result_package_name: string
+            If it corresponds to an existing package/pallet that is not
+            in an other location, we will set it to the `result_package_id`
+            of the operations of the picking (i.e. transfer)
+            If the target storage format of the picking type is pallet of
+            packages it will set `u_result_parent_package_id` unless
+            result_parent_package_name is set, in such case it will be set
+            as `result_package_id`.
+        @param (optional) result_parent_package_name: string
+            name of the package to be set as `u_result_parent_package_id`
+        @param (optional) move_parent_package: Boolean
+            Used in pallets/nested packages, to maintain the move of the entire pallet.
+            Defaults to False
+        @param (optional) parent_package_packaging_id: int
+            ID of the packaging record (product.packaging)
+            to be applied to the parent package
+        @param package_name: string
+            Name of the package of the picking to be marked as done
+        @param product_ids: Array of dictionaries
+            An array with the products information to be marked as done,
+            where each dictionary contains: barcode, qty and
+            lot numbers if needed
+        @param picking_info: dictionary
+            Generic picking information to update the stock picking with
+        @param (optional) validate_real_time: Boolean
+            Used to specify if the update should be should be processed
+            immediately or on confirmation of the picking.
+        @param (optional) location_id: int
+            Used when validating products from a location.
         """
         Location = self.env["stock.location"]
         Package = self.env["stock.quant.package"]
@@ -919,9 +918,9 @@ class StockPicking(models.Model):
             )
 
     def _requires_backorder(self, mls):
-        """ Checks if a backorder is required
-            by checking if all move.lines
-            within a picking is present in mls
+        """Checks if a backorder is required
+        by checking if all move.lines
+        within a picking is present in mls
         """
         mls_moves = mls.mapped("move_id")
         # return (mls_moves | self.move_lines) != mls_moves or \
@@ -937,12 +936,12 @@ class StockPicking(models.Model):
         return False
 
     def _backorder_movelines(self, mls=None, dest_picking=None):
-        """ Creates a backorder picking from self (expects a singleton)
-            and a subset of stock.move.lines are then moved into it.
-            The moves from which the move lines have been transferred
-            will be split if needed.
-            Completed move lines will be selected unless mls is set.
-            Optionally receive a picking into where the mls will be moved.
+        """Creates a backorder picking from self (expects a singleton)
+        and a subset of stock.move.lines are then moved into it.
+        The moves from which the move lines have been transferred
+        will be split if needed.
+        Completed move lines will be selected unless mls is set.
+        Optionally receive a picking into where the mls will be moved.
         """
         Move = self.env["stock.move"]
         # Based on back order creation in stock_move._action_done
@@ -976,9 +975,9 @@ class StockPicking(models.Model):
         return dest_picking
 
     def _real_time_update(self, mls):
-        """ Checks to see if the transfer of the move_lines would leave the
-            stock.move empty if so it returns self else it returns a
-            backorder comprising of the stock.move.lines provided
+        """Checks to see if the transfer of the move_lines would leave the
+        stock.move empty if so it returns self else it returns a
+        backorder comprising of the stock.move.lines provided
         """
         if not self._requires_backorder(mls):
             return self
@@ -1004,65 +1003,65 @@ class StockPicking(models.Model):
         extra_domain=None,
     ):
 
-        """ Search for pickings by various criteria
+        """Search for pickings by various criteria
 
-            @param (optional) origin
-                Search for stock.picking records based on the origin
-                field. Needs to be a complete match.
+        @param (optional) origin
+            Search for stock.picking records based on the origin
+            field. Needs to be a complete match.
 
-            @param (optional) package_name
-                Search of stock.pickings associated with a specific
-                package_name (exact match).
+        @param (optional) package_name
+            Search of stock.pickings associated with a specific
+            package_name (exact match).
 
-            @param (optional) product_id
-                If it is set then location_id must also be set and stock.pickings
-                are found using both of those values (states is optional).
+        @param (optional) product_id
+            If it is set then location_id must also be set and stock.pickings
+            are found using both of those values (states is optional).
 
-            @param (optional) location_id
-                If it is set then only internal transfers acting on that
-                location are considered. In all cases, if states is set
-                then only pickings in those states are considered.
+        @param (optional) location_id
+            If it is set then only internal transfers acting on that
+            location are considered. In all cases, if states is set
+            then only pickings in those states are considered.
 
-            @param (optional) backorder_id
-                Id of the backorder picking. If present, pickings are found
-                by backorder_id and states.
+        @param (optional) backorder_id
+            Id of the backorder picking. If present, pickings are found
+            by backorder_id and states.
 
-            (IGNORE FOR NOW) @param (optional) allops: Boolean.
-                If True, all pack operations are included. If False, only
-                pack operations that are for the pallet identified by param
-                pallet (and it's sub-packages) are included.
-                Defaults to True.
+        (IGNORE FOR NOW) @param (optional) allops: Boolean.
+            If True, all pack operations are included. If False, only
+            pack operations that are for the pallet identified by param
+            pallet (and it's sub-packages) are included.
+            Defaults to True.
 
-            @param (optional) states
-                A List of strings that are states for pickings. If present
-                only pickings in the states present in the list are
-                returned.
+        @param (optional) states
+            A List of strings that are states for pickings. If present
+            only pickings in the states present in the list are
+            returned.
 
-            @param (optional) result_package_id
-                If an id is supplied all pickings that are registered to
-                this package id will be returned. This can also be used
-                in conjunction with the states parameter
+        @param (optional) result_package_id
+            If an id is supplied all pickings that are registered to
+            this package id will be returned. This can also be used
+            in conjunction with the states parameter
 
-            @param (optional) picking_priorities
-                When supplied all pickings of set priorities and states
-                will be searched and returned
+        @param (optional) picking_priorities
+            When supplied all pickings of set priorities and states
+            will be searched and returned
 
-            @param (optional) picking_ids
-                When supplied pickings of the supplied picking ids will
-                be searched and returned. If used in conjunction with
-                priorities then only those pickings of those ids will be
-                returned.
+        @param (optional) picking_ids
+            When supplied pickings of the supplied picking ids will
+            be searched and returned. If used in conjunction with
+            priorities then only those pickings of those ids will be
+            returned.
 
-            @param (optional) bulky: Boolean
-                This is used in conjunction with the picking_priorities
-                parameter to return pickings that have bulky items
-                TODO: this needs to be in a new module and extend this function
-                    for instance adding the extra criteria to extra_domain paramater
+        @param (optional) bulky: Boolean
+            This is used in conjunction with the picking_priorities
+            parameter to return pickings that have bulky items
+            TODO: this needs to be in a new module and extend this function
+                for instance adding the extra criteria to extra_domain paramater
 
-            @param (optional) picking_type_ids: Array (int)
-                If it is set the pickings returned will be only from the picking types in the array.
+        @param (optional) picking_type_ids: Array (int)
+            If it is set the pickings returned will be only from the picking types in the array.
 
-            TODO: bulky
+        TODO: bulky
         """
         Picking = self.env["stock.picking"]
         Package = self.env["stock.quant.package"]
@@ -1134,9 +1133,9 @@ class StockPicking(models.Model):
         return pickings
 
     def batch_to_user(self, user):
-        """ Throws error if picking is batched to another user
-            or if user already has a batch
-            creates batch and adds picking to it otherwise
+        """Throws error if picking is batched to another user
+        or if user already has a batch
+        creates batch and adds picking to it otherwise
         """
 
         PickingBatch = self.env["stock.picking.batch"]
@@ -1164,8 +1163,7 @@ class StockPicking(models.Model):
             batch.mark_as_todo()
 
     def _get_package_search_domain(self, package):
-        """ Generate the domain for searching pickings of a package
-        """
+        """Generate the domain for searching pickings of a package"""
         return [
             "|",
             ("move_line_ids.package_id", "child_of", package.id),
@@ -1176,21 +1174,21 @@ class StockPicking(models.Model):
 
     def _prepare_info(self, priorities=None, fields_to_fetch=None):
         """
-            Prepares the following info of the picking in self:
-            - id: int
-            - name: string
-            - priority: int
-            - backorder_id: int
-            - priority_name: string
-            - origin: string
-            - location_dest_id: int
-            - picking_type_id: int
-            - move_lines: [{stock.move}]
-            - state: string
-            - u_pending: boolean (only if picking type does not handle partials)
+        Prepares the following info of the picking in self:
+        - id: int
+        - name: string
+        - priority: int
+        - backorder_id: int
+        - priority_name: string
+        - origin: string
+        - location_dest_id: int
+        - picking_type_id: int
+        - move_lines: [{stock.move}]
+        - state: string
+        - u_pending: boolean (only if picking type does not handle partials)
 
-            @param (optional) priorities
-                Dictionary of priority_id:priority_name
+        @param (optional) priorities
+            Dictionary of priority_id:priority_name
         """
         self.ensure_one()
         priority_name = self._get_priority_name()
@@ -1233,8 +1231,7 @@ class StockPicking(models.Model):
         return {"Priorities": self._get_priority_name()}
 
     def get_info(self, **kwargs):
-        """ Return a list with the information of each picking in self.
-        """
+        """Return a list with the information of each picking in self."""
         # create a dict of priority_id:priority_name to avoid
         # to do it for each picking
         priorities = self._get_priority_dict()
@@ -1245,8 +1242,7 @@ class StockPicking(models.Model):
         return res
 
     def get_result_packages_names(self):
-        """ Return a list of the names of the parent packages
-        """
+        """Return a list of the names of the parent packages"""
         move_lines = self.mapped("move_line_ids")
         packages = move_lines.mapped(
             lambda ml: ml.u_result_parent_package_id or ml.result_package_id
@@ -1267,21 +1263,21 @@ class StockPicking(models.Model):
 
     @api.model
     def get_priorities(self, picking_type_id=None):
-        """ Return a list of dicts containing the priorities of the
-            all defined priority groups, in the following format:
-                [
-                    {
-                        'name': 'Picking',
-                        'priorities': [
-                            OrderedDict([('id', '2'), ('name', 'Urgent')]),
-                            OrderedDict([('id', '1'), ('name', 'Normal')])
-                        ]
-                    },
-                    {
-                        ...
-                    },
+        """Return a list of dicts containing the priorities of the
+        all defined priority groups, in the following format:
+            [
+                {
+                    'name': 'Picking',
+                    'priorities': [
+                        OrderedDict([('id', '2'), ('name', 'Urgent')]),
+                        OrderedDict([('id', '1'), ('name', 'Normal')])
+                    ]
+                },
+                {
                     ...
-                ]
+                },
+                ...
+            ]
         """
 
         if picking_type_id is None:
@@ -1302,10 +1298,10 @@ class StockPicking(models.Model):
         return move_lines.filtered(lambda o: o.qty_done > 0)
 
     def _get_child_dest_locations(self, domains=None, limit=None):
-        """ Return the child locations of the instance dest location.
-            Extra domains are added to the child locations search query,
-            when specified.
-            Expects a singleton instance.
+        """Return the child locations of the instance dest location.
+        Extra domains are added to the child locations search query,
+        when specified.
+        Expects a singleton instance.
         """
         Location = self.env["stock.location"]
         self.ensure_one()
@@ -1317,12 +1313,12 @@ class StockPicking(models.Model):
         return Location.search(domains, limit=limit)
 
     def is_valid_location_dest_id(self, location=None, location_ref=None):
-        """ Whether the specified location or location reference
-            (i.e. ID, name or barcode) is a valid putaway location
-            for the picking.
-            Expects a singleton instance.
+        """Whether the specified location or location reference
+        (i.e. ID, name or barcode) is a valid putaway location
+        for the picking.
+        Expects a singleton instance.
 
-            Returns a boolean indicating the validity check outcome.
+        Returns a boolean indicating the validity check outcome.
         """
         Location = self.env["stock.location"]
         self.ensure_one()
@@ -1376,7 +1372,7 @@ class StockPicking(models.Model):
 
     def action_confirm(self):
         """
-            Override action_confirm to create procurement groups if needed
+        Override action_confirm to create procurement groups if needed
         """
         for pick in self.filtered(
             lambda p: p.picking_type_id.u_create_procurement_group and not p.group_id
@@ -1389,11 +1385,11 @@ class StockPicking(models.Model):
         return res
 
     def find_empty_pickings_to_unlink(self):
-        """ Finds empty pickings to unlink in self, when it is set, otherwise
-            searches for any empty picking.
+        """Finds empty pickings to unlink in self, when it is set, otherwise
+        searches for any empty picking.
 
-            Filter out of the generic search when the picking type does not
-            have auto unlink empty enabled.
+        Filter out of the generic search when the picking type does not
+        have auto unlink empty enabled.
         """
         PickingType = self.env["stock.picking.type"]
 
@@ -1412,10 +1408,10 @@ class StockPicking(models.Model):
 
     def unlink_empty(self):
         """
-            Delete pickings in self that are empty, locked and marked=False.
-            If self is empty, find and delete any picking with the previous
-            criterion.
-            This is to prevent us leaving junk data behind when refactoring
+        Delete pickings in self that are empty, locked and marked=False.
+        If self is empty, find and delete any picking with the previous
+        criterion.
+        This is to prevent us leaving junk data behind when refactoring
         """
         records = self.browse()
         for to_unlink in self.find_empty_pickings_to_unlink():
@@ -1434,8 +1430,8 @@ class StockPicking(models.Model):
 
     def _check_entire_pack(self):
         """
-            Override to avoid values at result_package_id when
-            user scans products/avoid _check_entire_pack of products
+        Override to avoid values at result_package_id when
+        user scans products/avoid _check_entire_pack of products
         """
         pickings = self.filtered(
             lambda p: p.picking_type_id.u_user_scans != "product"
@@ -1445,8 +1441,8 @@ class StockPicking(models.Model):
 
     def _set_u_result_parent_package_id(self):
         """
-            Override function to avoid setting result_package_id when
-            the storage format is product/package/pallet of products
+        Override function to avoid setting result_package_id when
+        the storage format is product/package/pallet of products
         """
         pallet_package_pickings = self.filtered(
             lambda p: (
@@ -1462,9 +1458,9 @@ class StockPicking(models.Model):
 
     def _reserve_full_packages(self):
         """
-            If the picking type of the picking in self has full package
-            reservation enabled, partially reserved packages are
-            completed.
+        If the picking type of the picking in self has full package
+        reservation enabled, partially reserved packages are
+        completed.
         """
         Quant = self.env["stock.quant"]
         MoveLine = self.env["stock.move.line"]
@@ -1529,18 +1525,22 @@ class StockPicking(models.Model):
         group = self.env["procurement.group"].create({"name": self.name})
         self.move_lines.write({"group_id": group.id})
 
-    def _update_move_lines_and_log_swap(self, move_lines, packs, other_pack):
-        """ Set the package ids of the specified move lines to the one
-            of the other package and signal the package swap by posting
-            a message to the picking instance of the first move line.
+    def _update_move_lines_and_log_swap(
+        self, move_lines, packs, other_pack, fields_to_consider=None, fields_to_update=None
+    ):
+        """Set the package ids of the specified move lines to the one
+        of the other package and signal the package swap by posting
+        a message to the picking instance of the first move line.
 
-            Assumes that both packages are singletons and that the
-            specified move lines are a non empty recordset.
+        Assumes that both packages are singletons and that the
+        specified move lines are a non empty recordset.
         """
         values = {}
         values.update(self._swap_moveline_info_at_pack_level(other_pack, values))
         move_lines.with_context(bypass_reservation_update=True).write(values)
-        self._swap_moveline_info_below_pack_level(move_lines, other_pack)
+        self._swap_moveline_info_below_pack_level(
+            move_lines, other_pack, fields_to_consider, fields_to_update
+        )
         msg_args = (", ".join(packs.mapped("name")), other_pack.name)
         msg = _("Package %s swapped for package %s.") % msg_args
         move_lines.mapped("picking_id").message_post(body=msg)
@@ -1548,24 +1548,47 @@ class StockPicking(models.Model):
 
     def _swap_moveline_info_at_pack_level(self, pack, values):
         values.update(
-            {"package_id": pack.id, "result_package_id": pack.id,}
+            {
+                "package_id": pack.id,
+                "result_package_id": pack.id,
+            }
         )
         return values
 
-    def _swap_moveline_info_below_pack_level(self, move_lines_to_use, pack):
+    def _swap_moveline_info_below_pack_level(
+        self, move_lines_to_use, pack, fields_to_consider=None, fields_to_update=None
+    ):
         """
-           Swapping of fields which are more granular than pack level - from quant to move_lines
-           specifically, the lots.
+        Swapping of fields which are more granular than pack level - from quant to move_lines
+        specifically, the lots.
         """
+
+        if fields_to_update is None:
+            fields_to_update = {"lot_id"}
+        if fields_to_consider is None:
+            fields_to_consider = {"product_id"}
+
+        grouping_fields = fields_to_consider.union(fields_to_update)
+
         MoveLine = self.env["stock.move.line"]
         move_lines_to_skip = MoveLine.browse()
-        for (product, lot), quant_ids in pack.mapped("quant_ids").groupby(
-            lambda quant: (quant.product_id, quant.lot_id)
+        for fields, quant_ids in (
+            pack.mapped("quant_ids")
+            .sorted(key=lambda quant: [getattr(quant, field) for field in grouping_fields])
+            .groupby(
+                lambda quant: {
+                    field: getattr(quant, field)
+                    for field in fields_to_consider.union(fields_to_update)
+                },
+                sort=False,
+            )
         ):
             move_lines_to_write = MoveLine.browse()
             product_lot_qty_in_quants = sum(quant_ids.mapped("quantity"))
             product_move_lines = move_lines_to_use.filtered(
-                lambda move_line: move_line.product_id == product
+                lambda move_line: all(
+                    getattr(move_line, field) == fields[field] for field in fields_to_consider
+                )
                 and move_line not in move_lines_to_skip
             )
             result_of_move_line_fulfillment = self._quantity_matching_of_move_lines(
@@ -1576,7 +1599,7 @@ class StockPicking(models.Model):
                 move_lines_to_use |= result_of_move_line_fulfillment["new_move_line"]
             move_lines_to_skip |= move_lines_to_write
             move_lines_to_write.with_context(bypass_reservation_update=True).write(
-                {"lot_id": lot.id}
+                {field: fields[field].id or fields[field] for field in fields_to_update}
             )
 
     def _quantity_matching_of_move_lines(self, move_lines_to_fulfill, quantity_to_fulfill):
@@ -1590,11 +1613,14 @@ class StockPicking(models.Model):
             "unfulfilled_requested_quantity": result_of_move_line_fulfillment[2],
         }
 
-    def _swap_quant_fields(self, packs, pack_prime, fields_to_swap):
+    def _swap_quant_fields(self, packs, pack_prime, fields_to_swap=None):
         """Method to swap arbitrary quant fields between different packs
-           the fields_to_swap are the string values of the fields which
-           we are to swap between packs
+        the fields_to_swap are the string values of the fields which
+        we are to swap between packs
         """
+
+        if fields_to_swap is None:
+            return False
 
         Quant = self.env["stock.quant"]
 
@@ -1751,15 +1777,29 @@ class StockPicking(models.Model):
 
         return exp_pack_mls
 
-    def _handle_move_line_swap(self, move_lines, packs, other_pack, additional_mls=False):
+    def _handle_move_line_swap(
+        self,
+        move_lines,
+        packs,
+        other_pack,
+        additional_mls=False,
+        fields_to_consider=None,
+        fields_to_update=None,
+    ):
         if additional_mls:
             # Both packages are in move lines; we simply change
             # the package ids of both scanned and expected move lines
-            self._update_move_lines_and_log_swap(move_lines, packs, other_pack)
-            self._update_move_lines_and_log_swap(additional_mls, other_pack, packs)
+            self._update_move_lines_and_log_swap(
+                move_lines, packs, other_pack, fields_to_consider, fields_to_update
+            )
+            self._update_move_lines_and_log_swap(
+                additional_mls, other_pack, packs, fields_to_consider, fields_to_update
+            )
 
         else:
-            self._update_move_lines_and_log_swap(move_lines, packs, other_pack)
+            self._update_move_lines_and_log_swap(
+                move_lines, packs, other_pack, fields_to_consider, fields_to_update
+            )
 
     def _swap_package_contents(
         self, scanned_package, expected_packages, scanned_pack_mls, exp_pack_mls
@@ -1870,26 +1910,26 @@ class StockPicking(models.Model):
         return scanned_pack_mls, mls
 
     def maybe_swap(self, scanned_package, expected_packages):
-        """ Validate the conditions for performing a swap of the
-            specified packages by considering the picking instance
-            (expects a singleton picking) and relevant move lines.
+        """Validate the conditions for performing a swap of the
+        specified packages by considering the picking instance
+        (expects a singleton picking) and relevant move lines.
 
-            If the user scans (`u_user_scans`) is set to 'product' then the
-            contents of the `scanned_package` which match with the
-            contents within `expected_packages` will be swapped.
+        If the user scans (`u_user_scans`) is set to 'product' then the
+        contents of the `scanned_package` which match with the
+        contents within `expected_packages` will be swapped.
 
-            If the user scans is set to 'package' then `expected_packages`
-            should be a singleton and the entire package will be swapped if
-            all of the contents match.
+        If the user scans is set to 'package' then `expected_packages`
+        should be a singleton and the entire package will be swapped if
+        all of the contents match.
 
-            Return the move lines related to the expected package (or a subset
-            including splitting), in case a swap is performed, or the ones
-            related to the scanned package, if both packages belong to the same
-            batch.
+        Return the move lines related to the expected package (or a subset
+        including splitting), in case a swap is performed, or the ones
+        related to the scanned package, if both packages belong to the same
+        batch.
 
-            Raise a ValidationError in case packages cannot be found
-            in the picking or if the conditions for swapping are not
-            met.
+        Raise a ValidationError in case packages cannot be found
+        in the picking or if the conditions for swapping are not
+        met.
         """
         self.ensure_one()
 
@@ -1948,11 +1988,11 @@ class StockPicking(models.Model):
             )
 
     def is_compatible_package(self, package_name):
-        """ The package with name package_name is compatible
-            with the picking in self if:
-            - The package does not exist
-            - The package is not in stock
-            - The package has not been used in any other picking
+        """The package with name package_name is compatible
+        with the picking in self if:
+        - The package does not exist
+        - The package is not in stock
+        - The package has not been used in any other picking
         """
         Picking = self.env["stock.picking"]
         Package = self.env["stock.quant.package"]
@@ -2053,8 +2093,8 @@ class StockPicking(models.Model):
     #
 
     def check_policy_for_preprocessing(self, policy):
-        """"Check policy allows pre processing as not all polices
-            can be used in this way
+        """ "Check policy allows pre processing as not all polices
+        can be used in this way
         """
         func = getattr(self, "_get_suggested_location_" + policy, None)
 
@@ -2066,8 +2106,8 @@ class StockPicking(models.Model):
     def apply_drop_location_policy(self):
         """Apply suggested locations to move lines
 
-           raise ValidationError: if the policy set does not have
-                                  _allow_preprocess set
+        raise ValidationError: if the policy set does not have
+                               _allow_preprocess set
         """
         by_pack_or_single = lambda ml: ml.package_id.package_id or ml.package_id or ml.id
 
@@ -2080,8 +2120,8 @@ class StockPicking(models.Model):
                     mls.write({"location_dest_id": locs[0].id})
 
     def get_suggested_locations(self, move_line_ids, limit=None, sort=True):
-        """ Dispatch the configured suggestion location policy to
-            retrieve the suggested locations
+        """Dispatch the configured suggestion location policy to
+        retrieve the suggested locations
         """
         result = self.env["stock.location"]
 
@@ -2127,13 +2167,13 @@ class StockPicking(models.Model):
             return result
 
     def get_empty_locations(self, limit=None, sort=True):
-        """ Returns the recordset of locations that are child of the
-            instance dest location, are not blocked, and are empty.
-            Expects a singleton instance.
+        """Returns the recordset of locations that are child of the
+        instance dest location, are not blocked, and are empty.
+        Expects a singleton instance.
         """
         locations = self._get_child_dest_locations(
             [("u_blocked", "=", False), ("barcode", "!=", False), ("quant_ids", "=", False)],
-            limit=limit
+            limit=limit,
         )
         if sort:
             return locations.sorted(lambda l: l.name)
@@ -2163,11 +2203,12 @@ class StockPicking(models.Model):
         return location
 
     def _get_suggested_location_empty_location(self, limit=None, sort=False):
-        """Get suggested locations by finding locations which are empty.
-        """
+        """Get suggested locations by finding locations which are empty."""
         return self.get_empty_locations(limit=limit, sort=sort)
 
-    def _get_suggested_location_by_products(self, move_line_ids, limit=None, products=None, sort=False):
+    def _get_suggested_location_by_products(
+        self, move_line_ids, limit=None, products=None, sort=False
+    ):
         """Get suggested locations by matching product."""
         return self._suggest_locations_products(move_line_ids, products, limit=limit, sort=sort)
 
@@ -2179,7 +2220,9 @@ class StockPicking(models.Model):
         """
         return self._suggest_locations_products(move_line_ids, products, match_lots=True)
 
-    def _suggest_locations_products(self, move_line_ids, products=None, match_lots=False, limit=None, sort=False):
+    def _suggest_locations_products(
+        self, move_line_ids, products=None, match_lots=False, limit=None, sort=False
+    ):
         """Get suggested locations by matching product and optionally lot number.
 
         If used on a product that is not tracked by lot then locations will be suggested
@@ -2253,8 +2296,7 @@ class StockPicking(models.Model):
 
     @allow_preprocess
     def _get_suggested_location_by_height_speed(self, move_line_ids):
-        """Get location based on product height and turn over speed categories
-        """
+        """Get location based on product height and turn over speed categories"""
         Location = self.env["stock.location"]
 
         height_category = move_line_ids.mapped("product_id.u_height_category_id")
@@ -2286,10 +2328,10 @@ class StockPicking(models.Model):
         return self._location_not_in_other_move_lines(candidate_locations)
 
     def _get_suggested_location_by_orderpoint(self, move_line_ids):
-        """ Same as by product, but the locations are search from order points
-            and when there is no suggested location we don't return empty
-            locations, since products should only be dropped into locations
-            with order points of such products.
+        """Same as by product, but the locations are search from order points
+        and when there is no suggested location we don't return empty
+        locations, since products should only be dropped into locations
+        with order points of such products.
         """
         OrderPoint = self.env["stock.warehouse.orderpoint"]
 
@@ -2370,7 +2412,7 @@ class StockPicking(models.Model):
 
     def raise_stock_inv(self, reason, quants, location):
         """Unreserve stock create stock investigation for reserve_stock and
-           attempt to reserve new stock
+        attempt to reserve new stock
         """
         Picking = self.env["stock.picking"]
         Group = self.env["procurement.group"]
@@ -2399,8 +2441,8 @@ class StockPicking(models.Model):
         self.action_assign()
 
     def search_for_pickings(self, picking_type_id, picking_priorities, limit=1, domain=None):
-        """ Search for next available picking based on
-            picking type and priorities
+        """Search for next available picking based on
+        picking type and priorities
         """
         Users = self.env["res.users"]
         PickingType = self.env["stock.picking.type"]
@@ -2438,9 +2480,9 @@ class StockPicking(models.Model):
         return picking
 
     def _reserve_stock_assign(self):
-        """ Perform assign of the pickings at the move level because refactoring
-            may change the pickings.
-            This is a function so it can be extended and/or overriden.
+        """Perform assign of the pickings at the move level because refactoring
+        may change the pickings.
+        This is a function so it can be extended and/or overriden.
         """
         # Assign at the move level disabling refactoring
         moves = self.mapped("move_lines")
