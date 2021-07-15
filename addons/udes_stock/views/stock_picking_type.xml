@@ -67,6 +67,7 @@
                     <field name="u_default_package_type_id" options="{'no_create': True, 'no_open': True}" />
                     <field name="u_show_all_tasks" />
                     <field name="u_enable_delivery_note_printing" />
+                    <field name="u_log_move_cancellations" />
                 </group>
                 <group class="udes_wide_list" string="Pick Refactoring" groups='base.group_no_one'>
                     <field name="u_move_line_key_format" />

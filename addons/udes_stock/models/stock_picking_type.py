@@ -456,6 +456,12 @@ class StockPickingType(models.Model):
         help="Enable printing of delivery notes from the front end",
     )
 
+    u_log_move_cancellations = fields.Boolean(
+        string="Log Full Move Cancellations from Adjust Pick",
+        default=False,
+        help="Log a note on the picking when a move is fully cancelled via the Adjust Pick functionality",
+    )
+
     def _compute_package_count(self):
         """Counts number of packages at parent and child locations"""
         StockQuantPackage = self.env["stock.quant.package"]
