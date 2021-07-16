@@ -47,6 +47,8 @@ class Printer(UdesApi):
             raise ValidationError(
                 _('Cannot find printer with barcode: %s') % barcode)
 
+        if printer.group_id:
+            printer.group_id.set_user_default()
         return printer.set_user_default()
 
     @http.route(
