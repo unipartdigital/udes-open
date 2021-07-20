@@ -762,3 +762,164 @@ class TestRefactoringAutoUnlinkEmpty(common.BaseUDES):
         Picking.unlink_empty()
         # Empty picking has disappeared
         self.assertEqual(n_out_pickings, self._count_out_pickings())
+
+class TestRefactoringAssignSplittingQuantity(common.BaseUDES):
+    def setUp(self):
+        """Change pick picking type to split by quantity"""
+        super().setUp()
+
+        # Split picking to maximum quantity
+        self.picking_type_pick.write(
+            {
+                "u_post_assign_action": "by_maximum_quantity",
+                "u_assign_refactor_constraint_value": 2,
+            }
+        )
+
+        self.picking = self.create_picking(self.picking_type_pick)
+
+    def test_split_equally(self):
+        """Check that a pick is split according to maximum quantity"""
+        Picking = self.env["stock.picking"]
+
+        # Create apple quant
+        self.create_quant(self.apple.id, self.test_location_01.id, 10)
+        self.create_move(self.apple, 10, self.picking)
+        self.picking.action_assign()
+
+        # Get pickings
+        all_pickings = Picking.search([("picking_type_id", "=", self.picking_type_pick.id)])
+        # Check each picking is only for 2 products
+        self.assertEqual(len(all_pickings), 5)
+        self.assertTrue(
+            all([sum(pick.move_lines.mapped("product_uom_qty")) == 2 for pick in all_pickings])
+        )
+
+    def test_split_unequally(self):
+        """Check that a pick is split according to maximum quantity
+        when it doesn't divide equally
+        """
+        Picking = self.env["stock.picking"]
+
+        # Create apple quant
+        self.create_quant(self.apple.id, self.test_location_01.id, 9)
+        self.create_move(self.apple, 9, self.picking)
+        self.picking.action_assign()
+
+        # Get pickings
+        all_pickings = Picking.search([("picking_type_id", "=", self.picking_type_pick.id)])
+        # Check pickings are split correctly
+        self.assertEqual(len(all_pickings), 5)
+        quantities_per_pick = [
+            sum(pick.move_lines.mapped("product_uom_qty")) for pick in all_pickings
+        ]
+        self.assertCountEqual(quantities_per_pick, [2, 2, 2, 2, 1])
+
+    def test_split_partial_reserve(self):
+        """Check that a pick is split according to maximum quantity
+        with any unreserved quantities moved to a seprate picking
+        """
+        Picking = self.env["stock.picking"]
+
+        # Create apple quant
+        self.create_quant(self.apple.id, self.test_location_01.id, 7)
+        self.create_move(self.apple, 10, self.picking)
+        self.picking.action_assign()
+
+        # Get pickings
+        all_pickings = Picking.search([("picking_type_id", "=", self.picking_type_pick.id)])
+        # Check pickings are split correctly
+        self.assertEqual(len(all_pickings), 5)
+        quantities_ordered_and_reserved = [
+            (
+                sum(pick.move_lines.mapped("product_uom_qty")),
+                sum(pick.move_lines.mapped("reserved_availability"))
+            ) for pick in all_pickings
+        ]
+        expected_quantities_ordered_and_reserved = [
+            (2, 2), (2, 2), (2, 2), (1, 1), (3, 0)
+        ]
+        self.assertCountEqual(
+            quantities_ordered_and_reserved, expected_quantities_ordered_and_reserved
+        )
+        # Check that the picking with unreserved quantities is the original picking
+        unreserved_picking = all_pickings.filtered(lambda p: p.state == "confirmed")
+        self.assertEqual(len(unreserved_picking), 1)
+        self.assertEqual(unreserved_picking, self.picking)
+
+    def test_split_mixed_products(self):
+        """Check that using multiple products still splits by quantity"""
+        Picking = self.env["stock.picking"]
+
+        # Create quants
+        self.create_quant(self.apple.id, self.test_location_01.id, 5)
+        self.create_quant(self.banana.id, self.test_location_02.id, 5)
+        self.create_move(self.apple, 5, self.picking)
+        self.create_move(self.banana, 5, self.picking)
+        self.picking.action_assign()
+
+        # Get pickings
+        all_pickings = Picking.search([("picking_type_id", "=", self.picking_type_pick.id)])
+        # Check each picking is only for 2 products
+        self.assertEqual(len(all_pickings), 5)
+        quantities_ordered_and_reserved = [
+            (
+                sum(pick.move_lines.mapped("product_uom_qty")),
+                sum(pick.move_lines.mapped("reserved_availability"))
+            ) for pick in all_pickings
+        ]
+        expected_quantities_ordered_and_reserved = [
+            (2, 2), (2, 2), (2, 2), (2, 2), (2, 2)
+        ]
+        self.assertCountEqual(
+            quantities_ordered_and_reserved, expected_quantities_ordered_and_reserved
+        )
+        # Check that one picking is for 1 banana and 1 apple
+        mixed_picking = all_pickings.filtered(lambda p: len(p.move_lines) ==2)
+        self.assertEqual(len(mixed_picking), 1)
+        self.assertCountEqual(
+            mixed_picking.move_lines.mapped("product_id").ids, (self.apple + self.banana).ids
+        )
+        self.assertEqual(mixed_picking.move_lines.mapped("product_uom_qty"), [1, 1])
+
+    def test_split_mixed_products_partial_reserve(self):
+        """Check that using multiple products still splits by quantity
+        with any unreserved quantities moved to a seprate picking
+        """
+        Picking = self.env["stock.picking"]
+
+        # Create quants
+        self.create_quant(self.apple.id, self.test_location_01.id, 5)
+        self.create_quant(self.banana.id, self.test_location_02.id, 5)
+        self.create_move(self.apple, 7, self.picking)
+        self.create_move(self.banana, 8, self.picking)
+        self.picking.action_assign()
+
+        # Get pickings
+        all_pickings = Picking.search([("picking_type_id", "=", self.picking_type_pick.id)])
+        # Check each picking has a maximum quantity of 2
+        self.assertEqual(len(all_pickings), 6)
+        quantities_ordered_and_reserved = [
+            (
+                sum(pick.move_lines.mapped("product_uom_qty")),
+                sum(pick.move_lines.mapped("reserved_availability"))
+            ) for pick in all_pickings
+        ]
+        expected_quantities_ordered_and_reserved = [
+            (2, 2), (2, 2), (2, 2), (2, 2), (2, 2), (5, 0)
+        ]
+        self.assertCountEqual(
+            quantities_ordered_and_reserved, expected_quantities_ordered_and_reserved
+        )
+        # Check that the picking with no stock reserved is as expected
+        unreserved_picking = all_pickings.filtered(lambda p: p.state == "confirmed")
+        self.assertEqual(len(unreserved_picking), 1)
+        # This should be the original picking
+        self.assertEqual(unreserved_picking, self.picking)
+        moves = unreserved_picking.move_lines
+        self.assertEqual(len(moves), 2)
+        move_format = [
+            (m.product_id, m.product_uom_qty, m.reserved_availability) for m in moves
+        ]
+        expected_move_format = [(self.apple, 2, 0), (self.banana, 3, 0)]
+        self.assertCountEqual(move_format, expected_move_format)

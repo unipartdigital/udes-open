@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from odoo import api, models, fields, _
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 
 import logging
 
@@ -654,3 +654,40 @@ class StockMove(models.Model):
 
             # Associate picking to the batch.
             picking.write({"batch_id": batch.id})
+
+    def refactor_action_by_maximum_quantity(self):
+        """Split moves to have a maximum quantity"""
+        picking_type = self.mapped("picking_type_id")
+        picking_type.ensure_one()
+
+        if not picking_type.u_assign_refactor_constraint_value:
+            return
+
+        return self._refactor_action_by_maximum_quantity(picking_type.u_assign_refactor_constraint_value)
+
+    def _refactor_action_by_maximum_quantity(self, maximum_qty):
+        """Split move_line_ids out into pickings with a maximum quantity
+
+        This first tries to create pickings with a single move_line_id with the maximum allowed
+        Then combines the remaining move_line_ids into pickings with maximum allowed
+        """
+        Picking = self.env["stock.picking"]
+
+        if maximum_qty < 1:
+            raise ValidationError(_("Cannot split quants into quantity: %i") % maximum_qty)
+
+        new_pickings = Picking.browse()
+        for picking, moves in self.groupby("picking_id"):
+            mls = moves.mapped("move_line_ids")
+
+            grouped_mls = mls._split_and_group_mls_by_quantity(maximum_qty)
+            # If there are un-reserved moves then keep them in the original picking
+            max_range = len(grouped_mls)
+            if not any([move.product_uom_qty > move.reserved_availability for move in moves]):
+                max_range = -1
+            # Split out move lines to their own pickings
+            for mls in grouped_mls[:max_range]:
+                dest_picking = picking.copy({"name": "/", "move_lines": [], "move_line_ids": []})
+                new_pickings += picking._backorder_movelines(mls, dest_picking)
+
+        return self | new_pickings.mapped("move_lines")

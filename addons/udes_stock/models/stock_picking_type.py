@@ -6,6 +6,9 @@ CORE_LIFECYCLE_ACTIONS = [
     ("group_by_move_line_key", "Group by Move Line Key"),
     ("group_by_move_key", "Group by Move Key"),
 ]
+POST_ASSIGN_ACTIONS = CORE_LIFECYCLE_ACTIONS + [
+    ("by_maximum_quantity", "Maximum Quantity")
+]
 
 
 class StockPickingType(models.Model):
@@ -296,7 +299,7 @@ class StockPickingType(models.Model):
     )
 
     u_post_assign_action = fields.Selection(
-        selection=CORE_LIFECYCLE_ACTIONS,
+        selection=POST_ASSIGN_ACTIONS,
         string="Post Assign Action",
         help="Choose the action to be taken after reserving a picking.",
     )
@@ -305,6 +308,11 @@ class StockPickingType(models.Model):
         selection=CORE_LIFECYCLE_ACTIONS,
         string="Post Validate Action",
         help="Choose the action to be taken after validating a picking.",
+    )
+    u_assign_refactor_constraint_value = fields.Integer(
+        string="Assign Refactor Constraint Value",
+        help="Constraint value used when refactoring post assign. "
+        "Currently only used for the post assign action: Maximum Quantity."
     )
 
     u_new_package_policy = fields.Selection(

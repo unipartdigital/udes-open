@@ -1136,3 +1136,62 @@ class StockMoveLine(models.Model):
                 )
             ):
                 raise ValidationError(_("Maximum package depth exceeded."))
+
+    def _split_and_group_mls_by_quantity(self, maximum_qty):
+        """Split move lines into groups of up to a maximum quantity"""
+        grouped_mls = []
+
+        # Group all (partially) done and cancelled moves first
+        excluded_move_lines = self.filtered(lambda m: m.qty_done or m.state == "done")
+        if excluded_move_lines:
+            grouped_mls.append(excluded_move_lines)
+            self -= excluded_move_lines
+
+        # Sse if any mls are equal to the maximum and add them as individual groups
+        exact_mls = self.filtered(lambda l: l.product_uom_qty == maximum_qty)
+        self -= exact_mls
+        for ml in exact_mls:
+            grouped_mls.append(ml)
+
+        # Next try splitting and grouping to maintain a single ml per group:
+        for ml in self:
+            quantity = ml.product_uom_qty
+            if quantity > maximum_qty:
+                num_full_move_lines = int(quantity // maximum_qty)
+                remainder = quantity % maximum_qty
+                for i in range(num_full_move_lines):
+                    new_ml = ml._split_by_qty(maximum_qty)
+                    grouped_mls.append(new_ml)
+                # If there is not a remainder, ml has already been grouped
+                # so remove from self
+                if not remainder:
+                    self -= ml
+
+        # Finally split and group the remainder to meet the maximum
+        quantity = 0
+        movelines = self.browse()
+        for ml in self:
+            difference = maximum_qty - quantity
+            if quantity <= difference:
+                quantity += ml.product_uom_qty
+                movelines += ml
+                if quantity == maximum_qty:
+                    grouped_mls.append(movelines)
+                    quantity = 0
+                    movelines = self.browse()
+            else:
+                # Need to split a line to reach the maximum without exceeding it
+                remainder = ml.product_uom_qty - difference
+                new_ml = ml._split_by_qty(remainder)
+                movelines =+ ml
+                grouped_mls.append(movelines)
+                # Use the other split ml as the first ml in a new group
+                # (will allways be less than maximum due to previous step)
+                grouped_mls = new_ml
+                quantity = new_ml.product_uom_qty
+
+        # Any remainder should be in their own group
+        if movelines:
+            grouped_mls.append(movelines)
+
+        return grouped_mls
