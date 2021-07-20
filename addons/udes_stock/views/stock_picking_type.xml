@@ -74,6 +74,7 @@
                     <field name="u_post_confirm_action" />
                     <field name="u_post_assign_action" />
                     <field name="u_post_validate_action" />
+                    <field name="u_assign_refactor_constraint_value" attrs="{'invisible':[('u_post_assign_action','!=', 'by_maximum_quantity')]}"/>
                 </group>
                 <group class="udes_wide_list" string="Pick Warnings" groups='base.group_no_one'>
                     <field name="u_warn_picking_precondition" />
