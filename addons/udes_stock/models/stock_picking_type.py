@@ -9,6 +9,12 @@ CORE_LIFECYCLE_ACTIONS = [
 POST_ASSIGN_ACTIONS = CORE_LIFECYCLE_ACTIONS + [
     ("by_maximum_quantity", "Maximum Quantity")
 ]
+TARGET_STORAGE_FORMAT_OPTIONS = [
+    ("pallet_products", "Pallet of products"),
+    ("pallet_packages", "Pallet of packages"),
+    ("package", "Packages"),
+    ("product", "Products"),
+]
 
 
 class StockPickingType(models.Model):
@@ -73,12 +79,7 @@ class StockPickingType(models.Model):
     )
 
     u_target_storage_format = fields.Selection(
-        [
-            ("pallet_products", "Pallet of products"),
-            ("pallet_packages", "Pallet of packages"),
-            ("package", "Packages"),
-            ("product", "Products"),
-        ],
+        TARGET_STORAGE_FORMAT_OPTIONS,
         string="Target Storage Format",
     )
 
