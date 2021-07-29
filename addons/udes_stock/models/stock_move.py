@@ -42,6 +42,7 @@ class StockMove(models.Model):
             - product_qty: float
             - quantity_done: float
             - move_line_ids: [{stock.move.line}]
+            - state: string
         """
         self.ensure_one()
 
@@ -54,6 +55,7 @@ class StockMove(models.Model):
             "quantity_done": self.quantity_done,
             "product_id": self.product_id.get_info()[0],
             "moves_line_ids": self.move_line_ids.get_info(),
+            "state": self.state
         }
 
     def get_info(self):
