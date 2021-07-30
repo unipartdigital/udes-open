@@ -651,6 +651,19 @@ class StockLocation(models.Model):
             location = location.location_id
         return zone
 
+    def button_view_child_locations(self):
+        """Return a tree view of all descendants of the location in self"""
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("%s - Child Locations") % (self.name),
+            "res_model": "stock.location",
+            "view_type": "form",
+            "view_mode": "tree,form",
+            "domain": [("id", "!=", self.id), ("id", "child_of", self.id)],
+            "context": {"default_location_id": self.id},
+        }
+
 
 class Orderpoint(models.Model):
 
