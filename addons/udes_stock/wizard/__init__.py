@@ -1,7 +1,9 @@
-# -*- coding: utf-8 -*-
-from . import change_quant_location
-from . import refactor_views
-from . import replen_views
-from . import reservation_views
-from . import stock_backorder_confirmation
-from . import stock_picking_to_batch
+from . import (
+    change_quant_location,
+    refactor_views,
+    replen_views,
+    reservation_views,
+    stock_backorder_confirmation,
+    stock_picking_to_batch,
+    stock_picking_mark_todo,
+)

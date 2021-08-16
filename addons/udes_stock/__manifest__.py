@@ -68,6 +68,7 @@
         "wizard/reservation_views.xml",
         "wizard/stock_backorder_confirmation.xml",
         "wizard/stock_picking_to_batch_views.xml",
+        "wizard/stock_picking_mark_todo_view.xml",
         "security/ir.model.access.csv",
         "security/ir_module_category.xml",
         "security/udes_stock_security.xml",

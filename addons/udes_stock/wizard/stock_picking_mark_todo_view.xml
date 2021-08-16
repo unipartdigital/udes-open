@@ -1,0 +1,68 @@
+<?xml version="1.0"?>
+<odoo>
+    <data>
+        <record id="stock_picking_mark_todo_form" model="ir.ui.view">
+            <field name="name">stock.picking.mark.todo.form</field>
+            <field name="model">stock.picking.mark.todo</field>
+            <field name="arch" type="xml">
+                <form string="Pickings">
+                    <notebook>
+                        <page string="Draft Pickings">
+                            <p>
+                                The following draft pickings will be marked as `Todo`.
+                            </p>
+                            <field name="draft_picking_ids"
+                                widget="many2many" mode="tree" nolabel="1">
+                                <tree create="0">
+                                    <field name="name"/>
+                                    <field name="origin"/>
+                                    <field name="location_id"/>
+                                    <field name="date"/>
+                                    <field name="scheduled_date"/>
+                                    <field name="state"/>
+                                </tree>
+                            </field>
+                        </page>
+                        <page string="Non-Draft Pickings" attrs="{'invisible': [('has_non_draft_pickings','=',False)]}">
+                            <p>
+                                The following pickings will be unaffected as they are not in a draft state.
+                            </p>
+                            <field name="has_non_draft_pickings" invisible="1"/>
+                            <field name="non_draft_picking_ids"
+                                widget="one2many_list" mode="tree" nolabel="1">
+                                <tree>
+                                    <field name="name"/>
+                                    <field name="location_id"/>
+                                    <field name="date"/>
+                                    <field name="origin"/>
+                                    <field name="backorder_id"/>
+                                    <field name="state"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                    <footer>
+                        <button name="action_mark_todo" type="object" string="Mark as Todo" class="btn-primary"/>
+                        <button special="cancel" string="Cancel" class="btn-default"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="stock_picking_mark_todo_action" model="ir.actions.act_window">
+            <field name="name">Stock Picking Mark Todo</field>
+            <field name="res_model">stock.picking.mark.todo</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+
+        <act_window id="stock_picking_mark_todo_wizard_action"
+           multi="True"
+           key2="client_action_multi" name="Mark as Todo"
+           res_model="stock.picking.mark.todo" src_model="stock.picking"
+           groups="stock.group_stock_manager"
+           view_mode="form" target="new" view_type="form" />
+
+    </data>
+</odoo>
