@@ -42,11 +42,16 @@ class StockMoveLine(models.Model):
         return self.filtered(lambda ml: ml.qty_done == ml.product_uom_qty)
 
     def _prepare_result_packages(
-        self, package, result_package, result_parent_package, products_info
+        self,
+        package,
+        result_package,
+        result_parent_package,
+        products_info,
+        target_storage_format=None,
     ):
-        """ Compute result_package and result_parent based on the
-            u_target_Storage_format of the picking type + the input
-            parameters.
+        """
+        Compute result_package and result_parent based on the u_target_storage_format of the
+        picking type (if `target_storage_format` is not supplied) + the input parameters.
         """
         Package = self.env["stock.quant.package"]
 
@@ -56,7 +61,8 @@ class StockMoveLine(models.Model):
         picking = self.mapped("picking_id")
         picking.ensure_one()
 
-        target_storage_format = picking.picking_type_id.u_target_storage_format
+        if target_storage_format is None:
+            target_storage_format = picking.picking_type_id.u_target_storage_format
         # When scan_parent_package_end=true, no need for result_package
         scan_parent_package_end = picking.picking_type_id.u_scan_parent_package_end
 
