@@ -865,7 +865,12 @@ class StockMoveLine(models.Model):
         task = {
             "picking_id": picking.id,
         }
-        user_scans = picking.picking_type_id.u_user_scans
+
+        # Check if user_scans is manually set in context first
+        user_scans = self.env.context.get("user_scans")
+
+        if not user_scans:
+            user_scans = picking.picking_type_id.u_user_scans
 
         if user_scans == "product":
             task["type"] = "product"
