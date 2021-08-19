@@ -490,16 +490,16 @@ class StockPickingBatch(models.Model):
         # the move lines of the task belong to the same picking
         task.update(task_mls._prepare_task_info())
 
-        if task_mls[0].picking_id.picking_type_id.u_user_scans == "product":
-            # NB: adding 1 to consider the group removed by next()
-            task["num_tasks_to_pick"] = len(list(grouped_mls)) + 1
-            task["move_line_ids"] = task_mls.ids
-        else:
+        if task_mls[0].picking_id.picking_type_id.u_user_scans in ["pallet", "package"]:
             # TODO: check pallets of packages if necessary
             task["num_tasks_to_pick"] = len(move_lines.mapped("package_id"))
             task["move_line_ids"] = move_lines.filtered(
                 lambda ml: ml.package_id == task_mls[0].package_id
             ).ids
+        else:
+            # NB: adding 1 to consider the group removed by next()
+            task["num_tasks_to_pick"] = len(list(grouped_mls)) + 1
+            task["move_line_ids"] = task_mls.ids
 
         return task
 
