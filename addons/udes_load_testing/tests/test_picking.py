@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
 from odoo.addons.udes_stock.tests import common
-from .common import LoadRunner, parameterized
+from .common import LoadRunner, parameterized, instrument_timings
 from .config import config
 
 
+@instrument_timings
 class PickLines(LoadRunner, common.BaseUDES):
 
     xlabel = 'Number of MoveLines'

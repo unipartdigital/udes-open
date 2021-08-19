@@ -2,13 +2,12 @@
 
 import re
 import time
-import unittest
-from ascii_graph import Pyasciigraph, colors
+import types
+from ascii_graph import Pyasciigraph
 from collections import defaultdict
 from functools import wraps
-from parameterized import parameterized
+from parameterized import parameterized     # noqa: F401 (test modules import it from here)
 from odoo.addons.udes_stock.tests import common
-from odoo.exceptions import UserError
 from odoo.tests.common import SavepointCase, at_install, post_install
 from .config import config
 
@@ -26,22 +25,20 @@ def time_func(func):
     return _wrapper
 
 
+def instrument_timings(cls):
+    """Decorate a class's timing methods with time_func."""
+    for k, v in cls.__dict__.items():
+        if isinstance(v, types.FunctionType) and k.startswith('time_'):
+            setattr(cls, k, time_func(v))
+    return cls
+
+
 @at_install(False)
 @post_install(True)
 class LoadRunner(SavepointCase):
 
     xlabel = 'I should be replaced'
     ylabel = 'Time taken/s'
-
-    def __getattribute__(self, attr_name):
-        attr = super(LoadRunner, self).__getattribute__(attr_name)
-        if "time_" in attr_name and not hasattr(attr, '__wrapped__'):
-            # if it isn't wrapped wrap it
-            # then set attr as the wrapped version
-            attr = time_func(attr)
-            setattr(self, attr_name, attr)
-
-        return attr
 
     @classmethod
     def setUpClass(cls):
