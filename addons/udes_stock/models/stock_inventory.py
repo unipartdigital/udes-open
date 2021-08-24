@@ -62,6 +62,9 @@ class StockInventory(models.Model):
            - They are adjusting reserved stock.
         """
         self.ensure_one()
+        if not self.env.user.has_group("udes_stock.group_stock_manager"):
+            raise ValidationError(_("Only Stock Managers may validate inventory adjustments"))
+
         if self._has_theoretical_quantity_changed():
             return {
                 'name': _('Theoretical Quantity has Changed'),
