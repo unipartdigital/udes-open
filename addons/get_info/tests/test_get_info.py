@@ -4,8 +4,6 @@ from ..models.models import BASIC_GET_INFO_VALUES
 from collections import Counter
 
 
-@common.at_install(False)
-@common.post_install(True)
 class TestStockLocation(common.SavepointCase):
     @classmethod
     def setUpClass(cls):
