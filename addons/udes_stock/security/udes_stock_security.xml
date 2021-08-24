@@ -67,6 +67,13 @@
             <field name="u_picking_type_ids"
                    eval="[(4, ref('stock.picking_type_internal'))]"/>
         </record>
+        <record id="group_stock_manager" model="res.groups">
+            <field name="name">Stock Manager</field>
+            <field name="implied_ids"
+                   eval="[(4, ref('udes_stock.group_stock_user'))]"/>
+            <field name="category_id"
+                   ref="module_group_stock_category"/>
+        </record>
 
     </data>
 </odoo>

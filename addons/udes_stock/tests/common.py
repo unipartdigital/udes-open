@@ -7,6 +7,7 @@ SECURITY_GROUPS = [
     ('inbound', 'udes_stock.group_inbound_user'),
     ('outbound', 'udes_stock.group_outbound_user'),
     ('stock', 'udes_stock.group_stock_user'),
+    ('stock_manager', 'udes_stock.group_stock_manager'),
     ('inventory_manager', 'stock.group_stock_manager'),
 ]
 
@@ -208,6 +209,13 @@ class UnconfiguredBaseUDES(common.SavepointCase):
             'picking_types': stock_types,
         }
         cls.stock_user = cls.create_user_with_group(**stock_params)
+        stock_manager_params = {
+            'name': 'stock_manager',
+            'login': 'stock_manager_login',
+            'group_name': 'stock_manager',
+            'picking_types': stock_types,
+        }
+        cls.stock_manager = cls.create_user_with_group(**stock_manager_params)
 
 
 

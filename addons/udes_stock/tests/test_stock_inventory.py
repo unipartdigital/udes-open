@@ -27,7 +27,7 @@ class TestStockInventory(common.BaseUDES):
         self.test_stock_inventory.action_start()
         self.assertEqual(len(self.test_stock_inventory.line_ids), 1)
 
-        self.test_stock_inventory.sudo(self.stock_user).action_done()
+        self.test_stock_inventory.sudo(self.stock_manager).action_done()
         self.assertEqual(self.test_stock_inventory.state, "done")
 
     def test02_reserved_lower_qty_not_allowed(self):
@@ -38,7 +38,7 @@ class TestStockInventory(common.BaseUDES):
         self.test_stock_inventory.line_ids.product_qty -= 1
 
         with self.assertRaises(ValidationError) as e:
-            self.test_stock_inventory.sudo(self.stock_user).action_done()
+            self.test_stock_inventory.sudo(self.stock_manager).action_done()
         self.assertEqual(
             e.exception.name,
             (
@@ -55,7 +55,7 @@ class TestStockInventory(common.BaseUDES):
         self.test_stock_inventory.line_ids.product_qty += 1
 
         with self.assertRaises(ValidationError) as e:
-            self.test_stock_inventory.sudo(self.stock_user).action_done()
+            self.test_stock_inventory.sudo(self.stock_manager).action_done()
         self.assertEqual(
             e.exception.name,
             (
@@ -95,7 +95,7 @@ class TestStockInventory(common.BaseUDES):
         self.test_stock_inventory.action_start()
         self.test_stock_inventory.line_ids.product_qty -= 1
 
-        self.test_stock_inventory.sudo(self.stock_user).action_done()
+        self.test_stock_inventory.sudo(self.stock_manager).action_done()
         self.assertEqual(self.test_stock_inventory.state, "done")
 
         # We should have three move lines of quantity 5 and one of 4
@@ -112,12 +112,12 @@ class TestStockInventory(common.BaseUDES):
         """
         # Add stock user to debug group
         debug_group = self.env.ref('udes_security.group_debug_user')
-        debug_group.write({'users': [(4, self.stock_user.id)]})
+        debug_group.write({'users': [(4, self.stock_manager.id)]})
 
         self.test_stock_inventory.action_start()
         self.test_stock_inventory.line_ids.product_qty -= 1
 
-        self.test_stock_inventory.sudo(self.stock_user).action_done()
+        self.test_stock_inventory.sudo(self.stock_manager).action_done()
         self.assertEqual(self.test_stock_inventory.state, "done")
 
     def test06_theoretical_quantity_changes(self):
@@ -136,6 +136,25 @@ class TestStockInventory(common.BaseUDES):
         self.assertTrue(
             self.test_stock_inventory._has_theoretical_quantity_changed(),
             "A change to the theoretical quantity should have been detected"
+        )
+
+    def test07_stock_manager_validate(self):
+        """Test that stock managers can validate stock inventories"""
+        self.test_stock_inventory.action_start()
+
+        self.test_stock_inventory.sudo(self.stock_manager).button_done()
+
+    def test08_stock_user_cannot_validate(self):
+        """Test that stock users can't validate stock inventories"""
+        self.test_stock_inventory.action_start()
+
+        with self.assertRaises(ValidationError) as e:
+            self.test_stock_inventory.sudo(self.stock_user).button_done()
+        self.assertEqual(
+            e.exception.name,
+            (
+                "Only Stock Managers may validate inventory adjustments"
+            )
         )
 
 
