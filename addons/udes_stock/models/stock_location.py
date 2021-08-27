@@ -120,6 +120,36 @@ class StockLocation(models.Model):
         help="Picking Zones are the level to which warehouse-wide Picks are broken down.",
     )
 
+    u_location_is_countable = fields.Selection(selection=[
+        ('yes', 'Yes'),
+        ('no', 'No'),
+    ], string="Location Is Countable", help="""
+    Specifies whether the location is countable. If blank, the value of the parent
+    location is used, if applicable.
+    """)
+
+    u_is_countable = fields.Boolean(compute="_compute_countable_locations", store=True, 
+    string="Is Countable", help="""
+    Computed countable setting to use for this location.
+
+    The 'Location Is Countable' value set directly on the location will be used if applicable.
+    Otherwise the computed value set on the parent location will be used, if applicable.
+    """)
+
+    @api.multi
+    @api.depends("u_location_is_countable", "location_id", "location_id.u_is_countable")
+    def _compute_countable_locations(self):
+        """Determine whether stock locations are countable"""
+        for location in self:
+            is_countable = False
+            if location.u_location_is_countable in ["yes", "no"]:
+                is_countable = location.u_location_is_countable == "yes"
+            else:
+                parent = location.location_id
+                if parent.u_is_countable:
+                    is_countable = True
+            location.u_is_countable = is_countable
+
     def _prepare_info(self, extended=False, load_quants=False):
         """
             Prepares the following info of the location in self:
