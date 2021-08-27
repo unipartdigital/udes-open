@@ -8,6 +8,7 @@
       <field name="comment">Stock zone</field>
       <field name="usage">view</field>
       <field name="active" eval="True"/>
+      <field name="u_location_is_countable">yes</field>
     </record>
 
     <!-- Construct "UPL/Stock investigation" location -->
