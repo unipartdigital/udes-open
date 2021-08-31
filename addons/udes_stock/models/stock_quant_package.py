@@ -142,16 +142,13 @@ class StockQuantPackage(models.Model):
 
         results = self.search(domain)
         if not results and not no_results:
-            if not create or name is None:
-                raise ValidationError(
-                    _("Package not found for identifier %s") % str(package_identifier)
-                )
+            if name is None:
+                raise ValidationError(_("Pallet doesn't match pattern"))
+            elif not create:
+                raise ValidationError(_("Package not found for identifier %s") % str(package_identifier))
             results = self.create({"name": name})
-        if len(results) > 1:
-            raise ValidationError(
-                _("Too many packages found for identifier %s") % str(package_identifier)
-            )
-
+        elif len(results) > 1:
+            raise ValidationError(_("Too many packages found for identifier %s") % str(package_identifier))
         return results
 
     def assert_not_reserved(self):
@@ -208,7 +205,7 @@ class StockQuantPackage(models.Model):
             other_pickings = pack_mls.mapped("picking_id") - picking
             if other_pickings:
                 raise ValidationError(
-                    _("The package is reserved in other pickings:")
+                    _("The package is reserved in other pickings: %s")
                     % ",".join(other_pickings.mapped("name"))
                 )
             # other_pickings == False means partially reserved,
