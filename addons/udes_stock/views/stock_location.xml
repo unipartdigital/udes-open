@@ -68,6 +68,11 @@
                             name="button_view_child_locations"
                     />
                 </xpath>
+                <!-- Add storage format fields -->
+                <xpath expr="//field[@name='u_quant_policy']" position="after">
+                    <field name="u_storage_format"/>
+                    <field name="u_location_storage_format" groups="stock.group_stock_manager"/>
+                </xpath>
 
             </field>
         </record>
