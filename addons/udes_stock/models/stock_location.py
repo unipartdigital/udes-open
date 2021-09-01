@@ -2,6 +2,7 @@
 
 from collections import namedtuple, defaultdict
 from datetime import datetime
+from .stock_picking_type import TARGET_STORAGE_FORMAT_OPTIONS
 
 from odoo import fields, models,  _, api
 from odoo.exceptions import ValidationError
@@ -119,6 +120,50 @@ class StockLocation(models.Model):
         string="Is A Picking Zone",
         help="Picking Zones are the level to which warehouse-wide Picks are broken down.",
     )
+    u_storage_format = fields.Selection(
+        TARGET_STORAGE_FORMAT_OPTIONS,
+        string="Storage Format",
+        compute="_compute_storage_format",
+        help="""
+            Computed storage format to use for the location.
+
+            The format set directly on the location will be used if applicable.
+            Otherwise the format of the nearest ancestor with a format specified will be used.
+            """,
+        store=True,
+    )
+    u_location_storage_format = fields.Selection(
+        TARGET_STORAGE_FORMAT_OPTIONS,
+        string="Location Storage Format",
+        help="""
+            Storage format specified directly for this location.
+
+            If not set then the location will use the format
+            of the nearest ancestor that has a format specified.
+            """
+    )
+
+    @api.multi
+    @api.depends("u_location_storage_format", "location_id", "location_id.u_storage_format")
+    def _compute_storage_format(self):
+        """Determine the storage format of the location.
+
+        If not set on self, get the format of the nearest ancestor that specifies a format.
+        """
+        for location in self:
+            storage_format = location.u_location_storage_format
+            if storage_format:
+                location.u_storage_format = storage_format
+                continue
+            # Check ancestors
+            parent = location.location_id
+            while parent:
+                if parent.u_storage_format:
+                    storage_format = parent.u_storage_format
+                    break
+                else:
+                    parent = parent.location_id
+            location.u_storage_format = storage_format
 
     def _prepare_info(self, extended=False, load_quants=False):
         """
