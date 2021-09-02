@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data>
+
+    <!-- Override built-in location barcode report -->
+    <report id="stock.action_report_location_barcode" model="stock.location"
+	    name="udes_stock.report_location_barcode" report_type="qweb-pdf"
+	    paperformat="paperformat_102_102" string="Location Barcode"/>
+
+  </data>
+</odoo>

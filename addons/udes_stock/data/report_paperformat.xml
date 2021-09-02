@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data>
+    <!-- 102x102mm label -->
+    <record id="paperformat_102_102" model="report.paperformat">
+      <field name="name">Label 102x102mm</field>
+      <field name="format">custom</field>
+      <field name="page_width">102</field>
+      <field name="page_height">102</field>
+      <field name="margin_left">2</field>
+      <field name="margin_right">2</field>
+      <field name="margin_top">2</field>
+      <field name="margin_bottom">2</field>
+      <field name="orientation">Portrait</field>
+      <field name="dpi">203</field>
+    </record>
+
+  </data>
+</odoo>
