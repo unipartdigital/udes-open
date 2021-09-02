@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data>
+
+    <!-- Location barcode label (102x102mm) -->
+    <template id="report_location_barcode">
+
+      <!-- URL for barcode generation -->
+      <t t-set="barcode_url" t-value="'/report/barcode/?type=Code128&amp;' +
+				      'width=1500&amp;height=600&amp;' +
+				      'value=%s'"/>
+
+      <!-- Labels -->
+      <t t-call="web.html_container">
+        <t t-call="web.internal_layout">
+          <t t-set="page_style" t-value="'width: 100%; height: 60%;
+			    	     margin-top: 20%; margin-bottom: 20%;
+		    		     text-align: center;'"/>
+	      <t t-foreach="docs" t-as="location">
+            <div t-att-style ="page_style">
+	          <strong>
+		        <span style="font-size: 24pt;" t-esc="location.name"/>
+	          </strong>
+	          <img t-att-src="barcode_url % location.barcode" style="width: 100%;"/>
+	          <strong>
+		        <span style="font-size: 18pt;" t-esc="location.barcode"/>
+	          </strong>
+            </div>
+            <!-- Add page breaks for each following barcode -->
+            <t t-set="page_style" t-value="'width: 100%; height: 60%;
+			    	     margin-top: 20%; margin-bottom: 20%;
+		    		     text-align: center; page-break-before: always;'"/>
+	      </t>
+        </t>
+      </t>
+    </template>
+
+  </data>
+</odoo>
