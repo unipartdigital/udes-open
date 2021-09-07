@@ -32,3 +32,4 @@ from . import test_stock_quant
 from . import test_change_quant_location_wizard
 from . import test_stock_location_picking_zone
 from . import test_location_countable
+from . import test_location_state
