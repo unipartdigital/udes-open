@@ -429,6 +429,12 @@ class StockPickingType(models.Model):
         default=False,
         help="If set, the user will be shown the list of all tasks during the picking workflow",
     )
+    u_batch_dest_loc_not_allowed = fields.Boolean(
+        string="No Blocked Dest. Location Pickings",
+        default=False,
+        help="When batch chooses picking it filter out pickings which has block destination "
+        "location. By default, block locations are allowed",
+    )
 
     # Package count options
     u_show_package_count = fields.Boolean(

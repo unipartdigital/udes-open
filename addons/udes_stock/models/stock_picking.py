@@ -1547,12 +1547,7 @@ class StockPicking(models.Model):
         _logger.info(msg)
 
     def _swap_moveline_info_at_pack_level(self, pack, values):
-        values.update(
-            {
-                "package_id": pack.id,
-                "result_package_id": pack.id,
-            }
-        )
+        values.update({"package_id": pack.id, "result_package_id": pack.id})
         return values
 
     def _swap_moveline_info_below_pack_level(
@@ -2448,6 +2443,16 @@ class StockPicking(models.Model):
         PickingType = self.env["stock.picking.type"]
 
         search_domain = [] if domain is None else domain
+
+        # Extra search parameters
+        search_domain.extend(
+            [
+                ("picking_type_id", "=", picking_type_id),
+                ("state", "=", "assigned"),
+                ("batch_id", "=", False),
+            ]
+        )
+
         # -1 means unbounded
         if limit == -1:
             limit = None
@@ -2463,13 +2468,8 @@ class StockPicking(models.Model):
             if categories:
                 search_domain.append(("u_location_category_id", "child_of", categories.ids))
 
-        search_domain.extend(
-            [
-                ("picking_type_id", "=", picking_type_id),
-                ("state", "=", "assigned"),
-                ("batch_id", "=", False),
-            ]
-        )
+        if picking_type.u_batch_dest_loc_not_allowed:
+            search_domain.extend([("location_dest_id.u_blocked", "!=", True)])
 
         # Note: order should be determined by stock.picking._order
         picking = self.search(search_domain, limit=limit)
