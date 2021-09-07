@@ -144,6 +144,45 @@ class StockLocation(models.Model):
     """,
     )
 
+    u_state = fields.Selection(
+        selection=[
+            ("empty", "Empty"),
+            ("blocked", "Blocked"),
+            ("has_stock", "Has Stock"),
+        ],
+        compute="_compute_state",
+        store=True,
+        string="State",
+        help="""
+    Computed field describing the state of the stock location.
+    """,
+    )
+
+    @api.multi
+    @api.depends("quant_ids", "u_blocked")
+    def _compute_state(self):
+        """
+        Determine the state of the stock location - blocked, empty or has_stock.
+
+        The computed value is only set properly once a location has been created or saved.
+        This is because for on the fly changes the location in self will only have access
+        to fields in the location form, which doesn't include quant_ids. This can lead to the
+        computed value temporarily displaying empty before being set to has_stock once the record
+        is saved.
+        """
+        for location in self:
+            state = False
+
+            if location.id and location.usage == "internal":
+                if location.u_blocked:
+                    state = "blocked"
+                elif not location.quant_ids:
+                    state = "empty"
+                else:
+                    state = "has_stock"
+
+            location.u_state = state
+
     @api.multi
     @api.depends("u_location_is_countable", "location_id", "location_id.u_is_countable")
     def _compute_countable_locations(self):
