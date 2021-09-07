@@ -19,6 +19,7 @@
     ],
     "category": "Warehouse",
     "sequence": 11,
+    "author": "Unipart Digital Team",
     "demo": [],
     "data": [
         "data/stock_data.yml",
