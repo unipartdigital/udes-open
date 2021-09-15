@@ -26,6 +26,11 @@ class StockInventory(models.Model):
         store=False,
         compute="_compute_conflicting_theoretical_qty_message",
     )
+    u_scanned_stock_check = fields.Boolean(
+        string="Scanned Stock Check",
+        help="Field will not be added on view, "
+             "it is needed to distinguish stock checks and inventory adjustments",
+        default=False)
 
     @api.multi
     def action_done(self):
@@ -247,6 +252,10 @@ class StockInventory(models.Model):
         ):
             raise UserError(_("Cannot write to an adjustment which has already been validated"))
         return super(StockInventory, self).write(values)
+
+    def get_stock_check_user(self):
+        """Method to be override in other modules"""
+        return None
 
 
 class StockInventoryLine(models.Model):
