@@ -26,6 +26,17 @@ class StockInventory(models.Model):
         store=False,
         compute="_compute_conflicting_theoretical_qty_message",
     )
+    u_mobile_type = fields.Selection(
+        string="Mobile Type",
+        selection=[
+            ("mobile", "Mobile"),
+            ("workflow", "Workflow"),
+        ],
+        help="""
+        Specifies whether the stock inventory is created from old mobile or workflows.
+        Value it's needed to filter kafka events created.
+        """
+    )
 
     @api.multi
     def action_done(self):
