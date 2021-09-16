@@ -40,7 +40,7 @@
 </br>
 % endif
 % if ctx.get("instance_url"):
-  <p>This is an automated email sent from ${ctx['instance_url']} and replies will not be monitored.</p>
+  <p>This is an automated email sent from this address: ${ctx['instance_url']} from this device: ${ctx['hostname']} and replies will not be monitored.</p>
 % else
   <p>This is an automated email and replies will not be monitored.</p>
 % endif
@@ -92,7 +92,7 @@
 </br>
 % endif
 % if ctx.get("instance_url"):
-  <p>This is an automated email sent from ${ctx['instance_url']} and replies will not be monitored.</p>
+  <p>This is an automated email sent from this address: ${ctx['instance_url']} from this device: ${ctx['hostname']} and replies will not be monitored.</p>
 % else
   <p>This is an automated email and replies will not be monitored.</p>
 % endif
@@ -115,7 +115,7 @@
 <p>No ${object.name | safe} has been received.</p>
 <br/>
 % if ctx.get("instance_url"):
-  <p>This is an automated email sent from ${ctx['instance_url']} and replies will not be monitored.</p>
+  <p>This is an automated email sent from this address: ${ctx['instance_url']} from this device: ${ctx['hostname']} and replies will not be monitored.</p>
 % else
   <p>This is an automated email and replies will not be monitored.</p>
 % endif
