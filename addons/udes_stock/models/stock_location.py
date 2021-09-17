@@ -204,7 +204,7 @@ class StockLocation(models.Model):
     )
 
     @api.multi
-    @api.depends("quant_ids", "u_blocked")
+    @api.depends("quant_ids", "u_blocked", "usage", "u_is_countable")
     def _compute_state(self):
         """
         Determine the state of the stock location - blocked, empty or has_stock.
@@ -215,13 +215,15 @@ class StockLocation(models.Model):
         computed value temporarily displaying empty before being set to has_stock once the record
         is saved.
         """
+        Quant = self.env["stock.quant"]
+
         for location in self:
             state = False
 
-            if location.id and location.usage == "internal":
+            if location.id and location.usage == "internal" and location.u_is_countable:
                 if location.u_blocked:
                     state = "blocked"
-                elif not location.quant_ids:
+                elif not Quant.search_count([("location_id", "=", location.id)]):
                     state = "empty"
                 else:
                     state = "has_stock"
