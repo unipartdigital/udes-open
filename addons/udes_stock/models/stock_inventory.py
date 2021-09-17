@@ -37,6 +37,11 @@ class StockInventory(models.Model):
         Value it's needed to filter kafka events created.
         """
     )
+    u_date_start_scanned = fields.Datetime(
+        "Date Start Canned",
+        help="The date operator started scanning, it is needed for kafka events."
+             "Value is filled during mobile or workflows scanning"
+    )
 
     @api.multi
     def action_done(self):
