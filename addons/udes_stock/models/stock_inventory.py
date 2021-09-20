@@ -26,21 +26,17 @@ class StockInventory(models.Model):
         store=False,
         compute="_compute_conflicting_theoretical_qty_message",
     )
-    u_mobile_type = fields.Selection(
-        string="Mobile Type",
+    u_stock_check_origin = fields.Selection(
+        string="Stock Check Origin",
         selection=[
-            ("mobile", "Mobile"),
-            ("workflow", "Workflow"),
+            ("desktop", "Desktop"),
         ],
-        help="""
-        Specifies whether the stock inventory is created from old mobile or workflows.
-        Value it's needed to filter kafka events created.
-        """
+        default="desktop",
+        help="""Stock check origin"""
     )
     u_date_start_scanned = fields.Datetime(
         "Date Start Canned",
-        help="The date operator started scanning, it is needed for kafka events."
-             "Value is filled during mobile or workflows scanning"
+        help="The date operator started scanning."
     )
 
     @api.multi
