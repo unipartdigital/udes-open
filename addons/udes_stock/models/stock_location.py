@@ -425,6 +425,10 @@ class StockLocation(models.Model):
                 self._process_single_preceding_adjustments_request(
                     pre_adjs_req, pi_outcome.adjustment_inventory
                 )
+        # If stock check was correct create a stock inventory and validate
+        # it with existing quantities
+        if not pi_outcome.got_inventory_changes():
+            self._process_inventory_check_validation()
 
         self._process_pi_datetime(pi_outcome)
 
@@ -566,17 +570,15 @@ class StockLocation(models.Model):
         """
         Inventory = self.env["stock.inventory"]
         InventoryLine = self.env["stock.inventory.line"]
+        inventory_line_ids = []
 
         stock_drift = self._get_stock_drift(adjustments_request)
 
         if not stock_drift:
             return
-        inventory_data = self.get_inventory_adjustment_data()
-
-        inventory_adjustment = Inventory.create(inventory_data)
 
         for stock_info, quantity in stock_drift.items():
-            InventoryLine.create(
+            inventory_line = InventoryLine.create(
                 {
                     "inventory_id": inventory_adjustment.id,
                     "product_id": stock_info.product_id,
@@ -588,6 +590,12 @@ class StockLocation(models.Model):
                     "prod_lot_id": stock_info.lot_id,
                 }
             )
+            inventory_line_ids.append(inventory_line.id)
+        inventory_data = self.get_inventory_adjustment_data()
+        inventory_data.update({
+            "line_ids": [(6, 0, inventory_line_ids)]
+        })
+        inventory_adjustment = Inventory.create(inventory_data)
 
         return inventory_adjustment
 
@@ -702,6 +710,14 @@ class StockLocation(models.Model):
             stock_drift[info] = adj["quantity"]
 
         return stock_drift
+
+    def _process_inventory_check_validation(self):
+        Inventory = self.env["stock.inventory"]
+
+        inventory_data = self.get_inventory_adjustment_data()
+        inventory_adjustment = Inventory.create(inventory_data)
+        inventory_adjustment.action_start()
+        inventory_adjustment.sudo().button_done()
 
     def get_quant_policy(self):
         self.ensure_one()
