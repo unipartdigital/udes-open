@@ -35,7 +35,7 @@ class StockInventory(models.Model):
         help="""Stock check origin"""
     )
     u_date_start_scanned = fields.Datetime(
-        "Date Start Canned",
+        "Start Date Scanning",
         help="The date operator started scanning."
     )
 
