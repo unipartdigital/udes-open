@@ -26,6 +26,18 @@ class StockInventory(models.Model):
         store=False,
         compute="_compute_conflicting_theoretical_qty_message",
     )
+    u_stock_check_origin = fields.Selection(
+        string="Stock Check Origin",
+        selection=[
+            ("desktop", "Desktop"),
+        ],
+        default="desktop",
+        help="""Stock check origin"""
+    )
+    u_date_start_scanned = fields.Datetime(
+        "Start Date Scanning",
+        help="The date operator started scanning."
+    )
 
     @api.multi
     def action_done(self):

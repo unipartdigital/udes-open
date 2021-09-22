@@ -571,15 +571,9 @@ class StockLocation(models.Model):
 
         if not stock_drift:
             return
+        inventory_data = self.get_inventory_adjustment_data()
 
-        inventory_adjustment = Inventory.create(
-            {
-                "name": "PI inventory adjustment " + self.name,
-                "location_id": self.id,
-                "filter": "none",
-                "state": "confirm",
-            }
-        )
+        inventory_adjustment = Inventory.create(inventory_data)
 
         for stock_info, quantity in stock_drift.items():
             InventoryLine.create(
@@ -596,6 +590,14 @@ class StockLocation(models.Model):
             )
 
         return inventory_adjustment
+
+    def get_inventory_adjustment_data(self):
+        return {
+            "name": "PI inventory adjustment " + self.name,
+            "location_id": self.id,
+            "filter": "none",
+            "state": "confirm",
+        }
 
     def _get_stock_drift(self, adjustments_request):
         """
