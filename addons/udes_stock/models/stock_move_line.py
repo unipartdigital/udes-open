@@ -41,6 +41,15 @@ class StockMoveLine(models.Model):
         """
         return self.filtered(lambda ml: ml.qty_done == ml.product_uom_qty)
 
+    def _is_done(self):
+        """
+        Check if all the move lines in self are considered done.
+        A ml is done if the state is done, or the uom qty = qty_done.
+        We check both because this function may be called before a state change, and after
+        a state change the uom_qty goes to zero.
+        """
+        return all(ml.product_uom_qty == ml.qty_done or ml.state == "done" for ml in self)
+
     def _prepare_result_packages(
         self,
         package,
