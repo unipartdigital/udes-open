@@ -174,15 +174,14 @@ class EdiNotifier(models.Model):
         self.ensure_one()
         if self.safety:
             section, _sep, key = self.safety.rpartition(".")
-            if not config.get_misc(section or self._name, key):
-                _logger.info(
-                    "%s %s disabled, enable by configuring safety %s",
+            if config.get_misc(section or self._name, key):
+                return True
+        _logger.info(
+                    "%s %s disabled, enable by configuring safety.",
                     self._name,
                     self.name,
-                    ".".join((section or self._name, key)),
                 )
-                return False
-        return True
+        return False
 
     @api.multi
     def notify(self, event_type, recs=None):

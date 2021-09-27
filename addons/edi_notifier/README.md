@@ -38,3 +38,15 @@ Checks if a transfer with doc type exists between the start of the day and the t
 
 Checks if a transfer with doc type exists within the number of `lookback_hours` to
 the trigger `time` of the crons attached and that it has not already been reported on
+
+# Safety Catch
+
+In order to allow the EDI notifier to send out emails:
+- A safety catch needs to be set on the EDI notifier.
+- This same safety catch needs to be configured on the Odoo config file and return a truthy value.
+```
+[email]
+edi_notifier_safety_catch=True
+```
+- If no safety is configured no emails will be sent.
+- If only one part of the safety is configured no emails will be sent.
