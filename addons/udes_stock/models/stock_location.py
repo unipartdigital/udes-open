@@ -202,6 +202,28 @@ class StockLocation(models.Model):
     Computed field describing the state of the stock location.
     """,
     )
+    
+    u_size = fields.Float(
+        string="Location size",
+        help="""
+            The size of the location in square feet.
+        """,
+        digit=2,
+    )
+
+    u_heatmap_data_updated = fields.Datetime(
+        string="Heatmap data updated",
+        help="""
+            The date when the location name, co-ordinates or size was last changed. 
+        """,
+        default=fields.Datetime.now
+    )
+
+    @api.multi
+    @api.onchange("u_size", "name", "posx", "posy", "posz")
+    def _set_size_write_date(self):
+        for location in self:
+            location.u_heatmap_data_updated = datetime.now()
 
     @api.multi
     @api.depends("quant_ids", "u_blocked", "usage", "u_is_countable")

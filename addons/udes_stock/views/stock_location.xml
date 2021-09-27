@@ -74,6 +74,12 @@
                     <field name="u_location_storage_format" groups="stock.group_stock_manager"/>
                 </xpath>
 
+                <!-- Add storage format fields -->
+                <xpath expr="//field[@name='posz']" position="after">
+                    <field name="u_size"/>
+                    <field name="u_heatmap_data_updated"/>
+                </xpath>
+
             </field>
         </record>
 
