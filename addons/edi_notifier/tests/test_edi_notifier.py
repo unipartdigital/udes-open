@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from odoo import fields
 from odoo.exceptions import ValidationError
 from odoo.addons.edi.tests.common import EdiCase
-from odoo.tools import mute_logger
+from odoo.tools import config, mute_logger
 
 
 class EdiNotifierCase(EdiCase):
@@ -32,6 +32,10 @@ class EdiNotifierCase(EdiCase):
                 "state": "draft",
             }
         )
+
+        # Set common safety config and enable for tests
+        cls.safety = "edi.enable_edi_notifications"
+        config.misc["edi"] = {"enable_edi_notifications": 1}
 
     def mute_issues(self):
         return mute_logger("odoo.addons.edi.models.edi_issues")
@@ -99,6 +103,7 @@ class TestNotifier(EdiNotifierCase):
                 "model_id": IrModel._get_id("edi.notifier.model"),
                 "doc_type_ids": [(6, False, cls.doc_type.ids)],
                 "active": True,
+                "safety": cls.safety,
             }
         )
 
@@ -143,6 +148,7 @@ class TestSuccess(EdiNotifierCase):
                 "doc_type_ids": [(6, False, cls.doc_type.ids)],
                 "template_id": cls.email_template.id,
                 "active": True,
+                "safety": cls.safety,
             }
         )
 
@@ -265,6 +271,7 @@ class TestFailed(EdiNotifierCase):
                 "doc_type_ids": [(6, False, cls.doc_type_unknown.ids)],
                 "template_id": cls.email_template.id,
                 "active": True,
+                "safety": cls.safety,
             }
         )
 
@@ -447,6 +454,7 @@ class TestMissing(EdiNotifierCase):
                 "doc_type_ids": [(6, False, cls.doc_type.ids)],
                 "template_id": cls.email_template.id,
                 "active": True,
+                "safety": cls.safety,
             }
         )
 
@@ -470,7 +478,7 @@ class TestMissing(EdiNotifierCase):
             self.cron.method_direct_trigger()
         send_mail_mock.assert_not_called()
 
-    def test_cron_trigger_recived(self):
+    def test_cron_trigger_received(self):
         raw_doc = self.create_document(self.doc_type_raw)
         self.create_transfer(raw_doc)
         self.create_input_attachment(raw_doc, "res.users.csv")
@@ -497,10 +505,11 @@ class TestMissingInRange(EdiNotifierCase):
                 "template_id": cls.email_template.id,
                 "lookback_hours": 3,
                 "active": True,
+                "safety": cls.safety,
             }
         )
 
-    def test_dont_send_if_recived(self):
+    def test_dont_send_if_received(self):
         raw_doc = self.create_document(self.doc_type_raw)
         self.create_transfer(raw_doc)
         self.create_input_attachment(raw_doc, "res.users.csv")
@@ -510,7 +519,7 @@ class TestMissingInRange(EdiNotifierCase):
             self.cron.method_direct_trigger()
         send_mail_mock.assert_not_called()
 
-    def test_send_if_recived_out_of_timeframe(self):
+    def test_send_if_received_out_of_timeframe(self):
         raw_doc = self.create_document(self.doc_type_raw)
         self.create_transfer(raw_doc)
         self.create_input_attachment(raw_doc, "res.users.csv")
@@ -522,7 +531,7 @@ class TestMissingInRange(EdiNotifierCase):
             self.email_template, self.doc_type_raw.id, force_send=True, email_values=None
         )
 
-    def test_dont_send_if_recived_within_timeframe(self):
+    def test_dont_send_if_received_within_timeframe(self):
         raw_doc = self.create_document(self.doc_type_raw)
         self.create_transfer(raw_doc)
         self.create_input_attachment(raw_doc, "res.users.csv")
@@ -555,11 +564,7 @@ class TestDisabledNotifier(EdiNotifierCase):
             }
         )
 
-    @mock.patch(
-        "odoo.addons.edi_notifier.models.notifier.EdiNotifier.check_edi_notifications_enabled",
-        return_value=False,
-    )
-    def test_no_email_sent_on_success_when_safety_set_to_false(self, mock_config):
+    def test_no_email_sent_on_success_when_safety_set_to_false(self):
         with self.mock_send_mail() as send_mail_mock:
             self.assertTrue(self.doc.action_execute())
         self.assertEqual(self.doc.state, "done")
