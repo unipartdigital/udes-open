@@ -41,6 +41,9 @@ class Location(UdesApi):
         if check_blocked:
             location.check_blocked()
 
+        # Update scanning start date on location
+        location.update_scanning_date_start()
+
         return location.get_info(extended=True, load_quants=load_quants)[0]
 
     @http.route('/api/stock-location-pi-count/',
