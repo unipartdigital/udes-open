@@ -10,6 +10,17 @@ class StockInventory(models.Model):
     _name = 'stock.inventory'
     _inherit = 'stock.inventory'
 
+    @api.model
+    def _get_stock_check_users(self):
+        """
+        Return domain of users that can be assign to a stock check.
+        Users should have the Stock User group checked.
+        """
+
+        users = self.env.ref("udes_stock.group_stock_user").users.ids
+        domain = [("id", "in", users)]
+        return domain
+
     u_preceding_inventory_ids = fields.One2many('stock.inventory',
                                                 'u_next_inventory_id',
                                                 string='Preceding Inventories',
@@ -37,6 +48,14 @@ class StockInventory(models.Model):
     u_date_start_scanned = fields.Datetime(
         "Start Date Scanning",
         help="The date operator started scanning."
+    )
+    user_id = fields.Many2one(
+        "res.users",
+        string="Checked Owner",
+        readonly=True,
+        states={"draft": [("readonly", False)], "waiting": [("readonly", False)]},
+        help="Specify Owner to focus your stock check on a particular user.",
+        domain=_get_stock_check_users,
     )
 
     @api.multi
@@ -121,6 +140,11 @@ class StockInventory(models.Model):
             if line.reserved_qty and line.theoretical_qty != line.product_qty:
                 return True
         return False
+
+    def _is_correct(self):
+        """Check if stock check doesn't have any discrepancies."""
+        self.ensure_one()
+        return all(line.product_qty == line.theoretical_qty for line in self.line_ids)
 
     def _has_theoretical_quantity_changed(self):
         """Check if any theoretical quantity in the location has changed.
@@ -259,6 +283,13 @@ class StockInventory(models.Model):
         ):
             raise UserError(_("Cannot write to an adjustment which has already been validated"))
         return super(StockInventory, self).write(values)
+
+    def get_stock_check_event_states(self):
+        """
+        States that trigger creating events. It is put inside a method because we need it to
+        override when other modules are installed depending on new modules behaviour.
+        """
+        return ["confirm", "done"]
 
 
 class StockInventoryLine(models.Model):
