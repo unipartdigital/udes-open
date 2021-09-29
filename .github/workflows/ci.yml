@@ -5,7 +5,7 @@ on:
   push:
 
 jobs:
-  pre-commit:
+  test-addons:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
