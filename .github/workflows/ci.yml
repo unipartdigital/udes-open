@@ -1,0 +1,15 @@
+name: test-addons
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  pre-commit:
+    runs-on: debian-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Python 3
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.6
