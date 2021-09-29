@@ -12,4 +12,4 @@ jobs:
       - name: Build Docker Image
         run: docker build -t udes-open-tester .
       - name: Run tests in docker
-        run: docker run -i -t --rm udes-open-tester
+        run: docker run -it --rm udes-open-tester
