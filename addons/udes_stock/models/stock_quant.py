@@ -16,7 +16,7 @@ class StockQuant(models.Model):
         # NOTE: Preserve `NULLS FIRST` for `in_date` and use for `package_id` as well
         if removal_strategy == "fifo":
             return "in_date ASC NULLS FIRST, package_id ASC NULLS FIRST"
-        return super(Quant, self)._get_removal_strategy_order(removal_strategy)
+        return super()._get_removal_strategy_order(removal_strategy)
 
     def assert_not_reserved(self):
         """Ensure all quants in the recordset are unreserved."""
