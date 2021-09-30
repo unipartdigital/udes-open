@@ -270,7 +270,7 @@ class StockMove(models.Model):
                         action,
                         st_moves.ids,
                     )
-                    func = getattr(st_moves, "refactor_action_" + action)
+                    func = getattr(st_moves.with_context(refactor_stage=stage), "refactor_action_" + action)
                     new_moves = func()
                     if new_moves is not None:
                         moves -= st_moves
