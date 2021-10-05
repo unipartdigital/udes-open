@@ -471,6 +471,13 @@ class StockPickingType(models.Model):
         help="Enable printing of delivery notes from the front end",
     )
 
+    # Enable user process partial
+    u_user_process_partial = fields.Boolean(
+        string="User Process Partial",
+        help="Flag to enable validating a move partially, only what is done by the specific user.",
+        default=False,
+    )
+
     def _compute_package_count(self):
         """Counts number of packages at parent and child locations"""
         StockQuantPackage = self.env["stock.quant.package"]
