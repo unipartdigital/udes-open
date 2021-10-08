@@ -1408,7 +1408,8 @@ class StockPicking(models.Model):
         """
         PickingType = self.env["stock.picking.type"]
 
-        domain = [("u_mark", "=", False), ("is_locked", "=", True)]
+        # All pickings to be unlinked should not be marked
+        domain = [("u_mark", "=", False)]
         if self:
             domain.append(("id", "in", self.ids))
         else:
