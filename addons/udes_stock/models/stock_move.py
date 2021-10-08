@@ -524,7 +524,7 @@ class StockMove(models.Model):
         empty_picks = pickings.filtered(lambda p: len(p.move_lines) == 0)
         if empty_picks:
             _logger.info(_("Marking empty picks after splitting for clean up."))
-            empty_picks.write({"u_mark": False, "is_locked": True})
+            empty_picks.write({"u_mark": False})
 
         return self
 
@@ -600,7 +600,7 @@ class StockMove(models.Model):
         empty_picks = pickings.filtered(lambda p: len(p.move_lines) == 0)
         if empty_picks:
             _logger.info(_("Marking empty picks after splitting for clean up."))
-            empty_picks.write({"u_mark": False, "is_locked": True})
+            empty_picks.write({"u_mark": False})
 
         return result_moves
 
