@@ -336,7 +336,7 @@ class StockPicking(models.Model):
     def action_delivery_control_done(self):
         """
         Mark Delivery Control picking as done.
-        
+
         Generate a Goods In picking if Delivery Control picking not already linked with one.
 
         Otherwise check if linked Goods in Picking is in 'Waiting Another Operation' state and
@@ -367,8 +367,6 @@ class StockPicking(models.Model):
                 "u_delivery_control_picking_id": self.id,
                 "origin": self.origin,
                 "partner_id": self.partner_id.id if self.partner_id else False,
-                # Set locked to False so that Moves are editable through UI
-                "is_locked": False,
             }
             vals.update(kwargs)
             goods_in_picking = self.create(vals)
