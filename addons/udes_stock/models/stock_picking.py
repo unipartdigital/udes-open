@@ -908,10 +908,7 @@ class StockPicking(models.Model):
             # Create a backorder for all scanned lines of current user and let existing
             # order with remaining lines in case there is at least one more line to be done
             user_process_partial = self.picking_type_id.u_user_process_partial
-            if (
-                picking.move_line_ids.get_lines_todo()
-                and user_process_partial
-            ):
+            if picking.move_line_ids.get_lines_todo() and user_process_partial:
                 mls_done_by_user = move_lines.filtered(
                     lambda ml: ml.qty_done > 0 and ml.u_done_by == user
                 )
@@ -2706,3 +2703,10 @@ class StockPicking(models.Model):
         if empty_picks:
             _logger.info(_("Flagging empty pickings for clean up: %r") % empty_picks.ids)
             empty_picks.write({"u_mark": False})
+
+    def _assign_picker(self, **kwargs):
+        """
+        Method to write the user and user start time to relevant pickings.
+        Designed to be overwritten by other more specific modules.
+        """
+        return
