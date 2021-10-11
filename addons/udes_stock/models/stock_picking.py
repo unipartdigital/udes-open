@@ -51,7 +51,7 @@ class StockPicking(models.Model):
         default=True,
         oldname="active",
         index=True,
-        help="Pickings that are unused after refactoring are unmarked " "and deleted",
+        help="True if picking is in use. False indicates the picking can be deleted.",
     )
 
     # compute previous and next pickings
@@ -2696,3 +2696,10 @@ class StockPicking(models.Model):
             return "Previous pickings are not all complete."
         else:
             return False
+
+    def mark_empty_pickings(self):
+        """Mark empty pickings to be cleaned up"""
+        empty_picks = self.filtered(lambda p: len(p.move_lines) == 0)
+        if empty_picks:
+            _logger.info(_("Flagging empty pickings for clean up: %r") % empty_picks.ids)
+            empty_picks.write({"u_mark": False})

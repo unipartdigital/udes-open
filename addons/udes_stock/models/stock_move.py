@@ -521,10 +521,7 @@ class StockMove(models.Model):
 
             Picking._new_picking_for_group(key, move_group, **values)
 
-        empty_picks = pickings.filtered(lambda p: len(p.move_lines) == 0)
-        if empty_picks:
-            _logger.info(_("Marking empty picks after splitting for clean up."))
-            empty_picks.write({"u_mark": False})
+        pickings.mark_empty_pickings()
 
         return self
 
@@ -597,10 +594,7 @@ class StockMove(models.Model):
             Picking._new_picking_for_group(key, group_moves, **values)
             result_moves |= group_moves
 
-        empty_picks = pickings.filtered(lambda p: len(p.move_lines) == 0)
-        if empty_picks:
-            _logger.info(_("Marking empty picks after splitting for clean up."))
-            empty_picks.write({"u_mark": False})
+        pickings.mark_empty_pickings()
 
         return result_moves
 
