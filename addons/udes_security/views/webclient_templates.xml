@@ -3,7 +3,11 @@
     <data>
         <template id="udes_security.web" name="udes_security.web" inherit_id="web.assets_backend">
             <xpath expr="." position="inside">
+                <script type="text/javascript" src="/udes_security/static/src/js/basic_view.js"></script>
                 <script type="text/javascript" src="/udes_security/static/src/js/binary_fields.js"></script>
+                <script type="text/javascript" src="/udes_security/static/src/js/calendar_view.js"></script>
+                <script type="text/javascript" src="/udes_security/static/src/js/kanban_column.js"></script>
+                <script type="text/javascript" src="/udes_security/static/src/js/kanban_renderer.js"></script>
             </xpath>
         </template>
     </data>
