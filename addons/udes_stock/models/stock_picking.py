@@ -793,6 +793,8 @@ class StockPicking(models.Model):
 
         self.assert_valid_state()
 
+        user = self.env.user
+
         # If transport data has been sent in kwargs, add it to picking_info
         if "u_transport_id" in kwargs:
             # retrieve transport info changes, and then remove them from kwargs
@@ -902,6 +904,19 @@ class StockPicking(models.Model):
             )
 
         if force_validate or validate:
+
+            # Create a backorder for all scanned lines of current user and let existing
+            # order with remaining lines in case there is at least one more line to be done
+            user_process_partial = self.picking_type_id.u_user_process_partial
+            if (
+                picking.move_line_ids.get_lines_todo()
+                and user_process_partial
+            ):
+                mls_done_by_user = move_lines.filtered(
+                    lambda ml: ml.qty_done > 0 and ml.u_done_by == user
+                )
+                picking = self._real_time_update(mls_done_by_user)
+
             if picking.move_line_ids.get_lines_todo() and not create_backorder:
                 raise ValidationError(
                     _("Cannot validate transfer because there" " are move lines todo")

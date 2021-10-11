@@ -65,6 +65,7 @@
                     <field name="u_selection_method" />
                     <field name="u_check_package_type" />
                     <field name="u_default_package_type_id" options="{'no_create': True, 'no_open': True}" />
+                    <field name="u_user_process_partial" />
                     <field name="u_show_all_tasks" />
                     <field name="u_enable_delivery_note_printing" />
                     <field name="u_batch_dest_loc_not_allowed" />
