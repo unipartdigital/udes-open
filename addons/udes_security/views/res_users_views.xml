@@ -9,8 +9,11 @@
         <field name="arch" type="xml">
 
             <xpath expr="//page[@name='access_rights']" position="inside">
-                <group string="Login session">
+                <group string="Login Session">
                     <field name="u_restrict_to_single_session"/>
+                </group>
+                <group string="Desktop UI" groups="udes_security.group_debug_user">
+                    <field name="u_desktop_readonly"/>
                 </group>
             </xpath>
 

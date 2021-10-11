@@ -2,7 +2,7 @@
 import logging
 
 from odoo import api, models, fields, SUPERUSER_ID
-from odoo.exceptions import AccessError
+from odoo.exceptions import AccessError, UserError
 from odoo.tools.translate import _
 from odoo.http import root, request
 
@@ -18,6 +18,17 @@ class Users(models.Model):
     u_restrict_to_single_session = fields.Boolean(
         string="Restrict user account to single login session", default=False
     )
+    u_desktop_readonly = fields.Boolean(
+        string="View Only Desktop User",
+        default=False,
+        help="""
+        If set the user cannot create/edit/delete any records in the desktop UI,
+        regardless of other permissions.
+
+        Note: This doesn't restrict any operations that take place outside of the desktop UI,
+              e.g. via Odoo RPC
+        """,
+    )
 
     @classmethod
     def is_user_only_allowed_one_session(cls, uid):
@@ -31,7 +42,7 @@ class Users(models.Model):
 
     @classmethod
     def authenticate(cls, db, *args, **kwargs):
-        """ Override to clear all previous sessions if authenticated """
+        """Override to clear all previous sessions if authenticated"""
         uid = super().authenticate(db, *args, **kwargs)
 
         if uid and cls.is_user_only_allowed_one_session(uid):
@@ -45,6 +56,7 @@ class Users(models.Model):
     @api.model
     def create(self, values):
         self._check_user_group_grant(values)
+        self._check_view_only_user(values)
 
         user = super(Users, self).create(values)
         return user
@@ -52,6 +64,7 @@ class Users(models.Model):
     @api.multi
     def write(self, values):
         self._check_user_group_grant(values)
+        self._check_view_only_user(values)
 
         res = super(Users, self).write(values)
         return res
@@ -102,7 +115,7 @@ class Users(models.Model):
 
     @api.model_cr_context
     def _auth_timeout_enabled(self):
-        """ Pluggable method to check if session timeout is enabled """
+        """Pluggable method to check if session timeout is enabled"""
         IrConfigParameter = self.env["ir.config_parameter"]
 
         auth_timeout_enabled_parameter = IrConfigParameter.get_param(
@@ -112,13 +125,51 @@ class Users(models.Model):
 
     @api.model
     def _auth_timeout_check(self):
-        """ Override to not carry out timeout check if system parameter is disabled """
+        """Override to not carry out timeout check if system parameter is disabled"""
         auth_timeout_enabled = self._auth_timeout_enabled()
 
         if not auth_timeout_enabled:
             return
         else:
             return super(Users, self)._auth_timeout_check()
+
+    def _check_view_only_user(self, vals):
+        """
+        Raise a UserError if either of the following are true:
+
+            1. Active user is not an admin or debug user
+            2. User being updated is an admin or debug user
+        """
+
+        def _log_warning(user_ids):
+            _logger.warning(
+                "User %s tried to set user(s) %s as a View Only Desktop User."
+                % (self.env.uid, user_ids)
+            )
+
+        if "u_desktop_readonly" in vals:
+            user_ids = self.mapped("id")
+
+            if not self.env.uid == SUPERUSER_ID and not self.env.user.has_group(
+                "udes_security.group_debug_user"
+            ):
+                _log_warning(user_ids)
+                raise UserError(
+                    _("Only Admin and Debug users can set/unset View Only Desktop User")
+                )
+
+            new_user_rec = not bool(self.mapped("id"))
+            desktop_readonly = vals["u_desktop_readonly"]
+
+            # u_desktop_readonly is set to False by default for new user records
+            if not new_user_rec or (new_user_rec and desktop_readonly):
+                if SUPERUSER_ID in user_ids or self.filtered(
+                    lambda u: u.has_group("udes_security.group_debug_user")
+                ):
+                    _log_warning(user_ids)
+                    raise UserError(
+                        _("Admin and Debug users cannot be set to View Only Desktop User")
+                    )
 
 
 class ChangePasswordUser(models.TransientModel):
@@ -149,7 +200,7 @@ class ChangePasswordUser(models.TransientModel):
         without the appropriate permissions.
 
         :args:
-            - users: Recordset of `res.users` which the active user tried to change 
+            - users: Recordset of `res.users` which the active user tried to change
                         the passwords of
         """
         _logger.warning(
@@ -160,9 +211,9 @@ class ChangePasswordUser(models.TransientModel):
     def _check_user_password_grant(self):
         """
         Ensure that active user has permission to change the passwords of users in self.
-        
+
         Raise an AccessError and log a warning if either:
-        
+
         1. A non-Password Manager user tries to change someone else's password
         2. A non-admin/debug user (inc. Password Manager) tries to change the password of
            an admin or debug user.

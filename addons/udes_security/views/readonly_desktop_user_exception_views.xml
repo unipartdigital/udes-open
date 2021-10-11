@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<odoo>
+
+  <record id="action_udes_readonly_desktop_user_model_exception" model="ir.actions.act_window">
+    <field name="name">Readonly User Exceptions</field>
+    <field name="res_model">udes.readonly_desktop_user_model_exception</field>
+    <field name="view_type">form</field>
+    <field name="view_mode">tree,form</field>
+  </record>
+
+  <menuitem action="action_udes_readonly_desktop_user_model_exception"
+            id="menu_udes_readonly_desktop_user_model_exception"
+            parent="base.menu_security"/>
+
+  <record id="view_udes_readonly_desktop_user_model_exception_form" model="ir.ui.view">
+    <field name="name">udes.readonly_desktop_user_model_exception.form</field>
+    <field name="model">udes.readonly_desktop_user_model_exception</field>
+    <field name="arch" type="xml">
+      <form string="Readonly Desktop User Model Exception">
+        <sheet>
+          <group>
+            <field name="name"/>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <record id="view_udes_readonly_desktop_user_model_exception_tree" model="ir.ui.view">
+    <field name="name">udes.readonly_desktop_user_model_exception.tree</field>
+    <field name="model">udes.readonly_desktop_user_model_exception</field>
+    <field name="arch" type="xml">
+      <tree string="Readonly Desktop User Model Exceptions">
+        <field name="name"/>
+      </tree>
+    </field>
+  </record>
+
+</odoo>
