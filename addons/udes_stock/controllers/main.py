@@ -15,7 +15,7 @@ class DataSet(controllers.main.DataSet):
     """Dataset controller"""
 
     @http.route()
-    def resequence(self, model, ids, field='sequence', **kwargs):
+    def resequence(self, model, ids, field="sequence", **kwargs):
         """Check that resequencing has resulted in expected record order
 
         The Odoo web UI does not correctly handle models for which the
@@ -25,19 +25,19 @@ class DataSet(controllers.main.DataSet):
         result = super().resequence(model, ids, field=field, **kwargs)
         recs = http.request.env[model].browse(ids)
         if list(recs.sorted()) != list(recs.sorted(field)):
-            raise ValidationError(
-                _("Sequence is overridden by default sort ordering")
-            )
+            raise ValidationError(_("Sequence is overridden by default sort ordering"))
         return result
 
 
 class Session(controllers.main.Session):
-    @http.route('/web/session/logout', type='http', auth="user")
+    @http.route("/web/session/logout", type="http", auth="user")
     def logout(self, *args, **kwargs):
-        PickingBatch = request.env['stock.picking.batch']
-        Users = request.env['res.users']
+        PickingBatch = request.env["stock.picking.batch"]
+        Picking = request.env["stock.picking"]
+        Users = request.env["res.users"]
 
         _batches = PickingBatch.close_user_batches()
         _res = Users.set_user_location_categories([])
+        Picking._unassign_picker()
 
         return super().logout(*args, **kwargs)

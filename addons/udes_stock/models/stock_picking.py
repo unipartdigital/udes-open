@@ -2704,6 +2704,13 @@ class StockPicking(models.Model):
             _logger.info(_("Flagging empty pickings for clean up: %r") % empty_picks.ids)
             empty_picks.write({"u_mark": False})
 
+    def _unassign_picker(self, **kwargs):
+        """
+        Method to clear the user from pickings.
+        Designed to be overwritten by other more specific modules.
+        """
+        return
+
     def _assign_picker(self, **kwargs):
         """
         Method to write the user and user start time to relevant pickings.
