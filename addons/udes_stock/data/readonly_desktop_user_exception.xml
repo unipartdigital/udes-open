@@ -1,0 +1,7 @@
+<odoo>
+  <data>
+    <record id="readonly_user_exc_inventory_valuation" model="udes.readonly_desktop_user_model_exception">
+      <field name="name">stock.quantity.history</field>
+    </record>
+  </data>
+</odoo>
