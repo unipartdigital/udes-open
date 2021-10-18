@@ -37,6 +37,7 @@
         "data/res_users.xml",
         "data/ir_cron.xml",
         "data/report_paperformat.xml",
+        "data/readonly_desktop_user_exception.xml",
         "report/product_product_templates.xml",
         "report/report_stockpicking_operations.xml",
         "views/edi_menu_views.xml",
