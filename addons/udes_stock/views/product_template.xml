@@ -23,6 +23,18 @@
         </field>
     </record>
 
+    <record model="ir.ui.view" id="product_template_form_view_procurement_button_udes_stock">
+        <field name="name">product.template_procurement.udes_stock</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="stock.product_template_form_view_procurement_button"/>
+        <field name="arch" type="xml">
+            <!-- Set on hand button show for readonly desktop users -->
+            <xpath expr="//button[@name='action_open_quants']" position="attributes">
+                <attribute name="readonly_user_exception">1</attribute>
+            </xpath>
+        </field>
+    </record>
+
     <record id="product_template_search_view" model="ir.ui.view">
         <field name="name">product.template.search</field>
         <field name="model">product.template</field>
@@ -35,8 +47,6 @@
         </field>
     </record>
 
-    <menuitem 
-        id="stock.product_product_menu" 
-        active="false"/>
+    <menuitem id="stock.product_product_menu" active="false"/>
 
 </odoo>
