@@ -299,7 +299,7 @@
                 <field name="u_package_count" invisible="1"/>
                 <field name="u_show_transfer_count" invisible="1"/>
                 <t t-if="record.u_show_package_count.raw_value">
-                    <button class="btn btn-primary" name="get_action_package_tree" type="object" id="btn_package_count">
+                    <button class="btn btn-primary" name="get_action_package_tree" type="object" id="btn_package_count" readonly_user_exception="1">
                         <span>
                             <t t-esc="record.u_package_count.value"/> <t t-esc="record.u_package_count_button_name.raw_value"/>
                         </span>
@@ -310,6 +310,7 @@
                 <attribute name="t-if">record.u_show_transfer_count.raw_value</attribute>
                 <!-- Add spacing between the Transfers and Package Count buttons -->
                 <attribute name="style">margin-bottom: 4px</attribute>
+                <attribute name="readonly_user_exception">1</attribute>
             </xpath>
         </field>
     </record>

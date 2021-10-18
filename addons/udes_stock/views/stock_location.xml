@@ -66,8 +66,18 @@
                             icon="fa-level-down"
                             type="object"
                             name="button_view_child_locations"
+                            readonly_user_exception="1"
                     />
                 </xpath>
+
+                <!-- Set current stock and product buttons show for readonly desktop users -->
+                <xpath expr="//button[@name='%(stock.location_open_quants)d']" position="attributes">
+                    <attribute name="readonly_user_exception">1</attribute>
+                </xpath>
+                <xpath expr="//button[@name='%(stock.act_product_location_open)d']" position="attributes">
+                    <attribute name="readonly_user_exception">1</attribute>
+                </xpath>
+
                 <!-- Add storage format fields -->
                 <xpath expr="//field[@name='u_quant_policy']" position="after">
                     <field name="u_storage_format"/>

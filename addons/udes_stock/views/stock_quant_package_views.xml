@@ -10,6 +10,11 @@
                         string="Print Container Label">
                 </button>
             </xpath>
+
+            <!-- Set package transfers button show for readonly desktop users -->
+            <xpath expr="//button[@name='action_view_picking']" position="attributes">
+                <attribute name="readonly_user_exception">1</attribute>
+            </xpath>
         </field>
     </record>
 
