@@ -800,7 +800,7 @@ class StockPickingBatch(models.Model):
                 elif picking_type.u_target_storage_format == "pallet_products":
                     to_update["result_package_id"] = result_package.id
                 else:
-                    raise ValidationError(_("Unnexpected result package at drop off."))
+                    raise ValidationError(_("Unexpected result package at drop off."))
 
             if to_update:
                 completed_move_lines.write(to_update)
@@ -814,6 +814,7 @@ class StockPickingBatch(models.Model):
 
                 if pick._requires_backorder(pick_mls):
                     pick_todo = pick._backorder_movelines(pick_mls)
+
                     to_add |= pick_todo
 
                 picks_todo |= pick_todo
@@ -1099,7 +1100,9 @@ class StockPickingBatch(models.Model):
             # in a different picking
             # No unlinking of the empty pickings is done - this relies on the cron
             # to do the clean up
-            refactored_moves = to_investigate.exists().mapped("move_lines")._action_refactor(stage="confirm")
+            refactored_moves = (
+                to_investigate.exists().mapped("move_lines")._action_refactor(stage="confirm")
+            )
             pickings_to_investigate = refactored_moves.mapped("picking_id")
             if not bypass_reassignment:
                 for picking in pickings_to_investigate:
