@@ -554,6 +554,7 @@ class StockMoveLine(models.Model):
             # TODO: move function into picking?
             # if not move_line in self, there is no picking
             picking = self.mapped("picking_id") or picking
+            picking = picking.with_context(lock_batch_state=True)
             new_move_lines = picking.add_unexpected_parts(products_todo)
             move_lines |= new_move_lines
 
