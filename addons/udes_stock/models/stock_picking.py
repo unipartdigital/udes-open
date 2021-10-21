@@ -977,9 +977,7 @@ class StockPicking(models.Model):
 
         if dest_picking is None:
             # Create picking for selected move lines
-            dest_picking = self.copy(
-                {"name": "/", "move_lines": [], "move_line_ids": [], "backorder_id": self.id}
-            )
+            dest_picking = self._create_new_picking(name="/", backorder_id=self.id)
 
         new_moves.write({"picking_id": dest_picking.id})
         new_moves.mapped("move_line_ids").write({"picking_id": dest_picking.id})
@@ -2717,3 +2715,19 @@ class StockPicking(models.Model):
         Designed to be overwritten by other more specific modules.
         """
         return
+
+    def _perpare_new_picking_info(self, **kwargs):
+        """Copy the picking information from picking onto self"""
+        update_args = kwargs
+        if not kwargs.get("move_lines"):
+            update_args["move_lines"] = []
+        if not kwargs.get("move_line_ids"):
+            update_args["move_line_ids"] = []
+        return update_args
+
+    def _create_new_picking(self, **kwargs):
+        """Copy the picking information from picking onto self"""
+        return self.with_context(created_due_to_backorder=True).copy(
+            self._perpare_new_picking_info(**kwargs)
+        )
+
