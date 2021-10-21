@@ -298,7 +298,7 @@ class StockPickingBatch(models.Model):
         if not (batch_pt.u_allow_swapping_packages and batch_pt.u_user_scans == "product"):
             parts.append(lambda ml: (ml.package_id.id,))
 
-        parts.append(lambda ml: (ml.product_id.id, ml.location_id.id))
+        parts.append(lambda ml: (ml.location_id.id, ml.product_id.id))
 
         return lambda ml: tuple(chain(*[part(ml) for part in parts]))
 
@@ -1006,6 +1006,7 @@ class StockPickingBatch(models.Model):
         package = Package.get_package(package_name) if package_name else None
         allow_partial = False
         move_lines = self.get_available_move_lines()
+
         if product:
             if not location:
                 raise ValidationError(
@@ -1019,7 +1020,8 @@ class StockPickingBatch(models.Model):
             msg = _("Unpickable product %s at location %s") % (product.name, location.name)
 
             if lot_name:
-                move_lines = move_lines.filtered(lambda ml: ml.lot_id.name == lot_name)
+                lot_name = [lot_name] if isinstance(lot_name, str) else lot_name
+                move_lines = move_lines.filtered(lambda ml: ml.lot_id.name in lot_name)
                 msg += _(" with serial number %s") % lot_name
 
             if package:
@@ -1046,6 +1048,9 @@ class StockPickingBatch(models.Model):
             raise ValidationError(
                 _("Missing required information for unpickable item: product or package.")
             )
+
+        # Filter out the move lines already picked in case under received
+        move_lines = move_lines.filtered(lambda ml: ml.qty_done == 0)
 
         if not move_lines:
             raise ValidationError(
