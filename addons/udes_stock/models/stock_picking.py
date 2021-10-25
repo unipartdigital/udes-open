@@ -2716,7 +2716,7 @@ class StockPicking(models.Model):
         """
         return
 
-    def _perpare_new_picking_info(self, **kwargs):
+    def _prepare_new_picking_info(self, **kwargs):
         """Copy the picking information from picking onto self"""
         update_args = kwargs
         if not kwargs.get("move_lines"):
@@ -2728,6 +2728,5 @@ class StockPicking(models.Model):
     def _create_new_picking(self, **kwargs):
         """Copy the picking information from picking onto self"""
         return self.with_context(created_due_to_backorder=True).copy(
-            self._perpare_new_picking_info(**kwargs)
+            self._prepare_new_picking_info(**kwargs)
         )
-
