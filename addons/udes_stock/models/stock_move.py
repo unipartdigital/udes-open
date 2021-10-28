@@ -55,7 +55,7 @@ class StockMove(models.Model):
             "quantity_done": self.quantity_done,
             "product_id": self.product_id.get_info()[0],
             "moves_line_ids": self.move_line_ids.get_info(),
-            "state": self.state
+            "state": self.state,
         }
 
     def get_info(self):
@@ -270,7 +270,9 @@ class StockMove(models.Model):
                         action,
                         st_moves.ids,
                     )
-                    func = getattr(st_moves.with_context(refactor_stage=stage), "refactor_action_" + action)
+                    func = getattr(
+                        st_moves.with_context(refactor_stage=stage), "refactor_action_" + action
+                    )
                     new_moves = func()
                     if new_moves is not None:
                         moves -= st_moves
@@ -358,17 +360,20 @@ class StockMove(models.Model):
         return post_refactor_done_moves
 
     def _get_new_picking_values(self):
+        """Proagate the previous origin and partner"""
         values = super()._get_new_picking_values()
 
         previous_pickings = self.mapped("move_orig_ids.picking_id")
-        if not values.get("origin"):
-            previous_origin = list(set(previous_pickings.mapped("origin")))
+        origins = list(set(previous_pickings.mapped("origin")))
+        partners = list(set(previous_pickings.mapped("partner_id")))
+        if values.get("origin") not in origins:
+            previous_origin = origins
             if len(previous_origin) == 1:
                 values["origin"] = previous_origin[0]
-        if not values.get("partner_id"):
-            previous_partner = previous_pickings.mapped("partner_id")
+        if values.get("partner_id") not in partners:
+            previous_partner = partners
             if len(previous_partner) == 1:
-                values["partner_id"] = previous_partner.id
+                values["partner_id"] = previous_partner[0].id
 
         return values
 
@@ -659,7 +664,9 @@ class StockMove(models.Model):
         if not picking_type.u_assign_refactor_constraint_value:
             return
 
-        return self._refactor_action_by_maximum_quantity(picking_type.u_assign_refactor_constraint_value)
+        return self._refactor_action_by_maximum_quantity(
+            picking_type.u_assign_refactor_constraint_value
+        )
 
     def _refactor_action_by_maximum_quantity(self, maximum_qty):
         """Split move_line_ids out into pickings with a maximum quantity
