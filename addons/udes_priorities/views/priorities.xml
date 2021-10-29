@@ -37,6 +37,7 @@
                 <field name="reference"/>
                 <field name="description"/>
                 <field name="picking_type_ids"/>
+                <field name="picking_count"/>
                 <field name="priority_group_ids"/>
               </group>
             </group>
