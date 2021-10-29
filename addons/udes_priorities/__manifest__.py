@@ -7,7 +7,7 @@
     "website": "http://unipart.io",
     "category": "Warehouse",
     "version": "0.1",
-    "depends": ["udes_stock"],
+    "depends": ["udes_stock", "udes_security"],
     "data": [
         "data/default_priority_groups.xml",
         "data/default_priorities.xml",

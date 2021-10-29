@@ -9,7 +9,9 @@ class BasePriorities(common.BaseUDES):
         super().setUpClass()
 
         Priorities = cls.env["udes_priorities.priority"]
-        (Priorities.search([]) - cls.env.ref("udes_priorities.normal")).write({"active": False})
+        (Priorities.search([]) - cls.env.ref("udes_priorities.normal")).write(
+            {"active": False}
+        )
 
         cls.urgent = Priorities.create(
             {
@@ -39,3 +41,28 @@ class BasePriorities(common.BaseUDES):
         )
 
         cls.test_priorities = cls.urgent | cls.normal | cls.not_urgent
+
+        User = cls.env["res.users"]
+
+        cls.group_stock_user = cls.env.ref(
+            "stock.group_stock_user"
+        )  # Necessary to access stock.picking
+        cls.group_trusted_user = cls.env.ref("udes_security.group_trusted_user")
+
+        cls.trusted_usr = User.create(
+            {
+                "name": "test_priority_usr_1",
+                "login": "test_priority_usr_1",
+                "groups_id": [
+                    (6, 0, [cls.group_stock_user.id, cls.group_trusted_user.id])
+                ],
+            }
+        )
+
+        cls.simple_stock_usr = User.create(
+            {
+                "name": "test_priority_usr_2",
+                "login": "test_priority_usr_2",
+                "groups_id": [(6, 0, [cls.group_stock_user.id])],
+            }
+        )
