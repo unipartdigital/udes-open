@@ -59,6 +59,13 @@ class StockInventory(models.Model):
     )
 
     @api.multi
+    def button_validate(self):
+        """Inherit function called from UI to pass additional context"""
+        context = self.env.context.copy()
+        context["validated_via_ui"] = True
+        return super(StockInventory, self.with_context(context)).button_validate()
+
+    @api.multi
     def action_done(self):
         """
         Extends the parent method by ensuring that there are no
@@ -67,6 +74,9 @@ class StockInventory(models.Model):
         Also checks that a user is allowed to adjust reserved stock.
 
         Raises a ValidationError otherwise.
+
+        If we validate discrepancies via the desktop UI, change our origin to desktop
+        so we can determine from the event what type of interaction triggered it
         """
         User = self.env['res.users']
 
@@ -83,6 +93,9 @@ class StockInventory(models.Model):
                     _("You are not allowed to adjust reserved stock. "
                       "The stock has not been adjusted.")
                 )
+
+        if self.env.context.get("validated_via_ui") and self.state == "disc":
+            self.u_stock_check_origin = "desktop"
 
         return super(StockInventory, self).action_done()
 
