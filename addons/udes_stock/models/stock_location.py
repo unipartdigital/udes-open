@@ -198,6 +198,7 @@ class StockLocation(models.Model):
             ("empty", "Empty"),
             ("blocked", "Blocked"),
             ("has_stock", "Has Stock"),
+            ("archived", "Archived"),
         ],
         compute="_compute_state",
         store=True,
@@ -230,10 +231,10 @@ class StockLocation(models.Model):
             location.u_heatmap_data_updated = datetime.now()
 
     @api.multi
-    @api.depends("quant_ids", "u_blocked", "usage", "u_is_countable")
+    @api.depends("quant_ids", "u_blocked", "usage", "u_is_countable", "active")
     def _compute_state(self):
         """
-        Determine the state of the stock location - blocked, empty or has_stock.
+        Determine the state of the stock location - archived, blocked, empty or has_stock.
 
         The computed value is only set properly once a location has been created or saved.
         This is because for on the fly changes the location in self will only have access
@@ -247,7 +248,9 @@ class StockLocation(models.Model):
             state = False
 
             if location.id and location.usage == "internal" and location.u_is_countable:
-                if location.u_blocked:
+                if not location.active:
+                    state = "archived"
+                elif location.u_blocked:
                     state = "blocked"
                 elif not Quant.search_count([("location_id", "=", location.id)]):
                     state = "empty"

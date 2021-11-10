@@ -144,3 +144,19 @@ class TestLocationState(common.BaseUDES):
             self.unblock_location(location)
             with self.subTest(location=location, expected_state=expected_state):
                 self.assert_location_state(location, expected_state)
+
+    def test_sets_state_to_archived_on_inactive_locations(self):
+        """When we unset the active attribute the state is set to "archived"."""
+        self.test_location_01.active = False
+        self.assertEqual(self.test_location_01.u_state, "archived")
+
+    def test_unsets_archived_state_on_activation(self):
+        """When we set a location to be active, the "archived" state is removed."""
+        self.test_location_01.active = False
+        self.test_location_01.active = True
+        self.assertEqual(self.test_location_01.u_state, "empty")
+
+    def test_prioritises_archived_state_over_others(self):
+        """The archived state takes priority over other states."""
+        self.blocked_location.active = False
+        self.assertEqual(self.blocked_location.u_state, "archived")
