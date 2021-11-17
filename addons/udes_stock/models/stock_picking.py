@@ -8,6 +8,7 @@ from odoo.exceptions import ValidationError, UserError
 
 from ..common import check_many2one_validity
 from . import common
+from .. import utils
 
 import logging
 
@@ -2730,3 +2731,17 @@ class StockPicking(models.Model):
         return self.with_context(created_due_to_backorder=True).copy(
             self._prepare_new_picking_info(**kwargs)
         )
+
+    def _get_classification_messages_for_product_picking(self):
+        """Method to be override on specific functionalities"""
+        return {}
+
+    def _get_pick_details(self):
+        """Getting main picking details, method can be extendable on other modules """
+        self.ensure_one()
+        pick_details = {
+                "details": utils.md_format_label_value("Supplier Name", self.partner_id.name)
+                + utils.md_format_label_value("Source Document", self.origin),
+                "submitted_value": self.origin,
+            }
+        return pick_details
