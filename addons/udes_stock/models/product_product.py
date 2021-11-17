@@ -2,8 +2,7 @@
 
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
-
-BASE_PRODUCT_IMAGE_URL = "/web/image/product.product/%i"
+from ..utils import BASE_PRODUCT_IMAGE_URL
 
 
 class ProductProduct(models.Model):

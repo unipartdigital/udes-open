@@ -1,4 +1,5 @@
 from odoo import fields, models, api
+from odoo.addons.udes_stock import utils
 
 EXTRA_FIELDS = {
     "u_user_id",
@@ -374,3 +375,11 @@ class StockPicking(models.Model):
             self.write({"u_goods_in_picking_id": goods_in_picking.id})
 
         return goods_in_picking
+
+    def _get_pick_details(self):
+        pick_details = super()._get_pick_details()
+        if self.u_delivery_control_picking_id and self.u_delivery_control_picking_id.u_lane_number:
+            pick_details["details"] += utils.md_format_label_value(
+                    "Lane", self.u_delivery_control_picking_id.u_lane_number
+                )
+        return pick_details

@@ -7,8 +7,8 @@ class StockPicking(models.Model):
 
     def _get_classification_messages_for_product_picking(self):
         """Return the product with classification messages appropriate for a picking"""
+        product_classifications = super()._get_classification_messages_for_product_picking()
         products = self.mapped("move_lines.product_id")
-        product_classifications = {}
         for product in products:
             classifications = product.u_product_warehouse_classification_ids.filtered(
                 lambda c: self.picking_type_id in c.picking_type_ids
