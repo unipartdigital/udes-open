@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Change the Dashboard -->
+    <record id="stock_picking_type_kanban_items" model="ir.ui.view">
+        <field name="name">stock_picking_type_kanban drafts</field>
+        <field name="model">stock.picking.type</field>
+        <field name="inherit_id" ref="stock.stock_picking_type_kanban"/>
+        <field name="arch" type="xml">
+
+            <!-- Add Draft option to right panel-->
+            <xpath expr="//div[@t-if='record.count_picking_waiting.raw_value > 0']" position="before">
+                <div t-if="record.count_picking_draft.raw_value > 0" class="row">
+                    <div class="col-9">
+                        <a name="get_action_picking_tree_draft" type="object">Draft</a>
+                    </div>
+                    <div class="col-3">
+                        <field name="count_picking_draft"/>
+                    </div>
+                </div>
+            </xpath>
+            <!-- Add 'Draft' option in dropdown menu-->
+            <xpath expr="//div[@class='col-6 o_kanban_card_manage_section o_kanban_manage_view']">
+                <div role="menuitem">
+                    <a name="get_action_picking_tree_draft" type="object">Draft</a>
+                </div>
+            </xpath>
+
+        </field>
+    </record>
+
+    <!-- Define the action for clicking on the Drafts item at the dashboard. -->
+    <record id="action_picking_tree_draft" model="ir.actions.act_window">
+        <field name="name">Draft Transfers</field>
+        <field name="res_model">stock.picking</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="view_mode">tree,kanban,form,calendar</field>
+        <field name="domain"></field>
+        <field name="context">{'contact_display': 'partner_address', 'search_default_draft': 1}</field>
+        <field name="search_view_id" ref="stock.view_picking_internal_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create a new transfer
+            </p><p>
+                You can either do it immediately or mark it as Todo for future processing
+            </p>
+        </field>
+    </record>
+
+    <record id="view_picking_form" model="ir.ui.view">
+        <field name="name">stock.picking.form.udes</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Add picking quantity fields -->
+            <xpath expr="//field[@name='move_ids_without_package']" position="before">
+                <group string="Summary">
+                    <group colspan="2" attrs="{'invisible':[('u_has_discrepancies', '==', False)]}">
+                        <field name="u_has_discrepancies" invisible="1" />
+                        <div class="text-danger" style="font-weight: bold;">This picking has discrepancies</div>
+                    </group>
+                    <group>
+                        <field name="u_num_pallets" />
+                    </group>
+                    <group>
+                        <field name="u_quantity_done" />
+                        <field name="u_total_quantity" />
+                    </group>
+                </group>
+            </xpath>
+
+            <!-- Add related picking fields -->
+            <xpath expr="//page[@name='extra']" position="inside">
+                <group>
+                    <field name="u_first_picking_ids" widget="one2many_list" mode="kanban"/>
+                    <field name="u_prev_picking_ids" widget="one2many_list" mode="kanban"/>
+                    <field name="u_next_picking_ids" widget="one2many_list" mode="kanban"/>
+                    <field name="u_created_backorder_ids" widget="one2many_list" mode="kanban"/>
+                </group>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>

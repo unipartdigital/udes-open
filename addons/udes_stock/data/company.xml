@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<odoo>
+
+    <record id="base.main_company" model="res.company">
+      <field name="name">UDES</field>
+    </record>
+
+    <!-- Details for partner --> 
+    <record id="base.main_partner" model="res.partner">
+      <field name="email">noreply@unipart.com</field>
+    </record>
+
+</odoo>
