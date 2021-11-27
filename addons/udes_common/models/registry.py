@@ -15,7 +15,7 @@ class RegistryMeta(ABCMeta):
             return
 
         if name in cls.udes_registry and cls.udes_registry[name] is not cls:
-            raise ValueError("Name ({}) is already taken".format(name))
+            raise ValueError(f"Name ({name}) is already taken")
 
         cls.udes_registry[name] = cls
         # Check it has a valid interface

@@ -72,8 +72,9 @@ class StockMove(models.Model):
         """Override stock default function to keep the old move lines,
         so there is no need to create them again
         """
-        self.mapped("move_line_ids").filtered(lambda x: x.qty_done == 0.0).write(
-            {"move_id": new_move, "product_uom_qty": 0}
+        self.ensure_one()
+        self.move_line_ids.filtered(lambda ml: ml.qty_done == 0.0).write(
+            {"move_id": new_move.id, "product_uom_qty": 0}
         )
 
     def split_out_move_lines(self, move_lines, **kwargs):
@@ -82,7 +83,7 @@ class StockMove(models.Model):
         of move_lines.
         If self is completely covered by move_lines, it will be removed from
         its picking and returned.
-        Included Micky's code for splitting out partially done ones.
+        Included code for splitting out partially done ones.
         Preconditions: self is a single move,
                        all moves_line are attached to self
         :return: The (possibly new) move that covers all of move_lines,
@@ -90,13 +91,15 @@ class StockMove(models.Model):
 
             Note: not using stock.move._split() since we want better handling of
                 move_orig_ids and move_dest_ids
+            Note: in 14.0 core stock.move._split() no longer returns the move id
+                and instead returns the vals to create a move
         """
         self.ensure_one()
         if not all(ml.move_id == self for ml in move_lines):
             raise ValueError(_("Cannot split move lines from a move they are not part of."))
         if (
             move_lines == self.move_line_ids
-            and not self.move_orig_ids.filtered(lambda x: x.state not in ("done", "cancel"))
+            and not self.move_orig_ids.filtered(lambda m: m.state not in ("done", "cancel"))
             and not self.state == "partially_available"
         ):
             new_move = self

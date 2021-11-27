@@ -18,6 +18,7 @@
       <field name="warehouse_ids" eval="[(6, False, [ref('stock.warehouse0')])]"/>
     </record>
 
+    <!-- Create "Putaway" rule -->
     <record id="procurement_in_putaway" model="stock.rule">
       <field name="name">Putaway</field>
       <field name="route_id" eval="route_in"/>
@@ -41,7 +42,7 @@
       <field name="picking_type_id" ref="picking_type_pick"/>
     </record>
 
-    <!-- Create "Goods Out" rules -->
+    <!-- Create "Goods Out" rule -->
     <record id="procurement_out_out" model="stock.rule">
       <field name="name">Goods Out</field>
       <field name="route_id" eval="route_out"/>
@@ -53,7 +54,7 @@
       <field name="picking_type_id" ref="stock.picking_type_out"/>
     </record>
 
-    <!-- Create "Trailer Dispatch" procurement rules -->
+    <!-- Create "Trailer Dispatch" rule -->
     <record id="procurement_trailer_out" model="stock.rule">
       <field name="name">Trailer Dispatch</field>
       <field name="route_id" eval="route_out"/>

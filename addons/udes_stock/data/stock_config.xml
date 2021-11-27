@@ -14,7 +14,6 @@
       <field name="group_stock_production_lot" eval="1"/>
       <!-- Enable Display Lots & Serial Numbers on Delivery Slips -->
       <field name="group_lot_on_delivery_slip" eval="1"/>
-      <!--<field name="module_stock_picking_batch">True</field>-->
       <!-- Enable multiple locations -->
       <field name="group_stock_multi_locations" eval="1"/>
       <!-- Enable advanced routes -->

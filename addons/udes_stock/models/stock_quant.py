@@ -13,7 +13,7 @@ class StockQuant(models.Model):
         # NOTE: Preserve `NULLS FIRST` for `in_date` and use for `package_id` as well
         if removal_strategy == "fifo":
             return "in_date ASC NULLS FIRST, package_id ASC NULLS FIRST"
-        return super(Quant, self)._get_removal_strategy_order(removal_strategy)
+        return super(StockQuant, self)._get_removal_strategy_order(removal_strategy)
 
     def _gather(self, product_id, location_id, **kwargs):
         """Call default _gather function, if quant_ids context variable

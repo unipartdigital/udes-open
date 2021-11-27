@@ -14,6 +14,14 @@ class MixinStockModel(models.AbstractModel):
     MSM_STR_DOMAIN = ("name",)
 
     def _get_msm_domain(self, identifier):
+        """Return a domain based on MSM_STR_DOMAIN attribute
+           (which can be changed on the model which this model is mixed in to)
+        :args:
+            - identifier: str or int
+                The identifier to search by
+        :returns:
+            List of tuples (Odoo style domain)
+        """
         if isinstance(identifier, str):
             domain = expression.OR([[(field, "=", identifier)] for field in self.MSM_STR_DOMAIN])
         elif isinstance(identifier, int):

@@ -11,7 +11,7 @@ class StockLocation(models.Model):
     # Disable translation instead of renaming.
     name = fields.Char(translate=False)
     # Add tracking for archiving.
-    active = fields.Boolean(track_visibility="onchange")
+    active = fields.Boolean(tracking=True)
 
     def get_common_ancestor(self):
         """

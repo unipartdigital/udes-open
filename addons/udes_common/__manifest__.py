@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 {
-    "name": "udes_common",
+    "name": "UDES Common",
     "summary": "Common components for UDES",
     "description": "Common components for UDES",
     "author": "Unipart digital",

@@ -292,7 +292,7 @@ class StockPicking(models.Model):
             return picking_vals, products_info
 
     def _create_batch(self, pickings):
-        """Create batch"""
+        """Creates a batch for the supplied pickings"""
         PickingBatch = self.env["stock.picking.batch"]
         PickingBatch.create({"picking_ids": [(6, 0, pickings.ids)]})
 

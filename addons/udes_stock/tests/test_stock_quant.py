@@ -114,8 +114,8 @@ class TestCreatePicking(BaseUDES):
         self.assertEqual(pick.location_dest_id, self.picking_type_pick.default_location_dest_id)
         # Confirm correct picking type id associated
         self.assertEqual(pick.picking_type_id, self.picking_type_pick)
-        # Check default priority is 1 = 'Normal'
-        self.assertEqual(pick.priority, "1")
+        # Check default priority is 0 = 'Normal'
+        self.assertEqual(pick.priority, "0")
         #  Check picking has correct products associated to it
         self.assertEqual(pick.product_id, self.apple)
         #  Check picking has correct quantities associated to it
@@ -160,11 +160,11 @@ class TestCreatePicking(BaseUDES):
     def test05_single_quant_priority(self):
         """Create a picking from a single quant
         Change the priority to Urgent
-        Priorities: [('0', 'Not urgent'), ('1', 'Normal'), ('2', 'Urgent'), ('3', 'Very Urgent')]
+        Priorities: [('0', 'Normal'), ('1', 'Urgent')]
         """
-        pick = self.quant_1.create_picking(self.picking_type_pick, priority="2")
-        # Check priority is 2 = 'Urgent'
-        self.assertEqual(pick.priority, "2")
+        pick = self.quant_1.create_picking(self.picking_type_pick, priority="1")
+        # Check priority is 1 = 'Urgent'
+        self.assertEqual(pick.priority, "1")
 
     def test06_single_quant_non_default_locations(self):
         """Create a picking from a single quant

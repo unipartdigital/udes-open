@@ -7,7 +7,7 @@ class ProductTemplate(models.Model):
     _inherit = "product.template"
 
     # Add tracking for archiving.
-    active = fields.Boolean(track_visibility="onchange")
+    active = fields.Boolean(tracking=True)
 
     # Disable translation instead of renaming.
     name = fields.Char(translate=False)

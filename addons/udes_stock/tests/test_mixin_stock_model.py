@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from .common import BaseUDES
 from odoo.exceptions import ValidationError
+from unittest.mock import patch
 
 
 class TestMixinModel(BaseUDES):
@@ -48,13 +49,13 @@ class TestMixinModel(BaseUDES):
         """Error raised when product not found"""
         with self.assertRaises(ValidationError) as e:
             self.Product.get_or_create("Invisible Apple")
-        self.assertEqual(e.exception.name, "Product not found for identifier Invisible Apple")
+        self.assertEqual(e.exception.args[0], "Product not found for identifier Invisible Apple")
 
     def test06_error_on_create_product(self):
         """Cannot create a new product"""
         with self.assertRaises(ValidationError) as e:
             self.Product.get_or_create("Invisible Apple", create=True)
-        self.assertEqual(e.exception.name, "Cannot create a new Product for product.product")
+        self.assertEqual(e.exception.args[0], "Cannot create a new Product for product.product")
 
     def test07_create_and_get_group(self):
         """Create a group and then get it by name and id"""
@@ -62,7 +63,7 @@ class TestMixinModel(BaseUDES):
         self.assertEqual(len(self.Group.search([])), 0)
         with self.assertRaises(ValidationError) as e:
             self.Group.get_or_create("TESTGROUP01")
-        self.assertEqual(e.exception.name, "Procurement Group not found for identifier TESTGROUP01")
+        self.assertEqual(e.exception.args[0], "Procurement Group not found for identifier TESTGROUP01")
         # Create group
         group = self.Group.get_or_create("TESTGROUP01", create=True)
         self.assertEqual(group, self.Group.search([]))
@@ -76,7 +77,7 @@ class TestMixinModel(BaseUDES):
         # Check cannot get group to begin with
         with self.assertRaises(ValidationError) as e:
             self.Group.get_or_create("TESTGROUP01")
-        self.assertEqual(e.exception.name, "Procurement Group not found for identifier TESTGROUP01")
+        self.assertEqual(e.exception.args[0], "Procurement Group not found for identifier TESTGROUP01")
         group = self.Group.get_or_create("TESTGROUP01", create=True)
         self.assertEqual(group, self.Group.search([]))
         # Check cannot create a new group with the same name
@@ -89,11 +90,11 @@ class TestMixinModel(BaseUDES):
         # Check cannot get group to begin with
         with self.assertRaises(ValidationError) as e:
             self.Group.get_or_create(id)
-        self.assertEqual(e.exception.name, f"Procurement Group not found for identifier {id}")
+        self.assertEqual(e.exception.args[0], f"Procurement Group not found for identifier {id}")
         with self.assertRaises(ValidationError) as e:
             self.Group.get_or_create(id, create=True)
         self.assertEqual(
-            e.exception.name,
+            e.exception.args[0],
             f"Cannot create a new Procurement Group for procurement.group with identifier of type {type(id)}",
         )
 
@@ -102,15 +103,14 @@ class TestMixinModel(BaseUDES):
         look for, as in the future we may want to search by more than two domains.
         It's done for three string domains in product, the rest is true by induction.
         """
-        original_domain = self.Product.MSM_STR_DOMAIN
-        self.Product.MSM_STR_DOMAIN = ("name", "default_code", "barcode")
-        prod = self.Product.get_or_create("productApple")
+        with patch.object(
+            type(self.Product), "MSM_STR_DOMAIN", ("name", "default_code", "barcode")
+        ):
+            prod = self.Product.get_or_create("productApple")
 
-        self.assertEqual(self.Product.get_or_create(prod.default_code), prod)
-        self.assertEqual(self.Product.get_or_create(prod.name), prod)
-        self.assertEqual(self.Product.get_or_create(prod.barcode), prod)
-
-        self.Product.MSM_STR_DOMAIN = original_domain
+            self.assertEqual(self.Product.get_or_create(prod.default_code), prod)
+            self.assertEqual(self.Product.get_or_create(prod.name), prod)
+            self.assertEqual(self.Product.get_or_create(prod.barcode), prod)
 
     def test11_create_then_get_new_package_success_by_name(self):
         """Create a new Package and then get it by name"""
@@ -130,12 +130,12 @@ class TestMixinModel(BaseUDES):
         id = 1001
         with self.assertRaises(ValidationError) as e:
             self.Package.get_or_create(id)
-        self.assertEqual(e.exception.name, f"Package not found for identifier {id}")
+        self.assertEqual(e.exception.args[0], f"Package not found for identifier {id}")
         # Try to create package
         with self.assertRaises(ValidationError) as e:
             self.Package.get_or_create(id, create=True)
         self.assertEqual(
-            e.exception.name,
+            e.exception.args[0],
             f"Cannot create a new Package for stock.quant.package with identifier of type {type(id)}",
         )
 
@@ -150,6 +150,6 @@ class TestMixinModel(BaseUDES):
         with self.assertRaises(ValidationError) as e:
             self.Group.get_or_create("TESTGROUP01")
         self.assertEqual(
-            e.exception.name,
+            e.exception.args[0],
             f"Too many Procurement Groups found for identifier TESTGROUP01 in procurement.group",
         )
