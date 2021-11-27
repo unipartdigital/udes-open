@@ -20,7 +20,7 @@ class TestStockMove(common.BaseUDES):
         )
 
     def _get_expected_move_line_values(self, move, qty, **kwargs):
-        """ Helper to get expected move line values """
+        """Helper to get expected move line values"""
         expected_move_values = {
             "move_id": move.id,
             "product_id": move.product_id.id,
@@ -34,7 +34,7 @@ class TestStockMove(common.BaseUDES):
         return expected_move_values
 
     def test01_split_out_move_lines_raise_error(self):
-        """ Raise a value error when try to split out move lines from another move """
+        """Raise a value error when try to split out move lines from another move"""
         # Create another picking
         new_pick_info = [{"product": self.apple, "qty": 20}]
         self.create_quant(self.banana.id, self.test_stock_location_01.id, 5)
@@ -52,8 +52,8 @@ class TestStockMove(common.BaseUDES):
         )
 
     def test02_split_out_move_lines_success(self):
-        """ Completely covered by move_lines, expect to be removed from picking
-            No chained moves
+        """Completely covered by move_lines, expect to be removed from picking
+        No chained moves
         """
         # Get move lines and moves respectively
         mls = self.pick.move_line_ids
@@ -66,8 +66,8 @@ class TestStockMove(common.BaseUDES):
         self.assertEqual(bk_move.product_uom_qty, 6)
 
     def test03_split_out_move_lines_with_split(self):
-        """ Not covered by move_lines, expect to be removed from picking results in splitting
-            No chained moves
+        """Not covered by move_lines, expect to be removed from picking results in splitting
+        No chained moves
         """
         # Get all move lines, ones from location 01 and moves respectively
         all_mls = self.pick.move_line_ids
@@ -94,7 +94,7 @@ class TestStockMove(common.BaseUDES):
         )
 
     def test04_unreserve_initial_demand(self):
-        """ Test for _unreserve_initial_demand """
+        """Test for _unreserve_initial_demand"""
         MoveLine = self.env["stock.move.line"]
         pack1 = self.create_package()
         pack2 = self.create_package()
@@ -126,7 +126,7 @@ class TestStockMove(common.BaseUDES):
         self.assertIn(pack2_ml, new_move_lines)
 
     def test05_pepare_and_create_single_move_line(self):
-        """ Prepare and create a single move line and check values are correct """
+        """Prepare and create a single move line and check values are correct"""
         product_uom_qty = 2
 
         move_values = self.Picking._prepare_move(self.pick, [self._pick_info])
@@ -151,7 +151,7 @@ class TestStockMove(common.BaseUDES):
         self.pick.action_assign()
 
     def test06_pepare_and_create_multiple_move_lines(self):
-        """ Prepare and create a multiple move lines and check values are correct """
+        """Prepare and create a multiple move lines and check values are correct"""
         apple_uom_qty = 5
         banana_uom_qty = 2
 

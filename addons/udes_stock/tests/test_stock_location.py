@@ -48,14 +48,14 @@ class TestStockLocation(BaseUDES):
         )
 
     def test01_get_common_ancestor_none(self):
-        """ Test get_common_ancestor with no locations """
+        """Test get_common_ancestor with no locations"""
         Location = self.env["stock.location"]
 
         location = Location.browse()
         self.assertEqual(location, location.get_common_ancestor())
 
     def test02_get_common_ancestor_single(self):
-        """ Test get_common_ancestor with a single location """
+        """Test get_common_ancestor with a single location"""
         location = self.stock_location
         self.assertEqual(location, location.get_common_ancestor())
 

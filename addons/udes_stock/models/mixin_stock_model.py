@@ -24,7 +24,7 @@ class MixinStockModel(models.AbstractModel):
         return domain
 
     def get_or_create(self, identifier, create=False, aux_domain=None):
-        """ Gets an object of the model from the identifier. In case that no results
+        """Gets an object of the model from the identifier. In case that no results
             are found, creates a new object of the model depending on the create
             parameter and the MSM_CREATE setting.
         :args:

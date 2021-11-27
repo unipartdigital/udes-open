@@ -7,7 +7,7 @@ class Module(models.Model):
     @api.model
     def is_module_installed(self, module_name):
         """
-        Returns true if the supplied module exists 
+        Returns true if the supplied module exists
         and is installed, otherwise false.
         """
         search_domain = [("name", "=", module_name), ("state", "=", "installed")]

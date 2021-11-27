@@ -8,21 +8,21 @@ class ResUser(models.Model):
 
     @api.model
     def get_user_warehouse(self, aux_domain=None):
-        """ Get the warehouse(s) of the user by chain of the company
-            :kwargs:
-                - aux_domain:
-                    If specified must return a single warehouse, if want a subset
-                    of warehouses then don't specify the aux_domain and filter result
-            :returns: Warehouse(s), or a singular warehouse if aux_domain not None
+        """Get the warehouse(s) of the user by chain of the company
+        :kwargs:
+            - aux_domain:
+                If specified must return a single warehouse, if want a subset
+                of warehouses then don't specify the aux_domain and filter result
+        :returns: Warehouse(s), or a singular warehouse if aux_domain not None
         """
         Warehouse = self.env["stock.warehouse"]
 
         user_id = self.env.uid
 
         if user_id != SUPERUSER_ID:
-            user = self.search([('id', '=', user_id)])
+            user = self.search([("id", "=", user_id)])
             if not user:
-                raise ValidationError(_('Cannot find user'))
+                raise ValidationError(_("Cannot find user"))
 
         domain = [("company_id", "=", self.env.user.company_id.id)]
         if aux_domain is not None:

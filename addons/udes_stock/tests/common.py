@@ -31,12 +31,12 @@ class BaseUDES(common.SavepointCase):
 
     @classmethod
     def setup_default_warehouse(cls):
-        """ Sets a warehouse with:
-            * test locations
-                test_input_01, test_stock_01, test_stock_02, test_output_01
-            * all picking types as a copy of the default with TEST_ prepended
-            * a simple inbound route goods_in->putaway
-            * a simple outbound route pick->goods_out
+        """Sets a warehouse with:
+        * test locations
+            test_input_01, test_stock_01, test_stock_02, test_output_01
+        * all picking types as a copy of the default with TEST_ prepended
+        * a simple inbound route goods_in->putaway
+        * a simple outbound route pick->goods_out
         """
         cls.warehouse = cls.env.ref("stock.warehouse0")
         cls.company = cls.warehouse.company_id
@@ -46,7 +46,7 @@ class BaseUDES(common.SavepointCase):
 
     @classmethod
     def _setup_picking_types(cls):
-        """ Additional test picking types - prepended with TEST """
+        """Additional test picking types - prepended with TEST"""
         cls._set_test_picking_type("in", "goods_in")
         cls._set_test_picking_type("pick")
         # this order is important as int is overwritten
@@ -68,7 +68,7 @@ class BaseUDES(common.SavepointCase):
 
     @classmethod
     def create_product(cls, name, **kwargs):
-        """ Create and return a product """
+        """Create and return a product"""
         Product = cls.env["product.product"]
         vals = {
             "name": "Test product {}".format(name),
@@ -81,7 +81,7 @@ class BaseUDES(common.SavepointCase):
 
     @classmethod
     def create_quant(cls, product_id, location_id, qty, lot_name=None, **kwargs):
-        """ Create and return a quant of a product at location """
+        """Create and return a quant of a product at location"""
         Quant = cls.env["stock.quant"]
         vals = {
             "product_id": product_id,
@@ -109,7 +109,7 @@ class BaseUDES(common.SavepointCase):
 
     @classmethod
     def create_package(self, **kwargs):
-        """ Create and return a new package """
+        """Create and return a new package"""
         Package = self.env["stock.quant.package"]
         vals = {}
         vals.update(kwargs)
@@ -117,7 +117,7 @@ class BaseUDES(common.SavepointCase):
 
     @classmethod
     def _setup_locations(cls):
-        """ Test Locations """
+        """Test Locations"""
         Location = cls.env["stock.location"]
 
         cls.stock_location = cls.env.ref("stock.stock_location_stock")
@@ -176,7 +176,11 @@ class BaseUDES(common.SavepointCase):
         cls.test_goodsout_location_01, cls.test_goodsout_location_02 = cls.test_goodsout_locations
 
         cls.trailer_location = cls.picking_type_goods_out.default_location_dest_id.copy(
-            {"name": "TEST_OUT_TRAILER", "active": True, "location_id": cls.warehouse_location.id,}
+            {
+                "name": "TEST_OUT_TRAILER",
+                "active": True,
+                "location_id": cls.warehouse_location.id,
+            }
         )
         cls.test_trailer_locations = Location.create(
             [
@@ -203,7 +207,7 @@ class BaseUDES(common.SavepointCase):
 
     @classmethod
     def _setup_routes(cls):
-        """ Default source and dest for picking types """
+        """Default source and dest for picking types"""
         cls.picking_type_goods_in.write(
             {
                 "default_location_src_id": cls.env.ref("stock.stock_location_suppliers").id,
@@ -360,7 +364,10 @@ class BaseUDES(common.SavepointCase):
     def _setup_check_location(cls):
         Location = cls.env["stock.location"]
         cls.check_location = cls.picking_type_pick.default_location_dest_id.copy(
-            {"name": "TEST_CHECK", "active": True,}
+            {
+                "name": "TEST_CHECK",
+                "active": True,
+            }
         )
         cls.test_check_location_01 = Location.create(
             {
@@ -378,9 +385,9 @@ class BaseUDES(common.SavepointCase):
         confirm=False,
         assign=False,
         create_batch=False,
-        **kwargs
+        **kwargs,
     ):
-        """ Create and return a picking for the given picking_type """
+        """Create and return a picking for the given picking_type"""
         Picking = cls.env["stock.picking"]
         return Picking.create_picking(
             picking_type,
@@ -388,7 +395,7 @@ class BaseUDES(common.SavepointCase):
             confirm=confirm,
             assign=assign,
             create_batch=create_batch,
-            **kwargs
+            **kwargs,
         )
 
     @classmethod
@@ -433,7 +440,7 @@ class BaseUDES(common.SavepointCase):
 
     @classmethod
     def create_company(cls, name, **kwargs):
-        """ Create and return a company """
+        """Create and return a company"""
         Company = cls.env["res.company"]
         vals = {"name": name}
         vals.update(kwargs)
@@ -441,7 +448,7 @@ class BaseUDES(common.SavepointCase):
 
     @classmethod
     def create_user(cls, name, login, **kwargs):
-        """ Create and return a user """
+        """Create and return a user"""
         User = cls.env["res.users"]
         # Creating user without company
         # takes company from current user
@@ -459,8 +466,7 @@ class BaseUDES(common.SavepointCase):
 
     @classmethod
     def update_move(cls, move, qty_done, **kwargs):
-        """ Update a move with qty done
-        """
+        """Update a move with qty done"""
         vals = {
             "quantity_done": qty_done + move["quantity_done"],
         }
@@ -482,14 +488,14 @@ class BaseUDES(common.SavepointCase):
 
     @classmethod
     def create_partner(cls, name, **kwargs):
-        Partner = cls.env['res.partner']
-        vals = {'name': name}
+        Partner = cls.env["res.partner"]
+        vals = {"name": name}
         vals.update(kwargs)
         return Partner.create(vals)
 
     @classmethod
     def complete_picking(cls, picking, validate=True):
-        """ Marks a picking and all its moves as done """
+        """Marks a picking and all its moves as done"""
         for move_line in picking.move_line_ids:
             if move_line.state == "assigned":
                 move_line.qty_done = move_line.product_uom_qty
