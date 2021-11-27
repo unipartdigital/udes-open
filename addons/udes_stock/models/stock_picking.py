@@ -65,7 +65,7 @@ class StockPicking(models.Model):
 
     @api.depends("move_lines", "move_lines.move_orig_ids", "move_lines.move_orig_ids.picking_id")
     def _compute_first_picking_ids(self):
-        """ Compute first picking from moves that do not originate from other moves """
+        """Compute first picking from moves that do not originate from other moves"""
         Move = self.env["stock.move"]
 
         for picking in self:
@@ -86,7 +86,7 @@ class StockPicking(models.Model):
         "move_lines.move_dest_ids.picking_id",
     )
     def _compute_related_picking_ids(self):
-        """ Compute previous/next picking and created backorders """
+        """Compute previous/next picking and created backorders"""
         for picking in self:
             picking.u_prev_picking_ids = picking.move_lines.move_orig_ids.picking_id
             picking.u_next_picking_ids = picking.move_lines.move_dest_ids.picking_id
@@ -95,7 +95,7 @@ class StockPicking(models.Model):
 
     @api.depends("move_lines", "move_lines.quantity_done", "move_lines.product_uom_qty")
     def _compute_picking_quantities(self):
-        """ Compute the quantity done and to do of the picking from the moves """
+        """Compute the quantity done and to do of the picking from the moves"""
         for picking in self:
             total_qty_done = 0.0
             total_qty_todo = 0.0
@@ -117,24 +117,24 @@ class StockPicking(models.Model):
 
     @api.depends("move_line_ids", "move_line_ids.result_package_id")
     def _compute_num_pallets(self):
-        """ Compute the number of pallets from the operations """
+        """Compute the number of pallets from the operations"""
         for picking in self:
             picking.u_num_pallets = len(picking.move_line_ids.result_package_id)
 
     def get_empty_locations(self):
-        """ Returns the recordset of locations that are child of the
-            instance dest location and are empty.
-            Expects a singleton instance.
+        """Returns the recordset of locations that are child of the
+        instance dest location and are empty.
+        Expects a singleton instance.
         """
         return self._get_child_dest_locations(
             aux_domain=[("barcode", "!=", False), ("quant_ids", "=", False)]
         )
 
     def _get_child_dest_locations(self, aux_domain=None):
-        """ Return the child locations of the instance dest location.
-            Extra domains are added to the child locations search query,
-            when specified.
-            Expects a singleton instance.
+        """Return the child locations of the instance dest location.
+        Extra domains are added to the child locations search query,
+        when specified.
+        Expects a singleton instance.
         """
         Location = self.env["stock.location"]
 
@@ -144,13 +144,13 @@ class StockPicking(models.Model):
         return Location.search(domain)
 
     def get_move_lines(self, done=None):
-        """ Get move lines associated to picking, uses functions in stock_move_line
-            :kwargs:
-                - done: Boolean
-                    When not set means to return all move lines of the picking.
-                    Flag, if true returns all done move lines, else returns all incomplete
-                    move lines associated to picking
-            :returns: Move lines of picking
+        """Get move lines associated to picking, uses functions in stock_move_line
+        :kwargs:
+            - done: Boolean
+                When not set means to return all move lines of the picking.
+                Flag, if true returns all done move lines, else returns all incomplete
+                move lines associated to picking
+        :returns: Move lines of picking
         """
         mls = self.move_line_ids
         if done:
@@ -160,11 +160,11 @@ class StockPicking(models.Model):
         return mls
 
     def _backorder_move_lines(self, mls=None):
-        """ Creates a backorder pick from self (expects a singleton)
-            and a subset of stock.move.lines are then moved into it.
+        """Creates a backorder pick from self (expects a singleton)
+        and a subset of stock.move.lines are then moved into it.
 
-            Ensure this function is only called if _requires_back_order is True
-            if everything is done - then a new pick is created and the old one is empty
+        Ensure this function is only called if _requires_back_order is True
+        if everything is done - then a new pick is created and the old one is empty
         """
         Move = self.env["stock.move"]
         # Based on backorder creation in stock_move._action_done
@@ -197,10 +197,10 @@ class StockPicking(models.Model):
         return bk_picking
 
     def _requires_backorder(self, mls):
-        """ Checks if a backorder is required by checking if all move lines
-            within a picking are present in mls
-            Cannot be consolidated with _check_backorder in Odoo core, because it
-            does not take into account any move lines parameter.
+        """Checks if a backorder is required by checking if all move lines
+        within a picking are present in mls
+        Cannot be consolidated with _check_backorder in Odoo core, because it
+        does not take into account any move lines parameter.
         """
         mls_moves = mls.move_id
         for move in self.move_lines:
@@ -221,19 +221,19 @@ class StockPicking(models.Model):
         create_batch=False,
         **kwargs,
     ):
-        """ Create and return a picking for the given picking_type
-            For multiple pickings a list of lists of dicts of product_info should be passed, 
-            and pickings with the same picking_type and other kwargs are the same. 
-            The kwargs are applied to pickings, not moves. If needed, the moves can be created outside of create_pickings with _create_moves
-            
-            
-            :args:
-                - picking_type: picking type of the picking
-            :kwargs:
-                - products_info: list of dicts (or list(list(dicts)) for multiple picks) with product information
-                - confirm: boolean flag to trigger action_confirm
-                - assign: boolean flag to trigger action_assign
-                - create_batch: boolean flag if a batch should be created
+        """Create and return a picking for the given picking_type
+        For multiple pickings a list of lists of dicts of product_info should be passed,
+        and pickings with the same picking_type and other kwargs are the same.
+        The kwargs are applied to pickings, not moves. If needed, the moves can be created outside of create_pickings with _create_moves
+
+
+        :args:
+            - picking_type: picking type of the picking
+        :kwargs:
+            - products_info: list of dicts (or list(list(dicts)) for multiple picks) with product information
+            - confirm: boolean flag to trigger action_confirm
+            - assign: boolean flag to trigger action_assign
+            - create_batch: boolean flag if a batch should be created
 
         """
         Picking = self.env["stock.picking"]
@@ -261,13 +261,13 @@ class StockPicking(models.Model):
         return pickings
 
     def _prepare_picking_info(self, picking_type, products_info=None, **kwargs):
-        """ Prepare the picking_info and products_info
+        """Prepare the picking_info and products_info
         :args:
             - picking_type: picking type of the picking
-        
+
         :kwargs:
             - products_info: None or list of dicts with product information
-        
+
         :returns:
             picking_values: list(dict) of picking values
             products_info: None if products_info is None, or list(list(dict)) of product, qty info
@@ -292,20 +292,20 @@ class StockPicking(models.Model):
             return picking_vals, products_info
 
     def _create_batch(self, pickings):
-        """ Create batch """
+        """Create batch"""
         PickingBatch = self.env["stock.picking.batch"]
         PickingBatch.create({"picking_ids": [(6, 0, pickings.ids)]})
 
     def _prepare_move(self, pickings, products_info, **kwargs):
-        """ Return a list of the move details to be used later in creation of the move(s).
-            The purpose of this is to allow for multiple moves to be created at once.
+        """Return a list of the move details to be used later in creation of the move(s).
+        The purpose of this is to allow for multiple moves to be created at once.
 
-            :args:
-                - pickings: iterable of picking objects to be assigned to the moves
-                - products_info: list(list(dict)) with dict of product and qty
+        :args:
+            - pickings: iterable of picking objects to be assigned to the moves
+            - products_info: list(list(dict)) with dict of product and qty
 
-            :returns:
-                Move_values: list(dict)
+        :returns:
+            Move_values: list(dict)
 
         """
         move_values = []
@@ -330,14 +330,14 @@ class StockPicking(models.Model):
 
     @api.model
     def _create_move(self, move_values):
-        """ Create and return move(s) for the given move_values.
-            Should be used in conjunction with _prepare_move to obtain move_values
+        """Create and return move(s) for the given move_values.
+        Should be used in conjunction with _prepare_move to obtain move_values
 
-            :args:
-                - move_values: list of dictionary values (or single dictionary) to create move
-            
-            :returns:
-                - move
+        :args:
+            - move_values: list of dictionary values (or single dictionary) to create move
+
+        :returns:
+            - move
         """
         Move = self.env["stock.move"]
         return Move.create(move_values)

@@ -60,7 +60,7 @@ class StockMove(models.Model):
 
         :args:
             - move_line_values: list of dictionary values (or single dictionary) to create move line
-        
+
         :returns:
             - move line
         """
@@ -69,15 +69,15 @@ class StockMove(models.Model):
         return MoveLine.create(move_line_values)
 
     def _unreserve_initial_demand(self, new_move):
-        """ Override stock default function to keep the old move lines,
-            so there is no need to create them again
+        """Override stock default function to keep the old move lines,
+        so there is no need to create them again
         """
         self.mapped("move_line_ids").filtered(lambda x: x.qty_done == 0.0).write(
             {"move_id": new_move, "product_uom_qty": 0}
         )
 
     def split_out_move_lines(self, move_lines, **kwargs):
-        """ Split sufficient quantity from self to cover move_lines, and
+        """Split sufficient quantity from self to cover move_lines, and
         attach move_lines to the new move. Return the move that now holds all
         of move_lines.
         If self is completely covered by move_lines, it will be removed from
@@ -127,7 +127,9 @@ class StockMove(models.Model):
                 "do_not_unreserve": True,
             }
             self.with_context(**context_vars).write(
-                {"product_uom_qty": self.product_uom_qty - total_initial_qty,}
+                {
+                    "product_uom_qty": self.product_uom_qty - total_initial_qty,
+                }
             )
 
             # When not complete, splitting a move may change its state,

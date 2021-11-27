@@ -14,10 +14,7 @@ class RegistryMeta(ABCMeta):
         if not name:
             return
 
-        if (
-            name in cls.udes_registry
-            and cls.udes_registry[name] is not cls
-        ):
+        if name in cls.udes_registry and cls.udes_registry[name] is not cls:
             raise ValueError("Name ({}) is already taken".format(name))
 
         cls.udes_registry[name] = cls

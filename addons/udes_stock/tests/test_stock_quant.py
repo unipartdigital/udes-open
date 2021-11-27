@@ -34,11 +34,11 @@ class TestStockQuantModel(BaseUDES):
         # reserved = 0
 
     def test01_get_quantity(self):
-        """ Test get_quantity """
+        """Test get_quantity"""
         self.assertEqual(self.test_stock_location_01.quant_ids.get_quantity(), 26)
 
     def test02_get_quantities_by_key(self):
-        """ Test get_quantities_by_key """
+        """Test get_quantities_by_key"""
         self.assertEqual(
             {self.apple: 16, self.banana: 10},
             self.test_stock_location_01.quant_ids.get_quantities_by_key(),
@@ -69,7 +69,7 @@ class TestStockQuantModel(BaseUDES):
         )
 
     def test03_gather_success(self):
-        """ Test extended _gather function """
+        """Test extended _gather function"""
         gathered_items = self.Quant._gather(self.apple, self.test_stock_location_01)
         # Check the number of apple quants returned is correct
         self.assertEqual(len(gathered_items), 3)
@@ -87,7 +87,7 @@ class TestStockQuantModel(BaseUDES):
         self.assertEqual(gathered_items_subset, second_quant)
 
     def test04_gather_location_no_product(self):
-        """ Test extended _gather function on a location without apples """
+        """Test extended _gather function on a location without apples"""
         gathered_items = self.Quant._gather(self.apple, self.test_stock_location_02)
         # Check the number of apple quants returned is correct
         self.assertFalse(len(gathered_items))
@@ -104,7 +104,7 @@ class TestCreatePicking(BaseUDES):
         cls.test_user = cls.create_user("test_user", "test_user_login")
 
     def test01_single_quant(self):
-        """ Create a picking from a single quant """
+        """Create a picking from a single quant"""
         pick = self.quant_1.create_picking(self.picking_type_pick)
         # Confirm made in state draft
         self.assertEqual(pick.state, "draft")
@@ -123,13 +123,13 @@ class TestCreatePicking(BaseUDES):
         self.assertEqual(pick.move_lines.product_qty, 10)
 
     def test02_single_quant_confirm(self):
-        """ Create a picking from a single quant and confirm """
+        """Create a picking from a single quant and confirm"""
         pick = self.quant_1.create_picking(self.picking_type_pick, confirm=True)
         # Check it is confirmed
         self.assertEqual(pick.state, "confirmed")
 
     def test03_single_quant_assign(self):
-        """ Create a picking from a single quant and assign to user """
+        """Create a picking from a single quant and assign to user"""
         pick = self.quant_1.create_picking(
             self.picking_type_pick, assign=True, user_id=self.test_user.id
         )
@@ -141,8 +141,8 @@ class TestCreatePicking(BaseUDES):
         self.assertEqual(self.quant_1.reserved_quantity, 10)
 
     def test04_single_quant_assign_correct_quant(self):
-        """ Test that create_picking uses the right quant when assigning
-            the picking
+        """Test that create_picking uses the right quant when assigning
+        the picking
         """
         Quant = self.env["stock.quant"]
 
@@ -158,18 +158,18 @@ class TestCreatePicking(BaseUDES):
         self.assertEqual(quant.reserved_quantity, 10)
 
     def test05_single_quant_priority(self):
-        """ Create a picking from a single quant
-            Change the priority to Urgent
-            Priorities: [('0', 'Not urgent'), ('1', 'Normal'), ('2', 'Urgent'), ('3', 'Very Urgent')]
+        """Create a picking from a single quant
+        Change the priority to Urgent
+        Priorities: [('0', 'Not urgent'), ('1', 'Normal'), ('2', 'Urgent'), ('3', 'Very Urgent')]
         """
         pick = self.quant_1.create_picking(self.picking_type_pick, priority="2")
         # Check priority is 2 = 'Urgent'
         self.assertEqual(pick.priority, "2")
 
     def test06_single_quant_non_default_locations(self):
-        """ Create a picking from a single quant
-            - non-default location_id
-            - non-default location_dest_id
+        """Create a picking from a single quant
+        - non-default location_id
+        - non-default location_dest_id
         """
         pick = self.quant_1.create_picking(
             self.picking_type_pick,
@@ -184,7 +184,7 @@ class TestCreatePicking(BaseUDES):
         self.assertNotEqual(pick.location_id, self.picking_type_pick.default_location_dest_id)
 
     def test07_multiple_quants(self):
-        """ Multiple quants for pick """
+        """Multiple quants for pick"""
         # Get all quants in test package
         quants = self.quant_1 | self.quant_2
         pick = quants.create_picking(self.picking_type_pick)

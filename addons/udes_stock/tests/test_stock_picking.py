@@ -19,7 +19,7 @@ class TestStockPicking(common.BaseUDES):
         )
 
     def _get_expected_move_values(self, pick, product, qty, **kwargs):
-        """ Helper to get expected move values """
+        """Helper to get expected move values"""
         expected_move_values = {
             "product_id": product.id,
             "name": product.name,
@@ -41,7 +41,7 @@ class TestStockPicking(common.BaseUDES):
         :args:
                 - pickings: A recordset of pickings
                 - expected_values: A dictionary with field names to check as keys
-                                   Each value should be another dictionary with the picking as key, 
+                                   Each value should be another dictionary with the picking as key,
                                    and expected pickings (or False for none) to return as value
         """
         for picking in pickings:
@@ -66,23 +66,26 @@ class TestStockPicking(common.BaseUDES):
                     )
 
     def test01_get_empty_locations(self):
-        """ Get empty locations - for goods in """
+        """Get empty locations - for goods in"""
         self.assertEqual(
-            self.test_picking_in.get_empty_locations(), self.test_received_location_01,
+            self.test_picking_in.get_empty_locations(),
+            self.test_received_location_01,
         )
         # Add stock to a location - to check empty locations obtained
         self.create_quant(
-            self.apple.id, self.test_received_location_01.id, 5,
+            self.apple.id,
+            self.test_received_location_01.id,
+            5,
         )
         self.assertFalse(self.test_picking_in.get_empty_locations())
 
     def test02_get_child_locations_simple_success(self):
-        """ Get child locations """
+        """Get child locations"""
         locations = self.test_goodsout_locations | self.out_location
         self.assertEqual(self.test_picking_pick._get_child_dest_locations(), locations)
 
     def test03_get_child_locations_simple_success_with_extra_domain(self):
-        """ Get child locations - with extra domain """
+        """Get child locations - with extra domain"""
         aux_domain = [("name", "=", self.test_goodsout_location_01.name)]
         self.assertEqual(
             self.test_picking_pick._get_child_dest_locations(aux_domain=aux_domain),
@@ -90,12 +93,12 @@ class TestStockPicking(common.BaseUDES):
         )
 
     def test04_get_child_locations_with_incorrrect_extra_domain(self):
-        """ Return no child locations when an incorrect extra domain is given, no error is thrown """
+        """Return no child locations when an incorrect extra domain is given, no error is thrown"""
         aux_domain = [("name", "=", "Not a location")]
         self.assertFalse(self.test_picking_pick._get_child_dest_locations(aux_domain=aux_domain))
 
     def test05_create_picking_no_moves(self):
-        """ Create a picking from picking type but has no moves created as no products_info given """
+        """Create a picking from picking type but has no moves created as no products_info given"""
         pick = self.Picking.create_picking(picking_type=self.picking_type_pick)
         # Check pick created with correct picking type
         self.assertEqual(len(pick), 1)
@@ -107,13 +110,16 @@ class TestStockPicking(common.BaseUDES):
         self.assertEqual(len(pick.move_lines), 0)
 
     def test06_create_picking_success_simple(self):
-        """ Create a picking from picking type with two products in state draft """
+        """Create a picking from picking type with two products in state draft"""
         self.create_quant(self.apple.id, self.test_stock_location_01.id, 50)
         self.create_quant(self.banana.id, self.test_stock_location_01.id, 50)
         products = self.apple | self.banana
         pick = self.Picking.create_picking(
             picking_type=self.picking_type_pick,
-            products_info=[{"product": self.apple, "qty": 2}, {"product": self.banana, "qty": 4},],
+            products_info=[
+                {"product": self.apple, "qty": 2},
+                {"product": self.banana, "qty": 4},
+            ],
         )
         # Check default pick locations
         self.assertEqual(pick.location_id, self.stock_location)
@@ -126,11 +132,14 @@ class TestStockPicking(common.BaseUDES):
         self.assertFalse(pick.batch_id)
 
     def test07_create_picking_success_custom_locations(self):
-        """ Create a picking with non-default locations and confirm"""
+        """Create a picking with non-default locations and confirm"""
         products = self.apple | self.banana
         pick = self.Picking.create_picking(
             picking_type=self.picking_type_pick,
-            products_info=[{"product": self.apple, "qty": 2}, {"product": self.banana, "qty": 4},],
+            products_info=[
+                {"product": self.apple, "qty": 2},
+                {"product": self.banana, "qty": 4},
+            ],
             location_id=self.test_stock_location_01.id,
             location_dest_id=self.test_goodsout_location_01.id,
             confirm=True,
@@ -151,13 +160,19 @@ class TestStockPicking(common.BaseUDES):
         self.assertTrue(pick.batch_id)
 
     def test08_create_multiple_pickings(self):
-        """ Create multiple pickings with non-default locations and priority """
+        """Create multiple pickings with non-default locations and priority"""
         products = self.apple | self.banana
         picks = self.Picking.create_picking(
             picking_type=self.picking_type_pick,
             products_info=[
-                [{"product": self.apple, "qty": 2}, {"product": self.banana, "qty": 4},],
-                [{"product": self.apple, "qty": 1}, {"product": self.banana, "qty": 1},],
+                [
+                    {"product": self.apple, "qty": 2},
+                    {"product": self.banana, "qty": 4},
+                ],
+                [
+                    {"product": self.apple, "qty": 1},
+                    {"product": self.banana, "qty": 1},
+                ],
             ],
             location_id=self.test_stock_location_01.id,
             location_dest_id=self.test_goodsout_location_01.id,
@@ -180,9 +195,14 @@ class TestStockPicking(common.BaseUDES):
         self.assertTrue(picks.batch_id)
 
     def test09_pepare_and_create_move(self):
-        """ Prepare and create a single move """
+        """Prepare and create a single move"""
         pick = self.create_picking(self.picking_type_goods_in)
-        move_values = self.Picking._prepare_move(pick, [[{"product": self.elderberry, "qty": 10}],])
+        move_values = self.Picking._prepare_move(
+            pick,
+            [
+                [{"product": self.elderberry, "qty": 10}],
+            ],
+        )
         # Check the prepared move_values are correct
         self.assertEqual(len(move_values), 1)
         self.assertEqual(move_values[0], self._get_expected_move_values(pick, self.elderberry, 10))
@@ -192,7 +212,7 @@ class TestStockPicking(common.BaseUDES):
         self.assertEqual(new_move.product_qty, 10)
 
     def test10_prepare_and_create_multiple_moves(self):
-        """ Prepare and create multiple moves """
+        """Prepare and create multiple moves"""
         products_info = [[{"product": self.apple, "qty": 10}], [{"product": self.fig, "qty": 10}]]
         pick1 = self.create_picking(self.picking_type_goods_in)
         pick2 = self.create_picking(self.picking_type_goods_in)
@@ -212,7 +232,7 @@ class TestStockPicking(common.BaseUDES):
         self.assertEqual(new_move.product_id, (self.fig | self.apple))
 
     def test11_get_move_lines(self):
-        """ Test three cases of get_move_lines: when done=None, True and False """
+        """Test three cases of get_move_lines: when done=None, True and False"""
         # Get all moves and move lines associated to the picking
         move_lines = self.test_picking_in.get_move_lines()
         self.assertEqual(move_lines, self.test_picking_in.move_line_ids)
@@ -230,7 +250,7 @@ class TestStockPicking(common.BaseUDES):
         self.assertEqual(move_lines.qty_done, 10)
 
     def test12_requires_backorder_simple(self):
-        """ Simple requires backorder check """
+        """Simple requires backorder check"""
         # Update moves
         self.test_picking_in.move_lines.quantity_done = 10
         # Check a backorder is not needed when picking move lines are passed to requires_backorder
@@ -238,7 +258,7 @@ class TestStockPicking(common.BaseUDES):
         self.assertFalse(self.test_picking_in._requires_backorder(mls))
 
     def test13_requires_backorder_multi_lines(self):
-        """ Create picking with multiple lines backorder check """
+        """Create picking with multiple lines backorder check"""
         self.create_quant(self.fig.id, self.test_stock_location_02.id, 50)
         self.create_quant(self.banana.id, self.test_stock_location_02.id, 50)
         pick = self.Picking.create_picking(
@@ -253,7 +273,7 @@ class TestStockPicking(common.BaseUDES):
         self.assertTrue(pick._requires_backorder(mls))
 
     def test14_backorder_move_lines_default_mls(self):
-        """ Backorder move lines for incomplete pick """
+        """Backorder move lines for incomplete pick"""
         self.create_quant(self.fig.id, self.test_stock_location_02.id, 50)
         self.create_quant(self.banana.id, self.test_stock_location_02.id, 50)
         pick = self.Picking.create_picking(
@@ -271,7 +291,7 @@ class TestStockPicking(common.BaseUDES):
         self.assertEqual(bk_picking.move_line_ids.mapped("qty_done"), [10.0, 10.0])
 
     def test15_backorder_move_lines_fig_mls(self):
-        """ Backorder move lines for incomplete pick, but only for a subset of mls """
+        """Backorder move lines for incomplete pick, but only for a subset of mls"""
         self.create_quant(self.fig.id, self.test_stock_location_02.id, 50)
         self.create_quant(self.banana.id, self.test_stock_location_02.id, 50)
         pick = self.Picking.create_picking(
@@ -295,7 +315,7 @@ class TestStockPicking(common.BaseUDES):
         self.assertEqual(pick.move_line_ids.qty_done, 5)
 
     def test16_backorder_move_lines_error(self):
-        """ Backorder move lines raises error when nothing is done """
+        """Backorder move lines raises error when nothing is done"""
         self.create_quant(self.fig.id, self.test_stock_location_02.id, 50)
         self.create_quant(self.banana.id, self.test_stock_location_02.id, 50)
         pick = self.Picking.create_picking(
@@ -309,8 +329,8 @@ class TestStockPicking(common.BaseUDES):
         self.assertEqual(e.exception.name, msg)
 
     def test17_backorder_move_lines_all_qts_done(self):
-        """ Create a backorder for a picking when all quantities are done 
-            Old pick is empty, everything moved to backorder pick
+        """Create a backorder for a picking when all quantities are done
+        Old pick is empty, everything moved to backorder pick
         """
         self.create_quant(self.fig.id, self.test_stock_location_02.id, 50)
         self.create_quant(self.banana.id, self.test_stock_location_02.id, 50)
@@ -333,7 +353,7 @@ class TestStockPicking(common.BaseUDES):
         self.assertEqual(len(pick.move_lines), 0)
 
     def test18_backorder_move_lines_fulfilled_move_not(self):
-        """ Check when move lines are fulfilled, but the move is partially fulfilled """
+        """Check when move lines are fulfilled, but the move is partially fulfilled"""
         self.create_quant(self.fig.id, self.test_stock_location_02.id, 8)
         self.create_quant(self.banana.id, self.test_stock_location_02.id, 10)
         pick = self.Picking.create_picking(
@@ -389,7 +409,6 @@ class TestStockPicking(common.BaseUDES):
         pick_c_move_1 = self.create_move(pick_c, apple_products_info)
 
         pick_d_move_1 = self.create_move(pick_d, apple_products_info)
-
 
         # Set one of Pick B's moves to have originated from Pick A's move
         pick_b_move_1.move_orig_ids = pick_a_move_1
@@ -454,7 +473,7 @@ class TestStockPicking(common.BaseUDES):
         )
 
     def test20_assert_created_backorders_computed_correctly(self):
-        """ Assert that Created Backorders field is computed correctly """
+        """Assert that Created Backorders field is computed correctly"""
         apple_qty = 1
         self.create_quant(self.apple.id, self.test_stock_location_01.id, apple_qty)
 
@@ -490,7 +509,7 @@ class TestStockPicking(common.BaseUDES):
         )
 
     def test21_assert_picking_quantities_computed_correctly(self):
-        """ Assert that qty todo/done and package discrepancies fields are computed correctly """
+        """Assert that qty todo/done and package discrepancies fields are computed correctly"""
         apple_qty = 10
         apple_qty_per_line = apple_qty / 2
 

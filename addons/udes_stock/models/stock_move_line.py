@@ -18,25 +18,25 @@ class StockMoveLine(models.Model):
     )
 
     def get_lines_incomplete(self):
-        """ Return the move lines in self that are not completed,
-            i.e., quantity done < quantity to do
+        """Return the move lines in self that are not completed,
+        i.e., quantity done < quantity to do
         """
         return self.filtered(lambda ml: ml.qty_done < ml.product_uom_qty)
 
     def get_lines_done(self):
-        """ Return the move lines in self that are completed,
-            i.e., quantity done >= quantity to do
+        """Return the move lines in self that are completed,
+        i.e., quantity done >= quantity to do
         """
         return self.filtered(lambda ml: ml.qty_done >= ml.product_uom_qty)
 
     def move_lines_for_qty(self, quantity, sort=True):
-        """ Return a subset of move lines from self where their sum of quantity
-            to do is equal to parameter quantity.
-            In case that a move line needs to be split, the new move line is
-            also returned (this happens when total quantity in the move lines is
-            greater than quantity parameter).
-            If there is not enough quantity to do in the move lines,
-            also return the remaining quantity.
+        """Return a subset of move lines from self where their sum of quantity
+        to do is equal to parameter quantity.
+        In case that a move line needs to be split, the new move line is
+        also returned (this happens when total quantity in the move lines is
+        greater than quantity parameter).
+        If there is not enough quantity to do in the move lines,
+        also return the remaining quantity.
         """
         new_ml = None
         result = self.browse()
@@ -65,8 +65,7 @@ class StockMoveLine(models.Model):
         return result, new_ml, quantity
 
     def _get_search_domain(self, strict=False):
-        """ Generate search domain for a given move line
-        """
+        """Generate search domain for a given move line"""
         self.ensure_one()
 
         product = self.product_id
@@ -96,7 +95,7 @@ class StockMoveLine(models.Model):
         return domain
 
     def get_quants(self):
-        """ Returns the quants related to move lines in self """
+        """Returns the quants related to move lines in self"""
         Quant = self.env["stock.quant"]
 
         quants = Quant.browse()
@@ -108,8 +107,8 @@ class StockMoveLine(models.Model):
 
     def get_quantities_by_key(self, get_key=lambda ml: ml.product_id):
         """This function computes the different product quantities for the given move lines
-           :kwargs:
-               - get_key: a callable which takes a move line and returns the key
+        :kwargs:
+            - get_key: a callable which takes a move line and returns the key
         """
         res = defaultdict(int)
         for move_line in self:
@@ -117,27 +116,29 @@ class StockMoveLine(models.Model):
         return res
 
     def sort_by_key(self, sort_key=lambda ml: (ml.location_id.name, ml.product_id.id)):
-        """ Return the move lines sorted by location and product """
+        """Return the move lines sorted by location and product"""
         return self.sorted(key=sort_key)
 
     def _round_qty(self, value):
         return float_round(
-            value, precision_rounding=self.product_uom_id.rounding, rounding_method="UP",
+            value,
+            precision_rounding=self.product_uom_id.rounding,
+            rounding_method="UP",
         )
 
     def _split(self, qty=None):
-        """ Splits the move line by
-            - qty if qty is set and (qty_done == 0 or qty == qty_not_done)
-            - qty_not_done if qty is not set
-            As cannot split by qty if some already done!
+        """Splits the move line by
+        - qty if qty is set and (qty_done == 0 or qty == qty_not_done)
+        - qty_not_done if qty is not set
+        As cannot split by qty if some already done!
 
-            :kwargs:
-                - qty: int
-                    Quantity to split the move line by unless it has quantity done.
-            :returns:
-                either self (when the line is not split) or
-                a new move line with the split quantity,
-                where split quantity = qty or qty_not_done
+        :kwargs:
+            - qty: int
+                Quantity to split the move line by unless it has quantity done.
+        :returns:
+            either self (when the line is not split) or
+            a new move line with the split quantity,
+            where split quantity = qty or qty_not_done
         """
         self.ensure_one()
         res = self
@@ -173,7 +174,10 @@ class StockMoveLine(models.Model):
             # - bypass_reservation_update:
             #   avoids to execute code specific for Odoo UI at stock.move.line.write()
             self.with_context(bypass_reservation_update=True).write(
-                {"product_uom_qty": qty_to_keep, "qty_done": qty_done,}
+                {
+                    "product_uom_qty": qty_to_keep,
+                    "qty_done": qty_done,
+                }
             )
             res = new_ml
         return res

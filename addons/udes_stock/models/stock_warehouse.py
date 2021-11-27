@@ -13,7 +13,7 @@ class StockWarehouse(models.Model):
     u_package_barcode_regex = fields.Char("Package Barcode Format", default="^UDES(\\d)+$")
 
     def get_picking_types(self):
-        """ Returns a recordset with the picking_types of the warehouse """
+        """Returns a recordset with the picking_types of the warehouse"""
         PickingType = self.env["stock.picking.type"]
 
         self.ensure_one()
