@@ -265,8 +265,8 @@ class TestCreatePicking(BaseUDES):
         self.assertEqual(pick.location_dest_id, self.trailer_location)
         # Confirm correct picking type id associated
         self.assertEqual(pick.picking_type_id, self.picking_type_goods_out)
-        # Check default priority is 1 = 'Normal'
-        self.assertEqual(pick.priority, "1")
+        # Check default priority is 0 = 'Normal'
+        self.assertEqual(pick.priority, "0")
         #  Check picking has correct quantities associated to it
         self.assertEqual(pick.move_lines.mapped("product_id"), (self.apple | self.banana))
         self.assertEqual(pick.move_lines.mapped("product_qty"), [10, 5])
@@ -282,7 +282,7 @@ class TestCreatePicking(BaseUDES):
         pick = self.test_package.create_picking(
             self.picking_type_goods_out,
             confirm=True,
-            priority="2",
+            priority="1",
             user_id=self.test_user.id,
             location_id=self.test_received_location_01.id,
             location_dest_id=self.test_goodsout_location_02.id,
@@ -297,8 +297,8 @@ class TestCreatePicking(BaseUDES):
         self.assertEqual(pick.location_dest_id, self.test_goodsout_location_02)
         # Confirm correct picking type id associated
         self.assertEqual(pick.picking_type_id, self.picking_type_goods_out)
-        # Check priority is 2 = 'Urgent'
-        self.assertEqual(pick.priority, "2")
+        # Check priority is 1 = 'Urgent'
+        self.assertEqual(pick.priority, "1")
         #  Check picking has correct quantities associated to it
         self.assertEqual(pick.move_lines.mapped("product_id"), (self.apple | self.banana))
         self.assertEqual(pick.move_lines.mapped("product_qty"), [10, 5])

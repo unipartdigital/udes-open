@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from . import common
-from odoo.exceptions import UserError, ValidationError
-from collections import defaultdict
+from odoo.exceptions import ValidationError
 
 
 class TestStockMoveLine(common.BaseUDES):
@@ -186,7 +185,7 @@ class TestStockMoveLine(common.BaseUDES):
         with self.assertRaises(ValidationError) as e:
             ml_apple._split(2)
         msg = "Trying to split a move line with quantity done at picking %s" % self.picking.name
-        self.assertEqual(e.exception.name, msg)
+        self.assertEqual(e.exception.args[0], msg)
 
     def test10_get_move_lines_done_and_done_and_incomplete(self):
         """Check the get_move_lines_done and get_move_lines_incomplete function works as expected"""

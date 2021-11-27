@@ -116,7 +116,7 @@ class TestStockMove(common.BaseUDES):
         pack1_ml.write({"qty_done": 2})
         # fig_move._action_done()
         # Validate picking which will create backorder preserving remaining ml to do
-        picking.action_done()
+        picking._action_done()
         # Check the move line ids attached to move is still there
         self.assertEqual(pack1_ml, picking.move_line_ids)
         self.assertEqual(pack1_ml.move_id, fig_move)

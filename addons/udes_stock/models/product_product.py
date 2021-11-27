@@ -10,4 +10,4 @@ class ProductProduct(models.Model):
     MSM_STR_DOMAIN = ("name", "barcode")
 
     # Add tracking for archiving.
-    active = fields.Boolean(track_visibility="onchange")
+    active = fields.Boolean(tracking=True)

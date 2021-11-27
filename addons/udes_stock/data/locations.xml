@@ -12,7 +12,7 @@
     <record id="stock_location_input" model="stock.location">
       <field name="name">Input</field>
       <field name="location_id" ref="stock.warehouse0_view_location"/>
-      <field name="comment">Input zone</field>
+      <field name="comment">Input Zone</field>
       <field name="usage">view</field>
       <field name="active" eval="True"/>
     </record>
@@ -21,7 +21,7 @@
     <record id="stock_location_output" model="stock.location">
       <field name="name">Output</field>
       <field name="location_id" ref="stock.warehouse0_view_location"/>
-      <field name="comment">Output zone</field>
+      <field name="comment">Output Zone</field>
       <field name="usage">view</field>
       <field name="active" eval="True"/>
     </record>

@@ -17,14 +17,14 @@ class ResUser(models.Model):
         """
         Warehouse = self.env["stock.warehouse"]
 
-        user_id = self.env.uid
+        user = self.env.user
 
-        if user_id != SUPERUSER_ID:
-            user = self.search([("id", "=", user_id)])
+        if user.id != SUPERUSER_ID:
+            user = self.search([("id", "=", user.id)])
             if not user:
                 raise ValidationError(_("Cannot find user"))
 
-        domain = [("company_id", "=", self.env.user.company_id.id)]
+        domain = [("company_id", "=", user.company_id.id)]
         if aux_domain is not None:
             domain += aux_domain
         warehouse = Warehouse.search(domain)
@@ -33,7 +33,7 @@ class ResUser(models.Model):
         if len(warehouse) > 1 and aux_domain is not None:
             raise ValidationError(
                 _(
-                    "Found multiple warehouses for user still, "
+                    "Found multiple warehouses for user, "
                     + "the aux_domain is specifying multiple warehouses or cannot be correct!"
                 )
             )

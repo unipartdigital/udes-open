@@ -1,5 +1,5 @@
 from . import common
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import ValidationError
 
 
 class TestStockPicking(common.BaseUDES):
@@ -326,7 +326,7 @@ class TestStockPicking(common.BaseUDES):
         with self.assertRaises(ValidationError) as e:
             pick._backorder_move_lines()
         msg = "There are no move lines within picking %s to backorder" % pick.name
-        self.assertEqual(e.exception.name, msg)
+        self.assertEqual(e.exception.args[0], msg)
 
     def test17_backorder_move_lines_all_qts_done(self):
         """Create a backorder for a picking when all quantities are done
@@ -490,7 +490,7 @@ class TestStockPicking(common.BaseUDES):
         pick.move_line_ids[0].qty_done = apple_qty
 
         # Validate pick which will create backorder for remaining apple quantity
-        pick.action_done()
+        pick._action_done()
 
         # Assert that a backorder was generated
         expected_backorder = self.Picking.search([("backorder_id", "=", pick.id)], limit=1)

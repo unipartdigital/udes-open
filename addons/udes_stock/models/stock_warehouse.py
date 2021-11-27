@@ -8,9 +8,9 @@ class StockWarehouse(models.Model):
     _inherit = ["stock.warehouse", "mail.thread"]
 
     # Add tracking for archiving.
-    active = fields.Boolean(track_visibility="onchange")
-    u_pallet_barcode_regex = fields.Char("Pallet Barcode Format", default="^UDES(\\d)+$")
-    u_package_barcode_regex = fields.Char("Package Barcode Format", default="^UDES(\\d)+$")
+    active = fields.Boolean(tracking=True)
+    u_pallet_barcode_regex = fields.Char("Pallet Barcode Format", default="^PAL(\\d)+$")
+    u_package_barcode_regex = fields.Char("Package Barcode Format", default="^PACK(\\d)+$")
 
     def get_picking_types(self):
         """Returns a recordset with the picking_types of the warehouse"""

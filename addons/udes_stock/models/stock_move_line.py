@@ -38,8 +38,9 @@ class StockMoveLine(models.Model):
         If there is not enough quantity to do in the move lines,
         also return the remaining quantity.
         """
+        MoveLine = self.env["stock.move.line"]
         new_ml = None
-        result = self.browse()
+        result = MoveLine.browse()
         if quantity == 0:
             return result, new_ml, quantity
 

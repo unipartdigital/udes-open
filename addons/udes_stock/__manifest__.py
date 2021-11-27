@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 {
-    "name": "udes_stock",
+    "name": "UDES Stock",
     "summary": "udes stock",
-    "description": "Core models and configuration for udes stock - odoo 13",
+    "description": "Core models and configuration for UDES Stock - Odoo 14",
     "author": "Unipart digital",
     "website": "http://github/unipartdigital/udes-open",
     "category": "UDES",

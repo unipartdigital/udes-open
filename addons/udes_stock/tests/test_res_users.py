@@ -25,7 +25,7 @@ class TestGetUserWarehouse(common.BaseUDES):
         self.test_user.active = False
         with self.assertRaises(ValidationError) as e:
             self.User.with_user(self.test_user).get_user_warehouse()
-        self.assertEqual(e.exception.name, "Cannot find user")
+        self.assertEqual(e.exception.args[0], "Cannot find user")
 
     def test02_get_user_warehouse_no_warehouse(self):
         """Checking that when a user has no warehouse the correct error is raised"""
@@ -33,7 +33,7 @@ class TestGetUserWarehouse(common.BaseUDES):
         self.test_warehouse.active = False
         with self.assertRaises(ValidationError) as e:
             self.User.with_user(self.test_user).get_user_warehouse()
-        self.assertEqual(e.exception.name, "Cannot find a warehouse for user")
+        self.assertEqual(e.exception.args[0], "Cannot find a warehouse for user")
 
     def test03_get_user_warehouse_multiple_warehouse(self):
         """Checking that when a user has multiple warehouses that all the warehouse are returned"""
@@ -73,7 +73,7 @@ class TestGetUserWarehouse(common.BaseUDES):
                 aux_domain=[("name", "in", ["test_company_2", "test_company_3"])]
             )
         self.assertEqual(
-            e.exception.name,
-            "Found multiple warehouses for user still, "
+            e.exception.args[0],
+            "Found multiple warehouses for user, "
             + "the aux_domain is specifying multiple warehouses or cannot be correct!",
         )

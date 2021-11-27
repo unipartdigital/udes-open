@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from odoo.tests import common
+from odoo.tests import common, tagged
 
 
 import logging
@@ -7,8 +7,7 @@ import logging
 _logger = logging.getLogger(__name__)
 
 
-@common.at_install(False)
-@common.post_install(True)
+@tagged("post_install")
 class BaseUDES(common.SavepointCase):
     @classmethod
     def setUpClass(cls):
@@ -60,20 +59,20 @@ class BaseUDES(common.SavepointCase):
         if name is None:
             name = ptype
 
-        copy_vals = {"name": "TEST_{}".format(name.upper()), "active": True}
-        wh_attr = getattr(cls.warehouse, "{}_type_id".format(ptype))
+        copy_vals = {"name": f"TEST_{name.upper()}", "active": True}
+        wh_attr = getattr(cls.warehouse, f"{ptype}_type_id")
         new_pt = wh_attr.copy(copy_vals)
-        setattr(cls, "picking_type_{}".format(name), new_pt)
-        setattr(cls.warehouse, "{}_type_id".format(ptype), new_pt)
+        setattr(cls, f"picking_type_{name}", new_pt)
+        setattr(cls.warehouse, f"{ptype}_type_id", new_pt)
 
     @classmethod
     def create_product(cls, name, **kwargs):
         """Create and return a product"""
         Product = cls.env["product.product"]
         vals = {
-            "name": "Test product {}".format(name),
-            "barcode": "product{}".format(name),
-            "default_code": "product{}".format(name),
+            "name": f"Test product {name}",
+            "barcode": f"product{name}",
+            "default_code": f"ref_product{name}",
             "type": "product",
         }
         vals.update(kwargs)
@@ -500,7 +499,7 @@ class BaseUDES(common.SavepointCase):
             if move_line.state == "assigned":
                 move_line.qty_done = move_line.product_uom_qty
         if validate:
-            picking.action_done()
+            picking._action_done()
 
     @classmethod
     def get_picking_names(cls, pickings):
