@@ -923,3 +923,75 @@ class TestRefactoringAssignSplittingQuantity(common.BaseUDES):
         ]
         expected_move_format = [(self.apple, 2, 0), (self.banana, 3, 0)]
         self.assertCountEqual(move_format, expected_move_format)
+
+class TestRefactoringDateDone(common.BaseUDES):
+    @classmethod
+    def setUpClass(cls):
+        """
+        Create stock: pallet with apples, pallet with bananas
+        create picking: for all of both
+        """
+        super().setUpClass()
+
+        # putaway is being refactored
+        cls.picking_type_putaway.write(
+            {
+                "u_post_assign_action": "group_by_move_line_key",
+                "u_move_line_key_format": "{package_id.name}",
+            }
+        )
+
+        cls.picking = cls.create_picking(cls.picking_type_in)
+
+        # Create two Goods In pickings
+        product_info_1 = [{"product": cls.apple, "qty": 5}]
+        product_info_2 = [{"product": cls.apple, "qty": 10}, {"product": cls.banana, "qty": 10}]
+
+        cls.pick_1 = cls.create_picking(cls.picking_type_in, products_info=product_info_1)
+        cls.pick_2 = cls.create_picking(cls.picking_type_in, products_info=product_info_2)
+
+    def test_does_not_propagate_date_done_to_incomplete_picking(self):
+        """Check the done date is not carried over to incomplete pickings"""
+        # Complete pick_1 and assert put away is generated and then assert that date done is set on the Goods In but not on the put away
+        self.pick_1.action_assign()
+        self.pick_1.move_line_ids.write(
+            {
+                "location_dest_id": self.received_location.id,
+                "qty_done": self.pick_1.move_line_ids.product_uom_qty,
+            }
+        )
+        self.pick_1.action_done()
+
+        self.assertEqual(self.pick_1.state, "done")
+        self.assertEqual(
+            self.pick_1.date_done, self.pick_1.move_lines.date
+        )  # do we care about the specific date done or just whether the value exists?
+
+        putaway_picking = self.pick_1.u_next_picking_ids
+
+        # put away is not done, so no date done should be set
+        self.assertNotEqual(putaway_picking.state, "done")
+        self.assertFalse(putaway_picking.date_done)
+
+    def test_does_not_propagate_done_date_to_back_order(self):
+        """If we complete a pick with some lines partially completed, generated ones don't have a done date"""
+        Picking = self.env["stock.picking"]
+
+        self.pick_2.action_assign()
+        move_line_id_1, move_line_id_2 = self.pick_2.move_line_ids
+        move_line_id_1.write({"location_dest_id": self.received_location.id, "qty_done": 10})
+        move_line_id_2.write({"location_dest_id": self.received_location.id, "qty_done": 1})
+        self.pick_2.action_done()
+
+        backorder = Picking.search([("backorder_id", "=", self.pick_2.id)])
+
+        # check that pick_2 is done and backorder is not done and backorder does not have a date done
+        self.assertEqual(self.pick_2.state, "done")
+        self.assertNotEqual(backorder.state, "done")
+        self.assertFalse(backorder.date_done)
+
+        putaway_picking = self.pick_2.u_next_picking_ids
+
+        # check that putaway is not in state done and does not have date done set
+        self.assertNotEqual(putaway_picking.state, "done")
+        self.assertFalse(putaway_picking.date_done)
