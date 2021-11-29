@@ -468,9 +468,9 @@ class StockMove(models.Model):
         if len(partners) == 1:
             values["partner_id"] = partners.id
 
-        dates_done = list(set(moves.mapped("date")))
-        if len(dates_done) == 1:
-            values["date_done"] = dates_done[0]
+        dates_done = set(moves.mapped("date"))
+        if set(moves.mapped("state")).issubset({"done", "cancel"}):
+            values["date_done"] = max(dates_done)
 
         return values
 
