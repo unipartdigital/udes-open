@@ -971,14 +971,13 @@ class TestRefactoringDateDone(common.BaseUDES):
 
     def test_does_not_propagate_done_date_to_back_order(self):
         """If we complete a pick with some lines partially completed, generated ones don't have a done date"""
-        Picking = self.env["stock.picking"]
 
         move_line_id_1, move_line_id_2 = self.pick_2.move_line_ids
         move_line_id_1.write({"location_dest_id": self.received_location.id, "qty_done": 10})
         move_line_id_2.write({"location_dest_id": self.received_location.id, "qty_done": 1})
         self.pick_2.action_done()
 
-        backorder = Picking.backorder_id
+        backorder = self.pick_2.backorder_id
 
         # check that pick_2 is done and has a date done, and backorder is not done and does not have a date done
         self.assertEqual(self.pick_2.state, "done")
