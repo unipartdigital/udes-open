@@ -470,7 +470,7 @@ class StockMove(models.Model):
 
         dates_done = set(moves.mapped("date"))
         if set(moves.mapped("state")).issubset({"done", "cancel"}):
-            values["date_done"] = max(dates_done) # do we want the max value?
+            values["date_done"] = max(dates_done)
 
         return values
 

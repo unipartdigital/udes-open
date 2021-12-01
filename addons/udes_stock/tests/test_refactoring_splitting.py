@@ -379,8 +379,7 @@ class TestRefactoringAssignSplitting(common.BaseUDES):
         self.assertEqual(new_picking.move_lines.quantity_done, 3)
 
     def test10_backorder_partially_picked_mls_with_update_picking(self):
-        """Test splitting for backordering when everything is available via update_picking
-        """
+        """Test splitting for backordering when everything is available via update_picking"""
         Picking = self.env["stock.picking"]
         self.create_quant(self.elderberry.id, self.test_location_01.id, 5)
         self.create_quant(self.banana.id, self.test_location_02.id, 10)
@@ -428,9 +427,13 @@ class TestRefactoringAssignSplitting(common.BaseUDES):
         variable recompute=False"""
         Picking = self.env["stock.picking"]
         apple_pallet_01 = self.create_package()
-        self.create_quant(self.apple.id, self.test_location_01.id, 10, package_id=apple_pallet_01.id)
+        self.create_quant(
+            self.apple.id, self.test_location_01.id, 10, package_id=apple_pallet_01.id
+        )
         apple_pallet_02 = self.create_package()
-        self.create_quant(self.apple.id, self.test_location_01.id, 10, package_id=apple_pallet_02.id)
+        self.create_quant(
+            self.apple.id, self.test_location_01.id, 10, package_id=apple_pallet_02.id
+        )
 
         self.create_move(self.apple, 20, self.picking)
         self.picking.with_context(recompute=False).action_assign()
@@ -503,12 +506,12 @@ class TestRefactoringValidateSplitting(common.BaseUDES):
         )
 
     def test02_maintain_single_pick_extra_info(self):
-        """ Check that when a move is split the picking's extra info is copied
-            to the new pick.
-            Extra info:
-            - origin
-            - partner_id
-            - date_done (comes from move.date when not reusing picking)
+        """Check that when a move is split the picking's extra info is copied
+        to the new pick.
+        Extra info:
+        - origin
+        - partner_id
+        - date_done (comes from move.date when not reusing picking)
         """
         apple_pallet = self.create_package()
         self.create_quant(self.apple.id, self.test_location_01.id, 10, package_id=apple_pallet.id)
@@ -565,13 +568,13 @@ class TestRefactoringValidateSplitting(common.BaseUDES):
             self.assertGreaterEqual(banana_move.picking_id.date_done, banana_move.date)
 
     def test02_maintain_two_picks_extra_info(self):
-        """ Check that when a moves from different picks are split the pickings
-            extra info is copied to the new pick and maintained when two picks
-            share the same info.
-            Extra info:
-            - origin
-            - partner_id
-            - date_done (comes from move.date)
+        """Check that when a moves from different picks are split the pickings
+        extra info is copied to the new pick and maintained when two picks
+        share the same info.
+        Extra info:
+        - origin
+        - partner_id
+        - date_done (comes from move.date)
         """
 
         # Setup pick 1
@@ -672,7 +675,7 @@ class TestRefactoringConfirmSplitting(common.BaseUDES):
 
     def test01_simple(self):
         """Reserve self.picking with one pallet of each product and check it
-           splits correctly when confirmed.
+        splits correctly when confirmed.
         """
         apple_pallet = self.create_package()
         self.create_quant(self.apple.id, self.test_location_01.id, 5, package_id=apple_pallet.id)
@@ -700,8 +703,7 @@ class TestRefactoringConfirmSplitting(common.BaseUDES):
 
 class TestRefactoringAutoUnlinkEmpty(common.BaseUDES):
     def setUp(self):
-        """ Setup picking type config
-        """
+        """Setup picking type config"""
         super(TestRefactoringAutoUnlinkEmpty, self).setUp()
 
         # group by product post confirm at goods-out
@@ -718,13 +720,13 @@ class TestRefactoringAutoUnlinkEmpty(common.BaseUDES):
         return Picking.search_count([("picking_type_id", "=", self.picking_type_out.id)])
 
     def test01_auto_unlink_empty_pickings(self):
-        """ Check that unlink_empty finds any picking in the system marked as
-            empty and that when auto unlink empty is disabled for goods-out any
-            empty picking is not deleted when searching for any picking.
+        """Check that unlink_empty finds any picking in the system marked as
+        empty and that when auto unlink empty is disabled for goods-out any
+        empty picking is not deleted when searching for any picking.
 
-            Create two different picks for the same product, confirm them one
-            by one so the goods-out picking is reused leaving one empty picking
-            for the second picking.
+        Create two different picks for the same product, confirm them one
+        by one so the goods-out picking is reused leaving one empty picking
+        for the second picking.
         """
         Picking = self.env["stock.picking"]
 
@@ -762,6 +764,7 @@ class TestRefactoringAutoUnlinkEmpty(common.BaseUDES):
         Picking.unlink_empty()
         # Empty picking has disappeared
         self.assertEqual(n_out_pickings, self._count_out_pickings())
+
 
 class TestRefactoringAssignSplittingQuantity(common.BaseUDES):
     def setUp(self):
@@ -833,12 +836,11 @@ class TestRefactoringAssignSplittingQuantity(common.BaseUDES):
         quantities_ordered_and_reserved = [
             (
                 sum(pick.move_lines.mapped("product_uom_qty")),
-                sum(pick.move_lines.mapped("reserved_availability"))
-            ) for pick in all_pickings
+                sum(pick.move_lines.mapped("reserved_availability")),
+            )
+            for pick in all_pickings
         ]
-        expected_quantities_ordered_and_reserved = [
-            (2, 2), (2, 2), (2, 2), (1, 1), (3, 0)
-        ]
+        expected_quantities_ordered_and_reserved = [(2, 2), (2, 2), (2, 2), (1, 1), (3, 0)]
         self.assertCountEqual(
             quantities_ordered_and_reserved, expected_quantities_ordered_and_reserved
         )
@@ -865,17 +867,16 @@ class TestRefactoringAssignSplittingQuantity(common.BaseUDES):
         quantities_ordered_and_reserved = [
             (
                 sum(pick.move_lines.mapped("product_uom_qty")),
-                sum(pick.move_lines.mapped("reserved_availability"))
-            ) for pick in all_pickings
+                sum(pick.move_lines.mapped("reserved_availability")),
+            )
+            for pick in all_pickings
         ]
-        expected_quantities_ordered_and_reserved = [
-            (2, 2), (2, 2), (2, 2), (2, 2), (2, 2)
-        ]
+        expected_quantities_ordered_and_reserved = [(2, 2), (2, 2), (2, 2), (2, 2), (2, 2)]
         self.assertCountEqual(
             quantities_ordered_and_reserved, expected_quantities_ordered_and_reserved
         )
         # Check that one picking is for 1 banana and 1 apple
-        mixed_picking = all_pickings.filtered(lambda p: len(p.move_lines) ==2)
+        mixed_picking = all_pickings.filtered(lambda p: len(p.move_lines) == 2)
         self.assertEqual(len(mixed_picking), 1)
         self.assertCountEqual(
             mixed_picking.move_lines.mapped("product_id").ids, (self.apple + self.banana).ids
@@ -902,12 +903,11 @@ class TestRefactoringAssignSplittingQuantity(common.BaseUDES):
         quantities_ordered_and_reserved = [
             (
                 sum(pick.move_lines.mapped("product_uom_qty")),
-                sum(pick.move_lines.mapped("reserved_availability"))
-            ) for pick in all_pickings
+                sum(pick.move_lines.mapped("reserved_availability")),
+            )
+            for pick in all_pickings
         ]
-        expected_quantities_ordered_and_reserved = [
-            (2, 2), (2, 2), (2, 2), (2, 2), (2, 2), (5, 0)
-        ]
+        expected_quantities_ordered_and_reserved = [(2, 2), (2, 2), (2, 2), (2, 2), (2, 2), (5, 0)]
         self.assertCountEqual(
             quantities_ordered_and_reserved, expected_quantities_ordered_and_reserved
         )
@@ -918,11 +918,10 @@ class TestRefactoringAssignSplittingQuantity(common.BaseUDES):
         self.assertEqual(unreserved_picking, self.picking)
         moves = unreserved_picking.move_lines
         self.assertEqual(len(moves), 2)
-        move_format = [
-            (m.product_id, m.product_uom_qty, m.reserved_availability) for m in moves
-        ]
+        move_format = [(m.product_id, m.product_uom_qty, m.reserved_availability) for m in moves]
         expected_move_format = [(self.apple, 2, 0), (self.banana, 3, 0)]
         self.assertCountEqual(move_format, expected_move_format)
+
 
 class TestRefactoringDateDone(common.BaseUDES):
     @classmethod
@@ -947,13 +946,12 @@ class TestRefactoringDateDone(common.BaseUDES):
         product_info_1 = [{"product": cls.apple, "qty": 5}]
         product_info_2 = [{"product": cls.apple, "qty": 10}, {"product": cls.banana, "qty": 10}]
 
-        cls.pick_1 = cls.create_picking(cls.picking_type_in, products_info=product_info_1)
-        cls.pick_2 = cls.create_picking(cls.picking_type_in, products_info=product_info_2)
+        cls.pick_1 = cls.create_picking(cls.picking_type_in, products_info=product_info_1, assign=True)
+        cls.pick_2 = cls.create_picking(cls.picking_type_in, products_info=product_info_2, assign=True)
 
     def test_does_not_propagate_date_done_to_incomplete_picking(self):
         """Check the done date is not carried over to incomplete pickings"""
         # Complete pick_1 and assert put away is generated and then assert that date done is set on the Goods In but not on the put away
-        self.pick_1.action_assign()
         self.pick_1.move_line_ids.write(
             {
                 "location_dest_id": self.received_location.id,
@@ -963,9 +961,7 @@ class TestRefactoringDateDone(common.BaseUDES):
         self.pick_1.action_done()
 
         self.assertEqual(self.pick_1.state, "done")
-        self.assertEqual(
-            self.pick_1.date_done, self.pick_1.move_lines.date
-        )  # do we care about the specific date done or just whether the value exists?
+        self.assertTrue(self.pick_1.date_done)
 
         putaway_picking = self.pick_1.u_next_picking_ids
 
@@ -977,16 +973,16 @@ class TestRefactoringDateDone(common.BaseUDES):
         """If we complete a pick with some lines partially completed, generated ones don't have a done date"""
         Picking = self.env["stock.picking"]
 
-        self.pick_2.action_assign()
         move_line_id_1, move_line_id_2 = self.pick_2.move_line_ids
         move_line_id_1.write({"location_dest_id": self.received_location.id, "qty_done": 10})
         move_line_id_2.write({"location_dest_id": self.received_location.id, "qty_done": 1})
         self.pick_2.action_done()
 
-        backorder = Picking.search([("backorder_id", "=", self.pick_2.id)])
+        backorder = Picking.backorder_id
 
-        # check that pick_2 is done and backorder is not done and backorder does not have a date done
+        # check that pick_2 is done and has a date done, and backorder is not done and does not have a date done
         self.assertEqual(self.pick_2.state, "done")
+        self.assertTrue(self.pick_2.date_done)
         self.assertNotEqual(backorder.state, "done")
         self.assertFalse(backorder.date_done)
 
