@@ -1006,8 +1006,20 @@ class TestRefactoringDateDone(common.BaseUDES):
 
         _logger = logging.getLogger(__name__)
         Picking = self.env["stock.picking"]
-        mv = self.create_move(self.banana, 1, self.pick_1)
+        print("\n\n\n\n")
+        print("*" * 20)
+        all_pickings = Picking.search([("picking_type_id", "=", self.picking_type_in.id)])
+        _logger.info("Pre done Pickings")
+        for (name, state, ptype, ml) in [
+            (p.name, p.state, p.picking_type_id.name, p.move_lines) for p in all_pickings
+        ]:
+            _logger.info("DEBUG %s at %s using %s: %s", name, state, ptype, ml)
+        _logger.info("*" * 20)
+        _logger.info("\n\n\n\n")
+        self.create_move(self.banana, 1, self.pick_1)
         self.pick_1.action_assign()
+        _logger.info(self.picking_type_in.u_post_confirm_action)
+        _logger.info(self.picking_type_in.u_post_assign_action)
         pickings = self.pick_1 | self.pick_2
         self.assertEqual(len(pickings.mapped("move_lines")), 4)
         for move_line in pickings.mapped("move_line_ids"):
