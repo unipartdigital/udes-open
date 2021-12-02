@@ -63,7 +63,9 @@ class TestMixinModel(BaseUDES):
         self.assertEqual(len(self.Group.search([])), 0)
         with self.assertRaises(ValidationError) as e:
             self.Group.get_or_create("TESTGROUP01")
-        self.assertEqual(e.exception.args[0], "Procurement Group not found for identifier TESTGROUP01")
+        self.assertEqual(
+            e.exception.args[0], "Procurement Group not found for identifier TESTGROUP01"
+        )
         # Create group
         group = self.Group.get_or_create("TESTGROUP01", create=True)
         self.assertEqual(group, self.Group.search([]))
@@ -77,7 +79,9 @@ class TestMixinModel(BaseUDES):
         # Check cannot get group to begin with
         with self.assertRaises(ValidationError) as e:
             self.Group.get_or_create("TESTGROUP01")
-        self.assertEqual(e.exception.args[0], "Procurement Group not found for identifier TESTGROUP01")
+        self.assertEqual(
+            e.exception.args[0], "Procurement Group not found for identifier TESTGROUP01"
+        )
         group = self.Group.get_or_create("TESTGROUP01", create=True)
         self.assertEqual(group, self.Group.search([]))
         # Check cannot create a new group with the same name

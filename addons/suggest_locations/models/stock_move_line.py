@@ -66,7 +66,7 @@ class StockMoveLine(models.Model):
     @api.onchange("location_dest_id")
     def validate_location_dest(self, locations=None):
         """Check the drop location is valid"""
-        
+
         # What move lines can be dropped?
         # We use the double negative as sometimes we need to check the destiantion location before
         # they become assigned
@@ -88,7 +88,7 @@ class StockMoveLine(models.Model):
 
             # Get policy
             policy = self._get_policy_class(picking_type)
-            
+
             for mls_validation_grp in policy.iter_mls(mls):
                 # If no location was passed, get the ones from the move lines
                 locs = locations or mls_validation_grp.location_dest_id

@@ -39,7 +39,7 @@ class TestStockLocation(common.SavepointCase):
         return count
 
     def _comparison_helper(self, info, location):
-        """Helper function to check the info against the location 
+        """Helper function to check the info against the location
         :params:
             info: an entry in the returned list from get_info
             location: The location to compare against
@@ -51,10 +51,10 @@ class TestStockLocation(common.SavepointCase):
             self.assertEqual(val, location[field])
 
     def _recursive_field_helper(self, field, all_info, family_tree):
-        """Helper function to iterate through the (possibly) nested dictionary returned by 
-        get_info. For simplicity it only looks through the nesting of one field, 
+        """Helper function to iterate through the (possibly) nested dictionary returned by
+        get_info. For simplicity it only looks through the nesting of one field,
         e.g child_ids.
-        :params: 
+        :params:
             field: The field that controls the nesting
             all_info: The complete dnested dictionary
             familty_tree: The expected tuple of what to compare against. For example
@@ -67,7 +67,7 @@ class TestStockLocation(common.SavepointCase):
 
     def _check_fields_helper(self, fields, info):
         """Helper function to check all of the nested dictionary has the correct fields
-        :params: 
+        :params:
             fields: The fields that are expected in the nesting
             info: The complete nested dictionary
         """

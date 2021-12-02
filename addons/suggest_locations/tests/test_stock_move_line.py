@@ -24,7 +24,10 @@ class TestStockMoveLine(common.SuggestedLocations):
         # Create picking
         cls._pick_info = [{"product": cls.banana, "qty": 5}, {"product": cls.apple, "qty": 5}]
         cls.picking_pick = cls.create_picking(
-            cls.picking_type_pick, products_info=cls._pick_info, confirm=True, assign=True,
+            cls.picking_type_pick,
+            products_info=cls._pick_info,
+            confirm=True,
+            assign=True,
         )
         cls.mls = cls.picking_pick.move_line_ids
         # Make the out and trailer locations a view
@@ -43,7 +46,9 @@ class TestStockMoveLine(common.SuggestedLocations):
         # Mock functions, for suggest locations and validate
         # Suggest locations return empty locations
         cls.mock_suggested_locations = patch.object(
-            cls.MoveLine.__class__, "suggest_locations", return_value=cls.test_goodsout_location_04,
+            cls.MoveLine.__class__,
+            "suggest_locations",
+            return_value=cls.test_goodsout_location_04,
         )
         cls.mock_validate_location_dest = patch.object(
             cls.MoveLine.__class__, "validate_location_dest", return_value=None
@@ -195,7 +200,8 @@ class TestStockMoveLine(common.SuggestedLocations):
         """Check the validation policy for suggest constraints for by product policy"""
         # Check suggested locations for each product are correct
         self.assertEqual(
-            self.apple_mls.suggest_locations(), self.pick_apple_locs,
+            self.apple_mls.suggest_locations(),
+            self.pick_apple_locs,
         )
         self.assertEqual(self.banana_mls.suggest_locations(), self.test_goodsout_location_02)
         # Set policy to suggest
@@ -209,7 +215,8 @@ class TestStockMoveLine(common.SuggestedLocations):
         """Check the validation policy for enforced with product policy"""
         # Check suggested locations for each product are correct
         self.assertEqual(
-            self.apple_mls.suggest_locations(), self.pick_apple_locs,
+            self.apple_mls.suggest_locations(),
+            self.pick_apple_locs,
         )
         self.assertEqual(self.banana_mls.suggest_locations(), self.test_goodsout_location_02)
         # Set all the mls to a single location -> to later throw an error
@@ -251,8 +258,6 @@ class TestStockMoveLine(common.SuggestedLocations):
                 products_info=[{"product": self.apple, "qty": 5}],
                 confirm=True,
                 assign=True,
-                location_dest_id = self.test_goodsout_location_02.id
-        )
-        self.assertEqual(
-            e.exception.name, "There are no valid locations to drop stock"
-        )
+                location_dest_id=self.test_goodsout_location_02.id,
+            )
+        self.assertEqual(e.exception.name, "There are no valid locations to drop stock")

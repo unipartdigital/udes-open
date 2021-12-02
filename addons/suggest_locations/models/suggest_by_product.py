@@ -47,7 +47,10 @@ class ByProduct(SuggestLocationPolicy):
         Quant = self.env["stock.quant"]
         # Add order="id" for performance as we don't care about the order
         product_quants = Quant.search(
-            [("location_id", "child_of", location.id), ("product_id", "=", product.id),],
+            [
+                ("location_id", "child_of", location.id),
+                ("product_id", "=", product.id),
+            ],
             order="id",
         )
         return product_quants.location_id

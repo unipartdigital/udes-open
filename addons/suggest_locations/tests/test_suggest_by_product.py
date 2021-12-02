@@ -68,7 +68,10 @@ class TestSuggestByProduct(common.SuggestedLocations):
             self.ByProduct.get_values_from_dict(
                 {"product_id": self.apple.id, "picking_id": self.picking.id}
             ),
-            {"product": self.apple, "location": self.picking.location_dest_id,},
+            {
+                "product": self.apple,
+                "location": self.picking.location_dest_id,
+            },
         )
 
     def test06_get_locations(self):
