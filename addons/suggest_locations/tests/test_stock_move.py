@@ -23,7 +23,8 @@ class TestStockMove(common.SuggestedLocations):
         self.picking_type_pick.u_suggest_locations_policy = None
         # Check first the default location is used in the returned dict
         self.assertEqual(
-            self.apple_mv._prepare_move_line_vals().get("location_dest_id"), self.out_location.id,
+            self.apple_mv._prepare_move_line_vals().get("location_dest_id"),
+            self.out_location.id,
         )
 
     def test02_prepare_move_line_vals(self):
@@ -32,7 +33,8 @@ class TestStockMove(common.SuggestedLocations):
         self.picking_type_pick.u_suggest_locations_policy = "by_product"
         # Check first the default location is used in the returned dict
         self.assertEqual(
-            self.apple_mv._prepare_move_line_vals().get("location_dest_id"), self.out_location.id,
+            self.apple_mv._prepare_move_line_vals().get("location_dest_id"),
+            self.out_location.id,
         )
         # Create quant - should now get this as the destination location
         self.create_quant(self.apple.id, self.test_goodsout_location_02.id, 10)

@@ -13,7 +13,11 @@ class StockMove(models.Model):
         MoveLine = self.env["stock.move.line"]
         values = super()._prepare_move_line_vals(quantity, reserved_quant)
         try:
-            location = MoveLine.suggest_locations(limit=1, picking=self.picking_id, values=values,)
+            location = MoveLine.suggest_locations(
+                limit=1,
+                picking=self.picking_id,
+                values=values,
+            )
         except ValueError:
             _logger.warning("No suggest locations policy has been set!")
         else:
