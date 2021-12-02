@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from odoo import models, fields, _
-from itertools import groupby
 from .suggest_locations_policy import SuggestLocationPolicy, get_selection
 
 
