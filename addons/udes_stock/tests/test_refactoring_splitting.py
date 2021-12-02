@@ -1002,6 +1002,9 @@ class TestRefactoringDateDone(common.BaseUDES):
 
     def test_post_validate_refactor(self):
         """TODO:"""
+        import logging
+
+        _logger = logging.getLogger(__name__)
         Picking = self.env["stock.picking"]
         mv = self.create_move(self.banana, 1, self.pick_1)
         self.pick_1.action_assign()
@@ -1011,7 +1014,21 @@ class TestRefactoringDateDone(common.BaseUDES):
             move_line.write(
                 {"location_dest_id": self.received_location.id, "qty_done": move_line.product_qty}
             )
+
+        print("\n\n\n\n")
+        print("*" * 20)
+        all_pickings = Picking.search([("picking_type_id", "=", self.picking_type_in.id)])
+        _logger.info("Pre done Pickings")
+        for (name, state, ptype, ml) in [
+            (p.name, p.state, p.picking_type_id.name, p.move_lines) for p in all_pickings
+        ]:
+            _logger.info("DEBUG %s at %s using %s: %s", name, state, ptype, ml)
+        _logger.info("*" * 20)
+        _logger.info("\n\n\n\n")
+
         pickings.action_done()
+        self.assertEqual(pickings.mapped("state"), "done")
+        self.assertEqual(pickings.mapped("move_lines.state"), "done")
         self.assertEqual(self.pick_1.date_done, self.pick_2.date_done)
 
         # Group by product post validation
@@ -1042,9 +1059,6 @@ class TestRefactoringDateDone(common.BaseUDES):
         banana_picking = refactored_pickings - apple_picking
         print("\n\n\n\n")
         print("*" * 20)
-        import logging
-
-        _logger = logging.getLogger(__name__)
         info = [(p.name, p.state, p.picking_type_id.name, p.move_lines) for p in pickings]
 
         _logger.info("\n\n\n\n")
