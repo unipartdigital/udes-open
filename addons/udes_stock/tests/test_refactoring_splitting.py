@@ -1042,10 +1042,23 @@ class TestRefactoringDateDone(common.BaseUDES):
         banana_picking = refactored_pickings - apple_picking
         print("\n\n\n\n")
         print("*" * 20)
-        print([(p.name, p.state, p.picking_type_id.name, p.move_lines) for p in pickings])
-        print([(p.name, p.state, p.picking_type_id.name, p.move_lines) for p in all_pickings])
-        print("*" * 20)
-        print("\n\n\n\n")
+        import logging
+
+        _logger = logging.getLogger(__name__)
+        info = [(p.name, p.state, p.picking_type_id.name, p.move_lines) for p in pickings]
+
+        _logger.info("\n\n\n\n")
+        _logger.info("*" * 20)
+        _logger.info("Current Pickings")
+        for (name, state, ptype, ml) in info:
+            _logger.info("DEBUG %s at %s using %s: %s", name, state, ptype, ml)
+        _logger.info("All Pickings")
+        for (name, state, ptype, ml) in [
+            (p.name, p.state, p.picking_type_id.name, p.move_lines) for p in all_pickings
+        ]:
+            _logger.info("DEBUG %s at %s using %s: %s", name, state, ptype, ml)
+        _logger.info("*" * 20)
+        _logger.info("\n\n\n\n")
         self.assertEqual(len(apple_picking), 1)
         self.assertEqual(len(banana_picking), 1)
         # Check that they are new pickings
