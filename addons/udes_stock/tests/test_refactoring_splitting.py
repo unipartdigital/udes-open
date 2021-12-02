@@ -781,10 +781,7 @@ class TestRefactoringAssignSplittingQuantity(common.BaseUDES):
 
         # Split picking to maximum quantity
         self.picking_type_pick.write(
-            {
-                "u_post_assign_action": "by_maximum_quantity",
-                "u_assign_refactor_constraint_value": 2,
-            }
+            {"u_post_assign_action": "by_maximum_quantity", "u_assign_refactor_constraint_value": 2}
         )
 
         self.picking = self.create_picking(self.picking_type_pick)
@@ -1004,11 +1001,11 @@ class TestRefactoringDateDone(common.BaseUDES):
         self.assertFalse(putaway_picking.date_done)
 
     def test_post_validate_refactor(self):
-        """Test123"""
-
+        """TODO:"""
+        Picking = self.env["stock.picking"]
         mv = self.create_move(self.banana, 1, self.pick_1)
-        pickings = self.pick_1 | self.pick_2
         self.pick_1.action_assign()
+        pickings = self.pick_1 | self.pick_2
         self.assertEqual(len(pickings.mapped("move_lines")), 4)
         for move_line in pickings.mapped("move_line_ids"):
             move_line.write(
@@ -1019,36 +1016,52 @@ class TestRefactoringDateDone(common.BaseUDES):
 
         # Group by product post validation
         self.picking_type_in.write(
-            {
-                "u_post_validate_action": "group_by_move_key",
-                "u_move_key_format": "{product_id.id}",
-            }
+            {"u_post_validate_action": "group_by_move_key", "u_move_key_format": "{product_id.id}"}
         )
         # Change the time shift of the apple move and picking time,
         # so any new existing refactored pickings with apples have the greatest date,
         # Or at least greater than bananas.
         time_shift = datetime.datetime.now() + datetime.timedelta(hours=1)
         self.pick_1.date_done = time_shift
-        self.pick_1.move_lines.filtered(lambda mv: mv.product_id == self.apple).write({"date": time_shift})
+        self.pick_1.move_lines.filtered(lambda mv: mv.product_id == self.apple).write(
+            {"date": time_shift}
+        )
 
         self.assertGreater(self.pick_1.date_done, self.pick_2.date_done)
 
         # Call refactor
         pickings.mapped("move_lines")._action_refactor(stage="validate")
 
-        all_pickings = self.env["stock.picking"].search([("picking_type_id", "=", self.picking_type_in.id)])
+        all_pickings = Picking.search([("picking_type_id", "=", self.picking_type_in.id)])
         draft_pickings = all_pickings.filtered(lambda p: p.state == "draft")
         refactored_pickings = all_pickings - draft_pickings
-        apple_picking = refactored_pickings.filtered(lambda p: p.mapped("move_lines.product_id") == self.apple)
+        self.assertTrue(set(pickings).issubset(draft_pickings))
+        apple_picking = refactored_pickings.filtered(
+            lambda p: p.mapped("move_lines.product_id") == self.apple
+        )
         banana_picking = refactored_pickings - apple_picking
+        print("\n\n\n\n")
+        print("*" * 20)
+        print([(p.name, p.state, p.picking_type_id.name, p.move_lines) for p in pickings])
+        print([(p.name, p.state, p.picking_type_id.name, p.move_lines) for p in all_pickings])
+        print("*" * 20)
+        print("\n\n\n\n")
         self.assertEqual(len(apple_picking), 1)
         self.assertEqual(len(banana_picking), 1)
+        # Check that they are new pickings
+        self.assertFalse(set(apple_picking).issubset(pickings))
+        self.assertFalse(set(banana_picking).issubset(pickings))
         # Due to refactoring, the pickings get moved out of a done picking
         # So empty pickings have a date done. This should be ok provided these
         # draft pickings are never reused - but unsure if other refactoring takes
         # use of draft pickings. (Presumably unlink resolves this issues quickly in refactoring)
         # self.assertEqual(draft_pickings.mapped("date_done"), [False])
+        # Check the banana move date is the same as the picking done date
         self.assertTrue(banana_picking.date_done)
-        for move in apple_picking.move_lines:
-            self.assertGreaterEqual(apple_picking.date_done, move.date)
+        for banana_mv in banana_picking.move_lines:
+            self.assertEqual(banana_picking.date_done, banana_mv.date)
+        # Check one move has an earlier date
+        apple_mv_1, apple_mv_2 = apple_picking.move_lines.sorted(key=lambda mv: mv.date)
+        self.assertGreater(apple_mv_2.date, apple_mv_1.date)
+        self.assertEqual(apple_picking.date_done, apple_mv_2.date)
         self.assertGreater(apple_picking.date_done, banana_picking.date_done)
