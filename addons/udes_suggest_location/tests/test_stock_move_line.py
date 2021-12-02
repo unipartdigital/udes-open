@@ -2,7 +2,7 @@
 from . import common
 from ..models.suggest_locations_policy import SUGGEST_LOCATION_REGISTRY
 from odoo.exceptions import ValidationError
-from unittest.mock import patch, call
+from unittest.mock import patch
 
 
 class TestStockMoveLine(common.SuggestedLocations):
@@ -148,7 +148,7 @@ class TestStockMoveLine(common.SuggestedLocations):
         self.assertEqual(len(locs), 1)
         self.assertIn(locs, self.pick_all_locs)
 
-    def test07_validate_location_dest_nothing_dropppable(self):
+    def test07_validate_location_dest_nothing_droppable(self):
         """Check that we just return when nothing is droppable"""
         # Create a pick but do not assign
         picking = self.create_picking(
@@ -164,7 +164,7 @@ class TestStockMoveLine(common.SuggestedLocations):
 
         # Complete the moves
         picking.move_lines.quantity_done = 5
-        picking.action_done()
+        picking._action_done()
 
         # Sanity check that suggest_locations is not called
         self.assertIsNone(apple_mls.validate_location_dest())
@@ -228,7 +228,7 @@ class TestStockMoveLine(common.SuggestedLocations):
         with self.assertRaises(ValidationError) as e:
             self.mls.validate_location_dest()
         self.assertEqual(
-            e.exception.name, "Drop off location must be one of the suggested locations"
+            e.exception.args[0], "Drop off location must be one of the suggested locations"
         )
         # Set the mls destination for bananas to be a valid one
         self.banana_mls.location_dest_id = self.test_goodsout_location_02
@@ -260,4 +260,4 @@ class TestStockMoveLine(common.SuggestedLocations):
                 assign=True,
                 location_dest_id=self.test_goodsout_location_02.id,
             )
-        self.assertEqual(e.exception.name, "There are no valid locations to drop stock")
+        self.assertEqual(e.exception.args[0], "There are no valid locations to drop stock")

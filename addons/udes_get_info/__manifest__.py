@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 {
-    "name": "get_info",
+    "name": "UDES Get Info",
     "summary": "Add get_info methods for udes stock based APIs",
     "description": "Adds get_info methods for udes stock based APIs",
     "author": "Unipart digital",

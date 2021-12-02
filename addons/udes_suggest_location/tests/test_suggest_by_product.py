@@ -35,7 +35,7 @@ class TestSuggestByProduct(common.SuggestedLocations):
         self.assertEqual(vals.get("location"), self.out_location)
 
     def test02_get_values_from_mls_failure(self):
-        """Fail to get details due to multilpe move lines given"""
+        """Fail to get details due to multiple move lines given"""
         with self.assertRaises(ValueError) as e:
             self.ByProduct.get_values_from_mls(self.mls)
         self.assertEqual(str(e.exception), f"Expected singleton: {self.mls.product_id}")

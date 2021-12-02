@@ -4,7 +4,7 @@ Module to handle suggested locations
 
 # Dependencies
 - base
-- get_info 
+- udes_get_info 
 - udes_common (requires groupby)
 - udes_stock (requires get_empty children)
 

@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from collections import defaultdict
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError
 from .suggest_locations_policy import SUGGEST_LOCATION_REGISTRY
@@ -68,7 +67,7 @@ class StockMoveLine(models.Model):
         """Check the drop location is valid"""
 
         # What move lines can be dropped?
-        # We use the double negative as sometimes we need to check the destiantion location before
+        # We use the double negative as sometimes we need to check the destination location before
         # they become assigned
         drop_mls = self.filtered(lambda ml: ml.state not in NON_DROPABLE_STATES)
         if not drop_mls:

@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
-from odoo.tests import common
+from odoo.tests import common, tagged
 from ..models.models import BASIC_GET_INFO_VALUES
 from collections import Counter
 
 
-@common.at_install(False)
-@common.post_install(True)
+@tagged("post_install")
 class TestStockLocation(common.SavepointCase):
     @classmethod
     def setUpClass(cls):
