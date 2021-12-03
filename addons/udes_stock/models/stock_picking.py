@@ -80,6 +80,12 @@ class StockPicking(models.Model):
         compute="_compute_related_picking_ids",
         help="Created Back Orders",
     )
+    u_original_picking_id = fields.Many2one(
+        "stock.picking",
+        string="Original Picking",
+        help="The original picking of the refactored/backordered picking",
+        copy=True,
+    )
 
     # search helpers for source and destination package
     u_package_id = fields.Many2one(
@@ -154,6 +160,19 @@ class StockPicking(models.Model):
         help="If reserving pallets per picking is enabled, this field stores "
         "the pallet reserved for this picking.",
     )
+
+    def create(self, vals):
+        """
+        Add the original picking id on creation because of race conditions
+        of computed fields.
+        For example, when creating a backorder,
+        the backorder gets related but u_prev_picking_ids gets done after.
+        So instead, we just write to a new field which we copy across backordered pickings
+        """
+        picking = super().create(vals)
+        if not picking.backorder_id:
+            picking.write({"u_original_picking_id": picking.id})
+        return picking
 
     @api.depends("move_line_ids", "move_line_ids.location_id")
     @api.one
@@ -1197,6 +1216,7 @@ class StockPicking(models.Model):
         - move_lines: [{stock.move}]
         - state: string
         - u_pending: boolean (only if picking type does not handle partials)
+        - u_original_picking_id
 
         @param (optional) priorities
             Dictionary of priority_id:priority_name
@@ -1217,6 +1237,7 @@ class StockPicking(models.Model):
             "picking_type_id": lambda p: p.picking_type_id.id,
             "moves_lines": lambda p: p.move_lines.get_info(),
             "picking_guidance": lambda p: p.get_picking_guidance(),
+            "u_original_picking_id": lambda p: p.u_original_picking_id,
         }
 
         # u_pending only included if we don't handle partials, otherwise field is irrelevant.
@@ -2740,8 +2761,8 @@ class StockPicking(models.Model):
         """Getting main picking details, method can be extendable on other modules """
         self.ensure_one()
         pick_details = {
-                "details": utils.md_format_label_value("Supplier Name", self.partner_id.name)
-                + utils.md_format_label_value("Source Document", self.origin),
-                "submitted_value": self.origin,
-            }
+            "details": utils.md_format_label_value("Supplier Name", self.partner_id.name)
+            + utils.md_format_label_value("Source Document", self.origin),
+            "submitted_value": self.origin,
+        }
         return pick_details
