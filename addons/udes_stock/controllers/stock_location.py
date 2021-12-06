@@ -77,7 +77,7 @@ class Location(UdesApi):
 
         location = Location.get_location(location_id)
 
-        return location.process_perpetual_inventory_request(pi_request)
+        return location.with_context(is_mobile=True).process_perpetual_inventory_request(pi_request)
 
     @http.route('/api/stock-location/block/',
                 type='json', methods=['POST'], auth='user')
