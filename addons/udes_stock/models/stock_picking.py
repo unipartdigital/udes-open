@@ -136,6 +136,20 @@ class StockPicking(models.Model):
         help="Total number of different packages in the picking",
     )
 
+    # search helpers for source and destination package
+    u_package_id = fields.Many2one(
+        "stock.quant.package",
+        "Package",
+        related="move_line_ids.package_id",
+        help="Source package (used to search on pickings)",
+    )
+    u_result_package_id = fields.Many2one(
+        "stock.quant.package",
+        "Result Package",
+        related="move_line_ids.result_package_id",
+        help="Destination package (used to search on pickings)",
+    )
+
     u_location_category_id = fields.Many2one(
         comodel_name="stock.location.category",
         compute="_compute_location_category",
