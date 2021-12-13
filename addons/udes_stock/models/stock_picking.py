@@ -63,6 +63,20 @@ class StockPicking(models.Model):
         help="Total number of different pallets in the picking",
     )
 
+    # search helpers for source and destination package
+    u_package_id = fields.Many2one(
+        "stock.quant.package",
+        "Package",
+        related="move_line_ids.package_id",
+        help="Source package (used to search on pickings)",
+    )
+    u_result_package_id = fields.Many2one(
+        "stock.quant.package",
+        "Result Package",
+        related="move_line_ids.result_package_id",
+        help="Destination package (used to search on pickings)",
+    )
+
     @api.depends("move_lines", "move_lines.move_orig_ids", "move_lines.move_orig_ids.picking_id")
     def _compute_first_picking_ids(self):
         """Compute first picking from moves that do not originate from other moves"""
