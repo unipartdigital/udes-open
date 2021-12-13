@@ -121,27 +121,47 @@ class StockPicking(models.Model):
         for picking in self:
             picking.u_num_pallets = len(picking.move_line_ids.result_package_id)
 
-    def get_empty_locations(self):
+    def get_empty_locations(self, limit=None, sort=True):
         """Returns the recordset of locations that are child of the
         instance dest location and are empty.
         Expects a singleton instance.
+
+        :kwargs:
+            - limit: Integer
+                If set then the recordset returned will be less than or equal to the limit.
+            - sort: Boolean
+                If true the recordset will be returned by order of name.
+                Note that the sort is carried out after the locations have been identified
+                (and when the limit has been applied, if set)
+        :returns: Move lines of picking
         """
-        return self._get_child_dest_locations(
-            aux_domain=[("barcode", "!=", False), ("quant_ids", "=", False)]
+        locations = self._get_child_dest_locations(
+            aux_domain=[("barcode", "!=", False), ("quant_ids", "=", False)], limit=limit
         )
 
-    def _get_child_dest_locations(self, aux_domain=None):
+        if sort:
+            return locations.sorted(lambda l: l.name)
+        else:
+            return locations
+
+    def _get_child_dest_locations(self, aux_domain=None, limit=None):
         """Return the child locations of the instance dest location.
         Extra domains are added to the child locations search query,
         when specified.
         Expects a singleton instance.
+
+        :kwargs:
+            - aux_domain: List of tuples
+                Additional domain to use for filtering locations
+            - limit: Integer
+                If set then the recordset returned will be less than or equal to the limit.
         """
         Location = self.env["stock.location"]
 
         domain = [("id", "child_of", self.location_dest_id.ids)]
         if aux_domain is not None:
             domain.extend(aux_domain)
-        return Location.search(domain)
+        return Location.search(domain, limit=limit)
 
     def get_move_lines(self, done=None):
         """Get move lines associated to picking, uses functions in stock_move_line
