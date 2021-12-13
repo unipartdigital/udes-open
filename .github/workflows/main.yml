@@ -1,0 +1,15 @@
+name: UDES-addons
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build Docker Image
+        run: docker build -t udes-open-tester .
+      - name: Run Tests in Docker
+        run: docker run -i --rm udes-open-tester
