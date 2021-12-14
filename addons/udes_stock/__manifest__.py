@@ -61,6 +61,7 @@
         "views/stock_warehouse.xml",
         "views/create_planned_transfer_asset.xml",
         "views/web.xml",
+        "views/procurement_views.xml",
         "report/container_label.xml",
         "report/deliveryslip_reports.xml",
         "report/deliveryslip_templates.xml",
