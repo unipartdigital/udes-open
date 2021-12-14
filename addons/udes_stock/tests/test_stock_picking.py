@@ -7,6 +7,7 @@ class TestStockPicking(common.BaseUDES):
     def setUpClass(cls):
         super(TestStockPicking, cls).setUpClass()
         cls.Picking = cls.env["stock.picking"]
+        cls.Location = cls.env["stock.location"]
         products_info = [{"product": cls.apple, "qty": 10}]
         cls.test_picking_in = cls.create_picking(
             cls.picking_type_goods_in,
@@ -78,6 +79,45 @@ class TestStockPicking(common.BaseUDES):
             5,
         )
         self.assertFalse(self.test_picking_in.get_empty_locations())
+
+    def test_get_empty_locations_sorted(self):
+        """Empty locations are sorted when `sort` is set to True, otherwise not"""
+        # Create location 'A' in zone 'Z'
+        # When sorted by location name directly 'A' will appear first,
+        # but in default location ordering it will be last
+        zone_z = self.Location.create(
+            {
+                "name": "Zone Z",
+                "location_id": self.received_location.id,
+            }
+        )
+        loc_a = self.Location.create(
+            {
+                "name": "A",
+                "barcode": "LRTESTA",
+                "location_id": zone_z.id,
+            }
+        )
+
+        # Set destination location of the test Goods In picking to the received zone
+        self.test_picking_in.location_dest_id = self.received_location
+
+        # Empty locations sorted by name, 'A' appears first
+        self.assertEqual(self.test_picking_in.get_empty_locations(sort=True)[0], loc_a)
+
+        # Empty locations not sorted, 'A' appears last
+        self.assertEqual(self.test_picking_in.get_empty_locations(sort=False)[-1], loc_a)
+
+    def test_get_empty_locations_limited(self):
+        """Empty locations are limited when `limit` is set, otherwise not"""
+        # Set destination location of the test Goods In picking to the received zone
+        self.test_picking_in.location_dest_id = self.received_location
+
+        # Empty locations not limited by default
+        self.assertGreater(len(self.test_picking_in.get_empty_locations(limit=None)), 1)
+
+        # Only one empty location is returned
+        self.assertEqual(len(self.test_picking_in.get_empty_locations(limit=1)), 1)
 
     def test_get_child_locations_simple_success(self):
         """Get child locations"""
