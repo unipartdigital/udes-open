@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-from odoo import models, fields, api, _
+from odoo import models, api, _
 from odoo.exceptions import ValidationError
 from .suggest_locations_policy import SUGGEST_LOCATION_REGISTRY
 
 NON_DROPABLE_STATES = ("cancel", "draft", "done")
-CONTRAINTS_REQUIRING_A_CHECK = ("enforce", "enforce_with_empty")
+CONSTRAINTS_REQUIRING_A_CHECK = ("enforce", "enforce_with_empty")
 WITH_EMPTY_LOCATIONS = ("suggest_with_empty", "enforce_with_empty")
 VIEW_SET = set(["view"])
 
@@ -28,7 +28,16 @@ class StockMoveLine(models.Model):
             raise ValueError(_("Policy with name=%s could not be found") % policy_type)
 
     def suggest_locations(self, picking=None, values=None, limit=30):
-        """Suggest locations for move line, either by self or picking_type and values"""
+        """
+        Suggest locations for move line, either by self or picking_type and values
+
+        - picking: {stock.picking}
+            If not set, it will be determined from the picking for the stock move line in self
+        - values: Dictionary
+            Used to determine values to use when self is an empty recordset
+        - limit: Integer
+            If set then the location recordset returned will be less than or equal to the limit.
+        """
         # Validate preconditions
         if not self and (not picking or not values):
             raise ValueError(
@@ -57,9 +66,21 @@ class StockMoveLine(models.Model):
             values = policy.get_values_from_dict(values)
         # Get locations
         locations = policy.get_locations(**values)
+
         if picking_type.u_drop_location_constraint in WITH_EMPTY_LOCATIONS:
-            locations |= picking.get_empty_locations()
-        return locations[:limit]
+            empty_locations_limit = None
+            if limit:
+                # Only get the number of empty locations needed to reach the limit
+                location_count = len(locations.ids)
+                empty_locations_limit = limit - location_count
+
+            if empty_locations_limit is None or empty_locations_limit > 0:
+                locations |= picking.get_empty_locations(limit=empty_locations_limit)
+
+        if limit:
+            locations = locations[:limit]
+
+        return locations
 
     @api.constrains("location_dest_id")
     @api.onchange("location_dest_id")
@@ -82,7 +103,7 @@ class StockMoveLine(models.Model):
                 continue
 
             constraint = picking_type.u_drop_location_constraint
-            if constraint not in CONTRAINTS_REQUIRING_A_CHECK:
+            if constraint not in CONSTRAINTS_REQUIRING_A_CHECK:
                 continue
 
             # Get policy
