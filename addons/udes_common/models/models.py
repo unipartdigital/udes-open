@@ -5,7 +5,8 @@ import itertools
 from operator import itemgetter
 from .. import tools
 
-from odoo import models
+from odoo import models, _
+from odoo.exceptions import ValidationError
 
 _logger = logging.getLogger(__name__)
 
@@ -84,3 +85,23 @@ def statistics(self, cache=False):
 def trace(self, filter=None, max=None):
     """Trace database queries"""
     return tools.QueryTracer(self.env.cr, filter=filter, max=max)
+
+
+@add_if_not_exists(models.BaseModel)
+def selection_display_name(self, selection_field_name):
+    """Get the display name - for a given selection fields value - on a recordset
+    :param: self: <some.model> recordset (len 1) to get the value from
+    :param: selection_field_name: str() field name to get the value for
+
+    :returns: str() Display name of the currently set selection field value of the recordset
+    """
+    self.ensure_one()
+    try:
+        selection_field = self._fields[selection_field_name]
+    except KeyError:
+        raise ValidationError(
+            _(f"Field '{selection_field_name}' does not exist on model '{self._name}'")
+        )
+    # Odoo has a nice function that handles all the weird ways you can define selections!
+    selection_values_dict = dict(selection_field._description_selection(self.env))
+    return selection_values_dict.get(self[selection_field_name], False)
