@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 from . import common
 from odoo.exceptions import ValidationError
 
@@ -89,6 +88,7 @@ class TestGoodsInPicking(common.BaseUDES):
             "priority_name",
             "state",
             "picking_guidance",
+            "u_original_picking_id",
         ]
         # Sorted returns a list(or did when I wrote this)
         # so no need to type cast
@@ -186,6 +186,86 @@ class TestGoodsInPicking(common.BaseUDES):
         pick._check_entire_pack()
         self.assertFalse(pick.move_line_ids.u_result_parent_package_id)
 
+    def test14_original_picking_information_is_as_expected(self):
+        """
+        Check that the original picking information is propgated down.
+        Pick 2 items at a time until everything is picked.
+        """
+        picking = self.test_picking
+        prod_barcode = picking.move_line_ids.product_id.barcode
+        for idx in range(5):
+            with self.subTest(idx=idx):
+                self.assertEqual(picking.state, "assigned")
+                self.assertEqual(picking.u_original_picking_id, self.test_picking)
+                package = self.create_package()
+                picking.update_picking(
+                    location_dest_id=self.received_location.id,
+                    validate=True,
+                    result_package_name=package.name,
+                    product_ids=[{"barcode": prod_barcode, "qty": 2}],
+                    create_backorder=idx < 4,
+                )
+                self.assertEqual(picking.state, "done")
+                self.assertEqual(picking.move_lines.state, "done")
+                self.assertEqual(picking.move_lines.product_uom_qty, 2)
+                if idx < 4:
+                    picking = picking.u_created_back_orders
+                    self.assertTrue(picking)
+                else:
+                    self.assertFalse(picking.u_created_back_orders)
+
+
+class TestProcessPartial(common.BaseUDES):
+    @classmethod
+    def setUpClass(cls):
+        super(TestProcessPartial, cls).setUpClass()
+        products_info = [{"product": cls.apple, "qty": 10}]
+        cls.picking_type_in.u_handle_partials = True
+        cls.picking_type_in.u_user_process_partial = True
+        cls.picking = cls.create_picking(
+            cls.picking_type_in, origin="test_origin", products_info=products_info, confirm=True
+        )
+
+    def test_simple_u_user_process_partial(self):
+        """
+        Test when u_user_process_partial is enabled then when the picking has
+        something completed, the picking information gets placed in a backorder.
+        """
+        prod_barcode = self.picking.move_line_ids.product_id.barcode
+        for idx in range(1, 5):
+            with self.subTest(idx=idx):
+                self.assertEqual(self.picking.state, "assigned")
+                package = self.create_package()
+                self.picking.update_picking(
+                    location_dest_id=self.received_location.id,
+                    validate=True,
+                    result_package_name=package.name,
+                    product_ids=[{"barcode": prod_barcode, "qty": idx}],
+                )
+                if idx < 4:
+                    # The done picking is placed into a backorder
+                    completed_backorders = self.picking.u_created_back_orders
+                    self.assertEqual(len(completed_backorders), idx)
+                    # Check the last done picking is as expected
+                    last_completed_picking = completed_backorders.filtered(
+                        lambda p: p.move_lines.product_uom_qty == idx
+                    )
+                    self.assertTrue(last_completed_picking)
+                    self.assertEqual(last_completed_picking.backorder_id, self.picking)
+                    self.assertEqual(last_completed_picking.u_original_picking_id, self.picking)
+
+        # Check everything at the end is as expected
+        # I.e the original picing is done and maps to all the backorders
+        self.assertEqual(self.picking.state, "done")
+        self.assertEqual(self.picking.move_lines.product_uom_qty, 4)
+        self.assertFalse(self.picking.backorder_id)
+        backorders = self.picking.u_created_back_orders
+        self.assertEqual(len(backorders), 3)
+        self.assertEqual(backorders.mapped("state"), 3 * ["done"])
+        self.assertEqual(backorders.mapped("move_lines.product_uom_qty"), [1, 2, 3])
+        self.assertEqual(backorders.mapped("backorder_id"), self.picking)
+        self.assertEqual(backorders.mapped("u_original_picking_id"), self.picking)
+
 
 class TestSuggestedLocation(common.BaseUDES):
     @classmethod
@@ -196,18 +276,10 @@ class TestSuggestedLocation(common.BaseUDES):
         Location = cls.env["stock.location"]
 
         cls.test_location_03 = Location.create(
-            {
-                "name": "Test location 03",
-                "barcode": "LTEST03",
-                "location_id": cls.stock_location.id,
-            }
+            {"name": "Test location 03", "barcode": "LTEST03", "location_id": cls.stock_location.id}
         )
         cls.test_location_04 = Location.create(
-            {
-                "name": "Test location 04",
-                "barcode": "LTEST04",
-                "location_id": cls.stock_location.id,
-            }
+            {"name": "Test location 04", "barcode": "LTEST04", "location_id": cls.stock_location.id}
         )
         cls.test_locations += cls.test_location_03 + cls.test_location_04
 
@@ -218,7 +290,7 @@ class TestSuggestedLocation(common.BaseUDES):
             cls.tangerine.id, cls.test_location_02.id, 10, "TESTLOT002"
         )
         # Create a non-lot tracked quant
-        cls.test_stock_quant_03 = cls.create_quant(cls.apple.id, cls.test_location_03.id, 10,)
+        cls.test_stock_quant_03 = cls.create_quant(cls.apple.id, cls.test_location_03.id, 10)
 
         # Create a new lot tracked product
         cls.uglyfruit = cls.create_product("Ugly Fruit", tracking="lot")
@@ -229,7 +301,7 @@ class TestSuggestedLocation(common.BaseUDES):
         """Create and assign a putaway picking with associated quants created."""
         for info in products_info:
             test_quant = self.create_quant(
-                info["product"].id, self.received_location.id, info["qty"],
+                info["product"].id, self.received_location.id, info["qty"]
             )
             # Remove lot from dictionary (if present) so that it may be used in create_picking
             lot = info.pop("lot", False)
