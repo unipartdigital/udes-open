@@ -99,10 +99,22 @@ class EdiEmailMissingNotifier(models.AbstractModel):
     _timestamp_field = "x_last_checked_not_received"
 
     def _get_time_today(self, cron):
-        time = fields.Datetime.from_string(cron.nextcall).time()
-        return datetime.now().replace(
-            hour=time.hour, minute=time.minute, second=0, microsecond=0,
-        )
+        """Returns the datetime object with
+        replaced hour, minute, seconds and microseconds.
+        If the today's date is different then return nextcall cron job date
+        else return today's date.
+
+        Args:
+            cron (ir.cron): cron job object
+
+        Returns:
+            datetime: return modified datetime object
+        """
+        time = fields.Datetime.from_string(cron.nextcall)
+        time_now = datetime.now()
+        if time_now.date() != time.date():
+            return time.replace(second=0, microsecond=0)
+        return time_now.replace(hour=time.hour, minute=time.minute, second=0, microsecond=0)
 
     def _start_of_day(self):
         return datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
