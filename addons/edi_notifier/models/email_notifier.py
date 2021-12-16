@@ -114,7 +114,7 @@ class EdiEmailMissingNotifier(models.AbstractModel):
         """Gets when it was lasted checked or the start of the day """
         start_of_day = self._start_of_day()
         date_lower_bound = self._get_last_checked(rec)
-        if not date_lower_bound or start_of_day < start_of_day:
+        if not date_lower_bound or start_of_day < date_lower_bound:
             date_lower_bound = start_of_day
         return date_lower_bound
 
