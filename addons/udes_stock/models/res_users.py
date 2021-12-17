@@ -69,3 +69,11 @@ class ResUser(models.Model):
         user.sudo().u_location_category_ids = categories
 
         return True
+
+    def unassign_pickings_from_users(self, **kwargs):
+        """Unassign users from a picking, to be overridden"""
+        return
+
+    def assign_picking_to_users(self, picking):
+        """Assign a picking to user(s) in self, to be overridden"""
+        return
