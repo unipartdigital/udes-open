@@ -3,6 +3,7 @@ from . import ir_actions
 from . import ir_attachment
 from . import models
 from . import readonly_desktop_user_exception
+from . import res_archiving_restriction
 from . import res_authentication_attempt
 from . import res_groups
 from . import res_partner

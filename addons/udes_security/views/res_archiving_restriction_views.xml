@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <!-- Archiving Restriction Form view -->
+    <record id="view_archiving_restriction_form" model="ir.ui.view">
+        <field name="name">res.archiving.restriction.form</field>
+        <field name="model">res.archiving.restriction</field>
+        <field name="arch" type="xml">
+            <form string="Archiving Restriction">
+                <sheet>
+                    <group>
+                        <field name="model_id" />
+                        <field name="name" />
+                        <field name="permitted_group_ids" widget="many2many_tags" />
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Archiving Restriction Tree view -->
+    <record id="view_archiving_restriction_tree" model="ir.ui.view">
+        <field name="name">res.archiving.restriction.tree</field>
+        <field name="model">res.archiving.restriction</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name" />
+                <field name="model_id" />
+                <field name="permitted_group_ids" widget="many2many_tags" />
+            </tree>
+        </field>
+    </record>
+
+    <!-- Archiving Restriction Action -->
+    <record id="action_archiving_restriction" model="ir.actions.act_window">
+        <field name="name">Archiving Restriction</field>
+        <field name="res_model">res.archiving.restriction</field>
+        <field name="view_type">form</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <!-- Archiving Restriction Menuitem -->
+    <menuitem action="action_archiving_restriction" id="menu_archiving_restriction" parent="base.menu_security" sequence="30" />
+</odoo>

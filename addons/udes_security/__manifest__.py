@@ -17,6 +17,7 @@ Security enhancements used by UDES
         "views/base_menu.xml",
         "views/allowed_file_type_views.xml",
         "views/readonly_desktop_user_exception_views.xml",
+        "views/res_archiving_restriction_views.xml",
         "views/res_users_views.xml",
         "views/webclient_templates.xml",
         "data/auth_brute_force.xml",
