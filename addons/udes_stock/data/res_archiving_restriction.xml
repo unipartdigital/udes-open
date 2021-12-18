@@ -1,0 +1,14 @@
+<odoo>
+    <data noupdate="1">
+        <record id="stock_picking_type_debug_user" model="res.archiving.restriction">
+            <field name="model_id" ref="model_stock_picking_type" />
+            <field name="permitted_group_ids" eval="[(6,0,[ref('udes_security.group_debug_user')])]" />
+        </record>
+
+        <record id="stock_warehouse_debug_user" model="res.archiving.restriction">
+            <field name="model_id" ref="model_stock_warehouse" />
+            <field name="permitted_group_ids" eval="[(6,0,[ref('udes_security.group_debug_user')])]" />
+        </record>
+    </data>
+</odoo>
+  
