@@ -7,9 +7,27 @@ from odoo.osv.orm import setup_modifiers
 class BaseModel(models.AbstractModel):
     _inherit = "base"
 
+    @api.multi
+    def write(self, vals):
+        """Inherit write to add a check against res.archiving.restriction
+        when the active field is written to.
+        """
+        ResArchivingRestriction = self.env["res.archiving.restriction"]
+        if "active" in vals:
+            ResArchivingRestriction._check_can_archive(self._name)
+        return super().write(vals)
+
     @api.model
     def fields_view_get(self, view_id=None, view_type="form", toolbar=False, submenu=False):
-        """Override to remove buttons/editable functionality for view only desktop users"""
+        """Override to remove buttons/editable functionality for view only desktop users
+        and take into account archiving restrictions for the given user"""
+
+        def _remove_active(doc):
+            """Remove any field or smart button related to the active field from the doc"""
+            for node in doc.xpath("//button[@name='toggle_active']"):
+                node.getparent().remove(node)
+            for node in doc.xpath("//field[@name='active']"):
+                node.getparent().remove(node)
 
         def _remove_nodes(doc, xpath):
             """Remove any elements from the view that match the supplied xpath"""
@@ -29,6 +47,7 @@ class BaseModel(models.AbstractModel):
                     if field_name in res["fields"]:
                         setup_modifiers(node, res["fields"][field_name])
 
+        ResArchivingRestriction = self.env["res.archiving.restriction"]
         ModelException = self.env["udes.readonly_desktop_user_model_exception"].sudo()
 
         res = super().fields_view_get(
@@ -74,6 +93,12 @@ class BaseModel(models.AbstractModel):
 
             res["arch"] = etree.tostring(doc)
             # Remove archive option in tree view and make calendar readonly
-            res["readonly_desktop_user"] = True
+            res["readonly_desktop_user"] = True  # Used in basic_view.js
+        elif not ResArchivingRestriction._get_can_archive(model):
+            doc = etree.XML(res["arch"])
+            if doc.tag == "form":
+                _remove_active(doc)
+                res["arch"] = etree.tostring(doc)
+            res["cannot_archive_record"] = True  # Used in basic_view.js
 
         return res
