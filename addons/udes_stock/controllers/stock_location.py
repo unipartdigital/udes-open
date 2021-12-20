@@ -3,7 +3,7 @@
 from odoo import http, _
 from odoo.http import request
 from .main import UdesApi
-from odoo.exceptions import ValidationError
+from odoo.exceptions import ValidationError, UserError
 
 
 def _get_location(env, lid, lname, lbarcode):
@@ -123,21 +123,44 @@ class Location(UdesApi):
 
         return True
 
-    @http.route('/api/stock-location/is_compatible_package/',
-                type='json', methods=['GET'], auth='user')
-    def is_compatible_package_to_location(self, package_name,
-                                          location_id=None,
-                                          location_name=None,
-                                          location_barcode=None):
+    @http.route(
+        "/api/stock-location/is_compatible_package/", type="json", methods=["GET"], auth="user"
+    )
+    def is_compatible_package_to_location(
+        self, package_name, location_id=None, location_name=None, location_barcode=None
+    ):
         """
             Checks that the package is in the specified location,
-            in case it exists.
+            in case it exists. It also checks if the package is assigned
+            to another result_package_id in more than one destination location
+            on stock.move.line and raise UserError in that case.
             Refer to the API specs in the README for more details.
         """
-        location = _get_location(request.env, location_id, location_name,
-                                 location_barcode)
+        Package = request.env["stock.quant.package"]
+        StockMoveLine = request.env["stock.move.line"]
+
+        location = _get_location(request.env, location_id, location_name, location_barcode)
 
         if not package_name:
-            raise ValidationError(_('You need to provide a package name.'))
+            raise ValidationError(_("You need to provide a package name."))
 
-        return location.is_compatible_package(package_name)
+        res = location.is_compatible_package(package_name)
+
+        package = Package.get_package(package_name, no_results=True)
+
+        # Usecase for picking returns
+        if package:
+            # Note: Cannot use package.find_move_line or package.get_move_lines method
+            # as they search on package_id. Use of current_picking_move_line_ids
+            # won't work because the context will not have picking_id to compute values.
+            # That leave us with only option of searching stock.move.line on
+            # result_package_id and states
+            sml = StockMoveLine.search(
+                [("result_package_id", "in", package.ids), ("state", "not in", ["done", "cancel"])]
+            )
+            pack_location = sml.mapped("location_dest_id")
+            if pack_location and (len(pack_location) > 1 or location != pack_location):
+                raise UserError(
+                    _("You should not put the contents of a package in different locations.")
+                )
+        return res
