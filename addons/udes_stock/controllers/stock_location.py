@@ -7,19 +7,23 @@ from odoo.exceptions import ValidationError, UserError
 
 
 def _get_location(env, lid, lname, lbarcode):
-    Location = env['stock.location']
+    Location = env["stock.location"]
     identifier = lid or lname or lbarcode
     if not identifier:
-        raise ValidationError(
-            _('You need to provide an id, name or barcode for the location.'))
+        raise ValidationError(_("You need to provide an id, name or barcode for the location."))
     return Location.get_location(identifier)
 
 
 class Location(UdesApi):
-
-    @http.route('/api/stock-location/', type='json', methods=['GET'], auth='user')
-    def get_location(self, location_id=None, location_name=None,
-                     location_barcode=None, load_quants=False, check_blocked=False):
+    @http.route("/api/stock-location/", type="json", methods=["GET"], auth="user")
+    def get_location(
+        self,
+        location_id=None,
+        location_name=None,
+        location_barcode=None,
+        load_quants=False,
+        check_blocked=False,
+    ):
         """ Search for a location by id, name or barcode and returns a
             stock.location object that match the given criteria.
 
@@ -35,8 +39,7 @@ class Location(UdesApi):
                 When enabled, checks if the location is blocked, in which case
                 an error will be raise.
         """
-        location = _get_location(request.env, location_id, location_name,
-                                 location_barcode)
+        location = _get_location(request.env, location_id, location_name, location_barcode)
 
         if check_blocked:
             location.check_blocked()
@@ -46,8 +49,7 @@ class Location(UdesApi):
 
         return location.get_info(extended=True, load_quants=load_quants)[0]
 
-    @http.route('/api/stock-location-pi-count/',
-                type='json', methods=['POST'], auth='user')
+    @http.route("/api/stock-location-pi-count/", type="json", methods=["POST"], auth="user")
     def pi_count(self, pi_request):
         """
             Process a Perpetual Inventory (PI) count request by creating
@@ -62,27 +64,24 @@ class Location(UdesApi):
             "inventory_adjustments", "preceding_inventory_adjustments"
             and "location_id" entries
         """
-        Location = request.env['stock.location']
+        Location = request.env["stock.location"]
 
         location_id = None
 
         try:
-            location_id = int(pi_request.get('location_id'))
+            location_id = int(pi_request.get("location_id"))
         except ValueError:
             pass
 
         if location_id is None:
-            raise ValidationError(
-                _('You need to provide a valid id for the location.'))
+            raise ValidationError(_("You need to provide a valid id for the location."))
 
         location = Location.get_location(location_id)
 
         return location.with_context(is_mobile=True).process_perpetual_inventory_request(pi_request)
 
-    @http.route('/api/stock-location/block/',
-                type='json', methods=['POST'], auth='user')
-    def block(self, reason,
-              location_id=None, location_name=None, location_barcode=None):
+    @http.route("/api/stock-location/block/", type="json", methods=["POST"], auth="user")
+    def block(self, reason, location_id=None, location_name=None, location_barcode=None):
         """
             Blocks the specified location and creates a Stock
             Investigation for it.
@@ -95,31 +94,28 @@ class Location(UdesApi):
             @param <ident>  location_id of the location to block
             @param reason   Reason for the location being blocked
         """
-        Picking = request.env['stock.picking']
-        ResUsers = request.env['res.users']
+        Picking = request.env["stock.picking"]
+        ResUsers = request.env["res.users"]
 
-        location = _get_location(request.env, location_id, location_name,
-                                 location_barcode)
+        location = _get_location(request.env, location_id, location_name, location_barcode)
 
         # Raise if location is already blocked, as we can't raise
         # SI in a blocked location
         if location.u_blocked is True:
-            raise ValidationError(
-                _('Location is already blocked.'))
+            raise ValidationError(_("Location is already blocked."))
 
         # Create a SI in this location
         si_picking_type = ResUsers.get_user_warehouse().u_stock_investigation_picking_type
-        Picking.create({
-            'location_id': location.id,
-            'location_dest_id': si_picking_type.default_location_dest_id.id,
-            'picking_type_id': si_picking_type.id,
-        })
+        Picking.create(
+            {
+                "location_id": location.id,
+                "location_dest_id": si_picking_type.default_location_dest_id.id,
+                "picking_type_id": si_picking_type.id,
+            }
+        )
 
         # Block the location (after creating SI, otherwise Picking.create fails)
-        location.sudo().write({
-            'u_blocked': True,
-            'u_blocked_reason': reason,
-        })
+        location.sudo().write({"u_blocked": True, "u_blocked_reason": reason})
 
         return True
 
