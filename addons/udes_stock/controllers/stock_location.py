@@ -123,7 +123,12 @@ class Location(UdesApi):
         "/api/stock-location/is_compatible_package/", type="json", methods=["GET"], auth="user"
     )
     def is_compatible_package_to_location(
-        self, package_name, location_id=None, location_name=None, location_barcode=None
+        self,
+        package_name,
+        location_id=None,
+        location_name=None,
+        location_barcode=None,
+        picking_id=None,
     ):
         """
             Checks that the package is in the specified location,
@@ -133,7 +138,8 @@ class Location(UdesApi):
             Refer to the API specs in the README for more details.
         """
         Package = request.env["stock.quant.package"]
-        StockMoveLine = request.env["stock.move.line"]
+        context = dict(request.env.context)
+        context.update(picking_id=picking_id)
 
         location = _get_location(request.env, location_id, location_name, location_barcode)
 
@@ -145,15 +151,9 @@ class Location(UdesApi):
         package = Package.get_package(package_name, no_results=True)
 
         # Usecase for picking returns
-        if package:
-            # Note: Cannot use package.find_move_line or package.get_move_lines method
-            # as they search on package_id. Use of current_picking_move_line_ids
-            # won't work because the context will not have picking_id to compute values.
-            # That leave us with only option of searching stock.move.line on
-            # result_package_id and states
-            sml = StockMoveLine.search(
-                [("result_package_id", "in", package.ids), ("state", "not in", ["done", "cancel"])]
-            )
+        if package and picking_id:
+            # Set picking_id in context
+            sml = package.with_context(context).current_picking_move_line_ids
             pack_location = sml.mapped("location_dest_id")
             if pack_location and (len(pack_location) > 1 or location != pack_location):
                 raise UserError(

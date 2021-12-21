@@ -433,6 +433,9 @@ Method: GET
 ```
 
 Checks that the package is in the specified location, in case it exists.
+It also checks if the package is assigned to another result_package_id in
+more than one destination location on stock.move.line and raise UserError
+in that case.
 
 Request:
 
@@ -442,6 +445,7 @@ JSON payload only, no URL parameters
 @param location_id - (Int - optional) the location id
 @param location_name - (String - optional) this is a string that entirely matches the name
 @param location_barcode - (String - optional) this is a string that entirely matches the barcode
+@param picking_id - (Int - Optional) the picking id
 
 Response:
 
