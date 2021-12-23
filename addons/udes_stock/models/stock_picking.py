@@ -161,6 +161,7 @@ class StockPicking(models.Model):
         "the pallet reserved for this picking.",
     )
 
+    @api.model
     def create(self, vals):
         """
         Add the original picking id on creation because of race conditions
