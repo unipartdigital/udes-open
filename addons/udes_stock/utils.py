@@ -17,6 +17,7 @@ def location_to_dict(location, **extras):
         "name": location.name,
         "blocked": {"is_blocked": location.u_blocked, "reason": reason},
         "id": location.id,
+        "storage_format": location.u_storage_format
     }
     loc.update(extras)
     return loc

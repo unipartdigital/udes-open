@@ -90,7 +90,6 @@ class StockMoveLine(models.Model):
                 # It might be a new pallet id
                 if not scan_parent_package_end:
                     parent_package = Package.get_package(result_package, create=True)
-                result_package = None
                 # MPS: maybe this if is not needed
                 if not package:
                     if products_info:
@@ -102,8 +101,14 @@ class StockMoveLine(models.Model):
                         raise ValidationError(
                             _("Some of the move lines don't have result package.")
                         )
+                    else:
+                        # We don't have either package or products and all lines have
+                        # result_package_id so parent_package should be result package parameter
+                        parent_package = Package.get_package(result_package, create=True)
+                        result_package = None
                 else:
                     # Products are being packed into a new package
+                    result_package = None
                     if products_info:
                         result_package = Package.create({}).name
             # CASE C: wrong combination of package names given
