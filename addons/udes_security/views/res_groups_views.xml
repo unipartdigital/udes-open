@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<odoo>
+
+    <record id="view_groups_form_udes" model="ir.ui.view">
+        <field name="name">res.groups.form.udes</field>
+        <field name="model">res.groups</field>
+        <field name="inherit_id" ref="base.view_groups_form"/>
+        <field name="arch" type="xml">
+
+            <xpath expr="//field[@name='share']" position="after">
+                <field name="u_required_group_id_to_change"/>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>
