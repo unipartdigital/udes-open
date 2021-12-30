@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="group_can_add_trusted_user" model="res.groups">
+        <field name="name">Can Add Trusted User</field>
+        <field name="category_id" ref="base.module_category_hidden"/>
+        <field name="u_required_group_id_to_change" ref="base.group_system"/>
+    </record>
+
+    <record id="group_trusted_user" model="res.groups">
+        <field name="name">Trusted User</field>
+        <field name="category_id" ref="base.module_category_extra"/>
+        <field name="u_required_group_id_to_change" ref="udes_security.group_can_add_trusted_user"/>
+    </record>
+
+</odoo>
