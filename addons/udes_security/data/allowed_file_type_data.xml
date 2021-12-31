@@ -1,0 +1,128 @@
+<?xml version="1.0"?>
+
+<odoo>
+
+  <data noupdate="1">
+
+    <record id="udes_allowed_file_type_bmp" model="udes.allowed_file_type">
+      <field name="name">bmp</field>
+      <field name="description">Bitmap Image File</field>
+      <field name="active" eval="True"/>
+    </record>
+    
+    <record id="udes_allowed_file_type_csv" model="udes.allowed_file_type">
+      <field name="name">csv</field>
+      <field name="description">Comma-Separated Values</field>
+      <field name="active" eval="True"/>
+    </record>
+
+    <record id="udes_allowed_file_type_doc" model="udes.allowed_file_type">
+      <field name="name">doc</field>
+      <field name="description">Microsoft Word Document (97-2003)</field>
+      <field name="active" eval="True"/>
+    </record>
+
+    <record id="udes_allowed_file_type_docx" model="udes.allowed_file_type">
+      <field name="name">docx</field>
+      <field name="description">Microsoft Word Document (2007+)</field>
+      <field name="active" eval="True"/>
+    </record>
+
+    <record id="udes_allowed_file_type_gif" model="udes.allowed_file_type">
+      <field name="name">gif</field>
+      <field name="description">Graphics Interchange Format</field>
+      <field name="active" eval="True"/>
+    </record>
+
+    <record id="udes_allowed_file_type_jpeg" model="udes.allowed_file_type">
+      <field name="name">jpeg</field>
+      <field name="description">Joint Photographic Experts Group</field>
+      <field name="active" eval="True"/>
+    </record>
+
+    <record id="udes_allowed_file_type_jpg" model="udes.allowed_file_type">
+      <field name="name">jpg</field>
+      <field name="description">Joint Photographic Experts Group</field>
+      <field name="active" eval="True"/>
+    </record>
+
+    <record id="udes_allowed_file_type_json" model="udes.allowed_file_type">
+      <field name="name">json</field>
+      <field name="description">JavaScript Object Notation</field>
+      <field name="active" eval="True"/>
+    </record>
+
+    <record id="udes_allowed_file_type_ods" model="udes.allowed_file_type">
+      <field name="name">ods</field>
+      <field name="description">OpenDocument Spreadsheet</field>
+      <field name="active" eval="True"/>
+    </record>
+
+    <record id="udes_allowed_file_type_odt" model="udes.allowed_file_type">
+      <field name="name">odt</field>
+      <field name="description">OpenDocument Text</field>
+      <field name="active" eval="True"/>
+    </record>
+
+    <record id="udes_allowed_file_type_pdf" model="udes.allowed_file_type">
+      <field name="name">pdf</field>
+      <field name="description">Portable Document Format</field>
+      <field name="active" eval="True"/>
+    </record>
+
+    <record id="udes_allowed_file_type_png" model="udes.allowed_file_type">
+      <field name="name">png</field>
+      <field name="description">Portable Network Graphics</field>
+      <field name="active" eval="True"/>
+    </record>
+
+    <record id="udes_allowed_file_type_rtf" model="udes.allowed_file_type">
+      <field name="name">rtf</field>
+      <field name="description">Rich Text Format</field>
+      <field name="active" eval="True"/>
+    </record>
+
+    <record id="udes_allowed_file_type_tif" model="udes.allowed_file_type">
+      <field name="name">tif</field>
+      <field name="description">Tagged Image File</field>
+      <field name="active" eval="True"/>
+    </record>
+
+    <record id="udes_allowed_file_type_tiff" model="udes.allowed_file_type">
+      <field name="name">tiff</field>
+      <field name="description">Tagged Image File</field>
+      <field name="active" eval="True"/>
+    </record>
+
+    <record id="udes_allowed_file_type_txt" model="udes.allowed_file_type">
+      <field name="name">txt</field>
+      <field name="description">Text File</field>
+      <field name="active" eval="True"/>
+    </record>
+
+    <record id="udes_allowed_file_type_xls" model="udes.allowed_file_type">
+      <field name="name">xls</field>
+      <field name="description">Microsoft Excel Workbook (97-2003)</field>
+      <field name="active" eval="True"/>
+    </record>
+
+    <record id="udes_allowed_file_type_xlsx" model="udes.allowed_file_type">
+      <field name="name">xlsx</field>
+      <field name="description">Microsoft Excel Workbook (2007+)</field>
+      <field name="active" eval="True"/>
+    </record>
+
+    <record id="udes_allowed_file_type_xml" model="udes.allowed_file_type">
+      <field name="name">xml</field>
+      <field name="description">Extensible Markup Language</field>
+      <field name="active" eval="True"/>
+    </record>
+
+  </data>
+
+  <data>
+    <!-- Check for active attachments without an allowed file type and set to inactive -->
+    <function model="ir.attachment" name="_set_blocked_attachments_to_inactive" eval="[[False]]"/>
+  </data>
+
+</odoo>

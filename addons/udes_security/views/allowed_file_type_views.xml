@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<odoo>
+
+    <record id="action_udes_allowed_file_types" model="ir.actions.act_window">
+        <field name="name">Allowed File Types</field>
+        <field name="res_model">udes.allowed_file_type</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">['|', ('active', '=', True), ('active', '=', False)]</field>
+    </record>
+
+    <menuitem id="menu_udes_uploads_and_downloads" name="Uploads &amp; Downloads" parent="base.menu_custom" sequence="100"/>
+
+    <menuitem id="menu_udes_allowed_file_types" name="Allowed File Types" parent="menu_udes_uploads_and_downloads" action="action_udes_allowed_file_types" groups="base.group_system"/>
+
+    <record id="view_udes_allowed_file_type_form" model="ir.ui.view">
+        <field name="name">udes.allowed_file_type.form</field>
+        <field name="model">udes.allowed_file_type</field>
+        <field name="arch" type="xml">
+            <form string="Allowed File Type" duplicate="0">
+                <sheet>
+                    <group string="Allowed File Type Details">
+                        <group>
+                            <field name="name" attrs="{'readonly': [('id', '!=', False)]}"/>
+                            <field name="active"/>
+                            <field name="id" invisible="1"/>
+                        </group>
+                        <group>
+                            <field name="description"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_udes_allowed_file_type_tree" model="ir.ui.view">
+        <field name="name">udes.allowed_file_type.tree</field>
+        <field name="model">udes.allowed_file_type</field>
+        <field name="arch" type="xml">
+            <tree string="Allowed File Type" decoration-muted="not active">
+                <field name="name"/>
+                <field name="description"/>
+                <field name="active"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_udes_allowed_file_type_search" model="ir.ui.view">
+        <field name="name">udes.allowed_file_type.search</field>
+        <field name="model">udes.allowed_file_type</field>
+        <field name="arch" type="xml">
+            <search string="Search Allowed File Types">
+                <field name="name"/>
+                <field name="description"/>
+                <filter name="filter_active" string="Active" domain="[('active','=', True)]"/>
+                <filter name="filter_inactive" string="Inactive" domain="[('active','=', False)]"/>
+            </search>
+        </field>
+    </record>
+
+</odoo>

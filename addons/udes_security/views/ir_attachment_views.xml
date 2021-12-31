@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<odoo>
+
+    <record id="view_attachment_search_udes_security" model="ir.ui.view">
+        <field name="name">ir.attachment.search.udes_security</field>
+        <field name="model">ir.attachment</field>
+        <field name="inherit_id" ref="base.view_attachment_search"/>
+        <field name="arch" type="xml">
+            <xpath expr="//filter[@name='my_documents_filter']" position="before">
+                <filter name="filter_active" string="Active" domain="[('active','=', True)]" groups="base.group_system"/>
+                <filter name="filter_inactive" string="Inactive" domain="[('active','=', False)]" groups="base.group_system"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>
