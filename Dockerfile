@@ -20,4 +20,4 @@ RUN odoo-wrapper --without-demo=all -i \
 
 # Module tests
 #
-CMD ["--test-enable", "-i", "udes_stock,udes_common"]
+CMD ["--test-enable", "-i", "udes_stock,udes_common,udes_advanced_packaging"]
