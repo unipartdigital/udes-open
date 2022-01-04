@@ -103,3 +103,16 @@ def md_format_list_of_label_value(label_value_list=None, separator=":"):
             label_value_pairs["label"], label_value_pairs["value"], separator
         )
     return md_format_label_value_string
+
+
+def format_dict_for_display_list_componet(dict_values):
+    """
+    Formats a dictionary into a list of key: value strings
+    with the key in bold for use in display list components.
+    """
+    result = []
+    if dict_values:
+        for key, value in dict_values.items():
+            temp_val = str(value) if str(value) != "False" else "None"
+            result.append("**" + str(key) + "**" + ": " + temp_val)
+    return result
