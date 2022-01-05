@@ -193,8 +193,6 @@ Additional Details:
 | Field Name | Description |
 | ---------- | ----------- |
 | active | Track visibility on change |
-| u_pallet_barcode_regex | Default Pallet Barcode |
-| u_package_barcode_regex | Default Package Barcode |
 
 | Helpers | Description |
 | ------- | ----------- |
