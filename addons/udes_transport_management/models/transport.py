@@ -57,3 +57,31 @@ class Transport(models.Model):
             res.append(transport._prepare_info(**kwargs))
 
         return res
+
+    def prepare_transport_info(self, **kwargs):
+        """Prepare transport info method that can be override in order
+        to be able to extend it in other modules"""
+        self.ensure_one()
+        transport_info = [
+            {
+                "label": "Trailer Number",
+                "value": self.vehicle_sequence or None,
+                "lookup_key": "trailer_number",
+            },
+            {
+                "label": "Trailer Unit ID",
+                "value": self.vehicle_description or None,
+                "lookup_key": "trailer_unit_id",
+            },
+            {
+                "label": "Vehicle Registration",
+                "value": self.license_plate or None,
+                "lookup_key": "vehicle_registration",
+            },
+            {
+                "label": "Driver Name",
+                "value": self.driver_name or None,
+                "lookup_key": "driver_name",
+            }
+        ]
+        return transport_info

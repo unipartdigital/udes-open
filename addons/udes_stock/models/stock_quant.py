@@ -125,6 +125,7 @@ class StockQuant(models.Model):
             "location_id": location_info[0],
             "quantity": self.quantity,
             "reserved_quantity": self.reserved_quantity,
+            "available_quantity": self.quantity - self.reserved_quantity,
         }
 
         if self.lot_id:
