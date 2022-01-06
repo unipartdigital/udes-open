@@ -20,6 +20,8 @@ TARGET_STORAGE_FORMAT_OPTIONS = [
 class StockPickingType(models.Model):
     _inherit = "stock.picking.type"
 
+    name = fields.Char(translate=False)
+
     show_operations = fields.Boolean(default=True)
 
     # Pick workflow options
