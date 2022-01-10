@@ -96,10 +96,14 @@ class StockMove(models.Model):
         """
         self.ensure_one()
         if not all(ml.move_id == self for ml in move_lines):
-            raise ValueError(_("Cannot split move lines from a move they are not part of."))
+            raise ValueError(
+                _("Cannot split move lines from a move they are not part of.")
+            )
         if (
             move_lines == self.move_line_ids
-            and not self.move_orig_ids.filtered(lambda m: m.state not in ("done", "cancel"))
+            and not self.move_orig_ids.filtered(
+                lambda m: m.state not in ("done", "cancel")
+            )
             and not self.state == "partially_available"
         ):
             new_move = self
