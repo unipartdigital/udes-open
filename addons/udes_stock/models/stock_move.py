@@ -45,7 +45,7 @@ class StockMove(models.Model):
 
         """
         move_line_values = []
-
+        
         for move, qty in moves_info.items():
             vals = self._prepare_move_line(move, qty, **kwargs)
             move_line_values.append(vals)
