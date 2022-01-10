@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id = "view_picking_type_form_inherit" model="ir.ui.view">
+        <field name="name">stock.picking.type.form.inherit</field>
+        <field name="model">stock.picking.type</field>
+        <field name="inherit_id" ref="stock.view_picking_type_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form/sheet/group[last()]" position="after">
+                <group class="udes_wide_list" string="UDES Config" groups='base.group_no_one'>
+                    <field name="u_num_reservable_pickings"/>
+                    <field name="u_reserve_batches"/>
+                    <field name="u_handle_partials"/>
+                    <field name="u_handle_partial_lines"/>
+                    <field name="u_drop_location_policy"/>
+                    <field name="u_drop_location_preprocess"/>
+                    <field name="u_reserve_as_packages"/>
+                    <field name="u_post_assign_action"/>
+                </group>
+            </xpath>
+        </field> 
+    </record>
+</odoo>
