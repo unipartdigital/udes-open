@@ -29,9 +29,10 @@ class StockMoveLine(models.Model):
         """
         return self.filtered(lambda ml: ml.qty_done >= ml.product_uom_qty)
 
-    def move_lines_for_qty(self, quantity, sort=True):
-        """Return a subset of move lines from self where their sum of quantity
-        to do is equal to parameter quantity.
+    def move_lines_for_qty(self, uom_qty, sort=True):
+        """
+        Return a subset of move lines from self where their sum of the uom quantity
+        to do is equal to parameter uom quantity.
         In case that a move line needs to be split, the new move line is
         also returned (this happens when total quantity in the move lines is
         greater than quantity parameter).
@@ -41,12 +42,12 @@ class StockMoveLine(models.Model):
         MoveLine = self.env["stock.move.line"]
         new_ml = None
         result = MoveLine.browse()
-        if quantity == 0:
-            return result, new_ml, quantity
+        if uom_qty == 0:
+            return result, new_ml, uom_qty
 
         if sort:
             sorted_mls = self.sorted(lambda ml: ml.product_uom_qty, reverse=True)
-            greater_equal_mls = sorted_mls.filtered(lambda ml: ml.product_uom_qty >= quantity)
+            greater_equal_mls = sorted_mls.filtered(lambda ml: ml.product_uom_qty >= uom_qty)
             # last one will be at least equal
             mls = greater_equal_mls[-1] if greater_equal_mls else sorted_mls
         else:
@@ -54,16 +55,16 @@ class StockMoveLine(models.Model):
 
         for ml in mls:
             result |= ml
-            extra_qty = ml.product_uom_qty - quantity
+            extra_qty = ml.product_uom_qty - uom_qty
             if extra_qty > 0:
-                new_ml = ml._split(qty=extra_qty)
-                quantity = 0
+                new_ml = ml._split(uom_qty=extra_qty)
+                uom_qty = 0
             else:
-                quantity -= ml.product_uom_qty
-            if quantity == 0:
+                uom_qty -= ml.product_uom_qty
+            if uom_qty == 0:
                 break
 
-        return result, new_ml, quantity
+        return result, new_ml, uom_qty
 
     def _get_search_domain(self, strict=False):
         """Generate search domain for a given move line"""
@@ -123,15 +124,15 @@ class StockMoveLine(models.Model):
             value, precision_rounding=self.product_uom_id.rounding, rounding_method="UP"
         )
 
-    def _split(self, qty=None):
+    def _split(self, uom_qty=None):
         """Splits the move line by
-        - qty if qty is set and (qty_done == 0 or qty == qty_not_done)
-        - qty_not_done if qty is not set
-        As cannot split by qty if some already done!
+        - uom_qty if uom_qty is set and (qty_done == 0 or uom_qty == qty_not_done)
+        - qty_not_done if uom_qty is not set
+        As cannot split by uom_qty if some already done!
 
         :kwargs:
-            - qty: int
-                Quantity to split the move line by unless it has quantity done.
+            - uom_qty: int
+                UoM quantity to split the move line by unless it has quantity done.
         :returns:
             either self (when the line is not split) or
             a new move line with the split quantity,
@@ -143,12 +144,12 @@ class StockMoveLine(models.Model):
         qty_not_done = self._round_qty(self.product_uom_qty - self.qty_done)
         # Not allowed to split by qty parameter when quantity done > 0 unless
         # it is equal to quantity not done
-        if qty is not None and qty_done != 0 and qty != qty_not_done:
+        if uom_qty is not None and qty_done != 0 and uom_qty != qty_not_done:
             raise ValidationError(
                 _("Trying to split a move line with quantity done at picking %s")
                 % self.picking_id.name
             )
-        split_qty = qty or qty_not_done
+        split_qty = uom_qty or qty_not_done
         if (
             split_qty > 0
             and float_compare(

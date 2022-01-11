@@ -85,6 +85,8 @@ Additional Details:
 ### Quants (model: stock.quant)
 
 Physical instances of products at a location are modelled as quants. Short of "quantities of stock", these are used to record stock levels are various parts of the warehouse. Using the analogy of object-orientated programming, products = classes, quants = objects.
+Note that quants are stored in their unit of measure, so if screws come in boxes of 1000 and we have 5000 in a location,
+then we would have `available_quantity = 5`.
 
 Additional Details:
 - Change _description to 'Quant'
@@ -128,8 +130,8 @@ This is essentially a collection of products that are to be moved from one locat
 | u_prev_picking_ids | one2many (stock.picking) | Shows the previous pickings in the chain |
 | u_next_picking_ids | one2many (stock.picking) | Shows the next pickings in the chain |
 | u_created_backorder_ids | one2many (stock.picking) | Shows backorders created from this picking |
-| u_quantity_done | float | Sums all done move quantities for the picking |
-| u_total_quantity | float | Sums all move quantities for the picking |
+| u_quantity_done | float | Sums all done move quantities for the picking (in the UoM of the moves) |
+| u_total_quantity | float | Sums all move quantities for the picking (in the UoM of the moves) |
 | u_has_discrepancies | boolean | Flags when u_quantity_done doesn't match u_total_quantity |
 | u_num_pallets | int | Sums all unique destination packages found in the picking's move lines |
 
@@ -158,6 +160,17 @@ The type of stock.picking can is defined by this type. It can represent a goods 
 ### Stock Move (model: stock.move)
 
 A move of an item of stock from one location to another.
+Note:
+* `product_qty`: the quantity of the product in the move in the UoM of the product (computed field)
+* `product_uom_qty`: the quantity of the product in the move in the UoM of the move
+Example, screws come in a box of 1000. The UoM of the product is 1000.
+If you wanted a move to always move 6 boxes at a time, the UoM of the move is 6000.
+If you wanted to move 12 boxes in one move, then:
+* product_qty = 12
+* product_uom_qty = 2
+so the full/real/absolute quantity (whatever we refer to the 12000 screws as) is never considered in the move.
+
+When using/creating/splitting moves, we use the UoM of the move. 
 
 | Helpers | Description |
 | ------- | ----------- |

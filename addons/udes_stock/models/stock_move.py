@@ -5,24 +5,24 @@ from odoo import models, api, _
 class StockMove(models.Model):
     _inherit = "stock.move"
 
-    def _prepare_move_line(self, move, qty, **kwargs):
+    def _prepare_move_line(self, move, uom_qty, uom_id=None, **kwargs):
         """
         Return a dict of the move line details to be used later in creation of the move line(s).
+        Note that we pass the uom_qty here instead of qty.
 
         :args:
             - move: move object to be assigned to the move line
-            - qty: float value for quantity of the move line generated
+            - uom_qty: float value for uom quantity of the move line generated
+            - uom_id: Pass a UoM record id incase you want the move UoM to differ to the products
 
         :returns:
             vals: dict
-
         """
         move.ensure_one()
-
         vals = {
             "product_id": move.product_id.id,
-            "product_uom_id": move.product_id.uom_id.id,
-            "product_uom_qty": qty,
+            "product_uom_id": uom_id or move.product_uom.id,
+            "product_uom_qty": uom_qty,
             "location_id": move.location_id.id,
             "location_dest_id": move.location_dest_id.id,
             "move_id": move.id,
@@ -38,7 +38,7 @@ class StockMove(models.Model):
         The purpose of this is to allow for multiple move lines to be created at once.
 
         :args:
-            - moves_info: dict of move, quantity float value
+            - moves_info: dict of move, uom quantity float value
 
         :returns:
             move_line_values: list(dict)
@@ -105,7 +105,8 @@ class StockMove(models.Model):
             new_move = self
             new_move.write({"picking_id": None})
         else:
-            # NB: same UoM is assumed for all move_lines
+            # NB: We have a single move, so a single product as it is a Many2one
+            # so we do not need to worry about shuffling of uom's
             total_initial_qty = sum(move_lines.mapped("product_uom_qty"))
             default_values = {
                 "picking_id": False,

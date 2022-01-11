@@ -8,7 +8,10 @@ class TestStockMoveLine(common.BaseUDES):
     def setUpClass(cls):
         super(TestStockMoveLine, cls).setUpClass()
         # Order the banana first to allow for sorting checks later on
-        cls._pick_info = [{"product": cls.banana, "qty": 5}, {"product": cls.apple, "qty": 4}]
+        cls._pick_info = [
+            {"product": cls.banana, "uom_qty": 5},
+            {"product": cls.apple, "uom_qty": 4},
+        ]
         cls.picking = cls.create_picking(
             cls.picking_type_goods_in, products_info=cls._pick_info, confirm=True, assign=True
         )
@@ -46,7 +49,10 @@ class TestStockMoveLine(common.BaseUDES):
         # Create pick to reserve the quants
         pick = self.create_picking(
             self.picking_type_pick,
-            products_info=[{"product": self.apple, "qty": 12}, {"product": self.banana, "qty": 5}],
+            products_info=[
+                {"product": self.apple, "uom_qty": 12},
+                {"product": self.banana, "uom_qty": 5},
+            ],
             assign=True,
             confirm=True,
         )
@@ -78,9 +84,9 @@ class TestStockMoveLine(common.BaseUDES):
     def test04_sort_by_key_custom(self):
         """Get the move lines sorted by product qty then product id"""
         pick_info = [
-            {"product": self.banana, "qty": 5},
-            {"product": self.fig, "qty": 4},
-            {"product": self.apple, "qty": 5},
+            {"product": self.banana, "uom_qty": 5},
+            {"product": self.fig, "uom_qty": 4},
+            {"product": self.apple, "uom_qty": 5},
         ]
         # Create picking
         picking = self.create_picking(
@@ -219,7 +225,10 @@ class TestStockMoveLine(common.BaseUDES):
         # Create pick to reserve the quants
         pick = self.create_picking(
             self.picking_type_pick,
-            products_info=[{"product": self.apple, "qty": 12}, {"product": self.banana, "qty": 8}],
+            products_info=[
+                {"product": self.apple, "uom_qty": 12},
+                {"product": self.banana, "uom_qty": 8},
+            ],
             assign=True,
             confirm=True,
         )
@@ -272,7 +281,7 @@ class TestStockMoveLine(common.BaseUDES):
         Uses the default sorting
         """
         # Create additional move lines in a new picking
-        pick_info = [{"product": self.banana, "qty": 17}]
+        pick_info = [{"product": self.banana, "uom_qty": 17}]
         new_picking = self.create_picking(
             self.picking_type_goods_in, products_info=pick_info, confirm=True, assign=True
         )
@@ -292,7 +301,7 @@ class TestStockMoveLine(common.BaseUDES):
         Does not use the default sorting, sort = False
         """
         # Create additional move lines
-        pick_info = [{"product": self.banana, "qty": 17}]
+        pick_info = [{"product": self.banana, "uom_qty": 17}]
         new_picking = self.create_picking(
             self.picking_type_goods_in, products_info=pick_info, confirm=True, assign=True
         )  # Sort the move lines in this case to ensure the smallest is first
@@ -328,7 +337,7 @@ class TestStockMoveLine(common.BaseUDES):
         # Create pick to reserve the quant
         pick = self.create_picking(
             self.picking_type_pick,
-            products_info=[{"product": self.banana, "qty": 8}],
+            products_info=[{"product": self.banana, "uom_qty": 8}],
             assign=True,
             confirm=True,
         )
@@ -355,7 +364,7 @@ class TestStockMoveLine(common.BaseUDES):
         # Create pick to reserve the quant
         pick = self.create_picking(
             self.picking_type_pick,
-            products_info=[{"product": self.banana, "qty": 8}],
+            products_info=[{"product": self.banana, "uom_qty": 8}],
             assign=True,
             confirm=True,
         )

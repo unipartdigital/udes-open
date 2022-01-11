@@ -43,13 +43,13 @@ class StockPicking(models.Model):
         "Quantity Done",
         compute="_compute_picking_quantities",
         digits=(0, 0),
-        help="Quantity done of the moves related to the picking",
+        help="Quantity done of the moves related to the picking in the UoM of the move(s)",
     )
     u_total_quantity = fields.Float(
         "Total Quantity",
         compute="_compute_picking_quantities",
         digits=(0, 0),
-        help="Total quantity todo of the moves related to the picking",
+        help="Total quantity todo of the moves related to the picking in the UoM of the move(s)",
     )
     u_has_discrepancies = fields.Boolean(
         "Has Discrepancies",
@@ -116,6 +116,13 @@ class StockPicking(models.Model):
             has_discrepancies = False
 
             for move in picking.move_lines.filtered(lambda ml: ml.state != "cancel"):
+                # The move quantity done is in the unit of measure of the move not the product
+                # So use the move UoM not the product for what is done and what is left to do.
+                # This avoids the issue where it says left to do is different to the number of
+                # boxes.
+                # NOTE: Different UoMs across a picking could make these computed fields unreliable
+                # in terms of how much work is done/left todo. Example 50% done - moved one crane
+                # but 1000000 screws in one box.
                 qty_done = move.quantity_done
                 qty_todo = move.product_uom_qty
 
@@ -336,22 +343,23 @@ class StockPicking(models.Model):
 
         :args:
             - pickings: iterable of picking objects to be assigned to the moves
-            - products_info: list(list(dict)) with dict of product and qty
+            - products_info: list(list(dict)) with dict of product, uom_qty and uom_id
+            If uom_id is not specified, the product UoM is  used.
 
         :returns:
             Move_values: list(dict)
-
         """
         move_values = []
         for i, picking in enumerate(pickings):
             for product_info in products_info[i]:
                 product = product_info.get("product")
-                qty = product_info.get("qty")
+                uom_qty = product_info.get("uom_qty")
+                uom_id = product_info.get("uom_id") or product.uom_id.id
                 vals = {
                     "product_id": product.id,
                     "name": product.name,
-                    "product_uom": product.uom_id.id,
-                    "product_uom_qty": qty,
+                    "product_uom": uom_id,
+                    "product_uom_qty": uom_qty,
                     "location_id": picking.location_id.id,
                     "location_dest_id": picking.location_dest_id.id,
                     "picking_id": picking.id,
