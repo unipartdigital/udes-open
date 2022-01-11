@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import unittest
+
 from .common import BaseUDES
 from datetime import datetime, timedelta
 
@@ -226,30 +228,36 @@ class TestStockQuantFIFO(BaseUDES):
         )
         reserved_quant = reserved_quants[0][0]
 
-        # Should choose between quant2 and quant3 based on `in_date`
-        # Choose quant2 as it has a package_id
+        # Should choose between quant2 and quant3 based on `in_date`.
+        # Choose quant2 as it has a smaller package id.
         self.assertEqual(reserved_quant.in_date, oldest_time)
         self.assertEqual(reserved_quant.package_id, self.pack2)
         self.assertEqual(reserved_quant, self.quant2)
 
+    @unittest.skip("Skip unittest due to Issue 782")
     def test_in_date_ordered_first_in_fifo(self):
         """Check that the FIFO strategies correctly applies when you have populated `in_date`
-        fields and None for `package_id` fields.
+        fields and None for `package_id` fields, except for one.
         Setup:
                |   in_date  |  package_id |
         quant1 |    middle  |     None    |
-        quant2 |    oldest  |   pack2.id  |
+        quant2 |    oldest  |    Pack 2   |
         quant3 |    recent  |     None    |
 
         It should order_by `in_date` first, then `package_id`, so the fact package_id's are None
         for both quant1 and quant3 should have no impact.
         """
         # Populate all `in_date` fields, with quant2 being the oldest
-        # Set the `package_id` only for quant2
-        oldest_time = datetime.now() - timedelta(days=5)
-        self.quant1.write({"in_date": datetime.now()})
-        self.quant2.write({"package_id": self.pack2.id, "in_date": oldest_time})
-        self.quant3.write({"in_date": datetime.now() - timedelta(days=3)})
+        now = datetime.now()
+        oldest_time = now - timedelta(days=5)
+        self.quant1.in_date = now
+        self.quant2.write({"in_date": oldest_time, "package_id ": self.pack2.id})
+        self.quant3.in_date = now - timedelta(days=3)
+
+        # Assert we are as expected
+        self.assertEqual(self.quant2.package_id, self.pack2)
+        for q in self.quant1 | self.quant3:
+            self.assertFalse(q.package_id)
 
         # Reserve quantity - one apple
         reserved_quants = self.Quant._update_reserved_quantity(
@@ -257,9 +265,9 @@ class TestStockQuantFIFO(BaseUDES):
         )
         reserved_quant = reserved_quants[0][0]
 
-        self.assertEqual(reserved_quant.in_date, oldest_time)
-        self.assertEqual(reserved_quant.package_id, self.pack2)
         self.assertEqual(reserved_quant, self.quant2)
+        self.assertEqual(reserved_quant.in_date, oldest_time)
+        self.assertEqual(self.quant2.package_id, self.pack2)
 
     def test_fifo_with_nones(self):
         """Check that the FIFO strategies correctly applies when you have unpopulated `in_date`
