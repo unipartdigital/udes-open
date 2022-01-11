@@ -203,9 +203,9 @@ class TestStockQuantFIFO(BaseUDES):
         cls.Quant = cls.env["stock.quant"]
 
         # Create packages
-        cls.pack1 = cls.create_package(name="test_package_one")
-        cls.pack2 = cls.create_package(name="test_package_two")
-        cls.pack3 = cls.create_package(name="test_package_three")
+        cls.pack1 = cls.create_package(name="1001")
+        cls.pack2 = cls.create_package(name="1002")
+        cls.pack3 = cls.create_package(name="1003")
 
         # Create three quants in the same location
         cls.quant1 = cls.create_quant(cls.apple.id, cls.test_stock_location_01.id, 1.0)
