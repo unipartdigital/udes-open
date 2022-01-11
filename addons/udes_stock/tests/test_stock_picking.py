@@ -1,14 +1,16 @@
+import unittest
+
 from . import common
 from odoo.exceptions import ValidationError
 
 
-class TestStockPicking(common.BaseUDES):
+class TestStockPickingCommon(common.BaseUDES):
     @classmethod
     def setUpClass(cls):
-        super(TestStockPicking, cls).setUpClass()
+        super(TestStockPickingCommon, cls).setUpClass()
         cls.Picking = cls.env["stock.picking"]
         cls.Location = cls.env["stock.location"]
-        products_info = [{"product": cls.apple, "qty": 10}]
+        products_info = [{"product": cls.apple, "uom_qty": 10}]
         cls.test_picking_in = cls.create_picking(
             cls.picking_type_goods_in,
             products_info=products_info,
@@ -19,13 +21,13 @@ class TestStockPicking(common.BaseUDES):
             cls.picking_type_pick, products_info=products_info, confirm=True
         )
 
-    def _get_expected_move_values(self, pick, product, qty, **kwargs):
+    def _get_expected_move_values(self, pick, product, uom_qty, uom_id=None, **kwargs):
         """Helper to get expected move values"""
         expected_move_values = {
             "product_id": product.id,
             "name": product.name,
-            "product_uom": product.uom_id.id,
-            "product_uom_qty": qty,
+            "product_uom": uom_id or product.uom_id.id,
+            "product_uom_qty": uom_qty,
             "location_id": pick.location_id.id,
             "location_dest_id": pick.location_dest_id.id,
             "picking_id": pick.id,
@@ -66,6 +68,8 @@ class TestStockPicking(common.BaseUDES):
                         f"'{field}' for {picking.name} should be '{expected_pick_names}'",
                     )
 
+
+class TestStockPicking(TestStockPickingCommon):
     def test_get_empty_locations(self):
         """Get empty locations - for goods in"""
         self.assertEqual(self.test_picking_in.get_empty_locations(), self.test_received_location_01)
@@ -138,7 +142,10 @@ class TestStockPicking(common.BaseUDES):
         products = self.apple | self.banana
         pick = self.Picking.create_picking(
             picking_type=self.picking_type_pick,
-            products_info=[{"product": self.apple, "qty": 2}, {"product": self.banana, "qty": 4}],
+            products_info=[
+                {"product": self.apple, "uom_qty": 2},
+                {"product": self.banana, "uom_qty": 4},
+            ],
         )
         # Check default pick locations
         self.assertEqual(pick.location_id, self.stock_location)
@@ -155,7 +162,10 @@ class TestStockPicking(common.BaseUDES):
         products = self.apple | self.banana
         pick = self.Picking.create_picking(
             picking_type=self.picking_type_pick,
-            products_info=[{"product": self.apple, "qty": 2}, {"product": self.banana, "qty": 4}],
+            products_info=[
+                {"product": self.apple, "uom_qty": 2},
+                {"product": self.banana, "uom_qty": 4},
+            ],
             location_id=self.test_stock_location_01.id,
             location_dest_id=self.test_goodsout_location_01.id,
             confirm=True,
@@ -181,8 +191,8 @@ class TestStockPicking(common.BaseUDES):
         picks = self.Picking.create_picking(
             picking_type=self.picking_type_pick,
             products_info=[
-                [{"product": self.apple, "qty": 2}, {"product": self.banana, "qty": 4}],
-                [{"product": self.apple, "qty": 1}, {"product": self.banana, "qty": 1}],
+                [{"product": self.apple, "uom_qty": 2}, {"product": self.banana, "uom_qty": 4}],
+                [{"product": self.apple, "uom_qty": 1}, {"product": self.banana, "uom_qty": 1}],
             ],
             location_id=self.test_stock_location_01.id,
             location_dest_id=self.test_goodsout_location_01.id,
@@ -207,7 +217,9 @@ class TestStockPicking(common.BaseUDES):
     def test_pepare_and_create_move(self):
         """Prepare and create a single move"""
         pick = self.create_picking(self.picking_type_goods_in)
-        move_values = self.Picking._prepare_move(pick, [[{"product": self.elderberry, "qty": 10}]])
+        move_values = self.Picking._prepare_move(
+            pick, [[{"product": self.elderberry, "uom_qty": 10}]]
+        )
         # Check the prepared move_values are correct
         self.assertEqual(len(move_values), 1)
         self.assertEqual(move_values[0], self._get_expected_move_values(pick, self.elderberry, 10))
@@ -218,7 +230,10 @@ class TestStockPicking(common.BaseUDES):
 
     def test_prepare_and_create_multiple_moves(self):
         """Prepare and create multiple moves"""
-        products_info = [[{"product": self.apple, "qty": 10}], [{"product": self.fig, "qty": 10}]]
+        products_info = [
+            [{"product": self.apple, "uom_qty": 10}],
+            [{"product": self.fig, "uom_qty": 10}],
+        ]
         pick1 = self.create_picking(self.picking_type_goods_in)
         pick2 = self.create_picking(self.picking_type_goods_in)
         picks = pick1 | pick2
@@ -268,7 +283,10 @@ class TestStockPicking(common.BaseUDES):
         self.create_quant(self.banana.id, self.test_stock_location_02.id, 50)
         pick = self.Picking.create_picking(
             picking_type=self.picking_type_pick,
-            products_info=[{"product": self.fig, "qty": 50}, {"product": self.banana, "qty": 50}],
+            products_info=[
+                {"product": self.fig, "uom_qty": 50},
+                {"product": self.banana, "uom_qty": 50},
+            ],
             location_id=self.test_stock_location_02.id,
         )
         # Update a moves and complete action
@@ -283,7 +301,10 @@ class TestStockPicking(common.BaseUDES):
         self.create_quant(self.banana.id, self.test_stock_location_02.id, 50)
         pick = self.Picking.create_picking(
             picking_type=self.picking_type_pick,
-            products_info=[{"product": self.fig, "qty": 50}, {"product": self.banana, "qty": 50}],
+            products_info=[
+                {"product": self.fig, "uom_qty": 50},
+                {"product": self.banana, "uom_qty": 50},
+            ],
             location_id=self.test_stock_location_02.id,
         )
         pick.move_lines.quantity_done = 10
@@ -301,7 +322,10 @@ class TestStockPicking(common.BaseUDES):
         self.create_quant(self.banana.id, self.test_stock_location_02.id, 50)
         pick = self.Picking.create_picking(
             picking_type=self.picking_type_pick,
-            products_info=[{"product": self.fig, "qty": 50}, {"product": self.banana, "qty": 50}],
+            products_info=[
+                {"product": self.fig, "uom_qty": 50},
+                {"product": self.banana, "uom_qty": 50},
+            ],
             location_id=self.test_stock_location_02.id,
         )
         pick.move_lines[0].quantity_done = 10
@@ -325,7 +349,9 @@ class TestStockPicking(common.BaseUDES):
         self.create_quant(self.banana.id, self.test_stock_location_02.id, 50)
         pick = self.Picking.create_picking(
             picking_type=self.picking_type_pick,
-            products_info=[[{"product": self.fig, "qty": 50}, {"product": self.banana, "qty": 50}]],
+            products_info=[
+                [{"product": self.fig, "uom_qty": 50}, {"product": self.banana, "uom_qty": 50}]
+            ],
             location_id=self.test_stock_location_02.id,
         )
         with self.assertRaises(ValidationError) as e:
@@ -341,7 +367,10 @@ class TestStockPicking(common.BaseUDES):
         self.create_quant(self.banana.id, self.test_stock_location_02.id, 50)
         pick = self.Picking.create_picking(
             picking_type=self.picking_type_pick,
-            products_info=[{"product": self.fig, "qty": 50}, {"product": self.banana, "qty": 50}],
+            products_info=[
+                {"product": self.fig, "uom_qty": 50},
+                {"product": self.banana, "uom_qty": 50},
+            ],
             location_id=self.test_stock_location_02.id,
             assign=True,
         )
@@ -363,8 +392,12 @@ class TestStockPicking(common.BaseUDES):
         self.create_quant(self.banana.id, self.test_stock_location_02.id, 10)
         pick = self.Picking.create_picking(
             picking_type=self.picking_type_pick,
-            products_info=[{"product": self.fig, "qty": 20}, {"product": self.banana, "qty": 10}],
+            products_info=[
+                {"product": self.fig, "uom_qty": 20},
+                {"product": self.banana, "uom_qty": 10},
+            ],
             location_id=self.test_stock_location_02.id,
+            confirm=True,
             assign=True,
         )
         pick.move_lines.quantity_done = 10
@@ -395,7 +428,7 @@ class TestStockPicking(common.BaseUDES):
         - Pick C - 1 move
         - Pick D - 1 move, set to originate from all moves from Pick B and C
         """
-        apple_products_info = [{"product": self.apple, "qty": 10}]
+        apple_products_info = [{"product": self.apple, "uom_qty": 10}]
 
         # Create test picks
         pick_a = self.create_picking(self.picking_type_pick, name="Pick A")
@@ -480,7 +513,7 @@ class TestStockPicking(common.BaseUDES):
         # Create picking with demand for more apple's than are in stock
         pick = self.create_picking(
             self.picking_type_pick,
-            products_info=[{"product": self.apple, "qty": apple_qty + 1}],
+            products_info=[{"product": self.apple, "uom_qty": apple_qty + 1}],
             location_dest_id=self.test_received_location_01.id,
             location_id=self.test_stock_location_01.id,
             assign=True,
@@ -527,8 +560,8 @@ class TestStockPicking(common.BaseUDES):
         pick = self.create_picking(
             self.picking_type_pick,
             products_info=[
-                {"product": self.apple, "qty": apple_qty_per_line},
-                {"product": self.apple, "qty": apple_qty_per_line},
+                {"product": self.apple, "uom_qty": apple_qty_per_line},
+                {"product": self.apple, "uom_qty": apple_qty_per_line},
             ],
             location_dest_id=self.test_received_location_01.id,
             location_id=self.test_stock_location_01.id,
@@ -558,3 +591,183 @@ class TestStockPicking(common.BaseUDES):
             pick.u_quantity_done, apple_qty, "Quantity done should match apple quantity"
         )
         self.assertFalse(pick.u_has_discrepancies, "Pick should not have discrepancies")
+
+
+class TestStockPickingUoM(TestStockPickingCommon):
+    @classmethod
+    def setUpClass(cls):
+        super(TestStockPickingUoM, cls).setUpClass()
+        Uom = cls.env["uom.uom"]
+        unit = cls.env.ref("uom.product_uom_categ_unit")
+        cls.half_dozen = Uom.create(
+            {
+                "name": "HalfDozen",
+                "category_id": unit.id,
+                "factor_inv": 6,
+                "uom_type": "bigger",
+                "rounding": 1.0,
+            }
+        )
+
+        cls.uom_dozen = cls.env.ref("uom.product_uom_dozen")
+        cls.cherry.uom_id = cls.uom_dozen.id
+
+        cls.create_quant(cls.banana.id, cls.test_stock_location_01.id, 120)
+        cls.create_quant(cls.cherry.id, cls.test_stock_location_01.id, 120)
+
+        cls.products = cls.cherry | cls.banana
+
+    def _create_product_infos(self, uom_id=None):
+        return [
+            {"product": self.cherry, "uom_qty": 6, "uom_id": uom_id},
+            {"product": self.banana, "uom_qty": 6, "uom_id": uom_id},
+        ]
+
+    def test_pepare_and_create_move(self):
+        """Prepare and create multiple moves with different UoMs"""
+        pick = self.create_picking(self.picking_type_goods_in)
+        move_values = self.Picking._prepare_move(pick, [self._create_product_infos()])
+        # Check the prepared move_values are correct
+        self.assertEqual(len(move_values), 2)
+        for product in self.products:
+            with self.subTest(product=product.name):
+                self.assertEqual(
+                    [mv for mv in move_values if mv.get("product_id") == product.id][0],
+                    self._get_expected_move_values(pick, product, 6),
+                )
+
+        # Check created move is as expected
+        new_moves = self.Picking._create_move(move_values)
+        self.assertEqual(len(new_moves), 2)
+        banana_mv = new_moves.filtered(lambda mv: mv.product_id == self.banana)
+        cherry_mv = new_moves.filtered(lambda mv: mv.product_id == self.cherry)
+
+        # Check the moves have the same UoM as the product
+        self.assertEqual(banana_mv.product_uom, self.banana.uom_id)
+        self.assertEqual(cherry_mv.product_uom, self.cherry.uom_id)
+
+        # Check the quantities of the moves
+        self.assertEqual(banana_mv.product_qty, 6)
+        self.assertEqual(banana_mv.product_uom_qty, 6)
+        self.assertEqual(cherry_mv.product_qty, 6)
+        self.assertEqual(cherry_mv.product_uom_qty, 6)
+
+    def test_pepare_and_create_move_with_move_uom(self):
+        """Prepare and create multiple moves with different UoMs, but try to sell everything
+        in a single UoM.
+        Here we have:
+            * banana - units
+            * cherry - dozens
+        Try to sell things in boxes of 6
+        """
+        pick = self.create_picking(self.picking_type_goods_in)
+        move_values = self.Picking._prepare_move(
+            pick, [self._create_product_infos(uom_id=self.half_dozen.id)]
+        )
+        # Check the prepared move_values are correct
+        self.assertEqual(len(move_values), 2)
+        for product in self.products:
+            with self.subTest(product=product.name):
+                self.assertEqual(
+                    [mv for mv in move_values if mv.get("product_id") == product.id][0],
+                    self._get_expected_move_values(pick, product, 6, uom_id=self.half_dozen.id),
+                )
+
+        # Check created move is as expected
+        new_moves = self.Picking._create_move(move_values)
+        self.assertEqual(len(new_moves), 2)
+        banana_mv = new_moves.filtered(lambda mv: mv.product_id == self.banana)
+        cherry_mv = new_moves.filtered(lambda mv: mv.product_id == self.cherry)
+
+        # Check the moves have half dozen UoM
+        self.assertEqual(new_moves.product_uom, self.half_dozen)
+        self.assertNotEqual(self.half_dozen, self.banana.uom_id)
+        self.assertNotEqual(self.half_dozen, self.cherry.uom_id)
+
+        # Check the quantities of the moves
+        # Requested 36 items of everything, bananas are units so expect 36
+        # Cherries come in dozens, so expect 3 packs of 12
+        self.assertEqual(banana_mv.product_qty, 36)
+        self.assertEqual(banana_mv.product_uom_qty, 6)
+        self.assertEqual(cherry_mv.product_qty, 3)
+        self.assertEqual(cherry_mv.product_uom_qty, 6)
+
+
+    def test_complete_picking_with_product_uoms(self):
+        """
+        Create and complete a picking with multiple products with different UoMs
+        """
+        self.assertNotEqual(self.uom_dozen, self.banana.uom_id)
+        pick = self.Picking.create_picking(
+            picking_type=self.picking_type_pick,
+            products_info=self._create_product_infos(),
+            assign=True,
+        )
+        # State is assigned
+        self.assertEqual(pick.state, "assigned")
+        # Check the moves and move lines are in UoM of the product
+        for mv in pick.move_lines:
+            with self.subTest(product= mv.product_id.name):
+                self.assertEqual(mv.product_qty, 6)
+                self.assertEqual(mv.product_uom_qty, 6)
+        for ml in pick.move_line_ids:
+            with self.subTest(product= ml.product_id.name):
+                self.assertEqual(ml.product_qty, 6)
+                self.assertEqual(ml.product_uom_qty, 6)
+
+        # Complete the picking
+        pick.move_line_ids.qty_done = 6
+        pick._action_done()
+        self.assertEqual(pick.state, "done")
+        # Check the total quantity in the picking, relative to the UoM of the products
+        self.assertEqual(pick.u_total_quantity, 12)
+        self.assertEqual(pick.u_quantity_done, 12)
+
+    def test_complete_picking_with_specific_uom(self):
+        """
+        Create and complete a picking with a specific UoM
+        Here we have:
+            * banana - units
+            * cherry - dozens
+        Try to sell things in boxes of 6.
+
+        Complete a picking of 6 boxes of 6 - product_uom_qty = 6
+        Expect 
+          * banana: product_qty = 36 (36 / 36)
+          * cherry: product_qty = 3 (36 / 12)
+
+        """
+        self.assertNotEqual(self.uom_dozen, self.banana.uom_id)
+        pick = self.Picking.create_picking(
+            picking_type=self.picking_type_pick,
+            products_info=self._create_product_infos(uom_id=self.half_dozen.id),
+            assign=True,
+        )
+
+        # Check the moves and move lines have the UoM of the move not the move line
+        moves = pick.move_lines
+        banana_move = moves.filtered(lambda m: m.product_id == self.banana)
+        cherry_move = moves.filtered(lambda m: m.product_id == self.cherry)
+        self.assertEqual(banana_move.product_qty, 36)
+        self.assertEqual(banana_move.product_uom_qty, 6)
+        self.assertEqual(cherry_move.product_qty, 3)
+        self.assertEqual(cherry_move.product_uom_qty, 6)
+        
+        mls = pick.move_line_ids
+        cherry_ml = mls.filtered(lambda ml: ml.product_id == self.cherry)
+        banana_ml = mls.filtered(lambda ml: ml.product_id == self.banana)
+        self.assertEqual(banana_ml.product_qty, 36)
+        self.assertEqual(banana_ml.product_uom_qty, 6)
+        self.assertEqual(cherry_ml.product_qty, 3)
+        self.assertEqual(cherry_ml.product_uom_qty, 6)
+
+        # Pick things in terms of the move UoM
+        pick.move_line_ids.qty_done = 6
+        pick._action_done()
+        self.assertEqual(pick.state, "done")
+
+        # Check the total quantity in the picking, relative to the UoM of the move
+        # not the products.
+        # So this is the sum of the product_uom_qty of the moves.
+        self.assertEqual(pick.u_total_quantity, 12)
+        self.assertEqual(pick.u_quantity_done, 12)

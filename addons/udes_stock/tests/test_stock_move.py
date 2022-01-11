@@ -12,7 +12,7 @@ class TestStockMove(common.BaseUDES):
         cls.Move = cls.env["stock.move"]
 
         # Create a picking
-        cls._pick_info = [{"product": cls.banana, "qty": 6}]
+        cls._pick_info = [{"product": cls.banana, "uom_qty": 6}]
         cls.quant1 = cls.create_quant(cls.banana.id, cls.test_stock_location_01.id, 5)
         cls.quant2 = cls.create_quant(cls.banana.id, cls.test_stock_location_02.id, 3)
         cls.pick = cls.create_picking(
@@ -36,7 +36,7 @@ class TestStockMove(common.BaseUDES):
     def test01_split_out_move_lines_raise_error(self):
         """Raise a value error when try to split out move lines from another move"""
         # Create another picking
-        new_pick_info = [{"product": self.apple, "qty": 20}]
+        new_pick_info = [{"product": self.apple, "uom_qty": 20}]
         self.create_quant(self.banana.id, self.test_stock_location_01.id, 5)
         self.create_quant(self.apple.id, self.test_stock_location_02.id, 10)
         new_pick = self.create_picking(
@@ -102,7 +102,7 @@ class TestStockMove(common.BaseUDES):
         self.create_quant(self.fig.id, self.test_stock_location_01.id, 2, package_id=pack2.id)
         picking = self.create_picking(
             self.picking_type_pick,
-            products_info=[{"product": self.fig, "qty": 5}],
+            products_info=[{"product": self.fig, "uom_qty": 5}],
             location_dest_id=self.test_received_location_01.id,
             location_id=self.test_stock_location_01.id,
             assign=True,
@@ -159,8 +159,8 @@ class TestStockMove(common.BaseUDES):
         self.create_quant(self.apple.id, self.test_stock_location_01.id, apple_uom_qty)
 
         products_info = [
-            {"product": self.apple, "qty": apple_uom_qty},
-            {"product": self.banana, "qty": banana_uom_qty},
+            {"product": self.apple, "uom_qty": apple_uom_qty},
+            {"product": self.banana, "uom_qty": banana_uom_qty},
         ]
 
         move_values = self.Picking._prepare_move(self.pick, [products_info])

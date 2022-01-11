@@ -51,8 +51,11 @@ class StockQuant(models.Model):
         return products
 
     def create_picking(self, picking_type, **kwargs):
-        """Create a picking from quants
-        Uses stock.picking create_picking functionality
+        """
+        Create a picking from quants
+        Uses stock.picking create_picking functionality to create the picking.
+        Note that the quants are stored in the product uom.
+
         :args:
             - picking_type
         :kwargs:
@@ -69,7 +72,9 @@ class StockQuant(models.Model):
                 kwargs.update({"location_id": location.id})
 
         product_quantities = self.get_quantities_by_key()
-        products_info = [{"product": key, "qty": val} for key, val in product_quantities.items()]
+        products_info = [
+            {"product": key, "uom_qty": val} for key, val in product_quantities.items()
+        ]
         return Picking.with_context(quant_ids=self.ids).create_picking(
             picking_type, products_info, **kwargs
         )

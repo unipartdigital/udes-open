@@ -122,7 +122,10 @@ class TestStockQuantPackageModel(BaseUDES):
         # Create a picking from test package
         pick = self.create_picking(
             self.picking_type_pick,
-            products_info=[{"product": self.apple, "qty": 12}, {"product": self.banana, "qty": 5}],
+            products_info=[
+                {"product": self.apple, "uom_qty": 12},
+                {"product": self.banana, "uom_qty": 5},
+            ],
             assign=True,
             confirm=True,
         )
@@ -135,7 +138,10 @@ class TestStockQuantPackageModel(BaseUDES):
         # Create a picking from test package
         pick = self.create_picking(
             self.picking_type_pick,
-            products_info=[{"product": self.apple, "qty": 12}, {"product": self.banana, "qty": 5}],
+            products_info=[
+                {"product": self.apple, "uom_qty": 12},
+                {"product": self.banana, "uom_qty": 5},
+            ],
             assign=True,
             confirm=True,
         )
@@ -149,7 +155,10 @@ class TestStockQuantPackageModel(BaseUDES):
         self.create_quant(self.apple.id, self.test_stock_location_02.id, 10)
         self.create_quant(self.banana.id, self.test_stock_location_02.id, 10)
         # Create a new pick
-        product_info = [{"product": self.banana, "qty": 2}, {"product": self.apple, "qty": 10}]
+        product_info = [
+            {"product": self.banana, "uom_qty": 2},
+            {"product": self.apple, "uom_qty": 10},
+        ]
         pick = self.create_picking(
             self.picking_type_pick,
             products_info=product_info,
@@ -172,7 +181,7 @@ class TestStockQuantPackageModel(BaseUDES):
         self.create_quant(self.apple.id, self.test_stock_location_02.id, 20)
         pick = self.create_picking(
             self.picking_type_pick,
-            products_info=[{"product": self.apple, "qty": 18}],
+            products_info=[{"product": self.apple, "uom_qty": 18}],
             assign=True,
             confirm=True,
             location_id=self.test_stock_location_02.id,
@@ -200,9 +209,9 @@ class TestStockQuantPackageModel(BaseUDES):
         self.create_quant(self.fig.id, self.test_stock_location_02.id, 15)
         # Create pick
         product_info = [
-            {"product": self.banana, "qty": 17},
-            {"product": self.fig, "qty": 15},
-            {"product": self.apple, "qty": 18},
+            {"product": self.banana, "uom_qty": 17},
+            {"product": self.fig, "uom_qty": 15},
+            {"product": self.apple, "uom_qty": 18},
         ]
         pick = self.create_picking(
             self.picking_type_pick,
