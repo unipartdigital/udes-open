@@ -7,7 +7,11 @@ class TestStockQuantPackageModel(BaseUDES):
     def setUpClass(cls):
         super(TestStockQuantPackageModel, cls).setUpClass()
         cls.Package = cls.env["stock.quant.package"]
-        cls.test_package = cls.Package.get_or_create("test_package_01", create=True)
+        User = cls.env["res.users"]
+
+        warehouse = User.get_user_warehouse()
+        # package
+        cls.test_package = cls.Package.get_or_create("1001", create=True)
         cls.apple_quant = cls.create_quant(
             cls.apple.id, cls.test_stock_location_01.id, 10, package_id=cls.test_package.id
         )
@@ -32,11 +36,11 @@ class TestStockQuantPackageModel(BaseUDES):
     def test03_has_same_content(self):
         """Test has same content of three packages, two are the same and one is not"""
         # Create two new packages with same content but different content than default package
-        test_package_2 = self.Package.get_or_create("test_package_2", create=True)
+        test_package_2 = self.Package.get_or_create("1002", create=True)
         self.create_quant(
             self.banana.id, self.test_stock_location_01.id, 5, package_id=test_package_2.id
         )
-        test_package_3 = self.Package.get_or_create("test_package_3", create=True)
+        test_package_3 = self.Package.get_or_create("1003", create=True)
         self.create_quant(
             self.banana.id, self.test_stock_location_01.id, 5, package_id=test_package_3.id
         )
@@ -58,10 +62,10 @@ class TestStockQuantPackageModel(BaseUDES):
             "qty": 5,
         }
         # Create two new packages with two quants with lot each
-        test_package_1 = self.Package.get_or_create("test_package_1", create=True)
+        test_package_1 = self.Package.get_or_create("1001", create=True)
         self.create_quant(**apple_quant_info, package_id=test_package_1.id, lot_name="LOT001")
         self.create_quant(**banana_quant_info, package_id=test_package_1.id, lot_name="LOT001")
-        test_package_2 = self.Package.get_or_create("test_package_2", create=True)
+        test_package_2 = self.Package.get_or_create("1002", create=True)
         self.create_quant(**apple_quant_info, package_id=test_package_2.id, lot_name="LOT002")
         self.create_quant(**banana_quant_info, package_id=test_package_2.id, lot_name="LOT002")
         # Check they should have the same content by product
@@ -86,15 +90,15 @@ class TestStockQuantPackageModel(BaseUDES):
             "qty": 5,
         }
         # Create new packages with 10, 5, 5, 5, 5 apples each
-        test_package_1 = self.Package.get_or_create("test_package_1", create=True)
+        test_package_1 = self.Package.get_or_create("2001", create=True)
         self.create_quant(**quant_info_10, package_id=test_package_1.id)
-        test_package_2 = self.Package.get_or_create("test_package_2", create=True)
+        test_package_2 = self.Package.get_or_create("2002", create=True)
         self.create_quant(**quant_info_5, package_id=test_package_2.id)
-        test_package_3 = self.Package.get_or_create("test_package_3", create=True)
+        test_package_3 = self.Package.get_or_create("2003", create=True)
         self.create_quant(**quant_info_5, package_id=test_package_3.id)
-        test_package_4 = self.Package.get_or_create("test_package_4", create=True)
+        test_package_4 = self.Package.get_or_create("2004", create=True)
         self.create_quant(**quant_info_5, package_id=test_package_4.id)
-        test_package_5 = self.Package.get_or_create("test_package_5", create=True)
+        test_package_5 = self.Package.get_or_create("2005", create=True)
         self.create_quant(**quant_info_5, package_id=test_package_5.id)
         # Split all packages in two groups
         group_1 = test_package_1 | test_package_2
@@ -245,7 +249,7 @@ class TestCreatePicking(BaseUDES):
 
         Package = cls.env["stock.quant.package"]
 
-        cls.test_package = Package.get_or_create("test_package_01", create=True)
+        cls.test_package = Package.get_or_create("1001", create=True)
         cls.create_quant(
             cls.apple.id, cls.test_stock_location_01.id, 10, package_id=cls.test_package.id
         )
