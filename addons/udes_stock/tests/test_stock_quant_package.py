@@ -9,10 +9,7 @@ class TestStockQuantPackageModel(BaseUDES):
         cls.Package = cls.env["stock.quant.package"]
         cls.test_package = cls.Package.get_or_create("test_package_01", create=True)
         cls.apple_quant = cls.create_quant(
-            cls.apple.id,
-            cls.test_stock_location_01.id,
-            10,
-            package_id=cls.test_package.id,
+            cls.apple.id, cls.test_stock_location_01.id, 10, package_id=cls.test_package.id
         )
         cls.create_quant(
             cls.banana.id, cls.test_stock_location_01.id, 5, package_id=cls.test_package.id
@@ -241,16 +238,10 @@ class TestCreatePicking(BaseUDES):
 
         cls.test_package = Package.get_or_create("test_package_01", create=True)
         cls.create_quant(
-            cls.apple.id,
-            cls.test_stock_location_01.id,
-            10,
-            package_id=cls.test_package.id,
+            cls.apple.id, cls.test_stock_location_01.id, 10, package_id=cls.test_package.id
         )
         cls.create_quant(
-            cls.banana.id,
-            cls.test_stock_location_01.id,
-            5,
-            package_id=cls.test_package.id,
+            cls.banana.id, cls.test_stock_location_01.id, 5, package_id=cls.test_package.id
         )
         cls.test_user = cls.create_user("test_user", "test_user_login")
 

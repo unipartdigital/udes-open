@@ -35,19 +35,13 @@ class TestStockMoveLine(common.BaseUDES):
         test_package_1 = self.create_package()
         test_package_2 = self.create_package()
         self.create_quant(
-            self.apple.id,
-            self.test_stock_location_01.id,
-            10,
-            package_id=test_package_1.id,
+            self.apple.id, self.test_stock_location_01.id, 10, package_id=test_package_1.id
         )
         self.create_quant(
             self.banana.id, self.test_stock_location_01.id, 5, package_id=test_package_1.id
         )
         self.create_quant(
-            self.apple.id,
-            self.test_stock_location_02.id,
-            10,
-            package_id=test_package_2.id,
+            self.apple.id, self.test_stock_location_02.id, 10, package_id=test_package_2.id
         )
         # Create pick to reserve the quants
         pick = self.create_picking(
@@ -214,19 +208,13 @@ class TestStockMoveLine(common.BaseUDES):
         test_package_1 = self.create_package()
         test_package_2 = self.create_package()
         self.create_quant(
-            self.apple.id,
-            self.test_stock_location_01.id,
-            10,
-            package_id=test_package_1.id,
+            self.apple.id, self.test_stock_location_01.id, 10, package_id=test_package_1.id
         )
         self.create_quant(
             self.banana.id, self.test_stock_location_01.id, 5, package_id=test_package_1.id
         )
         self.create_quant(
-            self.apple.id,
-            self.test_stock_location_02.id,
-            10,
-            package_id=test_package_2.id,
+            self.apple.id, self.test_stock_location_02.id, 10, package_id=test_package_2.id
         )
         # Create pick to reserve the quants
         pick = self.create_picking(

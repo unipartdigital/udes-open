@@ -74,9 +74,7 @@ class StockMoveLine(models.Model):
         package = self.package_id
         owner = self.owner_id
         location = self.location_id
-        domain = [
-            ("product_id", "=", product.id),
-        ]
+        domain = [("product_id", "=", product.id)]
         if not strict:
             if lot:
                 domain = expression.AND([[("lot_id", "=", lot.id)], domain])
@@ -122,9 +120,7 @@ class StockMoveLine(models.Model):
 
     def _round_qty(self, value):
         return float_round(
-            value,
-            precision_rounding=self.product_uom_id.rounding,
-            rounding_method="UP",
+            value, precision_rounding=self.product_uom_id.rounding, rounding_method="UP"
         )
 
     def _split(self, qty=None):
@@ -175,10 +171,7 @@ class StockMoveLine(models.Model):
             # - bypass_reservation_update:
             #   avoids to execute code specific for Odoo UI at stock.move.line.write()
             self.with_context(bypass_reservation_update=True).write(
-                {
-                    "product_uom_qty": qty_to_keep,
-                    "qty_done": qty_done,
-                }
+                {"product_uom_qty": qty_to_keep, "qty_done": qty_done}
             )
             res = new_ml
         return res

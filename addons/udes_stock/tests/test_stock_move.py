@@ -170,10 +170,7 @@ class TestStockMove(common.BaseUDES):
         banana_move = moves.filtered(lambda m: m.product_id == self.banana)
 
         # Check the prepared move_line_values are correct
-        moves_info = {
-            apple_move: apple_uom_qty,
-            banana_move: banana_uom_qty,
-        }
+        moves_info = {apple_move: apple_uom_qty, banana_move: banana_uom_qty}
         move_line_values = self.Move._prepare_move_lines(moves_info)
 
         self.assertEqual(
