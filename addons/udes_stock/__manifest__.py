@@ -17,6 +17,7 @@
         "data/routes.xml",
         "data/company.xml",
         "views/stock_picking.xml",
+        "views/stock_picking_type.xml",
         "views/stock_location_views.xml",
     ],
 }

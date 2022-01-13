@@ -148,3 +148,12 @@ class StockMove(models.Model):
                 (new_move | self).update_orig_ids(self.move_orig_ids)
 
         return new_move
+
+    def _do_unreserve(self):
+        """ Add additional functionality to the _do_unreserve method in odoo stock, specifically
+            to handle unreserving packages when "full package reservation" is enabled and extra
+            quantities are reserved that need to be unreserved.
+        """
+        super()
+        
+

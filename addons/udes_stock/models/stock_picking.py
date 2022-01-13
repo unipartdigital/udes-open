@@ -375,3 +375,77 @@ class StockPicking(models.Model):
         """
         Move = self.env["stock.move"]
         return Move.create(move_values)
+
+    def assert_reserved_full_package(self, move_lines):
+        """ Check that a package is fully reserved at move_lines.
+        """
+        MoveLine = self.env["stock.move.line"]
+
+        self.ensure_one()
+
+        pack_products = frozenset(self._get_all_products_quantities().items())
+        mls_products = frozenset(move_lines._get_all_products_quantities().items())
+        if pack_products != mls_products:
+            # move_lines do not match the quants
+            picking = move_lines.mapped("picking_id")
+            picking.ensure_one()
+            pack_mls = MoveLine.search(
+                [("package_id", "child_of", self.id), ("state", "not in", ["done", "cancel"])]
+            )
+            other_pickings = pack_mls.mapped("picking_id") - picking
+            if other_pickings:
+                raise ValidationError(
+                    _("The package is reserved in other pickings: %s")
+                    % ",".join(other_pickings.mapped("name"))
+                )
+            # other_pickings == False means partially reserved,
+            raise ValidationError(_("Cannot mark as done a partially reserved package."))
+
+
+    def _should_reserve_full_packages(self):
+        """Method to determine if picking should reserve entire packages"""
+        self.ensure_one()
+        return self.picking_type_id.u_reserve_as_packages
+
+    def _reserve_full_packages(self):
+        """
+        If the picking type of the picking in self has full package
+        reservation enabled, partially reserved packages are
+        completed.
+        """
+        Quant = self.env["stock.quant"]
+
+        # do not reserve full packages when bypass_reserve_full packages
+        # is set in the context as True
+        if not self.env.context.get("bypass_reserve_full_packages"):
+            for picking in self.filtered(lambda p: p._should_reserve_full_packages()):
+                all_quants = Quant.browse()
+                remaining_qtys = defaultdict(int)
+
+                # get all packages
+                packages = picking.mapped("move_line_ids.package_id")
+                for package in packages:
+                    move_lines = picking.mapped("move_line_ids").filtered(
+                        lambda ml: ml.package_id == package
+                    )
+                    self.assert_reserved_full_package(move_lines)
+                    quants = package._get_contained_quants()
+                    all_quants |= quants
+                    for product, qty in quants.group_quantity_by_product(
+                        only_available=True
+                    ).items():
+                        remaining_qtys[product] += qty
+                if remaining_qtys:
+                    # Context variables:
+                    # - filter the quants used in _create_moves() to be
+                    # the ones of the packages to be completed
+                    # - add bypass_reserve_full_packages at the context
+                    # to avoid to be called again inside _create_moves()
+                    picking.with_context(
+                        bypass_reserve_full_packages=True, quant_ids=all_quants.ids
+                    )._create_moves(
+                        remaining_qtys,
+                        values={"priority": picking.priority},
+                        confirm=True,
+                        assign=True,
+                    )
