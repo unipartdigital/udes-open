@@ -82,11 +82,7 @@ class BaseUDES(common.SavepointCase):
     def create_quant(cls, product_id, location_id, qty, lot_name=None, **kwargs):
         """Create and return a quant of a product at location"""
         Quant = cls.env["stock.quant"]
-        vals = {
-            "product_id": product_id,
-            "location_id": location_id,
-            "quantity": qty,
-        }
+        vals = {"product_id": product_id, "location_id": location_id, "quantity": qty}
         if lot_name:
             lot = cls.create_lot(product_id, lot_name)
             vals["lot_id"] = lot.id
@@ -97,10 +93,7 @@ class BaseUDES(common.SavepointCase):
     def create_lot(cls, product_id, lot_name, **kwargs):
         Lot = cls.env["stock.production.lot"]
 
-        vals = {
-            "name": lot_name,
-            "product_id": product_id,
-        }
+        vals = {"name": lot_name, "product_id": product_id}
         if "company_id" not in kwargs:
             vals["company_id"] = cls.company.id
         vals.update(kwargs)
@@ -175,11 +168,7 @@ class BaseUDES(common.SavepointCase):
         cls.test_goodsout_location_01, cls.test_goodsout_location_02 = cls.test_goodsout_locations
 
         cls.trailer_location = cls.picking_type_goods_out.default_location_dest_id.copy(
-            {
-                "name": "TEST_OUT_TRAILER",
-                "active": True,
-                "location_id": cls.warehouse_location.id,
-            }
+            {"name": "TEST_OUT_TRAILER", "active": True, "location_id": cls.warehouse_location.id}
         )
         cls.test_trailer_locations = Location.create(
             [
@@ -305,17 +294,10 @@ class BaseUDES(common.SavepointCase):
         cls.route_out = Route.create(route_vals)
 
         # Goods out
-        sequence_vals = {
-            "name": "TestGoodsOut",
-            "prefix": "TESTGOODSOUT",
-            "padding": 5,
-        }
+        sequence_vals = {"name": "TestGoodsOut", "prefix": "TESTGOODSOUT", "padding": 5}
         sequence_goodsout = Sequence.create(sequence_vals)
 
-        out_vals = {
-            "sequence_id": sequence_goodsout.id,
-            "sequence": 13,
-        }
+        out_vals = {"sequence_id": sequence_goodsout.id, "sequence": 13}
         picking_type_out.write(out_vals)
 
         # set goods-out source location = pick dest location
@@ -363,10 +345,7 @@ class BaseUDES(common.SavepointCase):
     def _setup_check_location(cls):
         Location = cls.env["stock.location"]
         cls.check_location = cls.picking_type_pick.default_location_dest_id.copy(
-            {
-                "name": "TEST_CHECK",
-                "active": True,
-            }
+            {"name": "TEST_CHECK", "active": True}
         )
         cls.test_check_location_01 = Location.create(
             {
@@ -451,10 +430,7 @@ class BaseUDES(common.SavepointCase):
         User = cls.env["res.users"]
         # Creating user without company
         # takes company from current user
-        vals = {
-            "name": name,
-            "login": login,
-        }
+        vals = {"name": name, "login": login}
         vals.update(kwargs)
         user = User.create(vals)
 
@@ -466,9 +442,7 @@ class BaseUDES(common.SavepointCase):
     @classmethod
     def update_move(cls, move, qty_done, **kwargs):
         """Update a move with qty done"""
-        vals = {
-            "quantity_done": qty_done + move["quantity_done"],
-        }
+        vals = {"quantity_done": qty_done + move["quantity_done"]}
         vals.update(kwargs)
         return move.update(vals)
 

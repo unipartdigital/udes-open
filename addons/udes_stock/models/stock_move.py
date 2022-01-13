@@ -130,9 +130,7 @@ class StockMove(models.Model):
                 "do_not_unreserve": True,
             }
             self.with_context(**context_vars).write(
-                {
-                    "product_uom_qty": self.product_uom_qty - total_initial_qty,
-                }
+                {"product_uom_qty": self.product_uom_qty - total_initial_qty}
             )
 
             # When not complete, splitting a move may change its state,

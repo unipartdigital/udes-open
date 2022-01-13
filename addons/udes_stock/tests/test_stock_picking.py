@@ -68,16 +68,9 @@ class TestStockPicking(common.BaseUDES):
 
     def test_get_empty_locations(self):
         """Get empty locations - for goods in"""
-        self.assertEqual(
-            self.test_picking_in.get_empty_locations(),
-            self.test_received_location_01,
-        )
+        self.assertEqual(self.test_picking_in.get_empty_locations(), self.test_received_location_01)
         # Add stock to a location - to check empty locations obtained
-        self.create_quant(
-            self.apple.id,
-            self.test_received_location_01.id,
-            5,
-        )
+        self.create_quant(self.apple.id, self.test_received_location_01.id, 5)
         self.assertFalse(self.test_picking_in.get_empty_locations())
 
     def test_get_empty_locations_sorted(self):
@@ -85,19 +78,8 @@ class TestStockPicking(common.BaseUDES):
         # Create location 'A' in zone 'Z'
         # When sorted by location name directly 'A' will appear first,
         # but in default location ordering it will be last
-        zone_z = self.Location.create(
-            {
-                "name": "Zone Z",
-                "location_id": self.received_location.id,
-            }
-        )
-        loc_a = self.Location.create(
-            {
-                "name": "A",
-                "barcode": "LRTESTA",
-                "location_id": zone_z.id,
-            }
-        )
+        zone_z = self.Location.create({"name": "Zone Z", "location_id": self.received_location.id})
+        loc_a = self.Location.create({"name": "A", "barcode": "LRTESTA", "location_id": zone_z.id})
 
         # Set destination location of the test Goods In picking to the received zone
         self.test_picking_in.location_dest_id = self.received_location
@@ -156,10 +138,7 @@ class TestStockPicking(common.BaseUDES):
         products = self.apple | self.banana
         pick = self.Picking.create_picking(
             picking_type=self.picking_type_pick,
-            products_info=[
-                {"product": self.apple, "qty": 2},
-                {"product": self.banana, "qty": 4},
-            ],
+            products_info=[{"product": self.apple, "qty": 2}, {"product": self.banana, "qty": 4}],
         )
         # Check default pick locations
         self.assertEqual(pick.location_id, self.stock_location)
@@ -176,10 +155,7 @@ class TestStockPicking(common.BaseUDES):
         products = self.apple | self.banana
         pick = self.Picking.create_picking(
             picking_type=self.picking_type_pick,
-            products_info=[
-                {"product": self.apple, "qty": 2},
-                {"product": self.banana, "qty": 4},
-            ],
+            products_info=[{"product": self.apple, "qty": 2}, {"product": self.banana, "qty": 4}],
             location_id=self.test_stock_location_01.id,
             location_dest_id=self.test_goodsout_location_01.id,
             confirm=True,
@@ -205,14 +181,8 @@ class TestStockPicking(common.BaseUDES):
         picks = self.Picking.create_picking(
             picking_type=self.picking_type_pick,
             products_info=[
-                [
-                    {"product": self.apple, "qty": 2},
-                    {"product": self.banana, "qty": 4},
-                ],
-                [
-                    {"product": self.apple, "qty": 1},
-                    {"product": self.banana, "qty": 1},
-                ],
+                [{"product": self.apple, "qty": 2}, {"product": self.banana, "qty": 4}],
+                [{"product": self.apple, "qty": 1}, {"product": self.banana, "qty": 1}],
             ],
             location_id=self.test_stock_location_01.id,
             location_dest_id=self.test_goodsout_location_01.id,
@@ -237,12 +207,7 @@ class TestStockPicking(common.BaseUDES):
     def test_pepare_and_create_move(self):
         """Prepare and create a single move"""
         pick = self.create_picking(self.picking_type_goods_in)
-        move_values = self.Picking._prepare_move(
-            pick,
-            [
-                [{"product": self.elderberry, "qty": 10}],
-            ],
-        )
+        move_values = self.Picking._prepare_move(pick, [[{"product": self.elderberry, "qty": 10}]])
         # Check the prepared move_values are correct
         self.assertEqual(len(move_values), 1)
         self.assertEqual(move_values[0], self._get_expected_move_values(pick, self.elderberry, 10))
@@ -499,12 +464,7 @@ class TestStockPicking(common.BaseUDES):
                 pick_c: False,
                 pick_d: (pick_b | pick_c),
             },
-            "u_next_picking_ids": {
-                pick_a: pick_b,
-                pick_b: pick_d,
-                pick_c: pick_d,
-                pick_d: False,
-            },
+            "u_next_picking_ids": {pick_a: pick_b, pick_b: pick_d, pick_c: pick_d, pick_d: False},
         }
 
         # Assert that each computed picking field returns the expected result for all picks

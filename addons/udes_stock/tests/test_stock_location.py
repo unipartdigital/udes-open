@@ -16,34 +16,16 @@ class TestStockLocation(BaseUDES):
         # Stock > Zone 02 > Loc 02-02
         cls.zone_01, cls.zone_02 = Location.create(
             [
-                {
-                    "name": "Zone 01",
-                    "location_id": cls.stock_location.id,
-                },
-                {
-                    "name": "Zone 02",
-                    "location_id": cls.stock_location.id,
-                },
+                {"name": "Zone 01", "location_id": cls.stock_location.id},
+                {"name": "Zone 02", "location_id": cls.stock_location.id},
             ]
         )
         cls.loc_01_01, cls.loc_01_02, cls.loc_02_01, cls.loc_02_02 = Location.create(
             [
-                {
-                    "name": "Loc 01-01",
-                    "location_id": cls.zone_01.id,
-                },
-                {
-                    "name": "Loc 01-02",
-                    "location_id": cls.zone_01.id,
-                },
-                {
-                    "name": "Loc 02-01",
-                    "location_id": cls.zone_02.id,
-                },
-                {
-                    "name": "Loc 02-02",
-                    "location_id": cls.zone_02.id,
-                },
+                {"name": "Loc 01-01", "location_id": cls.zone_01.id},
+                {"name": "Loc 01-02", "location_id": cls.zone_01.id},
+                {"name": "Loc 02-01", "location_id": cls.zone_02.id},
+                {"name": "Loc 02-02", "location_id": cls.zone_02.id},
             ]
         )
 
