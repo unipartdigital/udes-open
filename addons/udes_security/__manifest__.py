@@ -8,7 +8,6 @@
     "application": True,
     "version": "14.0.0.0.0",
     "depends": ["base", "web", "udes_common"],
-    "external_dependencies": {"python": ["xlrd", "xlwt"]},
     "data": [
         "data/res_groups.xml",
         "data/res_users.xml",
