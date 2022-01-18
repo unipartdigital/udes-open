@@ -1,0 +1,10 @@
+<odoo>
+    <data>
+        <!-- Change the log message because we have changed product_uom_qty string from "Demand" to "Quantity" -->
+        <template id="message_head" inherit_id="stock.message_head">
+            <xpath expr="//strong[contains(text(), 'The initial demand has been updated.')]" position="replace">
+                <strong>The quantity has been updated.</strong>
+            </xpath>
+        </template>
+    </data>
+</odoo>

@@ -11,6 +11,14 @@ class StockQuantPackage(models.Model):
     # Enable create packages
     MSM_CREATE = True
 
+    def _get_current_move_lines(self):
+        """ Helper function to return current move lines for the package in self """
+        MoveLine = self.env["stock.move.line"]
+        return MoveLine.search(
+            [("package_id", "child_of", self.id), ("state", "not in", ["done", "cancel"])],
+            order="id",
+        )
+
     def assert_not_reserved(self):
         """Ensure that the contents of all packages in the recordset are fully
         unreserved.

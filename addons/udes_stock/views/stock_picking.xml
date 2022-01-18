@@ -80,6 +80,17 @@
                 </group>
             </xpath>
 
+            <!-- Add in u_uom_initial_demand field -->
+            <xpath expr="//field[@name='move_ids_without_package']/tree/field[@name='product_uom_qty']" position="after">
+                <field name="u_uom_initial_demand" readonly="1"/>
+            </xpath>
+
+            <!-- Remove the explicit string attribute so it uses the field's Python string value which is:
+                 "Demand" -> "Quantity" -->
+            <xpath expr="//field[@name='move_ids_without_package']/tree/field[@name='product_uom_qty']" position="attributes">
+                <attribute name="string"/>
+            </xpath>
+
         </field>
     </record>
 

@@ -18,5 +18,6 @@
         "data/company.xml",
         "views/stock_picking.xml",
         "views/stock_location_views.xml",
+        "views/stock_template.xml",
     ],
 }

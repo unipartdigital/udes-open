@@ -101,3 +101,34 @@ class StockQuantPackage(models.Model):
         """
         self.validate_parent_name(vals)
         return super().write(vals)
+
+    def _get_all_products_quantities(self):
+        """This function computes the different product quantities for the given package"""
+        # TODO: Issue 962, make this work with different UoMs
+        res = {}
+        for quant in self._get_contained_quants():
+            if quant.product_id not in res:
+                res[quant.product_id] = 0
+            res[quant.product_id] += quant.quantity
+        return res
+
+    def assert_reserved_full_package(self, move_lines):
+        """Check that a package is fully reserved at move_lines."""
+        self.ensure_one()
+
+        pack_products = frozenset(self._get_all_products_quantities().items())
+        mls_products = frozenset(move_lines._get_all_products_quantities().items())
+        if pack_products != mls_products:
+            # move_lines do not match the quants
+            picking = move_lines.picking_id
+            picking.ensure_one()
+            pack_mls = self._get_current_move_lines()
+            other_pickings = pack_mls.picking_id - picking
+            if other_pickings:
+                raise ValidationError(
+                    _("The package is reserved in other pickings: %s")
+                    % ",".join(other_pickings.mapped("name"))
+                )
+            raise ValidationError(
+                _("Cannot mark partially reserved package %s as done.") % self.name
+            )
