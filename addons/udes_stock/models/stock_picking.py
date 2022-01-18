@@ -165,6 +165,15 @@ class StockPicking(models.Model):
         else:
             return locations
 
+    def do_unreserve(self):
+        """Extend to delete moves if initial demand is 0"""
+        res = super().do_unreserve()
+        for move in self.move_lines.filtered(lambda m: not m.u_uom_initial_demand):
+            # Set move back to draft so it can be deleted
+            move.state = "draft"
+            move.unlink()
+        return res
+
     def _get_child_dest_locations(self, aux_domain=None, limit=None):
         """Return the child locations of the instance dest location.
         Extra domains are added to the child locations search query,
@@ -365,6 +374,7 @@ class StockPicking(models.Model):
                     "picking_id": picking.id,
                     "priority": picking.priority,
                     "picking_type_id": picking.picking_type_id.id,
+                    "description_picking": product._get_description(picking.picking_type_id)
                 }
                 vals.update(kwargs)
                 move_values.append(vals)

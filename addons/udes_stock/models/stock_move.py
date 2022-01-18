@@ -1,9 +1,37 @@
 # -*- coding: utf-8 -*-
-from odoo import models, api, _
+from odoo import models, fields, api, _
+from odoo.addons import decimal_precision as dp
 
 
 class StockMove(models.Model):
     _inherit = "stock.move"
+
+    u_uom_initial_demand = fields.Float(
+        "Initial Demand",
+        digits="Product Unit of Measure",
+        help="The original quantity when the move was created",
+    )
+
+    # Override product_uom_qty to change string from "Demand" to "Quantity", because of
+    # how we are now tracking initial demand in u_uom_initial_demand.
+    product_uom_qty = fields.Float(string="Quantity")
+
+    @api.model
+    def create(self, vals):
+        """Extend create to set the initial demand to product_uom_qty if no value set"""
+        if "u_uom_initial_demand" not in vals:
+            vals["u_uom_initial_demand"] = vals.get("product_uom_qty")
+        return super().create(vals)
+
+    def _do_unreserve(self):
+        """
+        Extend _do_unreserve to remove extra quantities added to initial_demand when
+        unreserving a package.
+        """
+        res = super()._do_unreserve()
+        for move in self:
+            move.write({"product_uom_qty": move.u_uom_initial_demand})
+        return res
 
     def _prepare_move_line(self, move, uom_qty, uom_id=None, **kwargs):
         """
@@ -96,14 +124,10 @@ class StockMove(models.Model):
         """
         self.ensure_one()
         if not all(ml.move_id == self for ml in move_lines):
-            raise ValueError(
-                _("Cannot split move lines from a move they are not part of.")
-            )
+            raise ValueError(_("Cannot split move lines from a move they are not part of."))
         if (
             move_lines == self.move_line_ids
-            and not self.move_orig_ids.filtered(
-                lambda m: m.state not in ("done", "cancel")
-            )
+            and not self.move_orig_ids.filtered(lambda m: m.state not in ("done", "cancel"))
             and not self.state == "partially_available"
         ):
             new_move = self

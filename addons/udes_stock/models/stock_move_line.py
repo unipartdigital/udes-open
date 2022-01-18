@@ -17,6 +17,16 @@ class StockMoveLine(models.Model):
         readonly=True,
     )
 
+    def _log_message(self, record, move, template, vals):
+        """
+        Extend _log_message to stop messages being created
+        when bypass_zero_qty_log_message context is set.
+        """
+        if self.env.context.get("bypass_zero_qty_log_message"):
+            if "product_uom_qty" in vals and not vals["product_uom_qty"]:
+                return
+        return super()._log_message(record, move, template, vals)
+
     def get_lines_incomplete(self):
         """Return the move lines in self that are not completed,
         i.e., quantity done < quantity to do
