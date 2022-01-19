@@ -6,9 +6,7 @@ CORE_LIFECYCLE_ACTIONS = [
     ("group_by_move_line_key", "Group by Move Line Key"),
     ("group_by_move_key", "Group by Move Key"),
 ]
-POST_ASSIGN_ACTIONS = CORE_LIFECYCLE_ACTIONS + [
-    ("by_maximum_quantity", "Maximum Quantity")
-]
+POST_ASSIGN_ACTIONS = CORE_LIFECYCLE_ACTIONS + [("by_maximum_quantity", "Maximum Quantity")]
 TARGET_STORAGE_FORMAT_OPTIONS = [
     ("pallet_products", "Pallet of products"),
     ("pallet_packages", "Pallet of packages"),
@@ -23,6 +21,8 @@ class StockPickingType(models.Model):
     name = fields.Char(translate=False)
 
     show_operations = fields.Boolean(default=True)
+
+    goods_in = fields.Boolean()
 
     # Pick workflow options
 
@@ -81,8 +81,7 @@ class StockPickingType(models.Model):
     )
 
     u_target_storage_format = fields.Selection(
-        TARGET_STORAGE_FORMAT_OPTIONS,
-        string="Target Storage Format",
+        TARGET_STORAGE_FORMAT_OPTIONS, string="Target Storage Format"
     )
 
     u_user_scans = fields.Selection(
@@ -106,7 +105,7 @@ class StockPickingType(models.Model):
     )
 
     u_scan_tracking = fields.Selection(
-        [("no", "No"), ("yes", "Yes"), ("first_last", "First/Last"),],
+        [("no", "No"), ("yes", "Yes"), ("first_last", "First/Last")],
         required=True,
         default="yes",
         string="Scan Tracked Products",
@@ -260,7 +259,7 @@ class StockPickingType(models.Model):
 
     u_drop_location_policy = fields.Selection(
         [
-            ("exactly_match_move_line", "Exactly Match The Move Line Destination Location",),
+            ("exactly_match_move_line", "Exactly Match The Move Line Destination Location"),
             ("by_products", "By Products"),
             ("by_product_lot", "By Product and Lot Number"),
             ("by_packages", "By Products in Packages"),
@@ -288,7 +287,7 @@ class StockPickingType(models.Model):
     )
 
     u_move_key_format = fields.Char(
-        "Move Grouping Key", help="""A field name on stock.move that can be to group move.""",
+        "Move Grouping Key", help="""A field name on stock.move that can be to group move."""
     )
 
     u_post_confirm_action = fields.Selection(
@@ -315,7 +314,7 @@ class StockPickingType(models.Model):
     u_assign_refactor_constraint_value = fields.Integer(
         string="Assign Refactor Constraint Value",
         help="Constraint value used when refactoring post assign. "
-        "Currently only used for the post assign action: Maximum Quantity."
+        "Currently only used for the post assign action: Maximum Quantity.",
     )
 
     u_new_package_policy = fields.Selection(
@@ -380,7 +379,7 @@ class StockPickingType(models.Model):
     )
 
     u_warn_picking_precondition = fields.Selection(
-        selection=[("pickings_pending", "Pickings pending"),],
+        selection=[("pickings_pending", "Pickings pending")],
         string="Warn during a picking if the precondition is met",
         help="Choose a condition to be checked when performing a picking. "
         "Will be checked when validating a picking on the dekstop UI. "
@@ -660,10 +659,7 @@ class StockPickingType(models.Model):
         if not isinstance(action.get("context", 0), dict):
             action["context"] = {}
 
-        action["context"].update({
-            "active_ids": location_ids,
-            "hide_create_date": False,
-        })
+        action["context"].update({"active_ids": location_ids, "hide_create_date": False})
         action["domain"] = [("location_id", "child_of", location_ids)]
 
         return action

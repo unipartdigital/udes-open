@@ -92,6 +92,7 @@
       <field name="show_operations" eval="1"/>
       <field name="u_selection_method">source_doc</field>
       <field name="active">True</field>
+      <field name="goods_in">True</field>
     </record>
 
     <!-- Update "Goods Out" picking type -->
