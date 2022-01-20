@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<odoo>
+  <data>
+    <!-- Update "Stock Warehouse Picking Type" to Goods In -->
+    <record id="stock.warehouse0" model="stock.warehouse">
+        <field name="u_goods_in_picking_type_id" ref="stock.picking_type_in"/>
+    </record>
+  </data>
+</odoo>

@@ -84,6 +84,11 @@ class StockWarehouse(models.Model):
         string="Stock Investigation Picking Type",
         help="Picking type used to create stock investigation pickings.",
     )
+    u_goods_in_picking_type_id = fields.Many2one(
+        comodel_name="stock.picking.type",
+        string="Goods In Picking Type",
+        help="Goods in picking type used for finding the correct picking type from a the warehouse.",
+    )
     u_show_rpc_timing = fields.Boolean(
         string="Show RPC timing", default=False, help="Show RPC call times on mobile UI"
     )
