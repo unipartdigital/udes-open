@@ -1,6 +1,7 @@
 """Tests for the Package model."""
 
 from odoo.exceptions import ValidationError
+from odoo.tools import mute_logger
 from psycopg2.errors import UniqueViolation
 
 from odoo.addons.udes_stock.tests.common import BaseUDES
@@ -69,7 +70,7 @@ class PackageCreationTestCase(BaseUDES):
         # Odoo converts the UniqueViolation to a ValidationError, but this
         # hasn't happened "yet" see how PGERROR_TO_OE is handled in
         # BaseModel.load.
-        with self.assertRaises(UniqueViolation):
+        with self.assertRaises(UniqueViolation), mute_logger("odoo.sql_db"):
             self.package.create({"name": name})
 
     def test_prevents_using_package_as_pallet(self):
