@@ -1,11 +1,19 @@
 # -*- coding: utf-8 -*-
 from odoo.addons.udes_stock.tests.common import BaseUDES
 from odoo.exceptions import UserError
+from odoo.tests import get_db_name
+import odoo
+from odoo import SUPERUSER_ID, api
 
 
 class TestStockPicking(BaseUDES):
     @classmethod
     def setUpClass(cls):
+        cls.registry = odoo.registry(get_db_name())
+        cls.cr = cls.registry.cursor()
+        cls.registry.enter_test_mode(cls.cr)
+        cls.uid = SUPERUSER_ID
+        cls.env = api.Environment(cls.cr, cls.uid, {})
         super(TestStockPicking, cls).setUpClass()
 
         products_info = [{"product": cls.apple, "uom_qty": 10.0}]
@@ -28,14 +36,19 @@ class TestStockPicking(BaseUDES):
             quantity=10.0,
         )
 
+    @classmethod
+    def tearDownClass(cls):
+        super(TestStockPicking, cls).tearDownClass()
+        cls.registry.leave_test_mode()
+
     # Want to inherit the methods from BaseUDES but do not want the database to
     # rollback after each test, as the method in test: reserve_stock, commits to
     # the database via the cursor - so will not be able to rollback
-    def setUp(cls):
-        pass
+    # def setUp(cls):
+    #     pass
 
-    def tearDown(cls):
-        pass
+    # def tearDown(cls):
+    #     pass
 
     @classmethod
     def create_quant(self, product_id, location_id, quantity, **kwargs):
