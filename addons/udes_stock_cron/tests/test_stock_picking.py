@@ -58,7 +58,7 @@ class TestStockPicking(BaseUDES):
         # Run reserve_stock, which should then reserve quantity and change state of stock_picking
         self.assertEqual(self.test_quant_apple.quantity, 10.0)
 
-        Move = self.test_picking_pick.mapped("move_lines").filtered(
+        Move = self.test_picking_pick.move_lines.filtered(
             lambda m: m.name == "Test product Apple"
         )
         self.assertEqual(Move.name, "Test product Apple")
@@ -81,7 +81,7 @@ class TestStockPicking(BaseUDES):
             location_dest_id=self.test_received_location_01.id,
         )
 
-        Move = self.test_picking_pick.mapped("move_lines").filtered(
+        Move = self.test_picking_pick.move_lines.filtered(
             lambda m: m.name == "Test product Banana"
         )
         self.assertEqual(Move.name, "Test product Banana")

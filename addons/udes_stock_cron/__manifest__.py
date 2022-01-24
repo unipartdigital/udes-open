@@ -7,7 +7,7 @@
     "website": "http://github/unipartdigital/udes-open",
     "category": "UDES",
     "version": "0.1",
-    "depends": ["base", "stock", "stock_picking_batch", "udes_common", "udes_cron", "udes_stock"],
+    "depends": ["base", "stock", "stock_picking_batch", "udes_cron", "udes_stock"],
     "data": [
         "data/ir_cron.xml",
         "views/stock_picking_type.xml",

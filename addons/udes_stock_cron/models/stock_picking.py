@@ -28,9 +28,9 @@ class StockPicking(models.Model):
         This is a function so it can be extended and/or overriden.
         """
         # Assign at the move level disabling refactoring
-        moves = self.mapped("move_lines")
+        moves = self.move_lines
         moves._action_assign()
-        return moves.mapped("picking_id")
+        return moves.picking_id
 
     def reserve_stock(self):
         """
@@ -53,7 +53,7 @@ class StockPicking(models.Model):
         PickingType = self.env["stock.picking.type"]
 
         if self:
-            picking_types = self.mapped("picking_type_id")
+            picking_types = self.picking_type_id
         else:
             picking_types = PickingType.search(
                 [("active", "=", True), ("u_num_reservable_pickings", "!=", 0)]
@@ -83,6 +83,7 @@ class StockPicking(models.Model):
             ]
             limit = 1
             processed = Picking.browse()
+            unsatisfied_state = lambda p: p.state not in ("assigned", "cancel", "done")
 
             while reserve_all or to_reserve > 0:
 
@@ -105,7 +106,7 @@ class StockPicking(models.Model):
                     # terminate here.
                     break
 
-                batch = pickings.mapped("batch_id")
+                batch = pickings.batch_id
                 if batch and batch.state == "draft":
                     # Add to seen pickings so that we don't try to process
                     # this batch again.
@@ -126,26 +127,18 @@ class StockPicking(models.Model):
 
                             processed |= pickings
 
-                            unsatisfied = pickings.filtered(
-                                lambda p: p.state not in ["assigned", "cancel", "done"]
-                            )
-                            mls = pickings.mapped("move_line_ids")
+                            unsatisfied = pickings.filtered(unsatisfied_state)
+
+                            mls = pickings.move_line_ids
                             if unsatisfied:
                                 # Unreserve if the picking type cannot handle partials or it
                                 # can but there is nothing allocated (no stock.move.lines)
                                 if not mls:
                                     # construct error message, report only products
                                     # that are unreservable.
-                                    moves = unsatisfied.mapped("move_lines").filtered(
-                                        lambda m: m.state
-                                        not in (
-                                            "done",
-                                            "assigned",
-                                            "cancel",
-                                        )
-                                    )
-                                    products = moves.mapped("product_id.default_code")
-                                    picks = moves.mapped("picking_id.name")
+                                    moves = unsatisfied.move_lines.filtered(unsatisfied_state)
+                                    products = moves.product_id.default_code
+                                    picks = moves.picking_id.name
                                     msg = (
                                         f"Unable to reserve stock for products {products} "
                                         f"for pickings {picks}."
@@ -192,7 +185,7 @@ class StockPicking(models.Model):
                 # order
                 self.env.cr.commit()
                 # Only count as reserved the number of pickings at mls
-                to_reserve -= len(mls.mapped("picking_id"))
+                to_reserve -= len(mls.picking_id)
 
                 if self:
                     # Only process the specified pickings
