@@ -3,7 +3,6 @@ from odoo.addons.udes_stock.tests.common import BaseUDES
 from odoo.exceptions import UserError
 from odoo.tests import get_db_name
 import odoo
-from odoo import SUPERUSER_ID, api
 
 
 class TestStockPicking(BaseUDES):
@@ -12,8 +11,6 @@ class TestStockPicking(BaseUDES):
         cls.registry = odoo.registry(get_db_name())
         cls.cr = cls.registry.cursor()
         cls.registry.enter_test_mode(cls.cr)
-        cls.uid = SUPERUSER_ID
-        cls.env = api.Environment(cls.cr, cls.uid, {})
         super(TestStockPicking, cls).setUpClass()
 
         products_info = [{"product": cls.apple, "uom_qty": 10.0}]
