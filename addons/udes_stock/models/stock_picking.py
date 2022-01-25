@@ -2753,3 +2753,14 @@ class StockPicking(models.Model):
             "submitted_value": self.origin,
         }
         return pick_details
+
+    def _get_goods_in_picking_type_for_warehouse(self, company_id):
+
+        Warehouse = self.env["stock.warehouse"]
+        StockPickingType = self.env["stock.picking.type"]
+
+        warehouse = Warehouse.search([("company_id", "=", company_id)])
+        domain = [("warehouse_id", "=", warehouse.id), ("goods_in", "=", True)]
+        picking_type = StockPickingType.search(domain)
+
+        return picking_type.id
