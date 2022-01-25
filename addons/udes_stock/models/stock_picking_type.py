@@ -663,3 +663,16 @@ class StockPickingType(models.Model):
         action["domain"] = [("location_id", "child_of", location_ids)]
 
         return action
+
+    def _get_goods_in_picking_type_for_warehouse(self, company_id, warehouse_id):
+
+        Warehouse = self.env["stock.warehouse"]
+        warehouse = Warehouse.search(
+            [("company_id", "=", company_id), ("id", "=", warehouse_id)]
+        )
+        if not warehouse:
+            raise ValidationError(
+                ("Cannot find warehouse for warehouse id %s , company id %s")
+                % (warehouse_id, company_id)
+            )
+        return warehouse.u_goods_in_picking_type_id
