@@ -675,4 +675,4 @@ class StockPickingType(models.Model):
                 ("Cannot find warehouse for warehouse id %s , company id %s")
                 % (warehouse_id, company_id)
             )
-        return warehouse.u_goods_in_picking_type_id
+        return warehouse.in_type_id
