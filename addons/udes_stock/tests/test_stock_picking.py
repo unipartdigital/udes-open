@@ -33,6 +33,7 @@ class TestStockPickingCommon(common.BaseUDES):
             "picking_id": pick.id,
             "priority": pick.priority,
             "picking_type_id": pick.picking_type_id.id,
+            "description_picking": product.name,
         }
         expected_move_values.update(kwargs)
         return expected_move_values
