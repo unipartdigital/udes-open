@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Hide the Scrap Menu Item in Operations -->
+    <record id="stock.menu_stock_scrap" model="ir.ui.menu">
+        <field name="active" eval="False"/>
+    </record>
+
+</odoo>

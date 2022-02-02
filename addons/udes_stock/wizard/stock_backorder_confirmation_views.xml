@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<odoo>
+    <data>
+        <!-- Change backorder confirmation view -->
+        <record id="view_backorder_confirmation" model="ir.ui.view">
+            <field name="name">udes_stock.stock.backorder.confirmation</field>
+            <field name="model">stock.backorder.confirmation</field>
+            <field name="inherit_id" ref="stock.view_backorder_confirmation"/>
+            <field name="arch" type="xml">
+                <!-- Hide the `No backorder` button for all pickings not fully completed
+                     regardless of picking type
+                -->
+                <xpath expr="//button[@name='process_cancel_backorder']" position="attributes">
+                    <attribute name="invisible">1</attribute>
+                </xpath>
+
+                <!--Change text displayed on wizard to indicate a backorder is required-->
+                <xpath expr="//p[hasclass('text-muted')]" position="replace"/>
+                <xpath expr="//p[contains(text(),'You have processed less products than the initial demand.')]" position="replace">
+                    <p>
+                        You have processed fewer products than the initial demand. You must create a backorder in order to validate the transfer.
+                    </p>
+                </xpath>
+            </field>
+        </record>
+
+    </data>
+</odoo>

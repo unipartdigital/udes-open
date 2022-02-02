@@ -10,5 +10,11 @@
             }]"/>
         </function>
 
+        <!--  Typo in no_default_immediate_tranfer explicitly set to match with typo in Odoo Stock module -->
+        <record id="no_default_immediate_tranfer" model="ir.config_parameter">
+            <field name="key">stock.no_default_immediate_tranfer</field>
+            <field name="value">True</field>
+        </record>
+
     </data>
 </odoo>
