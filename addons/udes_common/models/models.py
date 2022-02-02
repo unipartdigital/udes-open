@@ -20,7 +20,7 @@ def add_if_not_exists(cls):
     def wrapper(func):
         # pylint: disable=missing-docstring
         if hasattr(cls, func.__name__):
-            _logger.warning("%s.%s is already defined" % (cls.__name__, func.__name__))
+            _logger.debug("%s.%s is already defined" % (cls.__name__, func.__name__))
         else:
             setattr(cls, func.__name__, func)
         return func
@@ -37,7 +37,7 @@ def sliced(self, size=models.PREFETCH_MAX):
 @add_if_not_exists(models.BaseModel)
 def batched(self, size=models.PREFETCH_MAX):
     """Return the recordset ``self`` split into batches of a specified size"""
-    return tools.batched(self, size=size)
+    return tools.ranged(self.sliced(size=size))
 
 
 def getter(key):
