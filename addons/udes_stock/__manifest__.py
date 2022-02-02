@@ -16,8 +16,11 @@
         "data/picking_types.xml",
         "data/routes.xml",
         "data/company.xml",
+        "views/product_views.xml",
         "views/stock_picking.xml",
         "views/stock_location_views.xml",
         "views/stock_template.xml",
+        "views/stock_scrap_views.xml",
+        "wizard/stock_backorder_confirmation_views.xml",
     ],
 }

@@ -91,6 +91,30 @@
                 <attribute name="string"/>
             </xpath>
 
+            <!-- Hide unlock/lock button for all -->
+            <xpath expr="//button[@name='action_toggle_is_locked']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <!-- Hide scrap button for all -->
+            <xpath expr="//button[@name='button_scrap']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+        </field>
+    </record>
+
+    <!-- Customisations for stock.stock_picking_type_kanban -->
+    <record id="stock_picking_type_kanban" model="ir.ui.view">
+        <field name="name">stock.picking.type.kanban.udes_lockdown</field>
+        <field name="model">stock.picking.type</field>
+        <field name="inherit_id" ref="stock.stock_picking_type_kanban"/>
+        <field name="arch" type="xml">
+            <!-- Hide immediate transfer button, although the _get_action in picking_type
+                 forces a planned transfer, no immediate transfers possible. -->
+            <xpath expr="//a[@name='%(stock.action_picking_form)d' and @context]" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
         </field>
     </record>
 
