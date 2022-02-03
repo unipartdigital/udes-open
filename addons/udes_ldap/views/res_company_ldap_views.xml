@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <menuitem id="udes_ldap.ldap_configuration_action"
+      parent="base.menu_users"
+      action="auth_ldap.action_ldap_installer"
+      sequence="40"
+      groups=""
+      name="LDAP Servers"
+    />
+
+    <record id="view_ldap_installer_form" model="ir.ui.view">
+        <field name="name">udes_ldap.res.company.ldap.form</field>
+        <field name="model">res.company.ldap</field>
+        <field name="inherit_id" ref="auth_ldaps.view_ldap_installer_form"/>
+        <field name="arch" type="xml">
+          <!-- Show field for DN format. -->
+          <xpath expr="//field[@name='ldap_password']" position="after">
+            <field name="u_ldap_binddn_fmt"/>
+          </xpath>
+            <!-- Remove inherited fields for login information. -->
+          <xpath expr="//field[@name='ldap_binddn']" position="replace"/>
+          <xpath expr="//field[@name='ldap_password']" position="replace"/>
+        </field>
+    </record>
+
+</odoo>

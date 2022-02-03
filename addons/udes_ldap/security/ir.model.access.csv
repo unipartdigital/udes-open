@@ -1,0 +1,3 @@
+"id","name","model_id:id","group_id:id","perm_read","perm_write","perm_create","perm_unlink"
+"res_company_ldap_debug_user","res_company_ldap_debug_user","udes_ldap.model_res_company_ldap","udes_security.group_debug_user","True","True","True","True"
+" res_company_ldap_trusted_user"," res_company_ldap_trusted_user","udes_ldap.model_res_company_ldap","udes_security.group_trusted_user","True","True","True","True"
