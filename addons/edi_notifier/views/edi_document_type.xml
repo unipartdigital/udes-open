@@ -1,0 +1,16 @@
+<odoo>
+  <data>
+  <record id="document_type_form" model="ir.ui.view">
+      <field name="name">edi.notifier.document.type.form</field>
+      <field name="model">edi.document.type</field>
+      <field name="inherit_id" ref="edi.document_type_form"/>
+      <field name="arch" type="xml">
+	      <xpath expr="//group[@name='extras']" position="after">
+          <group name="notifiers" string="Notifiers" colspan="2">
+            <field name="notifier_ids" nolabel="1" context="{'default_doc_type_ids': [(4, id)]}"/>
+          </group>
+        </xpath>
+      </field>
+    </record>
+  </data>
+</odoo>
