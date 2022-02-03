@@ -1,0 +1,14 @@
+<odoo>
+    <data>
+      <!-- Action window -->
+      <record id="edi.cron_action" model="ir.actions.act_window">
+        <field name="name">EDI Schedule</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">ir.cron</field>
+        <field name="view_type">form</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('state', 'in', ['edi', 'edi_notifier']) ]</field>
+        <field name="context">{'create': False}</field>
+      </record>
+    </data>
+</odoo>

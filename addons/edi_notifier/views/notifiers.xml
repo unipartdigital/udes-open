@@ -1,0 +1,114 @@
+<?xml version="1.0"?>
+<odoo>
+  <data>
+
+    <!-- Form view -->
+    <record id="notifier_form" model="ir.ui.view">
+      <field name="name">edi.notifier.form</field>
+      <field name="model">edi.notifier</field>
+      <field name="arch" type="xml">
+        <form string="EDI Notifier">
+          <sheet>
+            <div class="oe_title">
+              <label for="name" class="oe_edit_only"/>
+              <h1>
+                <field name="name" placeholder="e.g. Email on order import success"/>
+              </h1>
+            </div>
+            <div name="button_box" class="oe_button_box">
+              <div>
+                <button name="action_view_cron"
+                  type="object"
+                  class="oe_stat_button"
+                  icon="fa-clock-o"
+                  attrs="{'invisible': ['!', ('can_use_crons', '=', True)]}">
+                  <field name="cron_count" widget="statinfo"
+                    string="Schedules"/>
+                </button>
+              </div>
+            </div>
+            <group>
+              <group name="basic">
+                <field name="model_id"/>
+                <field name="model_name"  invisible="1"/>
+                <field name="can_use_crons"  invisible="1"/>
+                <field name="doc_type_ids" widget="many2many_tags" />
+                <field name="lookback_hours" attrs="{'invisible': ['!', ('model_name', 'ilike', 'In Range')]}"/>
+                <field name="include_notes" attrs="{'invisible': ['!', '|', ('model_name', 'ilike', 'Failed'), ('model_name', 'ilike', 'Success')]}"/>
+                <field name="include_issues" attrs="{'invisible': ['!', ('model_name', 'ilike', 'Failed')]}"/>
+                <field name="include_attachments" 
+                  attrs="{'invisible': ['!', '|', ('model_name', 'ilike', 'Failed'), ('model_name', 'ilike', 'Success')]}"
+                  groups="udes_security.group_debug_user"/>
+                <field name="active"/>
+                <field name="safety" />
+              </group>
+            </group>
+            <notebook>
+              <page name="email" string="Email" attrs="{'invisible': ['!', ('model_name', 'ilike', 'Email')]}">
+                <group>
+                  <field name="template_id"
+                         context="{'default_is_edi_template': True}"
+                         attrs="{'required': [('model_name', 'ilike', 'Email')]}"/>
+                </group>
+              </page>
+            </notebook>
+          </sheet>
+        </form>
+      </field>
+    </record>
+
+    <!-- Tree view -->
+    <record id="notifier_tree" model="ir.ui.view">
+      <field name="name">edi.notifier.tree</field>
+      <field name="model">edi.notifier</field>
+      <field name="arch" type="xml">
+        <tree string="EDI Notifiers">
+          <field name="name"/>
+          <field name="model_id"/>
+          <field name="doc_type_ids" widget="many2many_tags"/>
+          <field name="active"/>
+        </tree>
+      </field>
+    </record>
+
+    <!-- Search filter -->
+    <record id="notifier_search" model="ir.ui.view">
+      <field name="name">edi.notifier.search</field>
+      <field name="model">edi.notifier</field>
+      <field name="arch" type="xml">
+        <search string="Search EDI Notifier">
+          <field name="name"/>
+          <field name="model_id"/>
+          <field name="doc_type_ids"/>
+        </search>
+      </field>
+    </record>
+
+    <!-- Action window -->
+    <record id="notifier_action" model="ir.actions.act_window">
+      <field name="name">EDI Notifiers</field>
+      <field name="type">ir.actions.act_window</field>
+      <field name="res_model">edi.notifier</field>
+      <field name="view_type">form</field>
+      <field name="view_id" ref="notifier_tree"/>
+      <field name="search_view_id" ref="notifier_search"/>
+      <field name="help" type="html">
+        <p class="oe_view_nocontent_create">
+Click to create an EDI Notifier.
+        </p>
+        <p>
+Electronic Data Interchange (EDI) notifiers are used to
+automate the sending of notifications.
+        </p>
+      </field>
+    </record>
+
+    <!-- Menu item -->
+    <menuitem id="notifier_menu"
+              name="Notifiers" action="notifier_action"
+              parent="edi.communication_menu"
+              sequence="40"
+              groups="udes_security.group_trusted_user"/>
+
+  </data>
+</odoo>

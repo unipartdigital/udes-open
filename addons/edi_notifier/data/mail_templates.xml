@@ -1,0 +1,126 @@
+<odoo>
+  <data noupdate="1">
+    <record id="email_template_edi_document_success" model="mail.template">
+      <field name="name">EDI Document Sucesss</field>
+      <field name="model_id" ref="edi.model_edi_document"/>
+      <field name="auto_delete" eval="True"/>
+      <field name="subject">${object.doc_type_id.name} ${object.name} received and processed successfully${object.notifier_subject_suffix or ''}</field>
+      <field name="email_from">no-reply@udes.io</field>
+      <field name="reply_to">no-reply@udes.io</field>
+      <field name="email_to"></field>
+      <field name="is_edi_template" eval="True"/>
+      <field name="body_html"><![CDATA[
+<div style="font-family: 'Lucica Grande', Ubuntu, Arial, Verdana, sans-serif; font-size: 12px; color: rgb(34, 34, 34); background-color: rgb(255, 255, 255); ">
+
+<p>${object.doc_type_id.name | safe} ${object.name | safe} has been received and successfully processed at ${format_tz(object.create_date)}.</p>
+<br/>
+<p>The files attached are:
+  <ul>
+  % if ctx.get('attachments'):
+    % for file in ctx.get('attachments'):
+      <li>${file.datas_fname | safe}</li>
+    % endfor
+  % else
+    % for file in object.input_ids:
+      <li>${file.datas_fname | safe}</li>
+    % endfor
+  % endif
+  </ul>
+</p>
+% if ctx.get("notes"):
+<p>The notes attached to the documents are:
+  <ul>
+  %for note in ctx.get("notes"):
+    % if note.body:
+      <li>${note.body | trim | safe}</li>
+    % endif
+  % endfor
+  </ul>
+</p>
+</br>
+% endif
+% if ctx.get("instance_url"):
+  <p>This is an automated email sent from this address: ${ctx['instance_url']} from this device: ${ctx['hostname']} and replies will not be monitored.</p>
+% else
+  <p>This is an automated email and replies will not be monitored.</p>
+% endif
+</div>
+      ]]></field>
+    </record>
+    <record id="email_template_edi_document_failed" model="mail.template">
+      <field name="name">EDI Document Failed</field>
+      <field name="model_id" ref="edi.model_edi_document"/>
+      <field name="auto_delete" eval="True"/>
+      <field name="subject">${object.doc_type_id.name} ${object.name} failed${object.notifier_subject_suffix or ''}</field>
+      <field name="email_from">no-reply@udes.io</field>
+      <field name="reply_to">no-reply@udes.io</field>
+      <field name="email_to"></field>
+      <field name="is_edi_template" eval="True"/>
+      <field name="body_html"><![CDATA[
+<div style="font-family: 'Lucica Grande', Ubuntu, Arial, Verdana, sans-serif; font-size: 12px; color: rgb(34, 34, 34); background-color: rgb(255, 255, 255); ">
+
+<p>${object.doc_type_id.name | safe} ${object.name | safe} has been received but could not be processed at ${format_tz(object.create_date)}.</p>
+<br/>
+<p>The files attached are:
+  <ul>
+  % for file in object.input_ids:
+    <li>${file.datas_fname | safe}</li>
+  % endfor
+  </ul>
+  </br>
+</p>
+% if ctx.get("issues"):
+<p>The issues are:
+  <ul>
+  %for issue in ctx.get("issues"):
+    <li>${issue.name | trim | safe}</li>
+  % endfor
+  </ul>
+</p>
+</br>
+% endif
+% if ctx.get("notes"):
+<p>The notes attached to the documents are:
+  <ul>
+  %for note in ctx.get("notes"):
+    % if note.body:
+      <li>${note.body | trim | safe}</li>
+    % endif
+  % endfor
+  </ul>
+</p>
+</br>
+% endif
+% if ctx.get("instance_url"):
+  <p>This is an automated email sent from this address: ${ctx['instance_url']} from this device: ${ctx['hostname']} and replies will not be monitored.</p>
+% else
+  <p>This is an automated email and replies will not be monitored.</p>
+% endif
+
+</div>
+      ]]></field>
+    </record>
+    <record id="email_template_edi_document_not_received" model="mail.template">
+        <field name="name">EDI Document Not Received</field>
+        <field name="model_id" ref="edi.model_edi_document_type"/>
+        <field name="auto_delete" eval="True"/>
+        <field name="subject">${object.name} not received${object.notifier_subject_suffix or ''}</field>
+        <field name="email_from">no-reply@udes.io</field>
+        <field name="reply_to">no-reply@udes.io</field>
+        <field name="email_to"></field>
+        <field name="is_edi_template" eval="True"/>
+        <field name="body_html"><![CDATA[
+<div style="font-family: 'Lucica Grande', Ubuntu, Arial, Verdana, sans-serif; font-size: 12px; color: rgb(34, 34, 34); background-color: rgb(255, 255, 255); ">
+
+<p>No ${object.name | safe} has been received.</p>
+<br/>
+% if ctx.get("instance_url"):
+  <p>This is an automated email sent from this address: ${ctx['instance_url']} from this device: ${ctx['hostname']} and replies will not be monitored.</p>
+% else
+  <p>This is an automated email and replies will not be monitored.</p>
+% endif
+</div>
+        ]]></field>
+    </record>
+  </data>
+</odoo>
