@@ -177,10 +177,10 @@ class EdiNotifier(models.Model):
             if config.get_misc(section or self._name, key):
                 return True
         _logger.info(
-                    "%s %s disabled, enable by configuring safety.",
-                    self._name,
-                    self.name,
-                )
+            "%s %s disabled, enable by configuring safety.",
+            self._name,
+            self.name,
+        )
         return False
 
     @api.multi
