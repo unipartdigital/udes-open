@@ -38,7 +38,7 @@
                 <field name="include_issues" attrs="{'invisible': ['!', ('model_name', 'ilike', 'Failed')]}"/>
                 <field name="include_attachments" 
                   attrs="{'invisible': ['!', '|', ('model_name', 'ilike', 'Failed'), ('model_name', 'ilike', 'Success')]}"
-                  groups="udes_security.group_debug_user"/>
+                  groups="udes_security.group_trusted_user"/>
                 <field name="active"/>
                 <field name="safety" />
               </group>
@@ -46,9 +46,11 @@
             <notebook>
               <page name="email" string="Email" attrs="{'invisible': ['!', ('model_name', 'ilike', 'Email')]}">
                 <group>
+                  <field name="allowed_template_ids" invisible="1"/>
                   <field name="template_id"
                          context="{'default_is_edi_template': True}"
-                         attrs="{'required': [('model_name', 'ilike', 'Email')]}"/>
+                         attrs="{'required': [('model_name', 'ilike', 'Email')]}"
+                         domain="[('id', 'in', allowed_template_ids)]"/>
                 </group>
               </page>
             </notebook>
@@ -89,7 +91,6 @@
       <field name="name">EDI Notifiers</field>
       <field name="type">ir.actions.act_window</field>
       <field name="res_model">edi.notifier</field>
-      <field name="view_type">form</field>
       <field name="view_id" ref="notifier_tree"/>
       <field name="search_view_id" ref="notifier_search"/>
       <field name="help" type="html">
