@@ -1,6 +1,6 @@
 import logging
 
-from odoo import fields, api, models
+from odoo import fields, models
 
 _logger = logging.getLogger(__name__)
 
@@ -23,14 +23,12 @@ class EdiDocument(models.Model):
 
     notifier_subject_suffix = fields.Char("Suffix to the Subject Line of the Notifier Email")
 
-    @api.multi
     def action_prepare(self):
         """Extend action prepare to call notifiers"""
         res = super().action_prepare()
         self._run_notifiers("prepare")
         return res
 
-    @api.multi
     def action_execute(self):
         """Extend action execute to call notifiers"""
         res = super().action_execute()

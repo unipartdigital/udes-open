@@ -38,18 +38,20 @@ class ServerActions(models.Model):
 
     _inherit = "ir.actions.server"
 
-    state = fields.Selection(selection_add=[("edi_notifier", "EDI Notifier")])
+    state = fields.Selection(
+        selection_add=[("edi_notifier", "EDI Notifier")], ondelete={"edi_notifier": "cascade"}
+    )
     edi_notifier_id = fields.Many2one(
         "edi.notifier", string="EDI Notifier", index=True, ondelete="cascade"
     )
 
     @api.model
-    def run_action_edi_notifier_multi(self, action, eval_context=None):
+    def _run_action_edi_notifier_multi(self, eval_context=None):
         """Run EDI Notifer server action"""
-        # pylint: disable=unused-argument
-        if action.edi_notifier_id:
-            _logger.info("Running notifier {} via cron".format(action.edi_notifier_id.id))
-            action.edi_notifier_id.notify("cron")
+        notifier = self.edi_notifier_id
+        if notifier:
+            _logger.info("Running notifier {} via cron".format(notifier.id))
+            notifier.notify("cron")
 
 
 class EdiNotifier(models.Model):
@@ -59,8 +61,9 @@ class EdiNotifier(models.Model):
     name = fields.Char(string="Name", required=True, index=True)
     model_id = fields.Many2one(
         "ir.model",
-        string="Notifier type",
+        string="Notifier Type",
         domain=[("is_edi_notifier", "=", True)],
+        ondelete="cascade",
         required=True,
         index=True,
     )
@@ -93,19 +96,20 @@ class EdiNotifier(models.Model):
         column2="doc_id",
         string="Document Types",
     )
-    template_id = fields.Many2one("mail.template", domain=[("is_edi_template", "=", True)])
+    template_id = fields.Many2one("mail.template")
+    allowed_template_ids = fields.One2many("mail.template", compute="_compute_allowed_template_ids")
     cron_ids = fields.One2many(
         "ir.cron",
         "edi_notifier_id",
         domain=[("state", "=", "edi_notifier")],
         string="Schedule",
     )
-    include_issues = fields.Boolean(string="Include issues", default=False)
-    include_notes = fields.Boolean(string="Include notes", default=False)
+    include_issues = fields.Boolean(string="Include Issues", default=False)
+    include_notes = fields.Boolean(string="Include Notes", default=False)
     include_attachments = fields.Selection(
-        selection=[("all", "All"), ("input", "Input"), ("output", "Output"), (False, "None")],
-        default=False,
-        string="Include attachments",
+        selection=[("all", "All"), ("input", "Input"), ("output", "Output"), ("none", "None")],
+        default="none",
+        string="Include Attachments",
     )
 
     @api.depends("cron_ids")
@@ -135,7 +139,9 @@ class EdiNotifier(models.Model):
 
     @api.constrains("active")
     def _check_if_can_set_active(self):
-        if len(self.doc_type_ids) == 0 and self.active:
+        # Also check if we have an id to prevent the constraint throwing immediately when we
+        # click 'Create' from the UI
+        if len(self.doc_type_ids) == 0 and self.active and self.id:
             self.active = False
             raise UserError(_("Active can not be set to true if there is no document types"))
 
@@ -146,10 +152,9 @@ class EdiNotifier(models.Model):
         except UserError as err:
             # Throwing the user error doesn't reset the value of active
             # this forces the referesh of the value
-            return {"warning": {"title": "Error", "message": err.name}}
+            return {"warning": {"title": "Error", "message": err.args[0]}}
         return None
 
-    @api.multi
     def action_view_cron(self):
         """View scheduled jobs"""
         self.ensure_one()
@@ -168,7 +173,6 @@ class EdiNotifier(models.Model):
         }
         return action
 
-    @api.multi
     def check_edi_notifications_enabled(self):
         """Check safety config parameter is present and return True if it's enable, otherwise False."""
         self.ensure_one()
@@ -183,7 +187,6 @@ class EdiNotifier(models.Model):
         )
         return False
 
-    @api.multi
     def notify(self, event_type, recs=None):
         """Check for edi notification safety"""
         for notifier in self:
@@ -191,31 +194,39 @@ class EdiNotifier(models.Model):
                 if notifier.active:
                     self.env[notifier.model_id.model].notify(notifier, event_type, recs)
 
-    @api.onchange("model_id")
     @api.depends("model_id")
-    def set_mail_template_domain(self):
+    def _compute_allowed_template_ids(self):
+        """
+        Compute and persist which mail templates should
+        be selectable from the UI when the model changes.
+        Previously this was done with contextual domains in _onchange_model_id
+        but this would lead to those domains getting lost if user left the form.
+        :set: allowed_template_ids (mail.template one2many)
+        """
+        MailTemplate = self.env["mail.template"]
+        allowed_templates = MailTemplate.browse()
         if self.model_id:
             notifier = self.env[self.model_id.model]
             if hasattr(notifier, "get_email_model"):
-                model = notifier.get_email_model().model
-                if self.template_id and self.template_id.model != model:
-                    self.template_id = False
-                return {
-                    "reload": True,
-                    "nodestroy": True,
-                    "domain": {
-                        "template_id": [
-                            ("is_edi_template", "=", True),
-                            ("model", "=", notifier.get_email_model().model),
-                        ],
-                    },
-                }
+                allowed_templates = MailTemplate.search(
+                    [
+                        ("is_edi_template", "=", True),
+                        ("model", "=", notifier.get_email_model().model),
+                    ],
+                )
             elif self.template_id:
-                self.template_id = False
-                return {
-                    "reload": True,
-                    "nodestroy": True,
-                }
+                allowed_templates = MailTemplate.search([("is_edi_template", "=", True)])
+        self.allowed_template_ids = [(6, 0, allowed_templates.ids)]
+
+    @api.onchange("model_id")
+    @api.depends("model_id")
+    def _onchange_model_id(self):
+        """
+        Blank out template_id if user has changed the model and the template
+        currently set is no longer considered allowed
+        """
+        if self.model_id and self.template_id not in self.allowed_template_ids:
+            self.template_id = False
 
 
 class EdiNotifierModel(models.AbstractModel):
@@ -233,18 +244,15 @@ class EdiNotifierModel(models.AbstractModel):
         """Yields only records that should be handled"""
         return recs.filtered(lambda x: self._should_notify(notifier, event_type, x))
 
-    @api.multi
     def _notify(self, notifier, event_type, _recs):
         """Does the action of notifying"""
         raise NotImplementedError
 
-    @api.multi
     def _get_notes(self, rec):
         """Get notes related to a record"""
         rec.ensure_one()
         return self.env["mail.message"].search([("model", "=", rec._name), ("res_id", "=", rec.id)])
 
-    @api.multi
     def _get_issues(self, rec):
         """Get issues from a record"""
         try:
@@ -252,21 +260,17 @@ class EdiNotifierModel(models.AbstractModel):
         except AttributeError:
             return None
 
-    @api.multi
     def _get_attachments(self, rec):
         attachments = self._get_input_attachments(rec)
         attachments |= self._get_output_attachments(rec)
         return attachments
 
-    @api.multi
     def _get_input_attachments(self, rec):
         return rec.input_ids
 
-    @api.multi
     def _get_output_attachments(self, rec):
         return rec.output_ids
 
-    @api.multi
     def notify(self, notifier, event_type, recs):
         """Filter records and send them for notification"""
         recs = self.filter_records(notifier, event_type, recs)

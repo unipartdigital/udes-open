@@ -3,7 +3,7 @@ from unittest import mock
 from datetime import datetime, timedelta
 
 from odoo import fields
-from odoo.exceptions import ValidationError
+from odoo.exceptions import ValidationError, UserError
 from odoo.addons.edi.tests.common import EdiCase
 from odoo.tools import config, mute_logger
 
@@ -113,7 +113,7 @@ class TestNotifier(EdiNotifierCase):
 
     def test_throw_error_if_setting_active_if_no_doc_types(self):
         self.notifier.doc_type_ids = [(5, False, False)]
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(UserError):
             self.notifier.active = True
 
     def test_action_veiw_cron(self):
@@ -231,7 +231,7 @@ class TestSuccess(EdiNotifierCase):
         self.assertEqual(message.attachment_ids, attachments)
 
     def test_sends_no_attachment_on_success(self):
-        self.notifier.include_attachments = False
+        self.notifier.include_attachments = "none"
         self.create_input_attachment(self.doc, "in.csv")
         self.create_output_attachment(self.doc, "out.csv")
         with self.mock_send() as send_mock:
@@ -414,7 +414,7 @@ class TestFailed(EdiNotifierCase):
         self.assertEqual(message.attachment_ids, attachments)
 
     def test_sends_no_attachment_on_failure(self):
-        self.notifier.include_attachments = False
+        self.notifier.include_attachments = "none"
         self.create_input_attachment(self.doc, "in.csv")
         self.create_output_attachment(self.doc, "out.csv")
         with self.mute_issues(), self.mock_send() as send_mock:

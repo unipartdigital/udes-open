@@ -2,7 +2,7 @@ import socket
 
 from datetime import datetime, timedelta
 
-from odoo import fields, api, models
+from odoo import fields, models
 
 
 class EdiEmailNotifier(models.AbstractModel):
@@ -17,7 +17,6 @@ class EdiEmailNotifier(models.AbstractModel):
     def _should_notify(self, notifier, event_type, rec):
         return rec._name == notifier.template_id.model_id.model
 
-    @api.multi
     def _notify(self, notifier, event_type, recs):
         base_url = self.env["ir.config_parameter"].sudo().get_param("web.base.url")
         hostname = socket.gethostname()
@@ -44,7 +43,6 @@ class EdiEmailNotifier(models.AbstractModel):
                 template = template.with_context(instance_url=base_url, hostname=hostname)
             template.send_mail(rec.id, force_send=True, email_values=email_values)
 
-    @api.multi
     def notify(self, notifier, event_type, recs):
         """Filter records and send them for notification"""
         if not recs:
@@ -57,6 +55,7 @@ class EdiEmailStateNotifier(models.AbstractModel):
 
     _name = "edi.notifier.email.state"
     _inherit = "edi.notifier.email"
+    _description = "EDI Email State Notifier"
 
     def _should_notify(self, notifier, event_type, rec):
         return super()._should_notify(notifier, event_type, rec) and self._check_state(
@@ -71,6 +70,7 @@ class EdiEmailSuccessNotifier(models.AbstractModel):
 
     _name = "edi.notifier.email.success"
     _inherit = "edi.notifier.email.state"
+    _description = "EDI Email Success Notifier"
 
     def _check_state(self, event_type, rec):
         return rec.state == "done"
@@ -80,6 +80,7 @@ class EdiEmailFailedNotifier(models.AbstractModel):
 
     _name = "edi.notifier.email.failed"
     _inherit = "edi.notifier.email.state"
+    _description = "EDI Email Failed Notifier"
 
     def _check_state(self, event_type, rec):
         # Look for failed action_prepares and failed action_executes
@@ -92,6 +93,7 @@ class EdiEmailMissingNotifier(models.AbstractModel):
 
     _name = "edi.notifier.email.missing"
     _inherit = "edi.notifier.email"
+    _description = "EDI Email Missing Notifier"
 
     def get_email_model(self):
         return self.env.ref("edi.model_edi_document_type")
@@ -156,7 +158,6 @@ class EdiEmailMissingNotifier(models.AbstractModel):
                     )
         return False
 
-    @api.multi
     def _notify(self, notifier, event_type, recs):
         super()._notify(notifier, event_type, recs)
         recs.write({self._timestamp_field: datetime.now()})
@@ -166,6 +167,7 @@ class EdiEmailMissingInRangeNotifier(models.AbstractModel):
 
     _name = "edi.notifier.email.missing.in.range"
     _inherit = "edi.notifier.email.missing"
+    _description = "EDI Email Missing In Range Notifier"
 
     can_use_crons = True
 

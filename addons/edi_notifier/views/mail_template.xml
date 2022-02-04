@@ -16,7 +16,6 @@
       <field name="name">EDI Email Templates</field>
       <field name="type">ir.actions.act_window</field>
       <field name="res_model">mail.template</field>
-      <field name="view_type">form</field>
       <field name="view_mode">tree,form</field>
       <field name="domain">[('is_edi_template', '=', True)]</field>
       <field name="context">{'default_is_edi_template': True}</field>
