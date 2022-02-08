@@ -78,6 +78,7 @@
         "wizard/stock_backorder_confirmation.xml",
         "wizard/stock_picking_to_batch_views.xml",
         "wizard/stock_picking_mark_todo_view.xml",
+        "wizard/stock_immediate_transfer_views.xml",
     ],
     "qweb": ["static/src/xml/create_planned_transfer_button.xml"],
     "test": [],
