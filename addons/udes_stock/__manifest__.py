@@ -22,5 +22,6 @@
         "views/stock_template.xml",
         "views/stock_scrap_views.xml",
         "wizard/stock_backorder_confirmation_views.xml",
+        "wizard/stock_immediate_transfer_views.xml",
     ],
 }
