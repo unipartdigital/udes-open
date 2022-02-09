@@ -25,6 +25,7 @@ class StockPicking(models.Model):
             pickings.move_line_ids.package_id
 
             for picking in pickings:
+                quant_ids = []
                 remaining_qtys = defaultdict(int)
 
                 # get all packages
@@ -44,6 +45,7 @@ class StockPicking(models.Model):
                             )
 
                         quants = package._get_contained_quants()
+                        quant_ids += quants.ids
                         for product, qty in quants.get_quantities_by_key(
                             only_available=True
                         ).items():
@@ -67,4 +69,8 @@ class StockPicking(models.Model):
 
                     # add bypass_reserve_full_packages at the context
                     # to avoid to be called again inside _create_move()
-                    picking.with_context(bypass_reserve_full_packages=True).action_assign()
+                    # Forcing quants to reserve from
+                    picking.with_context(
+                        bypass_reserve_full_packages=True,
+                        quant_ids=quant_ids
+                    ).action_assign()

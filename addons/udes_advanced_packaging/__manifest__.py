@@ -9,5 +9,6 @@
     "depends": ["uom", "stock", "package_hierarchy", "udes_stock"],
     "data": [
         "views/stock_picking_type.xml",
+        "views/stock_warehouse.xml",
     ],
 }

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+  <!-- Warehouse -->
+  <record id="view_warehouse_advance_packaging_inherited" model="ir.ui.view">
+    <field name="name">stock.warehouse.advanced.packaging.inherit</field>
+    <field name="model">stock.warehouse</field>
+    <field name="inherit_id" ref="package_hierarchy.view_warehouse_inherited"/>
+    <field name="arch" type="xml">
+      <xpath expr="//group[@name='udes_stock_config']" position="inside">
+        <field name="u_package_barcode_regex" />
+        <field name="u_pallet_barcode_regex" />
+      </xpath>
+    </field>
+  </record>
+
+</odoo>
