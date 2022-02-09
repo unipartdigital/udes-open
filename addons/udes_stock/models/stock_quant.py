@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from odoo import models, _, api
 from collections import defaultdict
+from odoo.exceptions import ValidationError
 
 
 class StockQuant(models.Model):
@@ -14,6 +15,23 @@ class StockQuant(models.Model):
         if removal_strategy == "fifo":
             return "in_date ASC NULLS FIRST, package_id ASC NULLS FIRST"
         return super(StockQuant, self)._get_removal_strategy_order(removal_strategy)
+
+    def assert_not_reserved(self):
+        """Ensure all quants in the recordset are unreserved."""
+        reserved = self.filtered(lambda q: q.reserved_quantity > 0)
+        if reserved:
+            raise ValidationError(
+                _(
+                    "Items are reserved and cannot be moved. "
+                    "Please speak to a team leader to resolve "
+                    "the issue.\nAffected Items: %s"
+                )
+                % (
+                    " ".join(reserved.mapped("package_id.name"))
+                    if reserved.mapped("package_id")
+                    else " ".join(reserved.mapped("product_id.display_name"))
+                )
+            )
 
     def _gather(self, product_id, location_id, **kwargs):
         """Call default _gather function, if quant_ids context variable
