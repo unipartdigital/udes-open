@@ -77,20 +77,19 @@ class TestStockLocation(common.SavepointCase):
                 self._check_fields_helper(fields, val.copy())
             self.assertIn(key, fields)
 
-    def test01_get_info_simple(self):
+    def test_get_info_simple(self):
         """Simple test to check that the information from get_info is correct for a single
         location with default settings
         """
         self._comparison_helper(self.grandchild_location.get_info()[0], self.grandchild_location)
 
-    def test02_check_keys(self):
+    def test_check_keys(self):
         """Check we get the expected keys from the _get_info_field_names field"""
-        self.assertEqual(
-            self.grandchild_location.get_info()[0].keys(),
-            self.grandchild_location._get_info_field_names,
-        )
+        total_info_fields = self.grandchild_location._get_info_field_names | BASIC_GET_INFO_VALUES
+        location_info_fields = set(self.grandchild_location.get_info()[0].keys())
+        self.assertTrue(location_info_fields.issubset(total_info_fields))
 
-    def test03_get_info_with_additional_levels_simple(self):
+    def test_get_info_with_additional_levels_simple(self):
         """Check the recursion levels by adding field to default fields"""
         # Add location_id to _get_info_field_names
         Location = self.env["stock.location"]
@@ -99,23 +98,23 @@ class TestStockLocation(common.SavepointCase):
         info = self.grandchild_location.get_info(max_level=3)[0]
         self._recursive_field_helper("location_id", info, self.family_tree)
 
-    def test04_get_info_with_custom_fields(self):
+    def test_get_info_with_custom_fields(self):
         """Check the info returned with custom fields"""
         # Define fields to search
         test_fields = {"location_id", "name"}
         # Run checks via helper
-        info = self.grandchild_location.get_info(max_level=3, fields=test_fields)[0]
+        info = self.grandchild_location.get_info(max_level=3, info_fields=test_fields)[0]
         # Check the fields at each level
         self._recursive_field_helper("location_id", info, self.family_tree)
-        self._check_fields_helper(test_fields, info)
+        self.assertEqual(test_fields, set(info.keys()))
 
-    def test05_get_info_with_different_recursion(self):
+    def test_get_info_with_different_recursion(self):
         """Check the max_level does the correct amount of recursions"""
         # Define fields to search for simplicity
         test_fields = {"location_id", "name"}
         # Run checks via helper
-        info_level1 = self.grandchild_location.get_info(max_level=1, fields=test_fields)[0]
-        info_level3 = self.grandchild_location.get_info(max_level=3, fields=test_fields)[0]
+        info_level1 = self.grandchild_location.get_info(max_level=1, info_fields=test_fields)[0]
+        info_level3 = self.grandchild_location.get_info(max_level=3, info_fields=test_fields)[0]
         # Check no entries with level 1 has a dictionary
         self.assertTrue(any(isinstance(val, dict) for val in info_level1.values()))
         # Check the amount of recursions for the different max_level values
