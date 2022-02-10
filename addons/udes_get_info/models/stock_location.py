@@ -6,11 +6,8 @@ class Location(models.Model):
 
     _inherit = "stock.location"
     _get_info_field_names = {
-        "id",
-        "name",
-        "display_name",
-        "complete_name",
         "barcode",
+        "complete_name",
         "posx",
         "posy",
         "posz",
