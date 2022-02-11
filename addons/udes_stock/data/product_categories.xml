@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<odoo>
+  <data>
+
+    <!-- Construct "Speed" product category -->
+    <record id="product_category_speed" model="product.category">
+      <field name="name">Speed</field>
+      <field name="parent_id" ref="product.product_category_all"/>
+    </record>
+
+    <!-- Construct "Speed" product subcategories: very fast, fast, standard,
+         slow and very slow -->
+    <record id="product_category_speed_very_fast" model="product.category">
+      <field name="name">Very Fast</field>
+      <field name="parent_id" ref="udes_stock.product_category_speed"/>
+    </record>
+    
+    <record id="product_category_speed_fast" model="product.category">
+      <field name="name">Fast</field>
+      <field name="parent_id" ref="udes_stock.product_category_speed"/>
+    </record>
+
+    <record id="product_category_speed_standard" model="product.category">
+      <field name="name">Standard</field>
+      <field name="parent_id" ref="udes_stock.product_category_speed"/>
+    </record>
+
+    <record id="product_category_speed_slow" model="product.category">
+      <field name="name">Slow</field>
+      <field name="parent_id" ref="udes_stock.product_category_speed"/>
+    </record>
+
+    <record id="product_category_speed_very_slow" model="product.category">
+      <field name="name">Very Slow</field>
+      <field name="parent_id" ref="udes_stock.product_category_speed"/>
+    </record>
+
+  </data>
+</odoo>
