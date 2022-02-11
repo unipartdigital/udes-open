@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<odoo>
+
+    <!-- Extend template actions to include inactive products in context
+    which results in archived templates still showing a barcode from the related field,
+    as m2o relations are hidden via the ORM when the linked recordset is inactive - even if
+    the context is set on the barcode field (related seems to ignore context);
+    >>> self.env["product.template"].browse(xxx).product_variant_ids
+    product.product()
+    >>> self.env["product.template"].browse(xxx).with_context(dict(active_test=False)).product_variant_ids
+    product.product(xxx,)
+    Also include a default filter 'Active is false' to hide them by default -->
+    <record id="purchase.product_normal_action_puchased" model="ir.actions.act_window">
+        <field name="context">{"search_default_filter_to_purchase":1, "active_test": False, "search_default_active": 1}</field>
+    </record>
+
+</odoo>

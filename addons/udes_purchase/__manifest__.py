@@ -17,6 +17,7 @@
         'data/routes.xml',
         'data/scheduler.xml',
         'views/purchase_views.xml',
+        'views/product_template.xml',
     ],
     'installable': True,
     'application': False,
