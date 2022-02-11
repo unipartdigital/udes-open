@@ -1,0 +1,108 @@
+<odoo>
+    <data>
+        <!-- Form view -->
+        <record id="user_template_form" model="ir.ui.view">
+            <field name="name">user.template.form</field>
+            <field name="model">user.template</field>
+            <field name="arch" type="xml">
+                <form string="User Template">
+                    <sheet>
+                        <!-- Here we have a set of smart buttons that use the 'recursive_child_*' columns
+                        in combination with actions defined on user.template to display the relevant information -->
+                        <div name="button_box" class="oe_button_box">
+                            <button name="action_view_child_templates" type="object" class="oe_stat_button" icon="fa-sitemap">
+                                <field name="family_descendant_count" widget="statinfo" string="Child Templates" />
+                            </button>
+                            <button name="action_view_child_groups" type="object" class="oe_stat_button" icon="fa-users">
+                                <field name="family_group_count" widget="statinfo" string="Implied Groups" />
+                            </button>
+                            <button name="action_view_child_acls" type="object" class="oe_stat_button" icon="fa-list">
+                                <field name="family_acl_count" widget="statinfo" string="Implied ACLs" />
+                            </button>
+                        </div>
+                        <!-- Make name nice and large to edit -->
+                        <div class="oe_title">
+                            <label for="name" class="oe_edit_only" />
+                            <h1>
+                                <field name="name" placeholder="e.g. Stock Manager" />
+                            </h1>
+                        </div>
+                        <!-- Main fields for user template -->
+                        <group>
+                            <group name="basic">
+                                <!-- This field is required at the model level, but we set it to not required
+                                to prevent form validation kicking in before one can be generated and set -->
+                                <field name="template_group_id" required="0" />
+                                <field name="parent_id" />
+
+                                <!-- Hidden fields -->
+                                <field name="family_descendant_ids" invisible="1" />
+                                <field name="family_group_ids" invisible="1" />
+                                <field name="family_acl_ids" invisible="1" />
+                            </group>
+
+                            <!-- Full width -->
+                            <field name="group_ids" />
+
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <!-- Hierarchical Tree view -->
+        <record id="user_template_hierarchical_tree" model="ir.ui.view">
+            <field name="name">user.template.hierarchical.tree</field>
+            <field name="model">user.template</field>
+            <field name="arch" type="xml">
+                <hierarchical_tree count_field="family_descendant_count" disable_drag_drop="1" show_form_button="1" />
+            </field>
+        </record>
+
+        <!-- Tree view -->
+        <record id="user_template_tree" model="ir.ui.view">
+            <field name="name">user.template.tree</field>
+            <field name="model">user.template</field>
+            <field name="arch" type="xml">
+                <tree string="User Templates">
+                    <field name="name" />
+                    <field name="parent_id" />
+                    <field name="template_group_id" />
+                </tree>
+            </field>
+        </record>
+
+        <!-- Search filter -->
+        <record id="user_template_search" model="ir.ui.view">
+            <field name="name">user.template.search</field>
+            <field name="model">user.template</field>
+            <field name="arch" type="xml">
+                <search string="Search User Templates">
+                    <field name="name" />
+                </search>
+            </field>
+        </record>
+
+        <!-- Action window -->
+        <record id="user_template_action" model="ir.actions.act_window">
+            <field name="name">User Templates</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">user.template</field>
+            <field name="view_mode">tree,form</field>
+            <field name="view_id" ref="udes_permissions.user_template_tree" />
+            <field name="search_view_id" ref="udes_permissions.user_template_search" />
+            <field name="help" type="html">
+                <p class="oe_view_nocontent_create">
+      Click to create a User Template.
+              </p>
+                <p>
+      User Templates are used to allow for quick set-up of user types
+              </p>
+            </field>
+        </record>
+
+        <!-- Menuitem -->
+        <menuitem id="user_template_menu" name="User Templates" action="udes_permissions.user_template_action" parent="base.menu_users" groups="udes_permissions.group_edit_user_template" sequence="2" />
+
+    </data>
+</odoo>

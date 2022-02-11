@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_user_template_access_rights,access_user_template_access_rights,model_user_template,udes_permissions.group_edit_user_template,1,1,1,1
+access_user_template,access_user_template,model_user_template,base.group_user,1,0,0,0
