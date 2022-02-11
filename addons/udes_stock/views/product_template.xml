@@ -19,6 +19,7 @@
                     <field name="u_manufacturer_part_no" />
                     <field name="u_pallet_qty" />
                 </group>
+
             </xpath>
         </field>
     </record>
@@ -44,9 +45,29 @@
                 <field name="name" string="Product" filter_domain="['|','|','|',('default_code','ilike',self),('name','ilike',self),('barcode','ilike',self),('u_manufacturer_part_no','ilike',self)]"/>
                 <field name="u_manufacturer_part_no" />
             </field>
+            <!-- Add a new filter for Active products, as we now include inactive by default -->
+            <filter name="inactive" position="after">
+                <filter string="Active" name="active" domain="[('active','=',True)]"/>
+            </filter>
         </field>
     </record>
 
     <menuitem id="stock.product_product_menu" active="false"/>
+
+    <!-- Extend template actions to include inactive products in context
+    which results in archived templates still showing a barcode from the related field,
+    as m2o relations are hidden via the ORM when the linked recordset is inactive - even if
+    the context is set on the barcode field (related seems to ignore context);
+    >>> self.env["product.template"].browse(xxx).product_variant_ids
+    product.product()
+    >>> self.env["product.template"].browse(xxx).with_context(dict(active_test=False)).product_variant_ids
+    product.product(xxx,)
+    Also include a default filter 'Active is false' to hide them by default -->
+    <record id="product.product_template_action" model="ir.actions.act_window">
+        <field name="context">{"search_default_filter_to_sell":1, "active_test": False, "search_default_active": 1}</field>
+    </record>
+    <record id="stock.product_template_action_product" model="ir.actions.act_window">
+        <field name="context">{"search_default_consumable": 1, 'default_type': 'product', "active_test": False, "search_default_active": 1}</field>
+    </record>
 
 </odoo>
