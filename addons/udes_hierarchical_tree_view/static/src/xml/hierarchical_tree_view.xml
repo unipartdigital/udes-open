@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <div t-name="udes_hierarchical_tree_view.HierarchicalTreeRenderer" class="o_hierarchical_tree_view" owl="1">
+        <div class="d-flex p-2 flex-row hierarchical-tree-root">
+            <div class="list-group">
+                <t t-foreach="props.items" t-as="item" t-key="item.id">
+                    <TreeItem item="item" countField="state.countField" disableDragDrop="state.disableDragDrop" startUnfolded="state.startUnfolded" showFormButton="state.showFormButton" />
+                </t>
+            </div>
+        </div>
+    </div>
+
+</templates>

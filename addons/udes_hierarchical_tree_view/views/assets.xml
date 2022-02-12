@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="assets_backend" name="assets_backend" inherit_id="web.assets_backend">
+        <xpath expr="." position="inside">
+            <script type="text/javascript" src="/udes_hierarchical_tree_view/static/src/components/tree_item/TreeItem.js"></script>
+
+            <script type="text/javascript" src="/udes_hierarchical_tree_view/static/src/hierarchical_tree_view/hierarchical_tree_view.js"></script>
+            <script type="text/javascript" src="/udes_hierarchical_tree_view/static/src/hierarchical_tree_view/hierarchical_tree_model.js"></script>
+            <script type="text/javascript" src="/udes_hierarchical_tree_view/static/src/hierarchical_tree_view/hierarchical_tree_controller.js"></script>
+            <script type="text/javascript" src="/udes_hierarchical_tree_view/static/src/hierarchical_tree_view/hierarchical_tree_renderer.js"></script>
+        </xpath>
+        <xpath expr="link[last()]" position="after">
+            <link rel="stylesheet" type="text/scss" href="/udes_hierarchical_tree_view/static/src/components/tree_item/tree_item.scss" />
+            <link rel="stylesheet" type="text/scss" href="/udes_hierarchical_tree_view/static/src/hierarchical_tree_view/hierarchical_tree_view.scss" />
+        </xpath>
+    </template>
+</odoo>
