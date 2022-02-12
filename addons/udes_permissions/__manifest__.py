@@ -1,17 +1,17 @@
 {
-    "name": "udes_permissions",
-    "summary": """
-        UDES Permissions
-    """,
+    "name": "UDES Permissions",
     "description": """
-         UDES Permissions
+        Allows users / system to configure a hierarchy of User Templates which have res.groups associated with them.
     """,
-    "author": "UDES",
+    "author": "Unipart Digital",
     "website": "",
-    "category": "Uncategorized",
+    "category": "Specific Industry Applications",
     "version": "0.1",
     # any module necessary for this one to work correctly
-    "depends": ["base"],
+    "depends": [
+        "base",
+        "udes_common",
+    ],
     # always loaded
     "data": [
         "data/res_groups.xml",
