@@ -55,6 +55,9 @@ class ProductTemplate(models.Model):
                                 digits=dp.get_precision('Product Unit of Measure'),
                                 help="Quantity of product per pallet")
 
+    # Apply context override so that barcode will show even when product is archived
+    product_variant_ids = fields.One2many(context={"active_test": False})
+
     @api.onchange('u_pallet_qty')
     def disallow_negative_values(self):
         """ Prevent values from going below 0.
