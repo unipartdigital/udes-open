@@ -102,24 +102,24 @@ class ProductProduct(models.Model):
         Product templates will be active if any of their product variants are
         active, including product.products not present in self.
         """
-        ProductTemplate = self.env["product.template"]
-
         self = self.with_context(prefetch_fields=False)
         templates = self.mapped("product_tmpl_id")
 
         # Prefetch fields
         templates.mapped("product_variant_ids")
 
-        # Activate or deactivate templates based on product_variant_ids.
-        # product_variant_ids only contains active products because Odoo
-        # automatically adds active=True to its domain.
+        # Activate or deactivate templates based on whether it has active product_variant_ids.
 
         if deactivate_templates:
-            templates_to_deactivate = templates.filtered(lambda t: not t.product_variant_ids)
+            templates_to_deactivate = templates.filtered(
+                lambda t: not t.product_variant_ids.filtered("active")
+            )
             templates_to_deactivate.write({"active": False})
 
         if activate_templates:
-            templates_to_activate = templates.filtered(lambda t: t.product_variant_ids)
+            templates_to_activate = templates.filtered(
+                lambda t: t.product_variant_ids.filtered("active")
+            )
             templates_to_activate.write({"active": True})
 
     @api.multi
