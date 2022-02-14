@@ -110,3 +110,8 @@ class ProductTemplate(models.Model):
 
         for template in self - unique_variants:
             template.default_code = ""
+
+    @api.multi
+    def unlink(self):
+        """Override superclass to prevent deletion."""
+        raise ValidationError(_("Products may not be deleted. Please archive them instead."))
