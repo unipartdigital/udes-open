@@ -121,3 +121,8 @@ class ProductProduct(models.Model):
         if activate_templates:
             templates_to_activate = templates.filtered(lambda t: t.product_variant_ids)
             templates_to_activate.write({"active": True})
+
+    @api.multi
+    def unlink(self):
+        """Override superclass to prevent deletion."""
+        raise ValidationError(_("Products may not be deleted. Please archive them instead."))

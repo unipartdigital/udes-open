@@ -74,3 +74,8 @@ class ProductTemplate(models.Model):
                     ),
                 }
             }
+
+    @api.multi
+    def unlink(self):
+        """Override superclass to prevent deletion."""
+        raise ValidationError(_("Products may not be deleted. Please archive them instead."))
