@@ -28,15 +28,15 @@ class ProductProduct(models.Model):
 
     def _prepare_info(self, fields_to_fetch=None):
         """
-            Prepares the following info of the product in self:
-            - id: int
-            - barcode: string
-            - display_name: string
-            - name: string
-            - tracking: string
+        Prepares the following info of the product in self:
+        - id: int
+        - barcode: string
+        - display_name: string
+        - name: string
+        - tracking: string
 
-            @param fields_to_fetch: array of string
-                Subset of the default fields to return
+        @param fields_to_fetch: array of string
+            Subset of the default fields to return
         """
         self.ensure_one()
 
@@ -66,8 +66,7 @@ class ProductProduct(models.Model):
         return {key: value(self) for key, value in info.items() if key in fields_to_fetch}
 
     def get_info(self, **kwargs):
-        """ Return a list with the information of each product in self.
-        """
+        """Return a list with the information of each product in self."""
         res = []
         for prod in self:
             res.append(prod._prepare_info(**kwargs))
@@ -75,8 +74,7 @@ class ProductProduct(models.Model):
         return res
 
     def get_product(self, product_identifier):
-        """ Get product from a name, barcode, or id.
-        """
+        """Get product from a name, barcode, or id."""
         if isinstance(product_identifier, int):
             domain = [("id", "=", product_identifier)]
         elif isinstance(product_identifier, str):
@@ -99,7 +97,7 @@ class ProductProduct(models.Model):
 
     @api.multi
     def sync_active_to_templates(self, activate_templates=True, deactivate_templates=True):
-        """ Copy the active state from products to their templates
+        """Copy the active state from products to their templates
 
         Product templates will be active if any of their product variants are
         active, including product.products not present in self.
