@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<odoo>
+    <record id="view_product_template_form_view_udes_stock" model="ir.ui.view">
+        <field name="name">product.template.common.form.udes_stock</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='inventory']" position="inside">
+                <group string="Inventory" name="inventory_udes">
+                    <field name="u_speed_category_id" />
+                    <field name="u_height" />
+                    <field name="u_length" />
+                    <field name="u_width" />
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>

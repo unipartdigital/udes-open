@@ -69,6 +69,10 @@ Additional Details:
 | active | string | Tracking enabled on change |
 | name | Disable translation instead of renaming |
 | type | Enable products to be stockable |
+| u_speed_category_id | The speed in which the product can be processed |
+| u_height | Product height in metres |
+| u_length | Product length in metres |
+| u_width  | Product width in metres  |
 
 ### Locations (model: stock.location)
 
