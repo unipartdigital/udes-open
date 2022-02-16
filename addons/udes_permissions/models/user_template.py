@@ -182,7 +182,8 @@ class UserTemplate(models.Model):
         return res
 
     def copy(self, default=None):
-        """Extend copy:"""
+        """Extend copy:
+        Suffix name with '(copy)' so no constraints are violated"""
         self.ensure_one()
         if default is None:
             default = {}
