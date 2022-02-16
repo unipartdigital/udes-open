@@ -11,40 +11,50 @@
         </div>
     </t>
 
+    <t t-name="udes_hierarchical_tree_view.InnerTreeItem" owl="1">
+        <!-- The actual rendered node -->
+        <!-- Sometimes people decide to call their column child_id,
+                And sometimes people are sane and call their column child_ids.
+                Results in a bit of duplicated code..
+                I tried to abstract to a new template but couldn't get t-sets to pass through.
+        -->
+        <t t-if="props.item.hasOwnProperty('child_id')">
+            <a href="#" t-on-click.stop.prevent="toggleChildren" t-if="props.item.child_id.length > 0">
+                <t t-esc="props.item.display_name" />
+                <i t-attf-class="pl-2 fa {{ props.item.childrenVisible ? 'fa-caret-down': 'fa-caret-right'}}"></i>
+            </a>
+            <span t-else="">
+                <t t-esc="props.item.display_name" />
+            </span>
+        </t>
+        <t t-elif="props.item.hasOwnProperty('child_ids')">
+            <a href="#" t-on-click.stop.prevent="toggleChildren" t-if="props.item.child_ids.length > 0">
+                <t t-esc="props.item.display_name" />
+                <i t-attf-class="pl-2 fa {{ props.item.childrenVisible ? 'fa-caret-down': 'fa-caret-right'}}"></i>
+            </a>
+            <span t-else="">
+                <t t-esc="props.item.display_name" />
+            </span>
+        </t>
+        <span t-if="props.countField !== '' and props.item.hasOwnProperty(props.countField)" class="badge badge-primary badge-pill" t-esc="props.item[props.countField]"></span>
+        <!-- Optional form view opener -->
+        <t t-if="props.showFormButton">
+            <button type="button" class="btn btn-secondary fa fa-pencil-square-o" title="View in Form" href="#" t-on-click.stop.prevent="openFormView"></button>
+        </t>
+    </t>
+
     <t t-name="udes_hierarchical_tree_view.TreeItem" owl="1">
         <div class="tree-item-wrapper">
-            <!-- The actual rendered node -->
-            <div t-attf-draggable="{{ props.disableDragDrop != '' ? 'false' : 'true' }}" t-on-dragstart="onDragstart" t-on-drop.stop.prevent="onDrop" t-on-dragover.prevent="onDragover" t-on-dragenter.prevent="onDragenter" t-on-dragleave.prevent="onDragleave" t-attf-class="list-group-item list-group-item-action d-flex justify-content-between align-items-center udes_hierarchical_tree_view-tree-item {{ state.isDraggedOn ? 'list-group-item-warning': '' }}">
-                <!-- Sometimes people decide to call their column child_id,
-                     And sometimes people are sane and call their column child_ids.
-                     Results in a bit of duplicated code..
-                     I tried to abstract to a new template but couldn't get t-sets to pass through.
-                -->
-                <t t-if="props.item.hasOwnProperty('child_id')">
-                    <a href="#" t-on-click.stop.prevent="toggleChildren" t-if="props.item.child_id.length > 0">
-                        <t t-esc="props.item.display_name" />
-                        <i t-attf-class="pl-2 fa {{ props.item.childrenVisible ? 'fa-caret-down': 'fa-caret-right'}}"></i>
-                    </a>
-                    <span t-else="">
-                        <t t-esc="props.item.display_name" />
-                    </span>
-                </t>
-                <t t-elif="props.item.hasOwnProperty('child_ids')">
-                    <a href="#" t-on-click.stop.prevent="toggleChildren" t-if="props.item.child_ids.length > 0">
-                        <t t-esc="props.item.display_name" />
-                        <i t-attf-class="pl-2 fa {{ props.item.childrenVisible ? 'fa-caret-down': 'fa-caret-right'}}"></i>
-                    </a>
-                    <span t-else="">
-                        <t t-esc="props.item.display_name" />
-                    </span>
-                </t>
-                <span t-if="props.countField !== '' and props.item.hasOwnProperty(props.countField)" class="badge badge-primary badge-pill" t-esc="props.item[props.countField]"></span>
-                <!-- Optional form view opener -->
-                <t t-if="props.showFormButton">
-                    <button type="button" class="btn btn-secondary fa fa-pencil-square-o" title="View in Form" href="#" t-on-click.stop.prevent="openFormView"></button>
-                </t>
-            </div>
-            <!-- Same deal here.. -->
+            <t t-if="props.disableDragDrop != ''">
+                <div t-attf-class="list-group-item list-group-item-action d-flex justify-content-between align-items-center udes_hierarchical_tree_view-tree-item">
+                    <t t-call="udes_hierarchical_tree_view.InnerTreeItem" />
+                </div>
+            </t>
+            <t t-else="">
+                <div t-attf-draggable="true" t-on-dragstart="onDragstart" t-on-drop.stop.prevent="onDrop" t-on-dragover.prevent="onDragover" t-on-dragenter.prevent="onDragenter" t-on-dragleave.prevent="onDragleave" t-attf-class="list-group-item list-group-item-action d-flex justify-content-between align-items-center udes_hierarchical_tree_view-tree-item {{ state.isDraggedOn ? 'list-group-item-warning': '' }}">
+                    <t t-call="udes_hierarchical_tree_view.InnerTreeItem" />
+                </div>
+            </t>
             <!-- Recursively iterate over child nodes in the tree -->
             <t t-if="props.item.hasOwnProperty('child_id')">
                 <t t-if="props.item.child_id.length > 0">

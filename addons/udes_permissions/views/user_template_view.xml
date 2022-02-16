@@ -33,7 +33,7 @@
                                 <!-- This field is required at the model level, but we set it to not required
                                 to prevent form validation kicking in before one can be generated and set -->
                                 <field name="template_group_id" required="0" />
-                                <field name="parent_id" />
+                                <field name="parent_id" domain="[('id','!=', id)]" />
 
                                 <!-- Hidden fields -->
                                 <field name="family_descendant_ids" invisible="1" />

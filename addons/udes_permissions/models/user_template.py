@@ -1,3 +1,4 @@
+import pdb
 from odoo import models, fields, api
 import logging
 
@@ -181,6 +182,17 @@ class UserTemplate(models.Model):
             ).name = self._get_user_template_group_name(vals.get("name"))
         return res
 
+    def copy(self, default=None):
+        """Extend copy:"""
+        self.ensure_one()
+        if default is None:
+            default = {}
+
+        if not default.get("name"):
+            default["name"] = f"{self.name} (copy)"
+
+        return super().copy(default)
+
     def unlink(self):
         """Extend unlink:
         If we delete the template, delete its respective template_group_id
@@ -281,6 +293,10 @@ class UserTemplate(models.Model):
         self.ensure_one()
         action = self.env.ref("udes_permissions.user_template_action").read()[0]
         action["domain"] = [("id", "in", self.family_descendant_ids.ids)]
+        if self.id:
+            # If users create from this action, autofill the parent to the record they came from
+            action["context"] = "{'default_parent_id': %s}" % self.id
+
         return action
 
     def action_view_child_groups(self):
