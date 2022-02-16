@@ -7,10 +7,7 @@
     "website": "http://github/unipartdigital/udes-open",
     "category": "UDES",
     "version": "0.1",
-    "depends": [
-        "base",
-        "udes_hierarchical_tree_view",
-    ],
+    "depends": ["base"],
     "data": [],
     "demo": [],
 }

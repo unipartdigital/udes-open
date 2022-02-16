@@ -10,7 +10,7 @@
     # any module necessary for this one to work correctly
     "depends": [
         "base",
-        "udes_common",
+        "udes_hierarchical_tree_view",
     ],
     # always loaded
     "data": [
