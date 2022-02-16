@@ -1,4 +1,3 @@
-import pdb
 from odoo import models, fields, api
 import logging
 
