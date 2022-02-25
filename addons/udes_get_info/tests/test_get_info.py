@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.tests import common, tagged
 from ..models.models import BASIC_GET_INFO_VALUES
 from collections import Counter

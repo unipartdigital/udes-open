@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 {
     "name": "UDES Suggested Locations",
     "summary": "Suggested locations",

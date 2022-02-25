@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo import models, _, api
 from collections import defaultdict
 from odoo.exceptions import ValidationError

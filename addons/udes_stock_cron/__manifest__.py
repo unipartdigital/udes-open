@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 {
     "name": "UDES Stock Cron",
     "summary": "Udes stock cron",

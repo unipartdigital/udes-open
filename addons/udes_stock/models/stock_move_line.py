@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo import models, fields, api, _
 from collections import defaultdict
 from odoo.tools.float_utils import float_compare, float_round

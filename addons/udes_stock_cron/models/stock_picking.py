@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import time
 from psycopg2 import OperationalError, errorcodes
 from collections import defaultdict
