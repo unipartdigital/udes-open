@@ -20,8 +20,8 @@ ADD addons /opt/odoo-addons
 # Module installation (without tests)
 #
 RUN odoo-wrapper --without-demo=all -i \
-    udes_stock,udes_common,udes_advanced_packaging
+    udes_stock,udes_common,udes_stock_packaging
 
 # Module tests
 #
-CMD ["--test-enable", "-i", "udes_stock,udes_common,udes_advanced_packaging"]
+CMD ["--test-enable", "-i", "udes_stock,udes_common,udes_stock_packaging"]

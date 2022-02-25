@@ -1,5 +1,5 @@
 """
-Package model: advanced features.
+Package model: additional features.
 
 The term package has two meanings:
 - a generic container, either a package or a package
