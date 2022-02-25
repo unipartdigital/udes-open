@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo import models, api, _
 from odoo.exceptions import ValidationError
 from ..registry.suggest_locations_policy import SUGGEST_LOCATION_REGISTRY

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from . import common
 from odoo.exceptions import ValidationError
 

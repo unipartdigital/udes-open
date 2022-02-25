@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.addons.udes_stock.tests.common import BaseUDES
 from odoo.exceptions import UserError
 from odoo.tests import get_db_name

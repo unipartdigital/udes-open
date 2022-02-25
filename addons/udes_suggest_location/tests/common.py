@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.addons.udes_stock.tests import common
 
 

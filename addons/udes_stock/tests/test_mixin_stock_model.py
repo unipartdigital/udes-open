@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from .common import BaseUDES
 from odoo.exceptions import ValidationError
 from unittest.mock import patch

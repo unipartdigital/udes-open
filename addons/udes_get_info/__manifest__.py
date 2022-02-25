@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 {
     "name": "UDES Get Info",
     "summary": "Add get_info methods for udes stock based APIs",

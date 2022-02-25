@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 {
     "name": "UDES Common",
     "summary": "Common components for UDES",
