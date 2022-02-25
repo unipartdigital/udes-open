@@ -1,7 +1,7 @@
 {
-    "name": "UDES Advanced Packaging",
+    "name": "UDES Stock Packaging",
     "summary": "udes stock",
-    "description": "Advanced packaging features for UDES - Odoo 14",
+    "description": "Stock packaging features for UDES - Odoo 14",
     "author": "Unipart digital",
     "website": "http://github/unipartdigital/udes-open",
     "category": "UDES",
