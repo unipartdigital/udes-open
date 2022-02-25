@@ -1,7 +1,7 @@
 {
     "name": "UDES Security",
     "summary": """UDES Security""",
-    "author": "Unipart Digital Team",
+    "author": "Unipart Digital",
     "website": "https://unipart.io",
     "category": "Specific Industry Applications",
     "license": "LGPL-3",
