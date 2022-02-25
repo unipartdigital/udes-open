@@ -7,7 +7,7 @@
     "description": """
         Send email notifications when EDI documents fail/pass
     """,
-    "author": "UDES",
+    "author": "Unipart Digital",
     "website": "",
     "category": "Uncategorized",
     "version": "0.1",

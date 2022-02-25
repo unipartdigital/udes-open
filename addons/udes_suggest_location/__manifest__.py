@@ -3,7 +3,7 @@
     "name": "UDES Suggested Locations",
     "summary": "Suggested locations",
     "description": "Suggested locations",
-    "author": "Unipart digital",
+    "author": "Unipart Digital",
     "website": "http://github/unipartdigital/udes-open",
     "category": "UDES",
     "version": "0.1",

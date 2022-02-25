@@ -2,7 +2,7 @@
     "name": "UDES Stock Packaging",
     "summary": "udes stock",
     "description": "Stock packaging features for UDES - Odoo 14",
-    "author": "Unipart digital",
+    "author": "Unipart Digital",
     "website": "http://github/unipartdigital/udes-open",
     "category": "UDES",
     "version": "0.1",
