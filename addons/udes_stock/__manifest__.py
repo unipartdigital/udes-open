@@ -3,7 +3,7 @@
     "name": "UDES Stock",
     "summary": "udes stock",
     "description": "Core models and configuration for UDES Stock - Odoo 14",
-    "author": "Unipart digital",
+    "author": "Unipart Digital",
     "website": "http://github/unipartdigital/udes-open",
     "category": "UDES",
     "version": "0.1",
