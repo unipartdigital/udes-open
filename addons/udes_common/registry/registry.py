@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from abc import ABCMeta
-from .models import groupby
+from ..models.models import groupby
 
 
 class RegistryMeta(ABCMeta):

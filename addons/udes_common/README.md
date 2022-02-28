@@ -99,6 +99,7 @@ IrModuleModule.is_module_installed("my_module")
 
 ### Registry
 #### RegistryMeta
-Used to manage abstract classes. For example in `udes_suggest_location`
-ensuring that each location policy class created implements
+Used to manage abstract classes. Classes that will fall into the registry should be in a registry 
+folder of respective module.
+For example in `udes_suggest_location` ensuring that each location policy class created implements
 all required methods and that each policy name is unique

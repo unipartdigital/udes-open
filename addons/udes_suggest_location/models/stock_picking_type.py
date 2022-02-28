@@ -1,5 +1,11 @@
-# -*- coding: utf-8 -*-
 from odoo import models, fields
+from ..registry.suggest_by_product import ByProduct
+from ..registry.suggest_locations_policy import get_selection
+
+
+SUGGEST_LOCATION_POLICIES = [
+    get_selection(ByProduct)
+]
 
 
 class PickingType(models.Model):
@@ -8,7 +14,7 @@ class PickingType(models.Model):
 
     # The policy is fetched on implementation
     u_suggest_locations_policy = fields.Selection(
-        selection=[],
+        selection=SUGGEST_LOCATION_POLICIES,
         string="Suggest locations policy",
         help="The policy used to suggest locations",
     )

@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 from abc import abstractmethod, abstractclassmethod
-from odoo.addons.udes_common.models.registry import RegistryMeta
+from odoo.addons.udes_common.registry.registry import RegistryMeta
 
 SUGGEST_LOCATION_REGISTRY = dict()
 
@@ -48,4 +47,4 @@ class SuggestLocationPolicy(metaclass=SuggestRegistryMeta):
 
 def get_selection(cls):
     name = cls.name()
-    return (name, " ".join(x.capitalize() for x in name.split("_")))
+    return name, " ".join(x.capitalize() for x in name.split("_"))
