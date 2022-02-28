@@ -3,7 +3,7 @@ import inspect
 from collections import OrderedDict, defaultdict
 from lxml import etree
 
-from odoo import api, fields, models, _
+from odoo import api, fields, models, SUPERUSER_ID, _
 from odoo.exceptions import ValidationError, UserError
 
 from ..common import check_many2one_validity
@@ -2753,3 +2753,83 @@ class StockPicking(models.Model):
             "submitted_value": self.origin,
         }
         return pick_details
+
+    @api.model
+    def _set_original_picking_on_pickings(self):
+        """
+        Set the Original Picking for pickings in the system that do not currently have it set.
+
+        Carries out update as superuser to avoid any permissions issues, as the method is simply
+        setting Original Picking to the correct value, and doesn't take any input variables.
+
+        Pickings that are not a backorder will simply have Original Picking set as theirself.
+
+        Backorder pickings however will have Original Picking set to the 'root' picking
+        of the chain.
+
+        For example:
+            - IN001 receives 3 out of 5 expected quantity, which are put into IN002
+            - IN001 receives 1 out of the 2 remaining quantity, which is put into IN003
+            - IN001, IN002 and IN003 will all have the same Original Picking; IN001
+        """
+        Picking = self.env["stock.picking"].sudo().with_context(prefetch_fields=False)
+
+        picking_ids = Picking.search([("u_original_picking_id", "=", False)], order="id").ids
+        picking_count = len(picking_ids)
+
+        if picking_count:
+            _logger.info("Setting Original Picking value on %s pickings", picking_count)
+
+            update_query = """
+                WITH
+                RECURSIVE recursive_picking
+                AS (
+                    SELECT
+                    p.id,
+                    p.id AS orig_picking_id,
+                    1 DEPTH
+                    FROM stock_picking p
+
+                UNION ALL
+                    SELECT
+                    rp.id,
+                    p.backorder_id,
+                    rp.depth+ 1
+                    FROM
+                    recursive_picking rp
+                    JOIN
+                    stock_picking p ON rp.orig_picking_id = p.id
+                    WHERE
+                    p.backorder_id IS NOT NULL
+                )
+
+                UPDATE
+                stock_picking p
+                SET
+                write_uid = %(user_id)s,
+                write_date = now() at time zone 'UTC',
+                u_original_picking_id = picking_info.orig_picking_id
+
+                FROM
+                (
+                SELECT
+                DISTINCT ON (rp.id)
+                rp.id as rp_id,
+                rp.orig_picking_id as orig_picking_id
+                FROM
+                recursive_picking rp
+                ORDER BY id, depth DESC
+                ) picking_info
+
+                WHERE
+                p.id IN %(picking_ids)s
+                AND
+                picking_info.rp_id = p.id
+            """
+            update_values = {
+                "user_id": SUPERUSER_ID,
+                "picking_ids": tuple(picking_ids),
+            }
+            self.env.cr.execute(update_query, update_values)
+
+            _logger.info("Original Picking value set on %s pickings", picking_count)
