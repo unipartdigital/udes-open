@@ -39,6 +39,7 @@
         "data/report_paperformat.xml",
         "data/readonly_desktop_user_exception.xml",
         "data/res_archiving_restriction.xml",
+        "data/stock_picking.xml",
         "report/product_product_templates.xml",
         "report/report_stockpicking_operations.xml",
         "views/edi_menu_views.xml",

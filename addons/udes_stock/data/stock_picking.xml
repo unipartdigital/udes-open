@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<odoo>
+    <data>
+
+        <function model="stock.picking" name="_set_original_picking_on_pickings"/>
+
+    </data>
+
+</odoo>
