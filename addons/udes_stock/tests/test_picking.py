@@ -69,7 +69,8 @@ class TestGoodsInPicking(common.BaseUDES):
             when package exists
         """
         returned_pickings = self.SudoPicking.get_pickings(origin=self.test_picking.origin)
-        self.assertEqual(returned_pickings.id, self.test_picking.id)
+        self.assertEqual(len(returned_pickings), 2)
+        self.assertTrue(self.test_picking in returned_pickings)
 
     def test05_get_info_all(self):
         """ Tests get_info without requesting

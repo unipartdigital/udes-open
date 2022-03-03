@@ -1,7 +1,4 @@
-# -*- coding: utf-8 -*-
-
 from odoo.tests import common
-from collections import namedtuple
 
 SECURITY_GROUPS = [
     ('inbound', 'udes_stock.group_inbound_user'),
@@ -270,6 +267,7 @@ class UnconfiguredBaseUDES(common.SavepointCase):
             'location_dest_id': picking.location_dest_id.id,
             'picking_id': picking.id,
             'priority': picking.priority,
+            'origin': picking.origin,
             'picking_type_id': picking.picking_type_id.id,
         }
         vals.update(kwargs)
