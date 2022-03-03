@@ -62,7 +62,7 @@ class StockQuantPackage(models.Model):
                 raise ValidationError(_("Invalid pallet name %r.") % pallet.name)
         return
 
-    @api.constrains("children_ids")
+    @api.constrains("child_ids")
     def _check_child_names(self):
         """
         Raise an exception for invalid configurations.
@@ -76,7 +76,7 @@ class StockQuantPackage(models.Model):
 
         warehouse = User.get_user_warehouse()
         pattern = warehouse.u_package_barcode_regex
-        for child in self.children_ids:
+        for child in self.child_ids:
             if not re.match(pattern, child.name):
                 raise ValidationError(_("Invalid package name %r") % child.name)
         return

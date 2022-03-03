@@ -121,7 +121,7 @@ class PackageCreationTestCase(BaseUDES):
         children = package | other_pallet
 
         with self.assertRaises(ValidationError):
-            pallet.children_ids = children.ids
+            pallet.child_ids = children.ids
 
     def test_prevents_adding_pallets_to_a_pallet_via_write(self):
         """The system will not permit adding a pallet to a pallet using write."""
@@ -131,7 +131,7 @@ class PackageCreationTestCase(BaseUDES):
         children = package | other_pallet
 
         with self.assertRaises(ValidationError):
-            pallet.write({"children_ids": [(6, 0, children.ids)]})
+            pallet.write({"child_ids": [(6, 0, children.ids)]})
 
     def test_can_add_packages_to_pallet(self):
         """The system must permit adding packages to a pallet."""
@@ -140,9 +140,9 @@ class PackageCreationTestCase(BaseUDES):
         package2 = self.package.create({"name": "1002"})
         packages = package1 | package2
 
-        pallet.children_ids = packages.ids
+        pallet.child_ids = packages.ids
 
-        self.assertEqual(pallet.children_ids, packages)
+        self.assertEqual(pallet.child_ids, packages)
 
     def test_can_add_packages_to_pallet_via_write(self):
         """The system must permit adding packages to a pallet using write."""
@@ -151,9 +151,9 @@ class PackageCreationTestCase(BaseUDES):
         package2 = self.package.create({"name": "1002"})
         packages = package1 | package2
 
-        pallet.write({"children_ids": [(6, 0, packages.ids)]})
+        pallet.write({"child_ids": [(6, 0, packages.ids)]})
 
-        self.assertEqual(pallet.children_ids, packages)
+        self.assertEqual(pallet.child_ids, packages)
 
     def test_prevents_adding_packages_to_package(self):
         """The system must prevent adding package to a package."""
@@ -161,7 +161,7 @@ class PackageCreationTestCase(BaseUDES):
         child_package = self.package.create({"name": "1002"})
 
         with self.assertRaises(ValidationError):
-            parent_package.children_ids = child_package.ids
+            parent_package.child_ids = child_package.ids
 
     def test_prevents_adding_packages_to_package_via_write(self):
         """The system must prevent adding package to a package using write."""
@@ -169,4 +169,4 @@ class PackageCreationTestCase(BaseUDES):
         child_package = self.package.create({"name": "1002"})
 
         with self.assertRaises(ValidationError):
-            parent_package.write({"children_ids": [(6, 0, child_package.ids)]})
+            parent_package.write({"child_ids": [(6, 0, child_package.ids)]})
