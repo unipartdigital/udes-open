@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
-from odoo import models, fields, _
-from .suggest_locations_policy import SuggestLocationPolicy, get_selection
+from .suggest_locations_policy import SuggestLocationPolicy
 
 
 class ByProduct(SuggestLocationPolicy):
@@ -57,10 +55,3 @@ class ByProduct(SuggestLocationPolicy):
     def iter_mls(self, mls):
         for _prod, grouped_mls in mls.groupby("product_id"):
             yield grouped_mls
-
-
-class PickingType(models.Model):
-
-    _inherit = "stock.picking.type"
-
-    u_suggest_locations_policy = fields.Selection(selection_add=[get_selection(ByProduct)])

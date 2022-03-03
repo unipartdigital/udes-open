@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+  <!-- Trigger refactor on pickings -->
+  <record id="stock_picking_refactor_form" model="ir.ui.view">
+    <field name="name">stock.picking.refactor.form</field>
+    <field name="model">stock.picking.refactor.wizard</field>
+    <field name="arch" type="xml">
+      <form string="Refactor Pickings">
+        <group>
+          <group>
+            <field name="custom_criteria"/>
+            <field name="refactor_action" attrs="{'invisible':[('custom_criteria','=',False)], 'required':[('custom_criteria','=',True)]}"/>
+          </group>
+        </group>
+        <separator string="Are you sure?"/>
+        <footer>
+          <button name="do_refactor" type="object" string="Do Refactor" class="btn-primary"/>
+          <button string="Cancel" class="btn-default" special="cancel"/>
+        </footer>
+      </form>
+    </field>
+  </record>
+
+  <record id="stock_picking_refactor_action_stock_picking" model="ir.actions.act_window">
+    <field name="name">Refactor Pickings</field>
+    <field name="res_model">stock.picking.refactor.wizard</field>
+    <field name="view_mode">form</field>
+    <field name="target">new</field>
+    <field name="binding_model_id" ref="stock.model_stock_picking"/>
+    <field name="binding_view_types">form,list</field>
+  </record>
+
+    <!-- Trigger refactor on batches -->
+  <record id="stock_picking_batch_refactor_form" model="ir.ui.view">
+    <field name="name">stock.picking.batch.refactor.form</field>
+    <field name="model">stock.picking.batch.refactor.wizard</field>
+    <field name="arch" type="xml">
+      <form string="Refactor Batches">
+        <group>
+          <group>
+            <field name="custom_criteria"/>
+            <field name="refactor_action" attrs="{'invisible':[('custom_criteria','=',False)], 'required':[('custom_criteria','=',True)]}"/>
+          </group>
+        </group>
+        <separator string="Are you sure?"/>
+        <footer>
+          <button name="do_refactor" type="object" string="Do Refactor" class="btn-primary"/>
+          <button string="Cancel" class="btn-default" special="cancel"/>
+        </footer>
+      </form>
+    </field>
+  </record>
+
+  <record id="stock_picking_refactor_action_stock_picking_batch" model="ir.actions.act_window">
+    <field name="name">Refactor Batches</field>
+    <field name="res_model">stock.picking.batch.refactor.wizard</field>
+    <field name="view_mode">form</field>
+    <field name="target">new</field>
+    <field name="binding_model_id" ref="stock_picking_batch.model_stock_picking_batch"/>
+    <field name="binding_view_types">form,list</field>
+  </record>
+
+  <!-- Trigger refactor on moves -->
+  <record id="stock_move_refactor_form" model="ir.ui.view">
+    <field name="name">stock.move.refactor.form</field>
+    <field name="model">stock.move.refactor.wizard</field>
+    <field name="arch" type="xml">
+      <form string="Refactor Moves">
+        <group>
+          <group>
+            <field name="custom_criteria"/>
+            <field name="refactor_action" attrs="{'invisible':[('custom_criteria','=',False)], 'required':[('custom_criteria','=',True)]}"/>
+          </group>
+        </group>
+        <separator string="Are you sure?"/>
+        <footer>
+          <button name="do_refactor" type="object" string="Do Refactor" class="btn-primary"/>
+          <button string="Cancel" class="btn-default" special="cancel"/>
+        </footer>
+      </form>
+    </field>
+  </record>
+
+  <record id="stock_move_refactor_action_stock_move" model="ir.actions.act_window">
+    <field name="name">Refactor Moves</field>
+    <field name="res_model">stock.move.refactor.wizard</field>
+    <field name="view_mode">form</field>
+    <field name="target">new</field>
+    <field name="binding_model_id" ref="stock.model_stock_move"/>
+    <field name="binding_view_types">form,list</field>
+  </record>
+
+</odoo>

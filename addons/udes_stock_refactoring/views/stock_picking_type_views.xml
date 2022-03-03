@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+  <record id="view_picking_type_form_udes_stock_refactoring" model="ir.ui.view">
+    <field name="name">stock.picking.type.form.udes_stock_refactoring</field>
+    <field name="model">stock.picking.type</field>
+    <field name="inherit_id" ref="stock.view_picking_type_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//form/sheet/group[last()]" position="after">
+        <group string="Refactoring" groups="base.group_no_one">
+          <field name="u_move_line_key_format" />
+          <field name="u_move_key_format" />
+          <field name="u_post_confirm_action" />
+          <field name="u_post_assign_action" />
+          <field name="u_post_validate_action" />
+          <field name="u_auto_unlink_empty" />
+        </group>
+      </xpath>
+    </field>
+  </record>
+
+</odoo>
