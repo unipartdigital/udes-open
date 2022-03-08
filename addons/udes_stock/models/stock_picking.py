@@ -175,6 +175,11 @@ class StockPicking(models.Model):
             picking.write({"u_original_picking_id": picking.id})
         return picking
 
+    def copy(self, default=None):
+        """Set `planned_picking` to True in context"""
+        self = self.with_context(planned_picking=True)
+        return super().copy(default)
+
     @api.depends("move_line_ids", "move_line_ids.location_id")
     @api.one
     def _compute_location_category(self):
