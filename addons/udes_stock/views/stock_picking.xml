@@ -80,9 +80,12 @@
                 <attribute name="string">Cancel Pick</attribute>
             </xpath>
 
-            <!-- Partner field filtered to only see suppliers -->
+            <!--
+                Partner field filtered to only see suppliers
+                Parter readonly unless picking is in draft state
+            -->
             <xpath expr="//field[@name='partner_id']" position="replace">
-                <field name="partner_id" domain="[('supplier', '=', True)]" context="{'default_supplier': True, 'default_customer': False}"/>
+                <field name="partner_id" domain="[('supplier', '=', True)]" attrs="{'readonly': [('state', '!=', 'draft')]}" context="{'default_supplier': True, 'default_customer': False}"/>
             </xpath>
 
             <!-- Destination location field changed to read-only for goods-in -->
@@ -90,10 +93,18 @@
                 <attribute name="attrs">{'readonly': ['|',('picking_type_code', '=', 'incoming'),('state', 'not in', 'draft')]}</attribute>
             </xpath>
 
-            <!-- origin (Source Document  field changed to required for goods-in -->
+            <!-- 
+                Origin (Source Document) field changed to required for goods-in
+                Origin also set to readonly unless the picking is in draft state
+            -->
             <xpath expr="//field[@name='origin']" position="attributes">
-                <attribute name="attrs">{'required': [('picking_type_code', '=', 'incoming')]}</attribute>
+                <attribute name="attrs">{'readonly': [('state', '!=', 'draft')],  'required': [('picking_type_code', '=', 'incoming')]}</attribute>
             </xpath>
+
+            <!-- Set scheduled date to be readonly unless picking is in draft state -->
+            <field name="scheduled_date" position="attributes">
+                <attribute name="attrs">{'readonly': [('state', '=', 'done')], 'required': [('id', '!=', False)]}</attribute>
+            </field>
 
             <!-- Add date done to form view -->
             <xpath expr="//field[@name='scheduled_date']" position="after">
