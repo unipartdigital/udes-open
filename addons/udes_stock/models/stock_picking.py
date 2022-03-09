@@ -2838,3 +2838,8 @@ class StockPicking(models.Model):
             self.env.cr.execute(update_query, update_values)
 
             _logger.info("Original Picking value set on %s pickings", picking_count)
+
+    def _create_backorder(self, backorder_moves=[]):
+        """Add `created_due_to_backorder` to context when creating a backorder through UI"""
+        self = self.with_context(created_due_to_backorder=True)
+        return super()._create_backorder(backorder_moves)
