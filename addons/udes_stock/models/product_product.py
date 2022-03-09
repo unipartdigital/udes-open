@@ -1,4 +1,5 @@
 from odoo import fields, models, _
+from odoo.exceptions import ValidationError
 
 
 class ProductProduct(models.Model):
@@ -11,8 +12,27 @@ class ProductProduct(models.Model):
     # Add tracking for archiving.
     active = fields.Boolean(tracking=True)
 
-    def sync_active_to_templates(self, activate_templates=True, deactivate_templates=True):
-        """ Copy the active state from products to their templates
+    def assert_serial_numbers(self, serial_numbers):
+        """
+        If the product in self is tracked by serial numbers, check if
+        the ones in serial_numbers are currently in use in the system.
+        """
+        Lot = self.env["stock.production.lot"]
+        self.ensure_one()
+        if self.tracking == "serial":
+            lots = Lot.search(
+                [("product_id", "=", self.id), ("name", "in", serial_numbers)]
+            )
+            if lots:
+                raise ValidationError(
+                    _("Serial numbers %s already in use for product %s")
+                    % (" ".join(lots.mapped("name")), self.name)
+                )
+
+    def sync_active_to_templates(
+        self, activate_templates=True, deactivate_templates=True
+    ):
+        """Copy the active state from products to their templates
 
         Product templates will be active if any of their product variants are
         active, including product.products not present in self.
@@ -30,7 +50,9 @@ class ProductProduct(models.Model):
         # automatically adds active=True to its domain.
 
         if deactivate_templates:
-            templates_to_deactivate = templates.filtered(lambda t: not t.product_variant_ids)
+            templates_to_deactivate = templates.filtered(
+                lambda t: not t.product_variant_ids
+            )
             templates_to_deactivate.write({"active": False})
 
         if activate_templates:
