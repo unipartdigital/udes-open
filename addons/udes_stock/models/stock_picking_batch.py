@@ -813,7 +813,9 @@ class StockPickingBatch(models.Model):
                 pick_mls = completed_move_lines.filtered(lambda x: x.picking_id == pick)
 
                 if pick._requires_backorder(pick_mls):
-                    pick_todo = pick._backorder_movelines(pick_mls)
+                    pick_todo = pick.with_context(
+                        done_mls_into_backorder=True
+                    )._backorder_movelines(pick_mls)
 
                     to_add |= pick_todo
 
