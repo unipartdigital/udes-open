@@ -772,3 +772,66 @@ class TestStockPickingUoM(TestStockPickingCommon):
         # So this is the sum of the product_uom_qty of the moves.
         self.assertEqual(pick.u_total_quantity, 12)
         self.assertEqual(pick.u_quantity_done, 12)
+
+
+class TestStockPickingUnlinkingEmpties(common.BaseUDES):
+    """
+    Tests for unlinking empty pickings functionality.
+
+    This class tests StockPicking.unlink_empty() directly, and indirectly
+    StockPicking.get_empty_pickings().
+    """
+
+    def test_unlinks_tagged_empty_pickings_in_recordset(self):
+        """Empty pickings with u_is_empty = True in a recordset are unlinked."""
+        pick = self.create_picking(self.picking_type_pick)
+        pick.u_is_empty = True
+
+        result = pick.unlink_empty()
+
+        self.assertFalse(result)
+
+    def test_does_not_unlink_untagged_empty_picking(self):
+        """An empty picking with u_is_empty = False will not be deleted."""
+        pick = self.create_picking(self.picking_type_pick)
+        pick.u_is_empty = False
+
+        result = pick.unlink_empty()
+
+        self.assertEqual(pick, result)
+
+    def test_raises_exception_on_unlink_non_empty_pickings(self):
+        """Non-empty pickings in a recordset are not unlinked."""
+        pick = self.create_picking(
+            self.picking_type_pick, products_info=[{"product": self.apple, "uom_qty": 1}]
+        )
+        pick.u_is_empty = True
+
+        with self.assertRaisesRegex(
+            ValidationError, r"Trying to unlink non empty pickings: \[\d+\]"
+        ):
+            pick.unlink_empty()
+
+    def test_unlinks_empty_pickings_if_picking_type_configured(self):
+        """Empty pickings for a picking type are unlinked if auto-unlinking is enabled."""
+        Picking = self.env["stock.picking"]
+
+        self.picking_type_pick.u_auto_unlink_empty = True
+        pick = self.create_picking(self.picking_type_pick)
+        pick.u_is_empty = True
+
+        Picking.unlink_empty()
+
+        self.assertFalse(pick.exists())
+
+    def test_does_not_unlink_empty_pickings_if_picking_type_not_configured(self):
+        """Empty pickings for a picking type remain if auto-unlinking is disabled."""
+        Picking = self.env["stock.picking"]
+
+        self.picking_type_pick.u_auto_unlink_empty = False
+        pick = self.create_picking(self.picking_type_pick)
+        pick.u_is_empty = True
+
+        Picking.unlink_empty()
+
+        self.assertTrue(pick.exists())
