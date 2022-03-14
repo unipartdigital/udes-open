@@ -26,14 +26,6 @@ POST_VALIDATE_ACTIONS = [
 class StockPickingType(models.Model):
     _inherit = "stock.picking.type"
 
-    u_auto_unlink_empty = fields.Boolean(
-        string="Auto Unlink Empty",
-        default=True,
-        help="""
-        Flag to indicate whether to unlink empty pickings when searching for any empty picking in 
-        the system.
-        """,
-    )
     u_move_line_key_format = fields.Char(
         "Move Line Grouping Key",
         help="A field name on stock.move.line that can be used to group move lines.",

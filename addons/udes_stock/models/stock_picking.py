@@ -1,5 +1,11 @@
+"""UDES core picking functionality."""
+import logging
+
 from odoo import api, models, fields, _
 from odoo.exceptions import ValidationError
+
+_logger = logging.getLogger(__name__)
+
 
 class StockPicking(models.Model):
     _inherit = "stock.picking"
@@ -73,6 +79,14 @@ class StockPicking(models.Model):
         "Result Package",
         related="move_line_ids.result_package_id",
         help="Destination package (used to search on pickings)",
+    )
+
+    # Mark pickings as ready for deletion after refactoring
+    u_is_empty = fields.Boolean(
+        "Is Empty",
+        default=False,
+        index=True,
+        help="Pickings that are unused after refactoring are empty and ready to be deleted",
     )
 
     @api.depends("move_lines", "move_lines.move_orig_ids", "move_lines.move_orig_ids.picking_id")
@@ -372,7 +386,7 @@ class StockPicking(models.Model):
                     "picking_id": picking.id,
                     "priority": picking.priority,
                     "picking_type_id": picking.picking_type_id.id,
-                    "description_picking": product._get_description(picking.picking_type_id)
+                    "description_picking": product._get_description(picking.picking_type_id),
                 }
                 vals.update(kwargs)
                 move_values.append(vals)
@@ -391,3 +405,48 @@ class StockPicking(models.Model):
         """
         Move = self.env["stock.move"]
         return Move.create(move_values)
+
+    def get_empty_pickings(self, limit=1000):
+        """
+        Find and yield marked (is_empty = True) pickings.
+        Search in self when it is set, otherwise search all pickings.
+        """
+        PickingType = self.env["stock.picking.type"]
+
+        domain = [("u_is_empty", "=", True)]
+
+        if self:
+            domain.append(("id", "in", self.ids))
+        else:
+            picking_types = PickingType.search([("u_auto_unlink_empty", "=", True)])
+            if picking_types:
+                domain.append(("picking_type_id", "in", picking_types.ids))
+
+        while True:
+            records = self.search(domain, limit=limit)
+            if not records:
+                break
+            yield records
+
+    def unlink_empty(self):
+        """
+        Delete pickings in self that are empty by checking the pickings with u_is_empty field
+        set to True. If self is empty, find and delete any picking with the previous criterion.
+        This is to prevent us leaving junk data behind when refactoring
+        """
+        StockPicking = self.env["stock.picking"]
+
+        records = StockPicking.browse()
+        for to_unlink in self.get_empty_pickings():
+            records |= to_unlink
+            _logger.info("Unlinking empty pickings %r", to_unlink)
+            moves = to_unlink.move_lines
+            move_lines = to_unlink.move_line_ids
+            non_empty_pickings = moves.picking_id | move_lines.picking_id
+            if non_empty_pickings:
+                raise ValidationError(
+                    _("Trying to unlink non empty pickings: %r") % non_empty_pickings.ids
+                )
+            to_unlink.unlink()
+
+        return self - records

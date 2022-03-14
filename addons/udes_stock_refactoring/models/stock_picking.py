@@ -9,35 +9,6 @@ _logger = logging.getLogger(__name__)
 class StockPicking(models.Model):
     _inherit = "stock.picking"
 
-    u_is_empty = fields.Boolean(
-        "Is Empty",
-        default=False,
-        index=True,
-        help="Pickings that are unused after refactoring are empty and ready to be deleted",
-    )
-
-    def get_empty_pickings(self, limit=1000):
-        """
-        Find and yield marked (is_empty = True) pickings.
-        Search in self when it is set, otherwise search all pickings.
-        """
-        PickingType = self.env["stock.picking.type"]
-
-        domain = [("u_is_empty", "=", True)]
-
-        if self:
-            domain.append(("id", "in", self.ids))
-        else:
-            picking_types = PickingType.search([("u_auto_unlink_empty", "=", True)])
-            if picking_types:
-                domain.append(("picking_type_id", "in", picking_types.ids))
-
-        while True:
-            records = self.search(domain, limit=limit)
-            if not records:
-                break
-            yield records
-
     def _get_default_new_picking_for_group_values(
         self, group, picking_type, location, dest_location
     ):
@@ -181,26 +152,3 @@ class StockPicking(models.Model):
         if self:
             self.unlink_empty()
         return res
-
-    def unlink_empty(self):
-        """
-        Delete pickings in self that are empty by checking the pickings with u_is_empty field
-        set to True. If self is empty, find and delete any picking with the previous criterion.
-        This is to prevent us leaving junk data behind when refactoring
-        """
-        StockPicking = self.env["stock.picking"]
-
-        records = StockPicking.browse()
-        for to_unlink in self.get_empty_pickings():
-            records |= to_unlink
-            _logger.info("Unlinking empty pickings %s", to_unlink)
-            moves = to_unlink.move_lines
-            move_lines = to_unlink.move_line_ids
-            non_empty_pickings = moves.picking_id | move_lines.picking_id
-            if non_empty_pickings:
-                raise ValidationError(
-                    _(f"Trying to unlink non empty pickings: {non_empty_pickings.ids}")
-                )
-            to_unlink.unlink()
-
-        return self - records

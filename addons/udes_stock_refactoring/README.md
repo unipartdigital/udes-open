@@ -34,7 +34,6 @@ Stock Picking Type is inherited to add more configurations fields in order to ha
 
 | Field Name | Type | Description |
 | ---------- | ---- | ----------- |
-| u_auto_unlink_empty     | Boolean | Flag to indicate whether to unlink empty picking|
 | u_move_line_key_format     | Char | A field name on stock.move.line that can be used to group move lines|
 | u_move_key_format | Char | A field name on stock.move that can be to group move |
 | u_post_confirm_action | Selection | Extendable options to choose the action to be taken after confirming a picking|
@@ -55,11 +54,9 @@ Model is inherited to add refactoring methods and to include the methods when co
 
 | Field Name | Type | Description |
 | ---------- | ---- | ----------- |
-| u_is_empty | Boolean | Pickings that are unused after refactoring are empty and ready to be deleted|
 
 | Helpers | Description |
 | ------- | ----------- | 
-| get_is_empty_pickings | Find empty pickings that will be deleted|
 | _get_default_new_picking_for_group_values | Return base values which can be extended for the new picking|
 | _remove_misleading_values | Updating values of the new picking to avoid misleading values|
 | _new_picking_for_group |  Find existing picking for the supplied group, if none found create a new one.|
@@ -67,7 +64,6 @@ Model is inherited to add refactoring methods and to include the methods when co
 | action_confirm | Inheriting with super in order to delete empty pickings after refactoring on confirm|
 | action_assign | Inheriting with super in order to delete empty pickings after refactoring on reserve|
 | _action_done | Inheriting with super in order to delete empty pickings after refactoring on validate|
-| unlink_empty | Deleting empty pickings after refactoring|
 
 ### Stock Move Line (model: stock.move.line)
 

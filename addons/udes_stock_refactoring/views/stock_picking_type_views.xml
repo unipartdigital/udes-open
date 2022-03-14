@@ -13,7 +13,6 @@
           <field name="u_post_confirm_action" />
           <field name="u_post_assign_action" />
           <field name="u_post_validate_action" />
-          <field name="u_auto_unlink_empty" />
         </group>
       </xpath>
     </field>
