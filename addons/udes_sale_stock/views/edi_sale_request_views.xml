@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<odoo>
+  <data>
+    <!-- EDI sale request records field -->
+      <record id="sale_request_document_form" model="ir.ui.view">
+      <field name="name">edi.sale.request.document.form</field>
+      <field name="model">edi.document</field>
+      <field name="inherit_id" ref="edi.document_form"/>
+      <field name="arch" type="xml">
+        <xpath expr="//field[@name='customer_id']" position="after">
+          <field name="requested_date"/>
+          <field name="client_order_ref"/>
+        </xpath>
+      </field>
+    </record>
+
+  </data>
+</odoo>
