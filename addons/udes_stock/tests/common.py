@@ -7,10 +7,10 @@ _logger = logging.getLogger(__name__)
 
 
 @tagged("post_install")
-class BaseUDES(common.SavepointCase):
+class UnconfiguredBaseUDES(common.SavepointCase):
     @classmethod
     def setUpClass(cls):
-        super(BaseUDES, cls).setUpClass()
+        super(UnconfiguredBaseUDES, cls).setUpClass()
 
         # Products
         ## Untracked
@@ -25,7 +25,6 @@ class BaseUDES(common.SavepointCase):
         ## Serial/Lot tracking
         cls.strawberry = cls.create_product("Strawberry", tracking="serial")
         cls.tangerine = cls.create_product("Tangerine", tracking="lot")
-        cls.setup_default_warehouse()
 
     @classmethod
     def setup_default_warehouse(cls):
@@ -167,7 +166,7 @@ class BaseUDES(common.SavepointCase):
         cls.test_goodsout_location_01, cls.test_goodsout_location_02 = cls.test_goodsout_locations
 
         cls.trailer_location = cls.picking_type_goods_out.default_location_dest_id.copy(
-            {"name": "TEST_OUT_TRAILER", "active": True, "location_id": cls.warehouse_location.id}
+            {"name": "TEST_OUT_TRAILER", "active": True, "location_id": cls.warehouse_location.id, "company_id": cls.company.id}
         )
         cls.test_trailer_locations = Location.create(
             [
@@ -482,3 +481,10 @@ class BaseUDES(common.SavepointCase):
         """
         names = pickings.mapped("name")
         return ", ".join(map(str, names))
+
+class BaseUDES(UnconfiguredBaseUDES):
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.setup_default_warehouse()
