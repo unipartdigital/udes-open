@@ -36,16 +36,14 @@ class TestScannedBy(BaseUDES):
 
         cls.picking = picking.with_env(test_user_env)
 
-    # TODO: Does this need enabling even with real_uid removed now?
-
-    # def test_records_real_id_on_move_line_update(self):
-    #     """The original user should be in u_done_by so that when sudo is required for
-    #     permission access the correct user and be reported on
-    #     """
-    #     sudo_picking = self.picking.sudo()  # Switch to admin to get around any access rights
-    #     move_line = sudo_picking.move_line_ids[0]
-    #     move_line.write({"qty_done": move_line.product_uom_qty})
-    #     self.assertEqual(move_line.u_done_by.id, self.test_user.id)
+    def test_records_real_id_on_move_line_update(self):
+        """The original user should be in u_done_by so that when sudo is required for
+        permission access the correct user and be reported on
+        """
+        sudo_picking = self.picking.sudo()  # Switch to admin to get around any access rights
+        move_line = sudo_picking.move_line_ids[0]
+        move_line.write({"qty_done": move_line.product_uom_qty})
+        self.assertEqual(move_line.u_done_by_id.id, self.test_user.id)
 
     def test_multiple_users_move_line_update(self):
         """Check that when two users act on the same picking that they are recorded seperately"""

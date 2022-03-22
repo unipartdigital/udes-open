@@ -15,14 +15,14 @@ class StockMoveLine(models.Model):
 
     u_done_by_id = fields.Many2one(
         "res.users",
-        "Scanned by",
-        help="ID of the user to complete the pack op.",
+        "Scanned By",
+        help="User who completed the product move",
         index=True,
         copy=False,
     )
 
     u_done_datetime = fields.Datetime(
-        "Completion datetime",
+        "Completion Datetime",
         help="Date and time the operation was completed.",
         index=True,
         copy=False,
