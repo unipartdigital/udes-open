@@ -33,6 +33,19 @@ class StockWarehouse(models.Model):
         help="Picking type used to create PI Count move pickings.",
     )
 
+    u_damaged_location_id = fields.Many2one(
+        comodel_name="stock.location",
+        string="Default Damage Location",
+        help="The damaged location is a location outside Stock (it cannot be a"
+        " location under Stock/), because we do not want damaged stock to"
+        " be picked",
+    )
+    u_good_location_id = fields.Many2one(
+        comodel_name="stock.location",
+        string="Default Goods Location",
+        help="Goods receive location used by mobile client",
+    )
+
     def get_picking_types(self):
         """Returns a recordset with the picking_types of the warehouse"""
         PickingType = self.env["stock.picking.type"]
