@@ -34,6 +34,14 @@
       <field name="active" eval="True"/>
     </record>
 
+    <!-- Construct "Warehouse/Input/Exceptions" location -->
+    <record id="location_input_exception" model="stock.location">
+      <field name="name">Exceptions</field>
+      <field name="comment">Goods received with exceptions</field>
+      <field name="location_id" ref="stock_location_input"/>
+      <field name="active" eval="True"/>
+    </record>
+
     <!-- Construct "Warehouse/Output/Goods out lane" view location -->
     <record id="location_goods_out_lane" model="stock.location">
       <field name="name">Goods Out Lane</field>
