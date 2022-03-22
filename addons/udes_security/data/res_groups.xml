@@ -3,23 +3,33 @@
 
     <record id="group_can_add_trusted_user" model="res.groups">
         <field name="name">Can Add Trusted User</field>
-        <field name="category_id" ref="base.module_category_hidden"/>
-        <field name="u_required_group_id_to_change" ref="base.group_system"/>
+        <field name="category_id" ref="base.module_category_hidden" />
+        <field name="u_required_group_id_to_change" ref="base.group_system" />
     </record>
 
     <record id="group_trusted_user" model="res.groups">
         <field name="name">Trusted User</field>
-        <field name="category_id" ref="base.module_category_extra"/>
-        <field name="u_required_group_id_to_change" ref="udes_security.group_can_add_trusted_user"/>
+        <field name="category_id" ref="base.module_category_extra" />
+        <field name="u_required_group_id_to_change" ref="udes_security.group_can_add_trusted_user" />
     </record>
 
     <record id="group_edit_allowed_file_types" model="res.groups">
         <field name="name">Manage Allowed File Types</field>
-        <field name="category_id" ref="base.module_category_extra"/>
+        <field name="category_id" ref="base.module_category_extra" />
     </record>
     <!-- Cannot self reference, so we extend the record after we create it -->
     <record id="udes_security.group_edit_allowed_file_types" model="res.groups">
-        <field name="u_required_group_id_to_change" ref="udes_security.group_edit_allowed_file_types"/>
+        <field name="u_required_group_id_to_change" ref="udes_security.group_edit_allowed_file_types" />
+    </record>
+
+    <record id="group_desktop_access" model="res.groups">
+        <field name="name">Desktop Access</field>
+        <field name="category_id" ref="base.module_category_extra" />
+    </record>
+
+    <!-- Set desktop access as implied group for any user that can manage user access rights -->
+    <record id="base.group_erp_manager" model="res.groups">
+        <field name="implied_ids" eval="[(4, ref('udes_security.group_desktop_access'))]" />
     </record>
 
 </odoo>
