@@ -1,0 +1,24 @@
+<odoo>
+
+    <template id="no_desktop_access" name="No Desktop Access Homepage">
+        <t t-call="portal.frontend_layout">
+            <t t-set="is_portal" t-value="True" />
+            <div id="wrap" class="o_portal_wrap">
+                <div class="container mb64">
+                    <div class="row justify-content-between mt-4">
+                        <div t-attf-class="col-12 col-md col-lg-12">
+                            <h3>Access Denied</h3>
+                            <p>You do not have access to the desktop, please contact your manager if you believe this is an error.</p>
+                            <p>
+                                Click
+                                <a href="/my/security">here</a>
+                                if you need to update your password.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+</odoo>

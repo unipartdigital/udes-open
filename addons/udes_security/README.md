@@ -21,3 +21,13 @@ For example when an avatar image attachment is created for a user (e.g. image_19
 * If an Allowed File Type is created or made active, any inactive attachments of that file type will be made active.
 Conversely, if an Allowed File Type is deleted or made inactive, any existing attachments of that file type will be made inactive.
 * Only users with Manage Allowed File Types can create/delete active file types and set them as active/inactive. By default only superuser or default admin can grant this group to other users.
+
+
+## Desktop access
+
+* User still has backend/database access via rpc
+* A new security group `Desktop Access` exists, and is automatically applied to `Admin` and the superuser by this module.
+* Landing pages and login have hooks added to check if this security group is set on the user attempting to log in
+* If the security group is not set, the user is redirected to a `No Access` page
+* If the security group is set, login proceeds as usual
+* If a users desktop access group is revoked while their session is active, they can continue their session until refreshing the page or session expires.

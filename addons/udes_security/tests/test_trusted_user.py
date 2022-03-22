@@ -17,13 +17,14 @@ class TestTrustedUser(common.SavepointCase):
         User = cls.env["res.users"]
 
         cls.group_access_rights = cls.env.ref("base.group_system")
+        cls.group_internal_user = cls.env.ref("base.group_user")
         cls.group_trusted_user = cls.env.ref("udes_security.group_trusted_user")
 
         cls.user_1 = User.create(
             {
                 "name": "Test User 1",
                 "login": "test_user_1",
-                "groups_id": [(6, 0, [cls.group_access_rights.id])],
+                "groups_id": [(6, 0, [cls.group_access_rights.id, cls.group_internal_user.id])],
             }
         )
         cls.user_2 = User.create({"name": "Test User 2", "login": "test_user_2"})
