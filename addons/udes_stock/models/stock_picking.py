@@ -382,7 +382,7 @@ class StockPicking(models.Model):
         for i, picking in enumerate(pickings):
             for product_info in products_info[i]:
                 product = product_info.get("product")
-                uom_qty = product_info.get("uom_qty")
+                uom_qty = product_info.get("uom_qty") or product_info.get("qty")
                 uom_id = product_info.get("uom_id") or product.uom_id.id
                 vals = {
                     "product_id": product.id,
