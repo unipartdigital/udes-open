@@ -38,7 +38,7 @@ class StockMoveLine(models.Model):
 
     @staticmethod
     def _now_for_tracking_data():
-        """Can be overwritten to change the tracking resolution"""
+        """Override to change the tracking resolution"""
         return datetime.now()
 
     @api.model
