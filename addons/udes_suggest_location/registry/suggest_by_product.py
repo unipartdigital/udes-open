@@ -1,4 +1,5 @@
 from .suggest_locations_policy import SuggestLocationPolicy
+from odoo.tools.translate import _
 
 
 class ByProduct(SuggestLocationPolicy):
