@@ -22,6 +22,10 @@ class StockMove(models.Model):
             vals["u_uom_initial_demand"] = vals.get("product_uom_qty")
         return super().create(vals)
 
+    def _action_cancel(self):
+        self.move_line_ids.write({"qty_done": 0})
+        return super()._action_cancel()
+
     def _do_unreserve(self):
         """
         Extend _do_unreserve to remove extra quantities added to initial_demand when
