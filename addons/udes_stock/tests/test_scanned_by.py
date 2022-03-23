@@ -36,17 +36,18 @@ class TestScannedBy(BaseUDES):
 
         cls.picking = picking.with_env(test_user_env)
 
-    def test_records_real_id_on_move_line_update(self):
-        """The original user should be in u_done_by so that when sudo is required for
-        permission access the correct user and be reported on
+    def test_records_original_user_id_on_move_line_update(self):
+        """The original user should be in u_done_by_id so that when sudo is used for
+        permission access the correct user can be reported on
         """
         sudo_picking = self.picking.sudo()  # Switch to admin to get around any access rights
         move_line = sudo_picking.move_line_ids[0]
         move_line.write({"qty_done": move_line.product_uom_qty})
         self.assertEqual(move_line.u_done_by_id.id, self.test_user.id)
 
-    def test_multiple_users_move_line_update(self):
-        """Check that when two users act on the same picking that they are recorded seperately"""
+    def test_u_done_by_id_records_user_who_completes_picking_even_with_multiple_users(self):
+        """Check that when two users act on the same picking that the user who completes the picking is
+        stored in u_done_by_id"""
         sudo_picking = self.picking.sudo()  # Switch to admin to get around any access rights
         apple_move_line = sudo_picking.move_line_ids.filtered(
             lambda ml: ml.product_id == self.apple
