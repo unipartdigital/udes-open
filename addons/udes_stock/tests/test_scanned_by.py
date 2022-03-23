@@ -36,7 +36,7 @@ class TestScannedBy(BaseUDES):
 
         cls.picking = picking.with_env(test_user_env)
 
-    def test_records_original_user_id_on_move_line_update(self):
+    def test_records_original_user_id_on_move_line_update_with_sudo(self):
         """The original user should be in u_done_by_id so that when sudo is used for
         permission access the correct user can be reported on
         """
