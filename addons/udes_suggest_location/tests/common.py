@@ -43,3 +43,21 @@ class SuggestedLocations(common.BaseUDES):
                 },
             ]
         )
+    
+    def _check_move_lines_destination_location_match_expected_location(
+        self, move_lines, expected_location
+    ):
+        for move_line in move_lines:
+            with self.subTest(move_line=move_line):
+                self.assertEqual(move_line.location_dest_id, expected_location)
+
+    def _generate_move_lines_for_picking_for_given_destination_location(
+        self, picking_dest_location
+    ):
+        picking = self.create_picking(
+            self.picking_type_pick,
+            products_info=self._pick_info,
+            assign=True,
+            location_dest_id=picking_dest_location,
+        )
+        return picking.move_line_ids
