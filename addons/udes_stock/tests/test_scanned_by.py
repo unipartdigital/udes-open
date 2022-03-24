@@ -29,8 +29,12 @@ class TestScannedBy(BaseUDES):
         cls.create_quant(cls.apple.id, cls.test_stock_location_01.id, 10)
         cls.create_quant(cls.banana.id, cls.test_stock_location_02.id, 20)
         picking = cls.create_picking(cls.picking_type_internal)
-        move = cls.create_single_move(cls.apple, 10, picking)
-        move = cls.create_single_move(cls.banana, 20, picking)
+
+        products_info = [
+            {"product": cls.apple, "uom_qty": 10},
+            {"product": cls.banana, "uom_qty": 20},
+        ]
+        cls.create_move(picking, products_info)
         picking.action_confirm()
         picking.action_assign()
 
