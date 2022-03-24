@@ -392,23 +392,6 @@ class BaseUDES(common.SavepointCase):
         return moves
 
     @classmethod
-    def create_single_move(cls, product, qty, picking, **kwargs):
-        """Create and return a move for the given product and qty."""
-        Move = cls.env["stock.move"]
-        vals = {
-            "product_id": product.id,
-            "name": product.name,
-            "product_uom": product.uom_id.id,
-            "product_uom_qty": qty,
-            "location_id": picking.location_id.id,
-            "location_dest_id": picking.location_dest_id.id,
-            "picking_id": picking.id,
-            "priority": picking.priority,
-        }
-        vals.update(kwargs)
-        return Move.create(vals)
-
-    @classmethod
     def create_move_line(cls, move, qty, **kwargs):
         """
         Create and return a single move line for the given move and quantity using
