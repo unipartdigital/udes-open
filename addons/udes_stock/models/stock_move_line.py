@@ -44,8 +44,9 @@ class StockMoveLine(models.Model):
     @api.model
     def _add_user_tracking_data(self, vals):
         """Inject/overwrite user tracking data into vals"""
-        vals["u_done_by_id"] = self.env.uid
-        vals["u_done_datetime"] = self._now_for_tracking_data()
+        if vals.get("qty_done", 0) > 0:
+            vals["u_done_by_id"] = self.env.uid
+            vals["u_done_datetime"] = self._now_for_tracking_data()
         return vals
 
     @api.model
