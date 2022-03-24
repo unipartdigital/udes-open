@@ -1,6 +1,7 @@
 from .suggest_locations_policy import SuggestLocationPolicy
 from odoo.tools.translate import _
 
+
 class ByEmptyLocation(SuggestLocationPolicy):
     """Find empty locations of the picking destination location"""
 
@@ -15,7 +16,6 @@ class ByEmptyLocation(SuggestLocationPolicy):
         return {
             "location": mls.picking_id.location_dest_id.ensure_one(),
         }
-
 
     def _get_picking_from_dict(self, values):
         Picking = self.env["stock.picking"]
@@ -33,14 +33,13 @@ class ByEmptyLocation(SuggestLocationPolicy):
             "location": picking.location_dest_id,
         }
 
-
     def get_locations(self, location, **kwargs):
         """
         Search for locations which are children of the picking destination location
         """
         Location = self.env["stock.location"]
+        
         # Add order="id" for performance as we don't care about the order
-
         # TODO: When u_blocked is ported add it in as part of search criteria
         # ("u_blocked", "!=", False)
         child_locations_of_picking_destination = Location.search(
@@ -57,5 +56,5 @@ class ByEmptyLocation(SuggestLocationPolicy):
         """
         Group by picking ID as the mls depend on picking destination location
         """
-        for _prod, grouped_mls in mls.groupby("picking_id"):
+        for _picking_id, grouped_mls in mls.groupby("picking_id"):
             yield grouped_mls

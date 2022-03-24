@@ -1,6 +1,7 @@
 from .suggest_locations_policy import SuggestLocationPolicy
 from odoo.tools.translate import _
 
+
 class ExactlyMatchMoveLine(SuggestLocationPolicy):
     """Exactly match the move line"""
 
@@ -15,7 +16,6 @@ class ExactlyMatchMoveLine(SuggestLocationPolicy):
         return {
             "location": mls.location_dest_id.ensure_one(),
         }
-
 
     def _get_location_dest_from_dict(self, values):
         Location = self.env["stock.location"]
@@ -33,22 +33,21 @@ class ExactlyMatchMoveLine(SuggestLocationPolicy):
             "location": location,
         }
 
-
     def get_locations(self, location, **kwargs):
         """
-        Do some simple checks on the location.
+        Check the location is not of type view, and that there is only one location. 
         """
-        location.ensure_one() 
+        location.ensure_one()
 
-        # TODO: In UDES11 also filters by u_blocked, can add when u_blocked is ported. 
-        if location.usage == "view": 
+        # TODO: In UDES11 also filters by u_blocked, can add when u_blocked is ported.
+        if location.usage == "view":
             location = self.env["stock.location"]
 
-        return location 
+        return location
 
     def iter_mls(self, mls):
         """
         Group by the moveline location destination
         """
-        for _prod, grouped_mls in mls.groupby("location_dest_id"):
+        for _location_dest_id, grouped_mls in mls.groupby("location_dest_id"):
             yield grouped_mls
