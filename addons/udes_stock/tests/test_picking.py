@@ -606,3 +606,40 @@ class TestPickingLocked(common.BaseUDES):
         self.assertTrue(
             self.picking.is_locked, "Picking should have been locked after its moves are  confirmed"
         )
+
+class TestBatchUserName(common.BaseUDES):
+    """Test Batch User takes value expected and changes when expected"""
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestBatchUserName, cls).setUpClass()
+        cls.create_quant(cls.apple.id, cls.test_location_01.id, 10)
+
+        cls.batch = cls.create_batch(user = cls.env.user)
+
+        cls._pick_info = [{"product": cls.apple, "qty": 5}]
+        cls.picking = cls.create_picking(picking_type = cls.picking_type_pick, products_info=cls._pick_info, confirm=True)
+
+    def test_correct_batch_user_on_picking_tree_view(self):
+        self.picking.write({"batch_id": self.batch.id})
+
+        self.assertEqual(self.picking.u_batch_user_id, self.env.user)
+    
+    def test_no_batch_user_on_picking_when_no_batch(self):
+        self.assertEqual(len(self.picking.u_batch_user_id), 0)
+    
+    def test_batch_user_on_picking_changes_when_user_is_changed_on_batch(self):
+        self.picking.write({"batch_id": self.batch.id})
+
+        self.batch.write({"user_id": self.stock_manager.id})
+
+        self.assertEqual(self.picking.u_batch_user_id, self.stock_manager)
+    
+    def test_same_batch_user_on_multiple_pickings(self):
+        picking_2 = self.create_picking(picking_type = self.picking_type_pick, products_info=self._pick_info, confirm=True)
+
+        self.picking.write({"batch_id": self.batch.id})
+        picking_2.write({"batch_id": self.batch.id})
+
+        self.assertEqual(self.picking.u_batch_user_id, self.env.user)
+        self.assertEqual(picking_2.u_batch_user_id, self.env.user)

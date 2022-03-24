@@ -105,6 +105,13 @@ class StockPicking(models.Model):
     # override batch_id to be copied
     batch_id = fields.Many2one("stock.picking.batch", copy=True)
 
+    u_batch_user_id = fields.Many2one(
+        string="Batch User",
+        related="batch_id.user_id",
+        store=False,
+        help="User responsible for the batch",
+    )
+
     u_quantity_done = fields.Float(
         "Quantity done",
         compute="_compute_picking_quantities",
