@@ -193,6 +193,10 @@
                 <field name="u_location_category_id"/>
             </xpath>
 
+            <xpath expr="//field[@name='batch_id']" position="after">
+                <field name="u_batch_user_id"/>
+            </xpath>
+
         </field>
     </record>
 
