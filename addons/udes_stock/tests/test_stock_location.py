@@ -4,7 +4,7 @@ from .common import BaseUDES
 class TestStockLocation(BaseUDES):
     @classmethod
     def setUpClass(cls):
-        super().setUpClass()
+        super(TestStockLocation, cls).setUpClass()
 
         Location = cls.env["stock.location"]
 

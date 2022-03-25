@@ -1,32 +1,12 @@
-from collections import defaultdict
-from datetime import datetime
-import logging
-
 from odoo import models, fields, api, _
+from collections import defaultdict
 from odoo.tools.float_utils import float_compare, float_round
 from odoo.osv import expression
 from odoo.exceptions import ValidationError
 
-_logger = logging.getLogger(__name__)
-
 
 class StockMoveLine(models.Model):
     _inherit = "stock.move.line"
-
-    u_done_by_id = fields.Many2one(
-        "res.users",
-        "Scanned By",
-        help="User who completed the product move",
-        index=True,
-        copy=False,
-    )
-
-    u_done_datetime = fields.Datetime(
-        "Completion Datetime",
-        help="Date and time the operation was completed.",
-        index=True,
-        copy=False,
-    )
 
     u_picking_type_id = fields.Many2one(
         "stock.picking.type",
@@ -35,31 +15,6 @@ class StockMoveLine(models.Model):
         store=True,
         readonly=True,
     )
-
-    @staticmethod
-    def _now_for_tracking_data():
-        """Override to change the tracking resolution"""
-        return datetime.now()
-
-    @api.model
-    def _add_user_tracking_data(self, vals):
-        """Inject/overwrite user tracking data into vals"""
-        if vals.get("qty_done", 0) > 0:
-            vals["u_done_by_id"] = self.env.uid
-            vals["u_done_datetime"] = self._now_for_tracking_data()
-        return vals
-
-    @api.model
-    def create(self, vals):
-        """Extend to track the requester user"""
-        vals = self._add_user_tracking_data(vals)
-        return super().create(vals)
-
-    @api.model
-    def write(self, vals):
-        """Extend to track the requester user"""
-        vals = self._add_user_tracking_data(vals)
-        return super().write(vals)
 
     def _log_message(self, record, move, template, vals):
         """
