@@ -89,6 +89,14 @@ class StockPicking(models.Model):
         help="Pickings that are unused after refactoring are empty and ready to be deleted",
     )
 
+    # User responsible for Batch 
+    u_batch_user_id = fields.Many2one(
+        string="Batch User",
+        related="batch_id.user_id",
+        store=False,
+        help="User responsible for the batch",
+    )
+
     @api.depends("move_lines", "move_lines.move_orig_ids", "move_lines.move_orig_ids.picking_id")
     def _compute_first_picking_ids(self):
         """Compute first picking from moves that do not originate from other moves"""
