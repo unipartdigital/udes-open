@@ -30,7 +30,7 @@ class MixinStockModel(models.AbstractModel):
 
         return domain
 
-    def get_or_create(self, identifier, create=False, aux_domain=None):
+    def get_or_create(self, identifier, create=False, aux_domain=None, return_emtpy=False):
         """Gets an object of the model from the identifier. In case that no results
             are found, creates a new object of the model depending on the create
             parameter and the MSM_CREATE setting.
@@ -40,6 +40,10 @@ class MixinStockModel(models.AbstractModel):
         :kwargs:
             - create: Boolean
                 If true, and MSM_CREATE is true, a new object is created if needed
+            - aux_domain: list
+                An additional domain to add to the search
+            - return_emtpy: Boolean
+                Allow empty/False results to be returned without raising an exception
         :returns:
             Object of the model queried
         """
@@ -68,7 +72,8 @@ class MixinStockModel(models.AbstractModel):
             elif create:
                 raise ValidationError(_(f"Cannot create a new {model_name} for %s") % model)
             else:
-                raise ValidationError(_(f"{model_name} not found for identifier %s") % identifier)
+                if not return_emtpy:
+                    raise ValidationError(_(f"{model_name} not found for identifier %s") % identifier)
         elif len(results) > 1:
             raise ValidationError(
                 _(f"Too many {model_name}s found for identifier %s in %s") % (identifier, model)

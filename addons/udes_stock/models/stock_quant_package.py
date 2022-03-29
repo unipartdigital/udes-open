@@ -88,7 +88,11 @@ class StockQuantPackage(models.Model):
 
         if aux_domain is None:
             aux_domain = [("state", "not in", ["done", "cancel"])]
-        domain = [("package_id", "in", self.ids)] + aux_domain
+        domain = aux_domain + [
+            "|",
+            ("result_package_id", "in", self.ids),
+            ("package_id", "in", self.ids),
+        ]
         move_lines = MoveLine.search(domain)
         return move_lines
 
