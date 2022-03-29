@@ -44,12 +44,10 @@ This model is used to include generic functions that are inherited by various mo
 | MSM_CREATE     | boolean       | Whether it can create a new object which the method is called from, e.g product, group etc. Set to False by default |
 | MSM_STR_DOMAIN | tuple(string) | Tuple of strings in which to search for/create the object                                                           |
 
-
-| Helpers         | Description                                                                                                                                                                         |
-|-----------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| _get_msm_domain | Gets the domain                                                                                                                                                                     |
-| get_or_create   | Gets an object of the model from the identifier. In case that no results are found, creates a new object of the model depending on the create parameter and the MSM_CREATE setting. |
-
+| Helpers         | Description                                                                                                                                                                                                                                                                                                                |
+|-----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| _get_msm_domain | Gets the domain                                                                                                                                                                                                                                                                                                            |
+| get_or_create   | Gets an object of the model from the identifier. In case that no results are found, creates a new object of the model depending on the create parameter and the MSM_CREATE setting. If no object is found and create is False the function will raise a Validation Error unless the return_emtpy parameter is set to True. |
 
 ### Products (model: product.product)
 
