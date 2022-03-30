@@ -2506,7 +2506,7 @@ class StockPicking(models.Model):
         if limit == -1:
             limit = None
 
-        if picking_priorities is not None:
+        if picking_priorities:
             search_domain.append(("priority", "in", picking_priorities))
 
         # filter pickings by location categories if they are enabled for the
