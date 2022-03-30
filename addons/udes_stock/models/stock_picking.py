@@ -2652,13 +2652,12 @@ class StockPicking(models.Model):
                                         "cancel",
                                     )
                                     moves = unsatisfied.mapped("move_lines").filtered(not_done)
-                                    products = moves.mapped("product_id.default_code")
+                                    products = moves.mapped("product_id").name_get()
                                     picks = moves.mapped("picking_id.name")
-                                    fmt = (
-                                        "Unable to reserve stock for products {} "
-                                        "for pickings {}."
+                                    msg = (
+                                        f"Unable to reserve stock for products {[p[1] for p in products]} "
+                                        f"for pickings {picks}."
                                     )
-                                    msg = fmt.format(", ".join(products), ", ".join(picks))
                                     raise UserError(msg)
                             break
                     except UserError as e:
