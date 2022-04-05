@@ -15,7 +15,6 @@ class TestSuggestByEmptyLocation(common.SuggestedLocations):
 
         cls._pick_info = [{"product": cls.apple, "uom_qty": 5}]
 
-
     def test_correct_location_suggested_when_empty_child_location_is_available(self):
         mls = self._generate_move_lines_for_picking_for_given_destination_location(
             self.out_location.id
@@ -25,7 +24,6 @@ class TestSuggestByEmptyLocation(common.SuggestedLocations):
             mls, self.test_goodsout_location_01
         )
 
-
     def test_correct_location_suggested_when_no_empty_child_location_is_available(self):
         mls = self._generate_move_lines_for_picking_for_given_destination_location(
             self.test_goodsout_location_01.id
@@ -34,7 +32,6 @@ class TestSuggestByEmptyLocation(common.SuggestedLocations):
         self._check_move_lines_destination_location_match_expected_location(
             mls, self.test_goodsout_location_01
         )
-
 
     def test_correct_location_suggested_when_empty_child_location_but_no_barcode(self):
         # These are all children of out_location
@@ -47,15 +44,10 @@ class TestSuggestByEmptyLocation(common.SuggestedLocations):
             self.out_location.id
         )
 
-        self._check_move_lines_destination_location_match_expected_location(
-            mls, self.out_location
-        )
-
+        self._check_move_lines_destination_location_match_expected_location(mls, self.out_location)
 
     def test_correct_location_suggested_when_child_location_but_not_empty(self):
-        self._create_one_non_empty_child_location_for_given_location(
-            self.test_goodsout_location_01
-        )
+        self._create_one_non_empty_child_location_for_given_location(self.test_goodsout_location_01)
 
         mls = self._generate_move_lines_for_picking_for_given_destination_location(
             self.test_goodsout_location_01.id
@@ -77,7 +69,6 @@ class TestSuggestByEmptyLocation(common.SuggestedLocations):
         )
 
         self.create_quant(self.banana.id, child_location_with_quant.id, 5)
-
 
     def test_validate_location_dest_fails_when_bad_location_is_passed(self):
         self.picking_type_pick.write({"u_drop_location_constraint": "enforce"})

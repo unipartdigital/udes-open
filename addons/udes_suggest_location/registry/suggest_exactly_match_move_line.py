@@ -1,3 +1,4 @@
+from odoo.exceptions import ValidationError
 from .suggest_locations_policy import SuggestLocationPolicy
 from odoo.tools.translate import _
 
@@ -35,13 +36,24 @@ class ExactlyMatchMoveLine(SuggestLocationPolicy):
 
     def get_locations(self, location, **kwargs):
         """
-        Check the location is not of type view, and that there is only one location. 
+        Check the location is not of type view, and that there is only one location.
+        If the location is blocked, raise an error.
         """
         location.ensure_one()
 
-        # TODO: In UDES11 also filters by u_blocked, can add when u_blocked is ported.
         if location.usage == "view":
             location = self.env["stock.location"]
+            if location.u_blocked:
+                if location.u_blocked_reason:
+                    raise ValidationError(
+                        _("Location %s is blocked. Reason given: %s")
+                        % (location.name, location.u_blocked_reason)
+                    )
+                else:
+                    raise ValidationError(
+                        _("Location %s is blocked. No reason specified.")
+                        % location.name
+                    )
 
         return location
 

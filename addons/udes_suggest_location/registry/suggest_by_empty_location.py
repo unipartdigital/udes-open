@@ -40,13 +40,12 @@ class ByEmptyLocation(SuggestLocationPolicy):
         Location = self.env["stock.location"]
         
         # Add order="id" for performance as we don't care about the order
-        # TODO: When u_blocked is ported add it in as part of search criteria
-        # ("u_blocked", "!=", False)
         child_locations_of_picking_destination = Location.search(
             [
                 ("location_id", "child_of", location.id),
                 ("barcode", "!=", False),
                 ("quant_ids", "=", False),
+                ("u_blocked", "=", False),
             ],
             order="id",
         )

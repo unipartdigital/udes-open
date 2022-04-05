@@ -60,6 +60,7 @@ class TestStockMoveLine(common.SuggestedLocations):
         # Check naming
         self.assertEqual(by_product.name(), "by_product")
         # Check error raised when no policy found
+        self.picking_type_internal.u_suggest_locations_policy = False
         with self.assertRaises(ValueError) as e:
             self.MoveLine._get_policy_class(self.picking_type_internal)
         self.assertEqual(str(e.exception), f"Policy with name=False could not be found")

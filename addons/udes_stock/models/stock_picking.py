@@ -162,6 +162,12 @@ class StockPicking(models.Model):
         for picking in self:
             picking.u_num_pallets = len(picking.move_line_ids.result_package_id)
 
+    def get_empty_location_domain(self):
+        """
+        Return the domain for searching empty locations
+        """
+        return [("barcode", "!=", False), ("quant_ids", "=", False)]
+
     def get_empty_locations(self, limit=None, sort=True):
         """Returns the recordset of locations that are child of the
         instance dest location and are empty.
@@ -177,7 +183,7 @@ class StockPicking(models.Model):
         :returns: Move lines of picking
         """
         locations = self._get_child_dest_locations(
-            aux_domain=[("barcode", "!=", False), ("quant_ids", "=", False)], limit=limit
+            self.get_empty_location_domain(), limit=limit
         )
 
         if sort:
