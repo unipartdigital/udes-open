@@ -302,6 +302,13 @@ class StockPickingBatch(models.Model):
 
         return lambda ml: tuple(chain(*[part(ml) for part in parts]))
 
+    def action_on_next_task(self, next_task):
+        """
+        Stub function to call additional actions on next_task in a batch
+        if get_next_task is not used to retrieve task information
+        """
+        pass
+
     def get_next_task(
         self, skipped_product_ids=None, skipped_move_line_ids=None, task_grouping_criteria=None
     ):
