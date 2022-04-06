@@ -11,3 +11,4 @@ from . import test_stock_move_line
 from . import test_res_users
 from . import test_stock_location
 from . import test_scanned_by
+from . import test_utils
