@@ -17,15 +17,6 @@
       <field name="active" eval="True"/>
     </record>
 
-    <!-- Construct "Warehouse/Output" view location -->
-    <record id="stock_location_output" model="stock.location">
-      <field name="name">Output</field>
-      <field name="location_id" ref="stock.warehouse0_view_location"/>
-      <field name="comment">Output Zone</field>
-      <field name="usage">view</field>
-      <field name="active" eval="True"/>
-    </record>
-
     <!-- Construct "Warehouse/Input/Received" location -->
     <record id="location_input_received" model="stock.location">
       <field name="name">Received</field>
@@ -40,24 +31,6 @@
       <field name="comment">Goods received with exceptions</field>
       <field name="location_id" ref="stock_location_input"/>
       <field name="active" eval="True"/>
-    </record>
-
-    <!-- Construct "Warehouse/Output/Goods out lane" view location -->
-    <record id="location_goods_out_lane" model="stock.location">
-      <field name="name">Goods Out Lane</field>
-      <field name="comment">Goods Out Lane</field>
-      <field name="location_id" ref="stock_location_output"/>
-      <field name="active" eval="True"/>
-      <field name="usage">view</field>
-    </record>
-
-    <!-- Construct "Warehouse/Trailer" view location -->
-    <record id="location_trailer" model="stock.location">
-      <field name="name">Trailer</field>
-      <field name="comment">Trailer</field>
-      <field name="location_id" ref="stock_location_output"/>
-      <field name="active" eval="True"/>
-      <field name="usage">view</field>
     </record>
 
   </data>

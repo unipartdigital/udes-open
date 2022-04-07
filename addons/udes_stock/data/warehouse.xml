@@ -11,7 +11,6 @@
       <field name="name">Warehouse</field>
       <field name="code">WH</field>
       <field name="route_ids" eval="[(5,)]"/>
-      <field name="out_type_id" ref="picking_type_trailer"/>
     </record>
 
     <!-- Update the Pack name to UDES -->
