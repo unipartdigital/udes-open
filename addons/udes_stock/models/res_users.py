@@ -77,3 +77,7 @@ class ResUser(models.Model):
     def assign_picking_to_users(self, picking):
         """Assign a picking to user(s) in self, to be overridden"""
         return
+
+    def unassign_user_on_logout(self):
+        """Unassign a user from a picking on user logout"""
+        return
