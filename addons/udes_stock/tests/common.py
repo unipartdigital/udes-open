@@ -165,8 +165,14 @@ class UnconfiguredBaseUDES(common.SavepointCase):
         )
         cls.test_goodsout_location_01, cls.test_goodsout_location_02 = cls.test_goodsout_locations
 
-        cls.trailer_location = cls.picking_type_goods_out.default_location_dest_id.copy(
-            {"name": "TEST_OUT_TRAILER", "active": True, "location_id": cls.warehouse_location.id, "company_id": cls.company.id}
+        cls.trailer_location = Location.create(
+            {
+                "name": "TEST_OUT_TRAILER",
+                "active": True,
+                "location_id": cls.warehouse_location.id,
+                "company_id": cls.company.id,
+                "usage": "view",
+            }
         )
         cls.test_trailer_locations = Location.create(
             [

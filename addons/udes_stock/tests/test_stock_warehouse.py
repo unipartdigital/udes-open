@@ -17,7 +17,7 @@ class TestStockWarehouseModel(BaseUDES):
     def test02_get_picking_types(self):
         """Test checks if the test picking types and the normal pick types are present"""
         test_picking_types = self.warehouse.get_picking_types()
-        self.assertEqual(len(test_picking_types), 12)
+        self.assertEqual(len(test_picking_types), 9)
 
     def test03_get_default_picking_types_new_warehouse(self):
         """Create a new warehouse and look at the default picking types"""
