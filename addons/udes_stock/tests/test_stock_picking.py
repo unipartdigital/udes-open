@@ -1,7 +1,9 @@
-import unittest
+from unittest.mock import patch
+
+from odoo.exceptions import ValidationError, UserError
+from odoo.tools import mute_logger
 
 from . import common
-from odoo.exceptions import ValidationError
 
 
 class TestStockPickingCommon(common.BaseUDES):
@@ -69,8 +71,83 @@ class TestStockPickingCommon(common.BaseUDES):
                         f"'{field}' for {picking.name} should be '{expected_pick_names}'",
                     )
 
+class TestStockPickingBackordering(TestStockPickingCommon):
+    def test_picking_naming_convention(self):
+        """
+        Test that backorders get created with a -001 suffix,
+        but non-backordered pickings are not.
+
+        Create a picking and backorder twice to test it holds for chained
+        pickings.
+        """
+        self.create_quant(self.fig.id, self.test_stock_location_02.id, 50)
+        pick = self.create_picking(
+            picking_type=self.picking_type_pick,
+            products_info=[{"product": self.fig, "uom_qty": 50}],
+            location_id=self.test_stock_location_02.id,
+        )
+        pick.move_lines[0].quantity_done = 10
+        bk_picking_1 = pick._backorder_move_lines(mls=pick.move_line_ids)
+        bk_picking_1.move_lines[0].quantity_done = 10
+        bk_picking_2 = bk_picking_1._backorder_move_lines(mls=bk_picking_1.move_line_ids)
+        # Check naming convention
+        self.assertNotRegex("-", pick.name)
+        self.assertEqual(bk_picking_1.name, pick.name + "-001")
+        self.assertEqual(bk_picking_2.name, pick.name + "-002")
+
+    @patch("odoo.addons.udes_stock.models.common.MAX_SEQUENCE", 9)
+    def test_picking_naming_convention_exceeds_limit(self):
+        """
+        Test that when 10 backorders get created with a -\d suffix,
+        we handle what happens when the maximum sequence threshold is exceeded.
+        We have mocked the MAX_SEQUENCE variable to be 9, so significantly
+        smaller than the default 1000.
+        """
+        Picking = self.env["stock.picking"]
+        MAX_SEQUENCE = 9
+        self.create_quant(self.fig.id, self.test_stock_location_02.id, 11)
+        pick = self.create_picking(
+            picking_type=self.picking_type_pick,
+            products_info=[{"product": self.fig, "uom_qty": 11}],
+            location_id=self.test_stock_location_02.id,
+        )
+        picking = pick
+        for i in range(9):
+            picking.move_lines[0].quantity_done = 1
+            picking._action_done()
+            # Store the previous picking for later checks
+            prev_picking = picking
+            self.assertEqual(prev_picking.state, "done")
+            # NOTE: Get the next picking by picking type and state, doing it via u_created_back_orders
+            # hits a cache error after 240.
+            picking = Picking.search(
+                [("picking_type_id", "=", self.picking_type_pick.id), ("state", "=", "assigned")]
+            )
+            self.assertEqual(len(picking), 1)
+            self.assertEqual(picking.backorder_id, prev_picking)
+
+        # Check we are where we think
+        self.assertEqual(picking.name, f"{pick.name}-9")
+
+        # Check completing this picking raises an error due to the maximum number of backorders is exceeded
+        picking.move_lines[0].quantity_done = 1
+        with self.assertRaises(UserError) as e, mute_logger("odoo.sql_db"):
+            picking._action_done()
+
+        # Check the error is as expected
+        sequence = 10
+        self.assertEqual(
+            e.exception.args[0],
+            """
+            Trying to create a backorder with sequence %d
+            but this exceeds the maximum allowed %d
+            """
+            % (sequence, MAX_SEQUENCE),
+        )
+
 
 class TestStockPicking(TestStockPickingCommon):
+    
     def test_get_empty_locations(self):
         """Get empty locations - for goods in"""
         self.assertEqual(self.test_picking_in.get_empty_locations(), self.test_received_location_01)
@@ -693,7 +770,6 @@ class TestStockPickingUoM(TestStockPickingCommon):
         self.assertEqual(cherry_mv.product_qty, 3)
         self.assertEqual(cherry_mv.product_uom_qty, 6)
 
-
     def test_complete_picking_with_product_uoms(self):
         """
         Create and complete a picking with multiple products with different UoMs
@@ -708,11 +784,11 @@ class TestStockPickingUoM(TestStockPickingCommon):
         self.assertEqual(pick.state, "assigned")
         # Check the moves and move lines are in UoM of the product
         for mv in pick.move_lines:
-            with self.subTest(product= mv.product_id.name):
+            with self.subTest(product=mv.product_id.name):
                 self.assertEqual(mv.product_qty, 6)
                 self.assertEqual(mv.product_uom_qty, 6)
         for ml in pick.move_line_ids:
-            with self.subTest(product= ml.product_id.name):
+            with self.subTest(product=ml.product_id.name):
                 self.assertEqual(ml.product_qty, 6)
                 self.assertEqual(ml.product_uom_qty, 6)
 
@@ -733,7 +809,7 @@ class TestStockPickingUoM(TestStockPickingCommon):
         Try to sell things in boxes of 6.
 
         Complete a picking of 6 boxes of 6 - product_uom_qty = 6
-        Expect 
+        Expect
           * banana: product_qty = 36 (36 / 36)
           * cherry: product_qty = 3 (36 / 12)
 
@@ -753,7 +829,7 @@ class TestStockPickingUoM(TestStockPickingCommon):
         self.assertEqual(banana_move.product_uom_qty, 6)
         self.assertEqual(cherry_move.product_qty, 3)
         self.assertEqual(cherry_move.product_uom_qty, 6)
-        
+
         mls = pick.move_line_ids
         cherry_ml = mls.filtered(lambda ml: ml.product_id == self.cherry)
         banana_ml = mls.filtered(lambda ml: ml.product_id == self.banana)
@@ -836,6 +912,7 @@ class TestStockPickingUnlinkingEmpties(common.BaseUDES):
 
         self.assertTrue(pick.exists())
 
+
 class TestBatchUserName(common.BaseUDES):
     """Test Batch User takes value expected and changes when expected"""
 
@@ -844,10 +921,12 @@ class TestBatchUserName(common.BaseUDES):
         super(TestBatchUserName, cls).setUpClass()
         cls.create_quant(cls.apple.id, cls.test_stock_location_01.id, 10)
 
-        cls.batch = cls.create_batch(user = cls.env.user)
+        cls.batch = cls.create_batch(user=cls.env.user)
 
         cls._pick_info = [{"product": cls.apple, "uom_qty": 5}]
-        cls.picking = cls.create_picking(picking_type = cls.picking_type_pick, products_info=cls._pick_info, confirm=True)
+        cls.picking = cls.create_picking(
+            picking_type=cls.picking_type_pick, products_info=cls._pick_info, confirm=True
+        )
 
         cls.stock_manager = cls.create_user(name="Stock Manager", login="Stock Manager Dude")
 
@@ -855,23 +934,24 @@ class TestBatchUserName(common.BaseUDES):
         self.picking.write({"batch_id": self.batch.id})
 
         self.assertEqual(self.picking.u_batch_user_id, self.env.user)
-    
+
     def test_no_batch_user_on_picking_when_no_batch(self):
         self.assertEqual(len(self.picking.u_batch_user_id), 0)
-    
+
     def test_batch_user_on_picking_changes_when_user_is_changed_on_batch(self):
         self.picking.write({"batch_id": self.batch.id})
 
         self.batch.write({"user_id": self.stock_manager.id})
 
         self.assertEqual(self.picking.u_batch_user_id, self.stock_manager)
-    
+
     def test_same_batch_user_on_multiple_pickings(self):
-        picking_2 = self.create_picking(picking_type = self.picking_type_pick, products_info=self._pick_info, confirm=True)
+        picking_2 = self.create_picking(
+            picking_type=self.picking_type_pick, products_info=self._pick_info, confirm=True
+        )
 
         self.picking.write({"batch_id": self.batch.id})
         picking_2.write({"batch_id": self.batch.id})
 
         self.assertEqual(self.picking.u_batch_user_id, self.env.user)
         self.assertEqual(picking_2.u_batch_user_id, self.env.user)
-
