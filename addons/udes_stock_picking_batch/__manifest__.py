@@ -10,8 +10,12 @@
     "depends": [
         "base",
         "stock",
+        "udes_security",
+        "stock_picking_batch",
     ],
     "external_dependencies": {},
-    "data": [],
+    "data": [
+        "views/stock_picking_batch_views.xml",
+    ],
     "demo": [],
 }
