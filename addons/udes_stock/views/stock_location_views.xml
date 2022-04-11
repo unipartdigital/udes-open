@@ -11,6 +11,21 @@
                 <field name="barcode"/>
             </xpath>
 
+            <xpath expr="//field[@name='removal_strategy_id']" position="after">
+                <field name="u_height_category_id" />
+                <field name="u_speed_category_id" />
+                <field name="u_location_category_id" />
+            </xpath>
+
+            <group name="additional_info" position="after">
+                <group string="Localization" name="localization">
+                    <field name="posx"/>
+                    <field name="posy"/>
+                    <field name="posz"/>
+                    <field name="u_size"/>
+                </group>
+            </group>
+
         </field>
     </record>
 </odoo>
