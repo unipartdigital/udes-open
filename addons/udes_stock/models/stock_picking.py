@@ -3,6 +3,7 @@ import logging
 
 from odoo import api, models, fields, _
 from odoo.exceptions import ValidationError
+from .common import get_next_name
 
 _logger = logging.getLogger(__name__)
 
@@ -89,13 +90,26 @@ class StockPicking(models.Model):
         help="Pickings that are unused after refactoring are empty and ready to be deleted",
     )
 
-    # User responsible for Batch 
+    # User responsible for Batch
     u_batch_user_id = fields.Many2one(
         string="Batch User",
         related="batch_id.user_id",
         store=False,
         help="User responsible for the batch",
     )
+
+    def get_next_picking_name(self, vals, picking_type=None):
+        """
+        Override the method in core stock to customise the name generation.
+        
+        Backorders have a naming pattern of adding `-001` to it,
+        so they are more visible to users. 
+        """
+        if vals.get("backorder_id"):
+            ir_sequence = picking_type.sequence_id
+            # Specify sequence as it is picking type specific
+            return get_next_name(self, "stock.picking", sequence=ir_sequence)
+        return super().get_next_picking_name(vals, picking_type=picking_type)
 
     @api.depends("move_lines", "move_lines.move_orig_ids", "move_lines.move_orig_ids.picking_id")
     def _compute_first_picking_ids(self):
