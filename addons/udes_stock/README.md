@@ -34,7 +34,14 @@
 ## Models
 
 In general the functions are designed to be as simple as possible, where they do one thing well. 
-One reason why update picking has not been migrated over, as it is just a lot of if statements
+One reason why update picking has not been migrated over, as it is just a lot of if statements.
+
+### Common
+
+In common.py we store helper functions used across models that don't need to be bound to the classes in which they are used.
+
+| Method | Description |
+| get_next_name | Get the next name in the sequenece via the current sequence or code, used for things like pickings and batches. This is used in stock.picking to enforce backorders have `-001`, `-002` etc appended to the original name rather than a unique name. |
 
 ### MixinStockModel (model: mixin.stock.model)
 This model is used to include generic functions that are inherited by various models in udes_stock.
