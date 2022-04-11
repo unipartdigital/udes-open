@@ -87,9 +87,12 @@ class TestStockPickingBackordering(TestStockPickingCommon):
             location_id=self.test_stock_location_02.id,
         )
         pick.move_lines[0].quantity_done = 10
-        bk_picking_1 = pick._backorder_move_lines(mls=pick.move_line_ids)
+        pick._action_done()
+        bk_picking_1 = pick.u_created_backorder_ids
         bk_picking_1.move_lines[0].quantity_done = 10
-        bk_picking_2 = bk_picking_1._backorder_move_lines(mls=bk_picking_1.move_line_ids)
+        bk_picking_1._action_done()
+        bk_picking_2 = bk_picking_1.u_created_backorder_ids
+
         # Check naming convention
         self.assertNotRegex("-", pick.name)
         self.assertEqual(bk_picking_1.name, pick.name + "-001")
@@ -372,127 +375,6 @@ class TestStockPicking(TestStockPickingCommon):
         # Check a backorder is needed
         mls = pick.move_line_ids
         self.assertTrue(pick._requires_backorder(mls))
-
-    def test_backorder_move_lines_default_mls(self):
-        """Backorder move lines for incomplete pick"""
-        self.create_quant(self.fig.id, self.test_stock_location_02.id, 50)
-        self.create_quant(self.banana.id, self.test_stock_location_02.id, 50)
-        pick = self.Picking.create_picking(
-            picking_type=self.picking_type_pick,
-            products_info=[
-                {"product": self.fig, "uom_qty": 50},
-                {"product": self.banana, "uom_qty": 50},
-            ],
-            location_id=self.test_stock_location_02.id,
-        )
-        pick.move_lines.quantity_done = 10
-        product_ids = pick.move_line_ids.mapped("product_id")
-        bk_picking = pick._backorder_move_lines()
-        # Check backorder pick
-        self.assertEqual(bk_picking.backorder_id, pick)
-        self.assertEqual(product_ids, bk_picking.move_line_ids.product_id)
-        self.assertEqual(bk_picking.move_lines.mapped("product_qty"), [50.0, 50.0])
-        self.assertEqual(bk_picking.move_line_ids.mapped("qty_done"), [10.0, 10.0])
-
-    def test_backorder_move_lines_fig_mls(self):
-        """Backorder move lines for incomplete pick, but only for a subset of mls"""
-        self.create_quant(self.fig.id, self.test_stock_location_02.id, 50)
-        self.create_quant(self.banana.id, self.test_stock_location_02.id, 50)
-        pick = self.Picking.create_picking(
-            picking_type=self.picking_type_pick,
-            products_info=[
-                {"product": self.fig, "uom_qty": 50},
-                {"product": self.banana, "uom_qty": 50},
-            ],
-            location_id=self.test_stock_location_02.id,
-        )
-        pick.move_lines[0].quantity_done = 10
-        pick.move_lines[1].quantity_done = 5
-        bk_picking = pick._backorder_move_lines(
-            mls=pick.move_line_ids.filtered(lambda p: p.product_id == self.fig)
-        )
-        # Check backorder pick
-        self.assertEqual(bk_picking.backorder_id, pick)
-        self.assertEqual(bk_picking.move_line_ids.product_id, self.fig)
-        self.assertEqual(bk_picking.move_lines.product_qty, 50)
-        self.assertEqual(bk_picking.move_line_ids.qty_done, 10)
-        # Check original pick has those move lines not inserted
-        self.assertEqual(pick.move_line_ids.product_id, self.banana)
-        self.assertEqual(pick.move_lines.product_qty, 50)
-        self.assertEqual(pick.move_line_ids.qty_done, 5)
-
-    def test_backorder_move_lines_error(self):
-        """Backorder move lines raises error when nothing is done"""
-        self.create_quant(self.fig.id, self.test_stock_location_02.id, 50)
-        self.create_quant(self.banana.id, self.test_stock_location_02.id, 50)
-        pick = self.Picking.create_picking(
-            picking_type=self.picking_type_pick,
-            products_info=[
-                [{"product": self.fig, "uom_qty": 50}, {"product": self.banana, "uom_qty": 50}]
-            ],
-            location_id=self.test_stock_location_02.id,
-        )
-        with self.assertRaises(ValidationError) as e:
-            pick._backorder_move_lines()
-        msg = "There are no move lines within picking %s to backorder" % pick.name
-        self.assertEqual(e.exception.args[0], msg)
-
-    def test_backorder_move_lines_all_qts_done(self):
-        """Create a backorder for a picking when all quantities are done
-        Old pick is empty, everything moved to backorder pick
-        """
-        self.create_quant(self.fig.id, self.test_stock_location_02.id, 50)
-        self.create_quant(self.banana.id, self.test_stock_location_02.id, 50)
-        pick = self.Picking.create_picking(
-            picking_type=self.picking_type_pick,
-            products_info=[
-                {"product": self.fig, "uom_qty": 50},
-                {"product": self.banana, "uom_qty": 50},
-            ],
-            location_id=self.test_stock_location_02.id,
-            assign=True,
-        )
-        pick.move_lines.quantity_done = 50
-        product_ids = pick.move_line_ids.mapped("product_id")
-        bk_picking = pick._backorder_move_lines()
-        # Check backorder pick
-        self.assertEqual(bk_picking.backorder_id, pick)
-        self.assertEqual(bk_picking.move_line_ids.product_id, product_ids)
-        self.assertEqual(bk_picking.move_lines.mapped("product_qty"), [50.0, 50.0])
-        self.assertEqual(bk_picking.move_line_ids.mapped("qty_done"), [50.0, 50.0])
-        # Check old pick
-        self.assertEqual(len(pick.move_line_ids), 0)
-        self.assertEqual(len(pick.move_lines), 0)
-
-    def test_backorder_move_lines_fulfilled_move_not(self):
-        """Check when move lines are fulfilled, but the move is partially fulfilled"""
-        self.create_quant(self.fig.id, self.test_stock_location_02.id, 8)
-        self.create_quant(self.banana.id, self.test_stock_location_02.id, 10)
-        pick = self.Picking.create_picking(
-            picking_type=self.picking_type_pick,
-            products_info=[
-                {"product": self.fig, "uom_qty": 20},
-                {"product": self.banana, "uom_qty": 10},
-            ],
-            location_id=self.test_stock_location_02.id,
-            confirm=True,
-            assign=True,
-        )
-        pick.move_lines.quantity_done = 10
-        # Check pick
-        self.assertEqual(pick.move_lines.mapped("state"), ["partially_available", "assigned"])
-        self.assertEqual(pick.move_lines.mapped("quantity_done"), [10, 10])
-        self.assertEqual(len(pick.move_line_ids), 2)
-        bk_picking = pick._backorder_move_lines()
-        # Check backorder pick
-        self.assertEqual(pick, bk_picking.backorder_id)
-        self.assertEqual(bk_picking.move_lines.mapped("state"), ["assigned", "assigned"])
-        self.assertEqual(len(bk_picking.move_line_ids), 2)
-        self.assertEqual(bk_picking.move_lines.mapped("quantity_done"), [10, 10])
-        # Check original pick
-        self.assertEqual(pick.move_lines.state, "confirmed")
-        self.assertEqual(len(pick.move_line_ids), 0)
-        self.assertEqual(pick.move_lines.quantity_done, 0)
 
     def test_assert_related_pickings_computed_correctly(self):
         """

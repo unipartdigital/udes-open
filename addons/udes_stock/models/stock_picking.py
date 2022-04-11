@@ -249,43 +249,6 @@ class StockPicking(models.Model):
             return self.move_line_ids.get_lines_incomplete()
         return mls
 
-    def _backorder_move_lines(self, mls=None):
-        """Creates a backorder pick from self (expects a singleton)
-        and a subset of stock.move.lines are then moved into it.
-
-        Ensure this function is only called if _requires_back_order is True
-        if everything is done - then a new pick is created and the old one is empty
-        """
-        Move = self.env["stock.move"]
-        # Based on backorder creation in stock_move._action_done
-        self.ensure_one()
-
-        if mls is None:
-            mls = self.move_line_ids.filtered(lambda x: x.qty_done > 0)
-
-        # Test that the intersection of mls and move lines in picking is empty,
-        # therefore we have some relevant move lines
-        if not (mls & self.move_line_ids):
-            raise ValidationError(
-                _("There are no move lines within picking %s to backorder") % self.name
-            )
-
-        new_moves = Move.browse()
-        for move, move_mls in mls.groupby("move_id"):
-            new_moves |= move.split_out_move_lines(move_mls)
-
-        # Create picking for completed move
-        bk_picking = self.copy(
-            {
-                "name": "/",
-                "move_lines": [(6, 0, new_moves.ids)],
-                "move_line_ids": [(6, 0, new_moves.move_line_ids.ids)],
-                "backorder_id": self.id,
-            }
-        )
-
-        return bk_picking
-
     def _requires_backorder(self, mls):
         """Checks if a backorder is required by checking if all move lines
         within a picking are present in mls
