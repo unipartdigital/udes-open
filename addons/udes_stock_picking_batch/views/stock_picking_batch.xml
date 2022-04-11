@@ -1,0 +1,75 @@
+<?xml version="1.0"?>
+<odoo>
+    <data>
+
+        <!-- Stock picking batch form -->
+        <record id="stock_picking_batch_form" model="ir.ui.view">
+            <field name="name">udes_stock.stock.picking.batch.form</field>
+            <field name="model">stock.picking.batch</field>
+            <field name="inherit_id"
+                   ref="stock_picking_batch.stock_picking_batch_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='state']" position="replace">
+                    <field name="state" widget="statusbar" statusbar_visible="waiting,ready,in_progress,done"/>
+                </xpath>
+                <xpath expr="//button[@name='action_confirm']" position="after">
+                    <button name="mark_as_todo" string="Mark as Todo"
+                            confirm="Are you sure you want to mark this batch as todo?" type="object" states="draft"/>
+                </xpath>
+                <xpath expr="//button[@name='action_cancel']" position="replace">
+                    <button name="action_cancel" string="Cancel" type="object" states="ready,waiting,in_progress"/>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Stock picking batch filter -->
+        <record id="stock_picking_batch_filter" model="ir.ui.view">
+            <field name="name">udes_stock.stock.picking.batch.filter</field>
+            <field name="model">stock.picking.batch</field>
+            <field name="inherit_id"
+                   ref="stock_picking_batch.stock_picking_batch_filter"/>
+            <field name="arch" type="xml">
+                <xpath expr="//filter[@name='draft']" position="after">
+                    <filter name="ready" string="Ready"
+                            domain="[('state','=', 'ready')]"
+                            help="Batch Pickings Ready"/>
+                    <filter name="waiting" string="Waiting"
+                            domain="[('state','=', 'waiting')]"
+                            help="Batch Pickings Waiting"/>
+                </xpath>
+                <xpath expr="//filter[@name='in_progress']" position="replace">
+                    <filter name="in_progress" string="In Progress" domain="[('state', '=', 'in_progress')]"
+                            help="Batch Transfers not finished"/>
+                </xpath>
+                <xpath expr="//filter[@name='in_progress']" position="after">
+                    <filter name="cancel" string="Cancelled"
+                            domain="[('state','=', 'cancel')]"
+                            help="Batch Pickings Cancelled"/>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Stock picking batch action -->
+        <!-- Remove default draft filter search state-->
+        <record id="stock_picking_batch.stock_picking_batch_action" model="ir.actions.act_window">
+            <field name="context">{
+                "search_default_draft": False,
+                "search_default_in_progress": False,
+                'default_company_id': allowed_company_ids[0]
+            }</field>
+        </record>
+
+         <!-- 'Mark as To-do' in action dropdown -->
+        <record id="action_mark_activities_done" model="ir.actions.server">
+            <field name="name">Mark as Todo</field>
+            <field name="model_id" ref="model_stock_picking_batch"/>
+            <field name="binding_model_id" ref="udes_stock_picking_batch.model_stock_picking_batch"/>
+            <field name="state">code</field>
+            <field name="code">
+                for rec in records:
+                    rec.mark_as_todo()
+            </field>
+        </record>
+
+    </data>
+</odoo>
