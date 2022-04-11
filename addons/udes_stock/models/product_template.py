@@ -13,6 +13,11 @@ class ProductTemplate(models.Model):
         category = self.env.ref("udes_stock.product_category_speed")
         return self._domain_product_category(category)
 
+    def _domain_height_category(self):
+        """Domain for height product category"""
+        category = self.env.ref("udes_stock.product_category_height")
+        return self._domain_product_category(category)
+
     # Add tracking for archiving.
     active = fields.Boolean(tracking=True)
 
@@ -27,6 +32,13 @@ class ProductTemplate(models.Model):
         domain=_domain_speed_category,
         string="Product Category Speed",
         help="The speed in which the product can be processed.",
+    )
+    u_height_category_id = fields.Many2one(
+        comodel_name="product.category",
+        domain=_domain_height_category,
+        index=True,
+        string="Product Category Height",
+        help="Product category height to match with location height.",
     )
 
     u_height = fields.Float(string="Height (m)", help="Product height in metres", default=0.0)

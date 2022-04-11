@@ -7,6 +7,7 @@
         <field name="arch" type="xml">
             <xpath expr="//page[@name='inventory']" position="inside">
                 <group string="Inventory" name="inventory_udes">
+                    <field name="u_height_category_id" />
                     <field name="u_speed_category_id" />
                     <field name="u_height" />
                     <field name="u_length" />

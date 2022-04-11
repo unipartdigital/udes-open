@@ -35,5 +35,11 @@
       <field name="parent_id" ref="udes_stock.product_category_speed"/>
     </record>
 
+    <!-- Construct "Height" product category -->
+    <record id="product_category_height" model="product.category">
+      <field name="name">Height</field>
+      <field name="parent_id" ref="product.product_category_all"/>
+    </record>
+
   </data>
 </odoo>

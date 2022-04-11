@@ -8,6 +8,7 @@
     "version": "0.1",
     "depends": ["base", "stock", "stock_picking_batch", "udes_common"],
     "data": [
+        "security/ir.model.access.csv",
         "data/stock_data.xml",
         "data/stock_config.xml",
         "data/locations.xml",
@@ -16,6 +17,8 @@
         "data/company.xml",
         "data/product_categories.xml",
         "data/warehouse.xml",
+        "wizard/stock_backorder_confirmation_views.xml",
+        "wizard/stock_immediate_transfer_views.xml",
         "views/product_views.xml",
         "views/stock_picking.xml",
         "views/stock_picking_type.xml",
@@ -25,7 +28,6 @@
         "views/stock_warehouse.xml",
         "views/product_template.xml",
         "views/stock_warehouse.xml",
-        "wizard/stock_backorder_confirmation_views.xml",
-        "wizard/stock_immediate_transfer_views.xml",
+        "views/stock_location_category_views.xml",
     ],
 }
