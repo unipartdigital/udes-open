@@ -33,3 +33,15 @@ class StockPickingType(models.Model):
         default=False,
         help="Flag to indicate if the skipped items will be returned to in the same batch.",
     )
+    u_drop_criterion = fields.Selection(
+        [
+            ("all", "Drop off everything in one location"),
+            ("by_products", "Group items by product"),
+            ("by_orders", "Group items by order"),
+            ("by_packages", "Drop off everything by package"),
+        ],
+        default="all",
+        string="Drop Off Criterion",
+        help="How to group items when dropping off.",
+    )
+

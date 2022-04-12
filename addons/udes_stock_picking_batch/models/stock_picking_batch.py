@@ -1,11 +1,12 @@
+from itertools import chain
 from odoo import models, fields, api
 from odoo.exceptions import ValidationError
 from.common import PRIORITIES
-from itertools import chain
 
 
 class StockPickingBatch(models.Model):
-    _inherit = "stock.picking.batch"
+    _name = "stock.picking.batch"
+    _inherit = ["stock.picking.batch", "mixin.stock.model"]
 
     u_last_reserved_pallet_name = fields.Char(
         string="Last Pallet Used",
@@ -449,3 +450,49 @@ class StockPickingBatch(models.Model):
             task["move_line_ids"] = task_mls.ids
 
         return task
+
+    def _get_move_lines_to_drop_off(self):
+        self.ensure_one()
+        return self.picking_ids.move_line_ids.filtered(
+            lambda ml: ml.qty_done > 0 and ml.picking_id.state not in ["cancel", "done"]
+        )
+
+    def get_next_drop_off(self, item_identity):
+        """
+        Based on the criteria specified for the batch picking type,
+        determines what move lines should be dropped (refer to the
+        batch::drop API specs for the format of the returned value).
+
+        Expects an `in_progress` singleton.
+
+        Raises an error in case:
+         - not all pickings of the batch have the same picking type;
+         - unknown or invalid (e.g. 'all') drop off criterion.
+        """
+        self.ensure_one()
+        assert self.state == "in_progress", "Batch must be in progress to be dropped off"
+
+        all_mls_to_drop = self._get_move_lines_to_drop_off()
+
+        if not len(all_mls_to_drop):
+            return {"last": True, "move_line_ids": [], "summary": ""}
+
+        picking_type = self.picking_type_ids
+
+        if len(picking_type) > 1:
+            raise ValidationError(_("The batch unexpectedly has pickings of different types"))
+
+        criterion = picking_type.u_drop_criterion
+        func = getattr(all_mls_to_drop, "_get_next_drop_off_" + criterion, None)
+
+        if not func:
+            raise ValidationError(
+                _("An unexpected drop off criterion is currently configured") + ": '%s'" % criterion
+                if criterion
+                else ""
+            )
+
+        mls_to_drop, summary = func(item_identity)
+        last = len(all_mls_to_drop) == len(mls_to_drop)
+
+        return {"last": last, "move_line_ids": mls_to_drop.ids, "summary": summary}

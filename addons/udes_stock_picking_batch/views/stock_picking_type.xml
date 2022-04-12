@@ -13,6 +13,7 @@
           <field name="u_max_reservable_pallets" />
           <field name="u_allow_swapping_packages" />
           <field name="u_return_to_skipped" />
+          <field name="u_drop_criterion" />
         </group>
       </xpath>
     </field>

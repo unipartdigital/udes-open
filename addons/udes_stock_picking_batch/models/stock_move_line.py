@@ -81,3 +81,42 @@ class StockMoveLine(models.Model):
             task["package_id"] = info[0]
 
         return task
+
+    def _get_next_drop_off_all(self, item_identity):
+        raise ValidationError(_("The 'all' drop off criterion should not be invoked"))
+
+    def _get_next_drop_off_by_products(self, item_identity):
+        mls = self.filtered(lambda ml: ml.product_id.barcode == item_identity)
+        summary = mls._drop_off_criterion_summary()
+
+        return mls, summary
+
+    def _get_next_drop_off_by_orders(self, item_identity):
+        mls = self.filtered(lambda ml: ml.picking_id.origin == item_identity)
+        summary = mls._drop_off_criterion_summary()
+
+        return mls, summary
+
+    def _get_next_drop_off_by_packages(self, item_identity):
+        mls = self.filtered(lambda ml: ml.result_package_id.name == item_identity)
+        summary = mls._drop_off_criterion_summary()
+
+        return mls, summary
+
+    def _drop_off_criterion_summary(self):
+        """ Generate product summary for drop off criterion for the move
+            lines in self.
+            Generate one piece of information for each product:
+            * Display name
+            * Total quantity in move lines
+            * Speed of the product (if it is set)
+        """
+        summary = ""
+        for product, prod_mls in self.groupby(lambda ml: ml.product_id):
+            product_speed = ""
+            if product.u_speed_category_id:
+                product_speed = " (speed: {})".format(product.u_speed_category_id.name)
+            summary += "<br>{} x {}{}".format(
+                product.display_name, int(sum(prod_mls.mapped("qty_done"))), product_speed
+            )
+        return summary
