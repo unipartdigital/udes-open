@@ -12,10 +12,15 @@
         "stock",
         "udes_security",
         "stock_picking_batch",
+        "udes_simple_location_blocking",
     ],
     "external_dependencies": {},
     "data": [
-        "views/stock_picking_batch_views.xml",
+        "views/stock_picking_batch.xml",
+        "views/stock_warehouse.xml",
+        "views/stock_picking_type.xml",
+        "views/res_users.xml",
+        "views/stock_picking.xml"
     ],
     "demo": [],
 }

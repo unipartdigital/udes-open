@@ -8,10 +8,25 @@
     <field name="inherit_id" ref="stock_picking_batch.stock_picking_batch_form"/>
     <field name="arch" type="xml">
       <xpath expr="//field[@name='user_id']" position="after">
+        <field name="u_ephemeral"/>
+        <field name="priority"/>
         <field name="u_last_reserved_pallet_name" groups="udes_security.group_trusted_user"/>
       </xpath>
     </field>
   </record>
+
+  <!-- Stock picking batch tree -->
+    <record id="udes_stock_picking_batch_tree" model="ir.ui.view">
+      <field name="name">stock.picking.batch.tree.udes_stock_picking_batch</field>
+      <field name="model">stock.picking.batch</field>
+      <field name="inherit_id" ref="stock_picking_batch.stock_picking_batch_tree"/>
+      <field name="arch" type="xml">
+        <xpath expr="//field[@name='user_id']" position="after">
+          <field name="u_ephemeral"/>
+          <field name="priority"/>
+        </xpath>
+      </field>
+    </record>
 
 
   <!-- Stock picking batch search inherit-->
@@ -21,7 +36,12 @@
     <field name="inherit_id" ref="stock_picking_batch.stock_picking_batch_filter"/>
     <field name="arch" type="xml">
       <xpath expr="//field[@name='user_id']" position="after">
+        <field name="priority"/>
         <field name="u_last_reserved_pallet_name" groups="udes_security.group_trusted_user"/>
+      </xpath>
+      <xpath expr="//group" position="inside">
+        <filter name="by_priority" string="Priority"
+                domain="[]" context="{'group_by':'priority'}"/>
       </xpath>
     </field>
   </record>

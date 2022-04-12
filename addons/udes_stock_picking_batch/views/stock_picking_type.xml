@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <record id="view_picking_type_form_inherit" model="ir.ui.view">
+    <field name="name">stock.picking.type.form.inherit</field>
+    <field name="model">stock.picking.type</field>
+    <field name="inherit_id" ref="stock.view_picking_type_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//group[@name='udes_config']" position="inside">
+        <field name="u_use_location_categories" />
+        <field name="u_batch_dest_loc_not_allowed" />
+        <field name="u_reserve_pallet_per_picking" />
+        <field name="u_max_reservable_pallets" />
+      </xpath>
+    </field>
+  </record>
+</odoo>
