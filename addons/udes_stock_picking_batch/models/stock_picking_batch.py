@@ -85,8 +85,8 @@ class StockPickingBatch(models.Model):
         string="Last Pallet Used",
         index=True,
         help="Barcode of the last pallet used for this batch. "
-             "If the batch is in progress, indicates the pallet currently in "
-             "use.",
+        "If the batch is in progress, indicates the pallet currently in "
+        "use.",
     )
     u_ephemeral = fields.Boolean(
         string="Ephemeral", help="Ephemeral batches are unassigned if the user logs out"
