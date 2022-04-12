@@ -341,6 +341,39 @@ class StockPickingBatch(models.Model):
 
         return remaining_tasks
 
+    def get_next_task(
+        self, skipped_product_ids=None, skipped_move_line_ids=None, task_grouping_criteria=None
+    ):
+        """Get the next not completed task of the batch to be done.
+        Expect a singleton.
+        """
+        task = self.get_next_tasks(
+            skipped_product_ids=skipped_product_ids,
+            skipped_move_line_ids=skipped_move_line_ids,
+            task_grouping_criteria=task_grouping_criteria,
+            limit=1,
+        )[0]
+        return task
+
+    def get_completed_tasks(self, task_grouping_criteria=None, limit=False):
+        """Get all completed tasks of the batch
+
+        NOTE: These tasks will be in their original order. So if we skip and
+        return to a task, the order they are returned in may not be the order
+        the tasks were completed in.
+        """
+        self.ensure_one()
+
+        # Get completed movelines
+        all_mls = self.get_available_move_lines()
+        completed_mls = (all_mls - all_mls.get_lines_todo()).sort_by_location_product()
+
+        # Generate tasks for the completed move lines
+        completed_tasks = self._populate_next_tasks(
+            completed_mls, True, task_grouping_criteria=task_grouping_criteria, limit=limit
+        )
+        return completed_tasks
+
     def _populate_next_tasks(
         self,
         move_lines,
