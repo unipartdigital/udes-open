@@ -230,3 +230,14 @@ class StockMoveLine(models.Model):
             )
             res = new_ml
         return res
+
+    def get_lines_todo(self):
+        """ Return the move lines in self that are not completed,
+            i.e., quantity done < quantity todo
+        """
+        return self.filtered(lambda ml: ml.qty_done < ml.product_uom_qty)
+
+    def sort_by_location_product(self):
+        """ Return the move lines sorted by location and product
+        """
+        return self.sorted(key=lambda ml: (ml.location_id.name, ml.product_id.id))

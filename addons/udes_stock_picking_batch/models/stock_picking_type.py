@@ -27,3 +27,9 @@ class StockPickingType(models.Model):
         default=10,
         help="This setting is only applied when u_reserve_pallet_per_picking is True",
     )
+    u_allow_swapping_packages = fields.Boolean("Allow swapping packages")
+    u_return_to_skipped = fields.Boolean(
+        string="Return to Skipped Items",
+        default=False,
+        help="Flag to indicate if the skipped items will be returned to in the same batch.",
+    )

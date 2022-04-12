@@ -5,4 +5,5 @@ from . import (
     stock_picking,
     stock_warehouse,
     res_users,
+    stock_move_line,
 )

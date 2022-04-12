@@ -13,6 +13,7 @@
         "udes_security",
         "stock_picking_batch",
         "udes_simple_location_blocking",
+        "udes_get_info",
     ],
     "external_dependencies": {},
     "data": [

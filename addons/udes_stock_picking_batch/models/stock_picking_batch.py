@@ -1,6 +1,7 @@
 from odoo import models, fields, api
 from odoo.exceptions import ValidationError
 from.common import PRIORITIES
+from itertools import chain
 
 
 class StockPickingBatch(models.Model):
@@ -228,3 +229,190 @@ class StockPickingBatch(models.Model):
             picking.write({"u_reserved_pallet": pallet_name})
         else:
             self.write({"u_last_reserved_pallet_name": pallet_name})
+
+    def _get_task_grouping_criteria(self):
+        """
+        Return a function for sorting by picking, package(maybe), product, and
+        location. The package is not included if the picking type allows for
+        the swapping of packages (`u_allow_swapping_packages`) and picks by
+        product (`u_user_scans`)
+        """
+        batch_pt = self.mapped("picking_ids.picking_type_id")
+        batch_pt.ensure_one()
+
+        parts = [lambda ml: (ml.picking_id.id,)]
+
+        if not (batch_pt.u_allow_swapping_packages and batch_pt.u_user_scans == "product"):
+            parts.append(lambda ml: (ml.package_id.id,))
+
+        parts.append(lambda ml: (ml.location_id.id, ml.product_id.id))
+
+        return lambda ml: tuple(chain(*[part(ml) for part in parts]))
+
+    def get_available_move_lines(self):
+        """ Get all the move lines from available pickings
+        """
+        self.ensure_one()
+        available_pickings = self.picking_ids.filtered(lambda p: p.state == "assigned")
+
+        return available_pickings.move_line_ids
+
+    def get_next_tasks(
+        self,
+        skipped_product_ids=None,
+        skipped_move_line_ids=None,
+        task_grouping_criteria=None,
+        limit=1,
+    ):
+        """
+        Get the next not completed tasks of the batch to be done.
+        Expect a singleton.
+
+        Note that the criteria for sorting and grouping move lines
+        (for the sake of defining tasks) are given by the
+        _get_task_grouping_criteria method so it can be specialized
+        for different customers. Also note that the
+        task_grouping_criteria argument is added to the signature to
+        enable dependency injection for the sake of testing.
+
+        Confirmations is a list of dictionaries of the form:
+            {'query': 'XXX', 'result': 'XXX'}
+        After the user has picked the move lines, should be requested by the
+        'query' to scan/type a value that should match with 'result'.
+        They are enabled by picking type and should be filled at
+        _prepare_task_info(), by default it is not required to confirm anything.
+        """
+        MoveLine = self.env["stock.move.line"]
+
+        self.ensure_one()
+
+        all_available_mls = self.get_available_move_lines()
+        skipped_mls = MoveLine.browse()
+
+        # Filter out skipped move lines
+        if skipped_product_ids:
+            skipped_mls = all_available_mls.filtered(
+                lambda ml: ml.product_id.id in skipped_product_ids
+            )
+        elif skipped_move_line_ids:
+            skipped_mls = all_available_mls.filtered(lambda ml: ml.id in skipped_move_line_ids)
+        available_mls = all_available_mls - skipped_mls
+
+        num_tasks_picked = len(available_mls.filtered(lambda ml: ml.qty_done == ml.product_qty))
+
+        todo_mls = available_mls.get_lines_todo().sort_by_location_product()
+        have_tasks_been_picked = num_tasks_picked > 0
+
+        # Get tasks for movelines that haven't been skipped
+        remaining_tasks = self._populate_next_tasks(
+            todo_mls,
+            have_tasks_been_picked,
+            task_grouping_criteria=task_grouping_criteria,
+            limit=limit,
+        )
+
+        # Get tasks for movelines that have been skipped (if allowed)
+        todo_mls = (
+            skipped_mls.filtered(lambda ml: ml.picking_id.picking_type_id.u_return_to_skipped)
+            .get_lines_todo()
+            .sort_by_location_product()
+        )
+        # Determine the remaining limit (Need to do a distninct check as False != 0)
+        remaining_limit = False
+        if type(limit) == int:
+            remaining_limit = limit - len(remaining_tasks)
+        remaining_tasks += self._populate_next_tasks(
+            todo_mls,
+            have_tasks_been_picked,
+            skipped_product_ids=skipped_product_ids,
+            skipped_move_line_ids=skipped_move_line_ids,
+            task_grouping_criteria=task_grouping_criteria,
+            limit=remaining_limit,
+        )
+
+        if not remaining_tasks:
+            # No viable movelines, create an empty task
+            _logger.debug(
+                _("Batch '%s': no available move lines for creating " "a task"), self.name
+            )
+            task = self._populate_next_task(todo_mls, task_grouping_criteria)
+            task["tasks_picked"] = have_tasks_been_picked
+            remaining_tasks.append(task)
+
+        return remaining_tasks
+
+    def _populate_next_tasks(
+        self,
+        move_lines,
+        have_tasks_been_picked,
+        skipped_product_ids=None,
+        skipped_move_line_ids=None,
+        task_grouping_criteria=None,
+        limit=1,
+    ):
+        """Populate the next tasks according to the given criteria"""
+        tasks = []
+        while move_lines:
+            priority_ml = False
+            # Check if there is a move line to give priority to
+            priority_ml = move_lines._determine_priority_skipped_moveline(
+                skipped_product_ids, skipped_move_line_ids
+            )
+            task = self._populate_next_task(move_lines, task_grouping_criteria, priority_ml)
+            task["tasks_picked"] = have_tasks_been_picked
+            tasks.append(task)
+            if limit and len(tasks) >= limit:
+                break
+            move_lines = move_lines.filtered(lambda ml: ml.id not in task["move_line_ids"])
+        return tasks
+
+    def _populate_next_task(self, move_lines, task_grouping_criteria, priority_ml=False):
+        """Populate the next task from the available move lines and grouping.
+
+        Optionally specify a priority move line to be in the next task.
+        """
+        task = {"num_tasks_to_pick": 0, "move_line_ids": [], "confirmations": []}
+        if not move_lines:
+            return task
+
+        if task_grouping_criteria is None:
+            task_grouping_criteria = self._get_task_grouping_criteria()
+
+        grouped_mls = move_lines.groupby(task_grouping_criteria)
+        _key, task_mls = next(grouped_mls)
+        # Iterate through grouped_mls until we find the group with the
+        # priority move line in it
+        if priority_ml:
+            while priority_ml not in task_mls:
+                _key, task_mls = next(grouped_mls)
+        num_mls = len(task_mls)
+        pick_seq = task_mls[0].picking_id.sequence
+        _logger.debug(
+            _(
+                "Batch '%s': creating a task for %s move line%s; "
+                "the picking sequence of the first move line is %s"
+            ),
+            self.name,
+            num_mls,
+            "" if num_mls == 1 else "s",
+            pick_seq if pick_seq is not False else "not determined",
+        )
+
+        # NB: adding all the MLs state to the task; this is what
+        # ends up in the batch::next response!
+        # HERE: this will break in case we cannot guarantee that all
+        # the move lines of the task belong to the same picking
+        task.update(task_mls._prepare_task_info())
+
+        if task_mls[0].picking_id.picking_type_id.u_user_scans in ["pallet", "package"]:
+            # TODO: check pallets of packages if necessary
+            task["num_tasks_to_pick"] = len(move_lines.mapped("package_id"))
+            task["move_line_ids"] = move_lines.filtered(
+                lambda ml: ml.package_id == task_mls[0].package_id
+            ).ids
+        else:
+            # NB: adding 1 to consider the group removed by next()
+            task["num_tasks_to_pick"] = len(list(grouped_mls)) + 1
+            task["move_line_ids"] = task_mls.ids
+
+        return task
