@@ -8,6 +8,15 @@ _logger = logging.getLogger(__name__)
 class StockPickingBatch(models.Model):
     _inherit = "stock.picking.batch"
 
+    user_id = fields.Many2one(
+        "res.users",
+        states={
+            "draft": [("readonly", False)],
+            "waiting": [("readonly", False)],
+            "ready": [("readonly", False)],
+            "in_progress": [("readonly", False)],
+        },
+    )
     state = fields.Selection(
         selection=[
             ("draft", "Draft"),

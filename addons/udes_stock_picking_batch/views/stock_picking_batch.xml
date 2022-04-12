@@ -4,7 +4,7 @@
 
         <!-- Stock Picking Batch Form -->
         <record id="stock_picking_batch_form" model="ir.ui.view">
-            <field name="name">stock.picking.batch.form.udes_stock.inherit</field>
+            <field name="name">stock.picking.batch.form.udes_stock_picking_batch</field>
             <field name="model">stock.picking.batch</field>
             <field name="inherit_id"
                    ref="stock_picking_batch.stock_picking_batch_form"/>
@@ -24,7 +24,7 @@
 
         <!-- Stock picking batch filter -->
         <record id="stock_picking_batch_filter" model="ir.ui.view">
-            <field name="name">stock.picking.batch.filter.udes_stock.inherit</field>
+            <field name="name">stock.picking.batch.filter.udes_stock_picking_batch</field>
             <field name="model">stock.picking.batch</field>
             <field name="inherit_id"
                    ref="stock_picking_batch.stock_picking_batch_filter"/>
