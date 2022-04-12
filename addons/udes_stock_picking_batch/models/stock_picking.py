@@ -16,6 +16,13 @@ class StockPicking(models.Model):
         readonly=True,
         store=True,
     )
+    u_reserved_pallet = fields.Char(
+        string="Reserved Pallet",
+        index=True,
+        copy=False,
+        help="If reserving pallets per picking is enabled, this field stores "
+             "the pallet reserved for this picking.",
+    )
 
     @api.depends("move_line_ids", "move_line_ids.location_id")
     def _compute_location_category(self):

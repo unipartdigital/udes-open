@@ -11,6 +11,10 @@
       <xpath expr="//field[@name='priority']" position="after">
         <field name="u_location_category_id"/>
       </xpath>
+      <!-- Show reserved pallet -->
+      <xpath expr="//field[@name='backorder_id']" position="after">
+        <field name="u_reserved_pallet" groups="udes_security.group_trusted_user"/>
+      </xpath>
     </field>
   </record>
 
