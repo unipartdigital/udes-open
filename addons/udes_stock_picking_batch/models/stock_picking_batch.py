@@ -496,3 +496,86 @@ class StockPickingBatch(models.Model):
         last = len(all_mls_to_drop) == len(mls_to_drop)
 
         return {"last": last, "move_line_ids": mls_to_drop.ids, "summary": summary}
+
+    def drop_off_picked(self, continue_batch, move_line_ids, location_barcode, result_package_name):
+        """
+        Validate the move lines of the batch (expects a singleton)
+        by moving them to the specified location.
+
+        In case continue_batch is not flagged, close the batch.
+        """
+        Location = self.env["stock.location"]
+        MoveLine = self.env["stock.move.line"]
+        Picking = self.env["stock.picking"]
+        Package = self.env["stock.quant.package"]
+        self.ensure_one()
+        
+        if self.state != "in_progress":
+            raise ValidationError(_("Wrong batch state: %s.") % self.state)
+        dest_loc = None
+        if location_barcode:
+            dest_loc = Location.get_or_create(location_barcode)
+
+        if move_line_ids:
+            completed_move_lines = MoveLine.browse(move_line_ids)
+        else:
+            completed_move_lines = self._get_move_lines_to_drop_off()
+
+        if completed_move_lines:
+            to_update = {}
+
+            if dest_loc:
+                to_update["location_dest_id"] = dest_loc.id
+
+            pickings = completed_move_lines.picking_id
+            picking_type = pickings.picking_type_id
+            picking_type.ensure_one()
+
+            if picking_type.u_scan_parent_package_end:
+                if not result_package_name:
+                    raise ValidationError(_("Expecting result package on drop off."))
+
+                result_package = Package.get_or_create(result_package_name, create=True)
+
+                if picking_type.u_target_storage_format == "pallet_packages":
+                    to_update["u_result_parent_package_id"] = result_package.id
+                elif picking_type.u_target_storage_format == "pallet_products":
+                    to_update["result_package_id"] = result_package.id
+                else:
+                    raise ValidationError(_("Unexpected result package at drop off."))
+
+            if to_update:
+                completed_move_lines.write(to_update)
+
+            to_add = Picking.browse()
+            picks_todo = Picking.browse()
+
+            for pick in pickings:
+                pick_todo = pick
+                pick_mls = completed_move_lines.filtered(lambda x: x.picking_id == pick)
+
+                if pick._requires_backorder(pick_mls):
+                    pick_todo = pick.with_context(
+                        done_mls_into_backorder=True
+                    )._backorder_movelines(pick_mls)
+
+                    to_add |= pick_todo
+
+                picks_todo |= pick_todo
+                pick.write({"u_reserved_pallet": False})
+
+            # Add backorders to the batch
+            to_add.write({"batch_id": self.id})
+
+            with self.statistics() as stats:
+                picks_todo.sudo().with_context(tracking_disable=True)._action_done()
+
+            _logger.info(
+                "%s action_done in %.2fs, %d queries", picks_todo, stats.elapsed, stats.count
+            )
+        # TODO has to ve un commented when close method is ported
+        # if not continue_batch:
+        #     self.close()
+
+        return self
+
