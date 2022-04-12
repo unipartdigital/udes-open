@@ -21,7 +21,7 @@ class StockPickingBatch(models.Model):
         store=True,
     )
 
-    @api.constrains("user_id")
+    @api.depends("user_id", "picking_ids", "picking_ids.batch_id")
     def _compute_state(self):
         """ Compute the state of a batch post confirm
             waiting     : At least some picks are not ready
@@ -67,17 +67,17 @@ class StockPickingBatch(models.Model):
 
     def done_picks(self):
         """ Return done picks from picks or self.picking_ids """
-        picks = self.mapped("picking_ids")
+        picks = self.picking_ids
         return picks.filtered(lambda pick: pick.state in ["done", "cancel"])
 
     def ready_picks(self):
         """ Return ready picks from picks or self.picking_ids """
-        picks = self.mapped("picking_ids")
+        picks = self.picking_ids
         return picks.filtered(lambda pick: pick.state == "assigned")
 
     def unready_picks(self):
         """ Return unready picks from picks or self.picking_ids """
-        picks = self.mapped("picking_ids")
+        picks = self.picking_ids
         return picks.filtered(lambda pick: pick.state in ["draft", "waiting", "confirmed"])
 
     def mark_as_todo(self):
@@ -88,6 +88,11 @@ class StockPickingBatch(models.Model):
         _logger.info("User %r has marked %r as todo.", self.env.uid, self)
         not_draft = self.filtered(lambda b: b.state != "draft")
         if not_draft:
-            raise UserError(_('Only draft batches may be marked as "todo": %s') % not_draft.ids)
+            raise UserError(
+                _(
+                    "The following batches can not be marked as Todo as they are not in the draft state: %s"
+                )
+                % not_draft.mapped("name")
+            )
         self.write({"state": "waiting"})
         self._compute_state()
