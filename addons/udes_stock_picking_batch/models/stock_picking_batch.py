@@ -740,7 +740,6 @@ class StockPickingBatch(models.Model):
         Picking = self.env["stock.picking"]
         Package = self.env["stock.quant.package"]
         self.ensure_one()
-
         if self.state != "in_progress":
             raise ValidationError(_("Wrong batch state: %s.") % self.state)
         dest_loc = None

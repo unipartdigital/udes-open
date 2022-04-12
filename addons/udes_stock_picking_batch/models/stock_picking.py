@@ -196,3 +196,56 @@ class StockPicking(models.Model):
             ("state", "=", "assigned"),
         ]
         return self.search_count(domain) >= 1
+
+    def _backorder_movelines(self, mls=None, dest_picking=None):
+        """Creates a backorder picking from self (expects a singleton)
+        and a subset of stock.move.lines are then moved into it.
+        The moves from which the move lines have been transferred
+        will be split if needed.
+        Completed move lines will be selected unless mls is set.
+        Optionally receive a picking into where the mls will be moved.
+        """
+        Move = self.env["stock.move"]
+
+        # Based on back order creation in stock_move._action_done
+        self.ensure_one()
+        # Select completed move lines when not passed
+        if mls is None:
+            mls = self.move_line_ids.filtered(lambda x: x.qty_done > 0)
+        # Check the intersection of mls and move lines in picking to ensure
+        # there are relevant move lines
+        if not (mls & self.move_line_ids):
+            raise ValidationError(
+                _("There are no move lines within picking %s to backorder" % self.name)
+            )
+        new_moves = Move.browse()
+        for current_move in mls.move_id:
+            current_mls = mls.filtered(lambda x: x.move_id == current_move)
+            new_moves |= current_move.split_out_move_lines(current_mls)
+
+        if dest_picking is None:
+            # Create picking for selected move lines
+            dest_picking = self._create_new_picking(name="/", backorder_id=self.id)
+
+        new_moves.write({"picking_id": dest_picking.id})
+        new_moves.mapped("move_line_ids").write({"picking_id": dest_picking.id})
+
+        return dest_picking
+
+    @api.model
+    def _prepare_new_picking_info(self, **kwargs):
+        """Copy the picking information from picking onto self"""
+        update_args = kwargs
+        if not kwargs.get("move_lines"):
+            update_args["move_lines"] = []
+        if not kwargs.get("move_line_ids"):
+            update_args["move_line_ids"] = []
+        return update_args
+
+    def _create_new_picking(self, **kwargs):
+        """Copy the picking information from picking onto self
+        Separating into a method in order to be easier to inherit with super"""
+        return self.copy(self._prepare_new_picking_info(**kwargs))
+
+
+
