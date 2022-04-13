@@ -14,6 +14,7 @@
         "stock_picking_batch",
         "udes_simple_location_blocking",
         "udes_get_info",
+        "udes_stock",
     ],
     "external_dependencies": {},
     "data": [
