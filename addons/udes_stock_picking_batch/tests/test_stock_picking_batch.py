@@ -745,3 +745,63 @@ class TestBatchAddRemoveWork(common.BaseUDES):
         searched_batch = batch.get_user_batches(user_id=self.outbound_user.id)
 
         self.assertEqual(batch, searched_batch)
+
+    def test_assign_batches_for_batch_with_multiple_picking_types(self):
+        """
+        Create two pickings, assign the pickings to the batch, put the batch in a ready state and then request that the
+        one of the pickings
+        """
+        self.create_quant(self.apple.id, self.test_received_location_01.id, 4)
+        self.create_quant(self.banana.id, self.test_stock_location_01.id, 4)
+
+        batch = self.create_batch(user=self.outbound_user, state="ready")
+
+        picking_putaway = self.create_picking(
+            self.picking_type_putaway,
+            products_info=[{"product": self.apple, "qty": 4}],
+            confirm=True,
+            assign=True,
+            batch_id=batch.id,
+        )
+
+        picking_pick = self.create_picking(
+            self.picking_type_pick,
+            products_info=[{"product": self.banana, "qty": 4}],
+            confirm=True,
+            assign=True,
+            batch_id=batch.id,
+        )
+
+        batch = batch.assign_user(picking_type_id=self.picking_type_pick.id)
+
+        self.assertEqual(batch, False)
+
+    def test_assign_batches_for_batch_with_single_picking_type(self):
+        """
+        Create two pickings, assign the pickings to the batch, put the batch in a ready state and then request that the
+        one of the pickings.
+        """
+        self.create_quant(self.apple.id, self.test_received_location_01.id, 4)
+        self.create_quant(self.banana.id, self.test_received_location_01.id, 4)
+
+        batch = self.create_batch(user=self.outbound_user, state="ready")
+
+        picking_putaway_1 = self.create_picking(
+            self.picking_type_putaway,
+            products_info=[{"product": self.apple, "qty": 4}],
+            confirm=True,
+            assign=True,
+            batch_id=batch.id,
+        )
+
+        picking_putaway_2 = self.create_picking(
+            self.picking_type_putaway,
+            products_info=[{"product": self.banana, "qty": 4}],
+            confirm=True,
+            assign=True,
+            batch_id=batch.id,
+        )
+
+        batch = batch.assign_user(picking_type_id=self.picking_type_putaway.id)
+
+        self.assertEqual(batch.user_id.id, self.env.user.id)
