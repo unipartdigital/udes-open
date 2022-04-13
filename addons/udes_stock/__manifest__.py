@@ -29,5 +29,6 @@
         "views/product_template.xml",
         "views/stock_warehouse.xml",
         "views/stock_location_category_views.xml",
+        "views/stock_scheduler_compute_views.xml",
     ],
 }
