@@ -104,12 +104,12 @@ class StockMoveLine(models.Model):
         return mls, summary
 
     def _drop_off_criterion_summary(self):
-        """ Generate product summary for drop off criterion for the move
-            lines in self.
-            Generate one piece of information for each product:
-            * Display name
-            * Total quantity in move lines
-            * Speed of the product (if it is set)
+        """Generate product summary for drop off criterion for the move
+        lines in self.
+        Generate one piece of information for each product:
+        * Display name
+        * Total quantity in move lines
+        * Speed of the product (if it is set)
         """
         summary = ""
         for product, prod_mls in self.groupby(lambda ml: ml.product_id):

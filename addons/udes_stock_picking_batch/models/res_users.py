@@ -9,8 +9,7 @@ class ResUser(models.Model):
     )
 
     def get_user_location_categories(self):
-        """ Get the location categories of the user
-        """
+        """Get the location categories of the user"""
         user = self.search([("id", "=", self.env.uid)])
         if not user:
             raise ValidationError(_("Cannot find user to get location categories."))

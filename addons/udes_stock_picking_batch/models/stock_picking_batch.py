@@ -1,7 +1,7 @@
 from itertools import chain
 from odoo import models, fields, api
 from odoo.exceptions import ValidationError
-from.common import PRIORITIES
+from .common import PRIORITIES
 
 
 class StockPickingBatch(models.Model):
@@ -111,7 +111,7 @@ class StockPickingBatch(models.Model):
         return True
 
     def get_batch_priority_group(self):
-        """ Get priority group for this batch based on the pickings' priorities
+        """Get priority group for this batch based on the pickings' priorities
         Returns list of IDs
         """
         Picking = self.env["stock.picking"]
@@ -251,12 +251,11 @@ class StockPickingBatch(models.Model):
         return lambda ml: tuple(chain(*[part(ml) for part in parts]))
 
     def get_available_move_lines(self):
-        """ Get all the move lines from available pickings
-        """
+        """Get all the move lines from available pickings"""
         self.ensure_one()
         available_pickings = self.picking_ids.filtered(lambda p: p.state == "assigned")
 
-        return available_pickings.move_line_ids
+        return available_pickings.get_fast_move_lines()
 
     def get_next_tasks(
         self,
@@ -301,29 +300,29 @@ class StockPickingBatch(models.Model):
 
         num_tasks_picked = len(available_mls.filtered(lambda ml: ml.qty_done == ml.product_qty))
 
-        todo_mls = available_mls.get_lines_todo().sort_by_location_product()
+        incomplete_mls = available_mls.get_lines_incomplete().next_task_sort()
         have_tasks_been_picked = num_tasks_picked > 0
 
         # Get tasks for movelines that haven't been skipped
         remaining_tasks = self._populate_next_tasks(
-            todo_mls,
+            incomplete_mls,
             have_tasks_been_picked,
             task_grouping_criteria=task_grouping_criteria,
             limit=limit,
         )
 
         # Get tasks for movelines that have been skipped (if allowed)
-        todo_mls = (
+        incomplete_mls = (
             skipped_mls.filtered(lambda ml: ml.picking_id.picking_type_id.u_return_to_skipped)
-            .get_lines_todo()
-            .sort_by_location_product()
+            .get_lines_incomplete()
+            .next_task_sort()
         )
         # Determine the remaining limit (Need to do a distninct check as False != 0)
         remaining_limit = False
         if type(limit) == int:
             remaining_limit = limit - len(remaining_tasks)
         remaining_tasks += self._populate_next_tasks(
-            todo_mls,
+            incomplete_mls,
             have_tasks_been_picked,
             skipped_product_ids=skipped_product_ids,
             skipped_move_line_ids=skipped_move_line_ids,
@@ -336,7 +335,7 @@ class StockPickingBatch(models.Model):
             _logger.debug(
                 _("Batch '%s': no available move lines for creating " "a task"), self.name
             )
-            task = self._populate_next_task(todo_mls, task_grouping_criteria)
+            task = self._populate_next_task(incomplete_mls, task_grouping_criteria)
             task["tasks_picked"] = have_tasks_been_picked
             remaining_tasks.append(task)
 
@@ -367,7 +366,7 @@ class StockPickingBatch(models.Model):
 
         # Get completed movelines
         all_mls = self.get_available_move_lines()
-        completed_mls = (all_mls - all_mls.get_lines_todo()).sort_by_location_product()
+        completed_mls = (all_mls - all_mls.get_lines_incomplete()).sort_by_location_product()
 
         # Generate tasks for the completed move lines
         completed_tasks = self._populate_next_tasks(
@@ -452,6 +451,7 @@ class StockPickingBatch(models.Model):
         return task
 
     def _get_move_lines_to_drop_off(self):
+        """Getting all move lines of the batch that are ready to drop off"""
         self.ensure_one()
         return self.picking_ids.move_line_ids.filtered(
             lambda ml: ml.qty_done > 0 and ml.picking_id.state not in ["cancel", "done"]
@@ -509,7 +509,7 @@ class StockPickingBatch(models.Model):
         Picking = self.env["stock.picking"]
         Package = self.env["stock.quant.package"]
         self.ensure_one()
-        
+
         if self.state != "in_progress":
             raise ValidationError(_("Wrong batch state: %s.") % self.state)
         dest_loc = None
@@ -551,13 +551,10 @@ class StockPickingBatch(models.Model):
             picks_todo = Picking.browse()
 
             for pick in pickings:
-                pick_todo = pick
                 pick_mls = completed_move_lines.filtered(lambda x: x.picking_id == pick)
 
                 if pick._requires_backorder(pick_mls):
-                    pick_todo = pick.with_context(
-                        done_mls_into_backorder=True
-                    )._backorder_movelines(pick_mls)
+                    pick_todo = pick._backorder_move_lines(pick_mls)
 
                     to_add |= pick_todo
 
@@ -573,9 +570,8 @@ class StockPickingBatch(models.Model):
             _logger.info(
                 "%s action_done in %.2fs, %d queries", picks_todo, stats.elapsed, stats.count
             )
-        # TODO has to ve un commented when close method is ported
+        # TODO has to be un commented when close method is ported
         # if not continue_batch:
         #     self.close()
 
         return self
-

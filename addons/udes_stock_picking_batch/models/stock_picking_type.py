@@ -8,19 +8,19 @@ class StockPickingType(models.Model):
         string="Use Location Categories",
         default=False,
         help="Flag to indicate whether to ask the user to select location "
-             "categories when starting the pick process. Location categories "
-             "are used to decide which pickings are suitable to the users.",
+        "categories when starting the pick process. Location categories "
+        "are used to decide which pickings are suitable to the users.",
     )
     u_batch_dest_loc_not_allowed = fields.Boolean(
         string="No Blocked Dest. Location Pickings",
         default=False,
         help="When batch chooses picking it filter out pickings which has block destination "
-             "location. By default, block locations are allowed",
+        "location. By default, block locations are allowed",
     )
     u_reserve_pallet_per_picking = fields.Boolean(
         string="Reserve one pallet per picking",
         default=False,
-        help="If enabled, each picking in a batch will be associated with an " "individual pallet",
+        help="If enabled, each picking in a batch will be associated with an individual pallet",
     )
     u_max_reservable_pallets = fields.Integer(
         string="Maximum pallets that may be simultaneously reserved in a batch.",
@@ -44,4 +44,3 @@ class StockPickingType(models.Model):
         string="Drop Off Criterion",
         help="How to group items when dropping off.",
     )
-
