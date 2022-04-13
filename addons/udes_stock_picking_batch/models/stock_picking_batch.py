@@ -985,3 +985,12 @@ class StockPickingBatch(models.Model):
         batch.mark_as_todo()
 
         return batch
+    def get_user_batches(self, user_id=None):
+        """Get all batches for user"""
+        if user_id is None:
+            user_id = self.env.user.id
+        # Search for in progress batches
+        batches = self.sudo().search(
+            [("user_id", "=", user_id), ("state", "=", "in_progress")]
+        )
+        return batches
