@@ -2,7 +2,7 @@
 import logging
 
 from odoo import api, models, fields, _
-from odoo.exceptions import ValidationError
+from odoo.exceptions import ValidationError, UserError
 from .common import get_next_name
 
 _logger = logging.getLogger(__name__)
@@ -101,9 +101,9 @@ class StockPicking(models.Model):
     def get_next_picking_name(self, vals, picking_type=None):
         """
         Override the method in core stock to customise the name generation.
-        
+
         Backorders have a naming pattern of adding `-001` to it,
-        so they are more visible to users. 
+        so they are more visible to users.
         """
         if vals.get("backorder_id"):
             ir_sequence = picking_type.sequence_id
@@ -196,9 +196,7 @@ class StockPicking(models.Model):
                 (and when the limit has been applied, if set)
         :returns: Move lines of picking
         """
-        locations = self._get_child_dest_locations(
-            self.get_empty_location_domain(), limit=limit
-        )
+        locations = self._get_child_dest_locations(self.get_empty_location_domain(), limit=limit)
 
         if sort:
             return locations.sorted(lambda l: l.name)
@@ -262,30 +260,74 @@ class StockPicking(models.Model):
             domain += aux_domain
         return StockMoveLine.get_move_lines_ordered_by(domain=domain, order=order)
 
-    def _backorder_move_lines(self, mls=None):
-        """Creates a backorder pick from self (expects a singleton)
-        and a subset of stock.move.lines are then moved into it.
-
-        Ensure this function is only called if _requires_back_order is True
-        if everything is done - then a new pick is created and the old one is empty
+    def _backorder_move_lines(self):
         """
+        Create a backorder picking from self (expects a singleton)
+        for all move lines not complete (and un-confirmed moves).
+        All move lines must either have a qty_done == (0 or product_uom_qty),
+        to enforce that splitting of mls is done prior to calling this method.
+        The original picking (self) is not validated.
+
+        The reason for this method is to maintain tracability of move lines,
+        and not delete and re-create them inside _action_done().
+
+        :returns: The created backorder
+            If nothing to backorder (nothing done) returns an empty record set
+        :raises:
+            ValidationError: Nothing to backorder, quantity_done for all moves is zero
+            ValidationError: Move line exists with qty_done < product_uom_qty
+
+        NOTE: The current picking (self) is not yet complete until action_done
+        is called. This is because the use case of this is not well defined,
+        but instead think this of a helper method in drop off actions.
+        One example may be because we want to call this on a sequence of move
+        lines and propogate them through then call _action_done sequentially
+        on the chain of pickings.
+        NOTE: Previous iterations have allowed the passing of a subset of move lines.
+        This is currently been removed because it creates an immediate backorder,
+        future iterations may want to move a subset of incomplete lines into a backorder,
+        when doing this the naming convention should be considered. The path becomes
+        a tree!
+        """
+        Picking = self.env["stock.picking"]
         Move = self.env["stock.move"]
+
         # Based on backorder creation in stock_move._action_done
         self.ensure_one()
 
-        if mls is None:
-            mls = self.move_line_ids.filtered(lambda x: x.qty_done > 0)
+        moves = self.move_lines
+        mls = self.move_line_ids
 
-        # Test that the intersection of mls and move lines in picking is empty,
-        # therefore we have some relevant move lines
-        if not (mls & self.move_line_ids):
+        # Return if nothing has ben done yet
+        if all(mv.quantity_done == 0 for mv in moves):
+            _logger.info(
+                "Nothing to backorder in picking %s, original picking retained!" % self.name
+            )
+            return Picking.browse()
+
+        # Get the relevant moves, which are not fully fulfilled
+        unfulfilled_moves = moves.filtered(
+            lambda mv: sum(mv.move_line_ids.mapped("qty_done")) < mv.product_uom_qty
+        )
+
+        # Raise an error if:
+        # * there are moves or move lines that are not fully fulfilled so we can backorder
+        # something.
+        # * if move lines need splitting
+        if not unfulfilled_moves:
             raise ValidationError(
                 _("There are no move lines within picking %s to backorder") % self.name
             )
+        elif mls and any(ml.qty_done != 0 and ml.qty_done < ml.product_uom_qty for ml in mls):
+            raise ValidationError(
+                _("You cannot create a backorder for %s with a move line qty less than expected!")
+                % self.name
+            )
 
+        # Iterate over the moves not fulfilled, and split out recording the newly created moves
         new_moves = Move.browse()
-        for move, move_mls in mls.groupby("move_id"):
-            new_moves |= move.split_out_move_lines(move_mls)
+        for move in unfulfilled_moves:
+            new_moves |= move.split_out_incomplete_move()
 
         # Create picking for completed move
         bk_picking = self.copy(
