@@ -165,3 +165,11 @@ class TestStockPickingBatch(common.BaseUDES):
         user_id = batch._check_user_id(None)
 
         self.assertEqual(user_id, self.outbound_user.id)
+
+    def test_get_batches_assigned_to_a_user(self):
+        batch = self.create_batch(user=self.outbound_user, state="in_progress")
+        batch = batch.with_user(self.outbound_user)
+
+        searched_batch = batch.get_user_batches(user_id=self.outbound_user.id)
+
+        self.assertEqual(batch, searched_batch)
