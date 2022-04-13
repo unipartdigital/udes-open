@@ -231,13 +231,25 @@ class StockMoveLine(models.Model):
             res = new_ml
         return res
 
-    def get_lines_todo(self):
-        """ Return the move lines in self that are not completed,
-            i.e., quantity done < quantity todo
-        """
-        return self.filtered(lambda ml: ml.qty_done < ml.product_uom_qty)
-
     def sort_by_location_product(self):
         """ Return the move lines sorted by location and product
         """
         return self.sorted(key=lambda ml: (ml.location_id.name, ml.product_id.id))
+
+    def next_task_sort(self):
+        """Creating a method so we can override it by sorting another combination.
+        Would be easier and meaningful than to extend sort_by_location_product as it will not make
+        a lot sense if is changed the way of order"""
+        return self.sort_by_location_product()
+
+    def get_fast_move_lines(self, domain, aux_domain=None):
+        """Get move lines with a search order by id instead of ordering by model _order attribute
+        Args:
+            domain (list):  Default domain to search move lines
+            aux_domain (list): Optional domain to extend the default domain
+        """
+        StockMoveLine = self.env["stock.move.line"]
+
+        if aux_domain is not None:
+            domain += aux_domain
+        return StockMoveLine.search(domain, order="id")
