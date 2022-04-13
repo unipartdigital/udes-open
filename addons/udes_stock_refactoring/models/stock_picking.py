@@ -92,7 +92,7 @@ class StockPicking(models.Model):
             )
             picking_values.update(kwargs)
 
-            picking = self.create_picking(picking_type, **picking_values)
+            picking = self.sudo().create_picking(picking_type, **picking_values)
 
         else:
             picking._remove_misleading_values(**kwargs)

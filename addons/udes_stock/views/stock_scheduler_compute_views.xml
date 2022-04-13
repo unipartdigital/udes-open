@@ -1,0 +1,6 @@
+<odoo>
+    <!-- Remove run scheduler option -->
+    <record id="stock.menu_procurement_compute" model="ir.ui.menu">
+        <field name="groups_id" eval="[(6,0,[ref('base.group_no_one')])]"/>
+    </record>
+</odoo>

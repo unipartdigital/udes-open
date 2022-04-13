@@ -28,4 +28,7 @@
 
         </field>
     </record>
+
+    <!-- Move Locations menu item outside of config menu -->
+    <menuitem id="stock.menu_action_location_form" parent="stock.menu_stock_root" sequence="5" name="Locations"/>
 </odoo>
