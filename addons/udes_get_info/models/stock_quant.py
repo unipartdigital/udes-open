@@ -1,5 +1,6 @@
 """
 Stock Quant model.
+
 Quants store information about the quantities and locations of products in the
 warehouse.
 """
