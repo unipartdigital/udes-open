@@ -1,4 +1,5 @@
 from odoo.addons.udes_stock.tests import common
+from odoo.tests import common as odoo_common
 from odoo.exceptions import ValidationError
 
 

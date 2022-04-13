@@ -867,6 +867,35 @@ class StockPickingBatch(models.Model):
         """
         If no user_id is passed - set the user to the environment user. If user_id is False, raise an error.
         """
+        
+    def get_single_batch(self, user_id=None):
+        """
+        Search for a picking batch in progress for the specified user.
+        If no user is specified, the current user is considered.
+
+        Raise a ValidationError in case it cannot perform a search
+        or if multiple batches are found for the specified user.
+        """
+        PickingBatch = self.env["stock.picking.batch"]
+
+        user_id = self._check_user_id(user_id)
+        batches = PickingBatch.search(
+            [("user_id", "=", user_id), ("state", "=", "in_progress")]
+        )
+        batch = None
+
+        if batches:
+            if len(batches) > 1:
+                raise ValidationError(
+                    _("Found %d batches for the user, please contact " "administrator.")
+                    % len(batches)
+                )
+
+            batch = batches
+
+        return batch
+
+    def _check_user_id(self, user_id):
         if user_id is None:
             user_id = self.env.user.id
 

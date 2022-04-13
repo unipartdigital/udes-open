@@ -15,6 +15,7 @@
         "udes_simple_location_blocking",
         "udes_get_info",
         "udes_stock_refactoring",
+        "udes_stock",
     ],
     "external_dependencies": {},
     "data": [
