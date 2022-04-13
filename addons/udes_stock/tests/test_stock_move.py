@@ -1,6 +1,4 @@
-
 from . import common
-from unittest.mock import patch
 
 
 class TestStockMove(common.BaseUDES):
@@ -32,7 +30,7 @@ class TestStockMove(common.BaseUDES):
         expected_move_values.update(kwargs)
         return expected_move_values
 
-    def test01_split_out_move_lines_raise_error(self):
+    def test_split_out_move_lines_raise_error(self):
         """Raise a value error when try to split out move lines from another move"""
         # Create another picking
         new_pick_info = [{"product": self.apple, "uom_qty": 20}]
@@ -50,7 +48,7 @@ class TestStockMove(common.BaseUDES):
             str(e.exception), "Cannot split move lines from a move they are not part of."
         )
 
-    def test02_split_out_move_lines_success(self):
+    def test_split_out_move_lines_success(self):
         """Completely covered by move_lines, expect to be removed from picking
         No chained moves
         """
@@ -64,10 +62,11 @@ class TestStockMove(common.BaseUDES):
         self.assertEqual(mls, bk_move.move_line_ids)
         self.assertEqual(bk_move.product_uom_qty, 6)
 
-    def test03_split_out_move_lines_with_split(self):
+    def test_split_out_move_lines_with_split(self):
         """Not covered by move_lines, expect to be removed from picking results in splitting
         No chained moves
         """
+        Quant = self.env["stock.quant"]
         # Get all move lines, ones from location 01 and moves respectively
         all_mls = self.pick.move_line_ids
         mls = all_mls.filtered(lambda ml: ml.location_id == self.test_stock_location_01)
@@ -88,11 +87,11 @@ class TestStockMove(common.BaseUDES):
         self.assertEqual(bk_move.move_line_ids, mls)
         # Check that nothing is additionally reserved
         self.assertEqual(
-            [self.quant1.reserved_quantity, self.quant2.reserved_quantity],
-            self.env["stock.quant"].search([]).mapped("reserved_quantity"),
+            sum([self.quant1.reserved_quantity, self.quant2.reserved_quantity]),
+            sum(Quant.search([]).mapped("reserved_quantity")),
         )
 
-    def test04_unreserve_initial_demand(self):
+    def test_unreserve_initial_demand(self):
         """Test for _unreserve_initial_demand"""
         MoveLine = self.env["stock.move.line"]
         pack1 = self.create_package()
@@ -124,7 +123,7 @@ class TestStockMove(common.BaseUDES):
         self.assertEqual(move_lines, new_move_lines)
         self.assertIn(pack2_ml, new_move_lines)
 
-    def test05_pepare_and_create_single_move_line(self):
+    def test_pepare_and_create_single_move_line(self):
         """Prepare and create a single move line and check values are correct"""
         product_uom_qty = 2
 
@@ -149,7 +148,7 @@ class TestStockMove(common.BaseUDES):
         self.pick.action_confirm()
         self.pick.action_assign()
 
-    def test06_pepare_and_create_multiple_move_lines(self):
+    def test_pepare_and_create_multiple_move_lines(self):
         """Prepare and create a multiple move lines and check values are correct"""
         apple_uom_qty = 5
         banana_uom_qty = 2
