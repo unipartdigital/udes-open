@@ -50,3 +50,15 @@ class StockPickingType(models.Model):
         help="Flag to indicate whether picking type will automatically "
         "create batches when the user scans the pallet",
     )
+    u_create_batch_for_user = fields.Boolean(
+        string="Create batch for user",
+        default=True,
+        help="Flag to indicate whether to create a new batch and assign it to "
+        "the user, if he does not have one already assigned.",
+    )
+    u_assign_batch_to_user = fields.Boolean(
+        string="Assign batch to user",
+        default=False,
+        help='Flag to indicate whether to assign a "ready" batch to the '
+        "user, if he does not have one already assigned.",
+    )
