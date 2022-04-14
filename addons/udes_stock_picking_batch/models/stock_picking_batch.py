@@ -100,6 +100,13 @@ class StockPickingBatch(models.Model):
         compute="_compute_priority",
         help="Priority of a batch is the maximum priority of its pickings.",
     )
+    u_original_name = fields.Char(
+        string="Original batch name",
+        default="",
+        copy=True,
+        required=False,
+        help=("Name of the batch from which this batch was derived"),
+    )
 
     @api.constrains("user_id")
     def _compute_state(self):
@@ -1142,3 +1149,88 @@ class StockPickingBatch(models.Model):
 
         return batch
 
+    def close(self):
+        """Unassign incomplete pickings from batches. In case of a
+        non-ephemeral batch then incomplete pickings are moved into a new
+        batch.
+        """
+        for batch in self:
+            # Unassign batch_id from incomplete stock pickings on ephemeral batches
+            batch.filtered(lambda b: b.u_ephemeral).mapped("picking_ids").filtered(
+                lambda sp: sp.state not in ("done", "cancel")
+            ).write({"batch_id": False, "u_reserved_pallet": False})
+
+            # Assign incomplete pickings to new batch
+            _logger.info("Creating continuation batch from %r.", batch.name)
+            pickings = (
+                batch.filtered(lambda b: not b.u_ephemeral)
+                .mapped("picking_ids")
+                .filtered(lambda sp: sp.state not in ("done", "cancel"))
+            )
+            _logger.info("Picking ids continuation %r", pickings)
+
+            batch._copy_continuation_batch(pickings)
+
+    def _copy_continuation_batch(self, pickings):
+        """
+        Copy a batch and add the provided pickings.
+
+        The new batch will be named BATCH/nnnnn-XX where XX is a sequence number
+        which will be incremented or set to '01'.
+        The batch will not be marked as ephemeral.
+        In case no pickings exist, return None.
+        """
+        self.ensure_one()
+
+        if not pickings:
+            return None
+
+        new_name = get_next_name(self, "picking.batch")
+        batch = self.sudo().copy({"name": new_name, "user_id": None})
+        _logger.info("Created continuation batch %r, %s", batch, batch.name)
+        if not self.u_original_name:
+            batch.write({"u_original_name": self.name})
+
+        pickings.write({"batch_id": batch.id})
+        batch.mark_as_todo()
+
+        return batch
+
+
+def get_next_name(obj, code):
+    """
+    Get the next name for an object.
+
+    For when we want to create an object whose name links back to a previous
+    object.  For example BATCH/00001-02.
+    Assumes original names are of the form `r".*\d+"`.
+
+    Arguments:
+        obj - the source object for the name
+        code - the code for the object's model in the ir_sequence table
+
+    Returns:
+        The generated name, a string.
+    """
+    IrSequence = obj.env["ir.sequence"]
+
+    # Get the sequence for the object type.
+    obj.check_access_rights("read")
+    force_company = obj._context.get("force_company")
+    if not force_company:
+        force_company = obj.env.user.company_id.id
+    ir_sequence = IrSequence.next_by_code(code, force_company)
+
+    # Name pattern for continuation object.
+    # Is two digits enough?
+    name_pattern = r"({}\d+)-(\d{{2}})".format(re.search('^(\D*)', ir_sequence).groups())
+
+    match = re.match(name_pattern, obj.name)
+    if match:
+        root = match.group(1)
+        new_sequence = int(match.group(2)) + 1
+    else:
+        # This must be the original object.
+        root = obj.name
+        new_sequence = 1
+    return "{}-{:0>2}".format(root, new_sequence)
