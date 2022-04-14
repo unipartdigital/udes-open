@@ -1,4 +1,4 @@
-from odoo import models, fields, api
+from odoo import models, fields, api, _
 from .common import PRIORITY_GROUPS
 from odoo.exceptions import ValidationError
 
@@ -74,14 +74,18 @@ class StockPicking(models.Model):
 
     @api.depends("move_line_ids", "move_line_ids.location_id")
     def _compute_location_category(self):
-        """ Compute location category from move lines"""
+        """Compute location category from move lines"""
         for picking in self:
             if picking.move_line_ids:
-                categories = picking.move_line_ids.mapped("location_id.u_location_category_id")
-                picking.u_location_category_id = categories if len(categories) == 1 else False
+                categories = picking.move_line_ids.mapped(
+                    "location_id.u_location_category_id"
+                )
+                picking.u_location_category_id = (
+                    categories if len(categories) == 1 else False
+                )
 
     def get_move_lines_done(self):
-        """ Return the recordset of move lines done. """
+        """Return the recordset of move lines done."""
         return self.move_line_ids.filtered(lambda o: o.qty_done > 0)
 
     def is_valid_location_dest_id(self, location=None, location_ref=None):
@@ -107,11 +111,15 @@ class StockPicking(models.Model):
         if not dest_location:
             raise ValidationError(_("The specified location is unknown."))
 
-        valid_locations = self._get_child_dest_locations([("id", "=", dest_location.id)])
+        valid_locations = self._get_child_dest_locations(
+            [("id", "=", dest_location.id)]
+        )
 
         return valid_locations.exists()
 
-    def search_for_pickings(self, picking_type_id, picking_priorities, limit=1, domain=None):
+    def search_for_pickings(
+        self, picking_type_id, picking_priorities, limit=1, domain=None
+    ):
         """Search for next available pickings based on picking type and priorities
         Parameters
         ----------
@@ -146,7 +154,9 @@ class StockPicking(models.Model):
         if picking_type.u_use_location_categories:
             categories = Users.get_user_location_categories()
             if categories:
-                search_domain.append(("u_location_category_id", "child_of", categories.ids))
+                search_domain.append(
+                    ("u_location_category_id", "child_of", categories.ids)
+                )
         if picking_type.u_batch_dest_loc_not_allowed:
             search_domain.extend([("location_dest_id.u_blocked", "!=", True)])
         # Note: order should be determined by stock.picking._order
@@ -196,3 +206,35 @@ class StockPicking(models.Model):
             ("state", "=", "assigned"),
         ]
         return self.search_count(domain) >= 1
+
+    def batch_to_user(self, user):
+        """Throws error if picking is batched to another user
+        or if user already has a batch
+        creates batch and adds picking to it otherwise
+        """
+
+        PickingBatch = self.env["stock.picking.batch"]
+
+        if self.batch_id:
+            if self.batch_id.user_id == user:
+                return True
+            else:
+                if not self.batch_id.user_id:
+                    raise ValidationError(
+                        _("Picking %s is already in an unassigned batch") % self.name
+                    )
+                else:
+                    raise ValidationError(
+                        _("Picking %s is in a batch owned by another user: %s")
+                        % (self.name, self.batch_id.user_id.name)
+                    )
+
+        if PickingBatch.get_user_batches(user.id):
+            raise ValidationError(
+                _("You (%s) already have a batch in progess") % user.name
+            )
+
+        if not self.batch_id:
+            batch = PickingBatch.create({"user_id": user.id, "u_ephemeral": True})
+            self.batch_id = batch.id
+            batch.mark_as_todo()
