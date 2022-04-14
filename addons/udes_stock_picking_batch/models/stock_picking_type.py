@@ -44,3 +44,9 @@ class StockPickingType(models.Model):
         string="Drop Off Criterion",
         help="How to group items when dropping off.",
     )
+    u_auto_batch_pallet = fields.Boolean(
+        string="Auto batch pallet",
+        default=False,
+        help="Flag to indicate whether picking type will automatically "
+        "create batches when the user scans the pallet",
+    )
