@@ -252,18 +252,15 @@ class StockPicking(models.Model):
     def _backorder_move_lines(self):
         """
         Create a backorder picking from self (expects a singleton)
-        with either a subset (or all) of the move lines not yet complete.
-        If some of the move lines have a product_qty > qty_done they will
-        be split to reflect this, with the old move lines remaining in the
-        original picking.
+        for all move lines not complete (and un-confirmed moves).
+        All move lines must either have a qty_done == (0 or product_uom_qty),
+        to enforce that splitting of mls is done prior to calling this method.
+        
+        The reason for this method is to maintain tracability of move lines,
+        and not delete and re-create them inside _action_done().
 
-        The main purpose of this method is to maintain traceability.
-        If move lines are partially complete, calling action done will
-        delete and re-create the required move lines. The state of the system
-        looks the same but some traceability has been lost.
-
-        :returns: The created backorder picking as the original can be obtained 
-            from backorder_id efficiently.
+        :returns: The created backorder
+            If nothing to backorder (nothing done) returns an empty record set
 
         NOTE: The current picking (self) is not yet complete until action_done
         is called. This is because the use case of this is not well defined,
@@ -277,93 +274,43 @@ class StockPicking(models.Model):
         when doing this the naming convention should be considered. The path becomes
         a tree!
         """
+        Picking = self.env["stock.picking"]
         Move = self.env["stock.move"]
-        MoveLine = self.env["stock.move.line"]
 
         # Based on backorder creation in stock_move._action_done
         self.ensure_one()
 
-        # Get the relevant move lines, which are not fully fulfilled or fulfill only part of the move
-        # In this case either the quantity on the move line is less than the product_uom_qty
-        # or the move it is associated is not assigned (fully available). we do not check the
-        # move product_uom_qty as it could create multiple move lines so is not robust.
-        unfulfilled_mls = self.move_line_ids.filtered(lambda ml: ml.qty_done < ml.product_uom_qty or ml.move_id.state != "assigned")
+        moves = self.move_lines
+        mls = self.move_line_ids
+
+        # Return if nothing has ben done yet
+        if all(mv.quantity_done == 0 for mv in moves):
+            _logger.info("Nothing to backorder in picking %s, original picking retained!" %self.name)
+            return Picking.browse()
+
         # Get the relevant moves, which are not fully fulfilled
-        # TODO: Check quantities or states?
-        unfulfilled_moves = self.move_lines.filtered(lambda mv: mv.quantity_done < mv.product_uom_qty)
+        unfulfilled_moves = moves.filtered(lambda mv: sum(mv.move_line_ids.mapped("qty_done")) < mv.product_uom_qty)
         
-        # Check that
+        # Check:
         # a) there are moves or move lines that are not fully fulfilled so we can backorder
         # something.
-        # b) When there are no moves partially done
-        if not unfulfilled_mls and not unfulfilled_moves:
+        # b) if move lines need splitting
+        if not unfulfilled_moves:
             raise ValidationError(
                 _("There are no move lines within picking %s to backorder") % self.name
             )
-        elif all(mv.quantity_done == 0 for mv in unfulfilled_moves):
-            # Raise error or return original picking?
+        elif mls and any(ml.qty_done != 0 and ml.qty_done < ml.product_uom_qty for ml in mls):
+            # Raise error when the qty_done is less than expected (but non-zero).
+            # Move lines need to be split prior to backordering.
             raise ValidationError(
-                _("""There is nothing to backorder as no move lines are yet fully
-                or partially complete are no move lines within picking %s""") % self.name
-            ) 
+                _("You cannot create a backorder for %s with a move line qty less than expected!") % self.name
+            )
 
-
-        # Create a empty record set of moves and move lines to store the ones to be moved
         new_moves = Move.browse()
-        new_move_lines = MoveLine.browse()
-
-        # 1) Lets move all moves that have no move lines first
-        new_moves |= unfulfilled_moves.filtered(lambda mv: not mv.move_line_ids)
-
-        # 2) Move all moves and its move lines if nothing is done
-        # TODO: Can we do quantity_done = 0 here?
-        for move, move_mls in unfulfilled_mls.groupby("move_id"):
-            if all(ml.qty_done == 0 for ml in move_mls):
-                new_moves |= move
-                new_move_lines |= move_mls
-                unfulfilled_mls -= move_mls
-
-        # 3) Handle splitting of move lines if necessary.
-        # Here we are in the situation where either:
-        #  * a move line is partially fulfilled (qty_done < product_uom_qty)
-        #  * a move is partially fulfilled (sum(mls.qty_done) < mv.product_uom_qty)
-        #  * or both of the above.
-        # Approach:
-        #  * Group the move lines by move
-        #  * Split the move, with the remaining unfulfilled into a new move for
-        #    the backordered picking.
-        #  * Split any move lines where the 0 < qty_done != product_uom_qty where the
-        #    new move line will be in the backordered picking.
-        #  * Create the new moves and update the new move lines move id field.
-        for move_id, mls_to_move in unfulfilled_mls.groupby("move_id"):
-            # Create a list of move values to create if required
-            # and a empty record set of move lines to backorder
-            new_move_values = None
-            new_mls = MoveLine.browse()
-            # Determine if the move needs splitting
-            total_done = int(sum(mls_to_move.mapped("qty_done")))
-            total_planned = int(move_id.product_uom_qty)
-            if total_done < total_planned:
-                # Split the move, placing the unfulfilled into a new move
-                new_move_values = move_id._split(total_planned - total_done)
-            for ml in mls_to_move:
-                # Split the move line if the qty_done is less than expected,
-                # and is non-zero. Add the ml if the qy_done is zero.
-                if ml.qty_done > 0 and ml.qty_done != ml.product_uom_qty:
-                    new_mls |= ml._split()
-                elif ml.qty_done == 0:
-                    new_mls |= ml
-
-            # Create and add the moves to the record set
-            # Do it here to make use of the move_id so we can update the new move lines
-            if new_move_values:
-                new_move = Move.create(new_move_values)
-                new_moves |= new_move
-                if new_mls:
-                    # Add the new move lines to the new move if any
-                    new_mls.write({"move_id": new_move.id})
-            new_move_lines |= new_mls
+        for move in unfulfilled_moves:
+            new_moves |= move.split_out_incomplete_move()
         
+
         # Create picking for completed move
         bk_picking = self.copy(
             {
@@ -373,22 +320,6 @@ class StockPicking(models.Model):
                 "backorder_id": self.id,
             }
         )
-
-        # Manually try to assign the original order to get it into assigned
-        self.action_assign()
-
-
-        # Manually try to confirm and assign the backorder
-        # Avoid raising an error when nothing to assign
-        try:
-            bk_picking.action_confirm()
-            bk_picking.action_assign()
-        except UserError:
-            pass
-        # Have to manually recompute state for the new set of moves else partially avialable
-        # get hung up in confirmed.
-        bk_picking.move_lines._recompute_state()
-
 
         return bk_picking
 
