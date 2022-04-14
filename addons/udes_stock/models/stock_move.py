@@ -137,47 +137,9 @@ class StockMove(models.Model):
             new_move = self
             new_move.write({"picking_id": None})
         else:
-            # NB: We have a single move, so a single product as it is a Many2one
-            # so we do not need to worry about shuffling of uom's
-            total_initial_qty = sum(move_lines.mapped("product_uom_qty"))
-            default_values = {
-                "picking_id": False,
-                "move_line_ids": [],
-                "move_orig_ids": [],
-                # move_dest_ids not copied by default
-                # WS-MPS: this might need to be refined like move_orig_ids
-                "move_dest_ids": [(6, 0, self.move_dest_ids.ids)],
-                "product_uom_qty": total_initial_qty,
-                "state": self.state,
-            }
-            default_values.update(kwargs)
-            new_move = self.copy(default_values)
-            move_lines.write({"move_id": new_move.id, "picking_id": None})
-
-            # Adding context variables to avoid any change to be propagated to
-            # the following moves and do not unreserve any quant related to the
-            # move being split.
-            context_vars = {
-                "bypass_reservation_update": True,
-                "do_not_propagate": True,
-                "do_not_unreserve": True,
-            }
-            self.with_context(**context_vars).write(
-                {"product_uom_qty": self.product_uom_qty - total_initial_qty}
-            )
-
-            # When not complete, splitting a move may change its state,
-            # so recompute
-            incomplete_moves = (self | new_move).filtered(
-                lambda mv: mv.state not in ["done", "cancel"]
-            )
-            incomplete_moves._recompute_state()
-
-            move_lines.write({"state": new_move.state})
-
-            # TODO commenting as update_orig_ids has not been ported
-            # if self.move_orig_ids:
-            #     (new_move | self).update_orig_ids(self.move_orig_ids)
+            new_move_qty = sum(move_lines.mapped("product_uom_qty"))
+            remaing_move_qty = self.product_uom_qty - new_move_qty
+            new_move = self._create_split_move(move_lines, remaing_move_qty, new_move_qty, **kwargs)
 
         return new_move
 
@@ -224,6 +186,21 @@ class StockMove(models.Model):
         new_move_qty = int(total_move_qty - total_done_qty)
 
         incomplete_move_lines = mls.filtered(lambda ml: ml.qty_done == 0)
+        return self._create_split_move(
+            incomplete_move_lines, total_done_qty, new_move_qty, **kwargs
+        )
+
+    def _create_split_move(self, move_lines, remaining_qty, new_move_qty, **kwargs):
+        """
+        Logic to split a move into two.
+
+        :args:
+            move_lines: the move lines to be placed into the new move
+            new_move_qty: the new move quantity (not equal to move line
+            quantity since partially avialble moves could occur.)
+        :returns:
+            - The new move
+        """
         default_values = {
             "picking_id": False,
             "move_line_ids": [],
@@ -238,7 +215,7 @@ class StockMove(models.Model):
         new_move = self.copy(default_values)
 
         # Update the moved move lines with the new move, and no picking id
-        incomplete_move_lines.write({"move_id": new_move.id, "picking_id": None})
+        move_lines.write({"move_id": new_move.id, "picking_id": None})
 
         # Adding context variables to avoid any change to be propagated to
         # the following moves and do not unreserve any quant related to the
@@ -248,12 +225,14 @@ class StockMove(models.Model):
             "do_not_propagate": True,
             "do_not_unreserve": True,
         }
-        self.with_context(**context_vars).write({"product_uom_qty": total_done_qty})
+        self.with_context(**context_vars).write({"product_uom_qty": remaining_qty})
 
         # When not complete, splitting a move may change its state,
         # so recompute
         incomplete_moves = (self | new_move).filtered(lambda mv: mv.state not in ["done", "cancel"])
         incomplete_moves._recompute_state()
+
+        move_lines.write({"state": new_move.state})
 
         if self.move_orig_ids:
             (new_move | self).update_orig_ids(self.move_orig_ids)
