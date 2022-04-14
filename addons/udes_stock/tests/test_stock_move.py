@@ -1,3 +1,6 @@
+from odoo.exceptions import ValidationError, UserError
+from odoo.tools import mute_logger
+
 from . import common
 
 
@@ -90,6 +93,142 @@ class TestStockMove(common.BaseUDES):
             sum([self.quant1.reserved_quantity, self.quant2.reserved_quantity]),
             sum(Quant.search([]).mapped("reserved_quantity")),
         )
+
+    def test_split_out_incomplete_move_raises_exception_when_qty_done_in_ml_less_than_product_uom_qty(
+        self,
+    ):
+        """
+        When trying to split a move, raise an execption if the move line qty > 0 and
+        is != product_uom_qty.
+        """
+        self.pick.move_line_ids.qty_done = 1
+        with self.assertRaises(ValidationError) as e, mute_logger("odoo.sql_db"):
+            self.pick.move_lines.split_out_incomplete_move()
+
+        # Check the error is as expected
+        self.assertEqual(
+            e.exception.args[0],
+            "You cannot create a backorder for %s with a move line qty less than expected!"
+            % self.pick.name,
+        )
+
+    def test_split_out_incomplete_move_with_nothing_done(self):
+        """
+        Test that split_out_incomplete_move returns self when the move
+        is not complete, and that the picking info has been removed.
+        """
+        # Get move lines and moves respectively
+        mls = self.pick.move_line_ids
+        mv = self.pick.move_lines
+        self.assertEqual(self.pick, mv.picking_id)
+        new_move = mv.split_out_incomplete_move()
+        self.assertEqual(new_move, mv)
+        self.assertEqual(new_move.move_line_ids, mls)
+        self.assertFalse(new_move.picking_id)
+        self.assertFalse(new_move.move_line_ids.picking_id)
+
+    def test_split_out_incomplete_move_with_everything_done(self):
+        """
+        Test that split_out_incomplete_move returns an empty record when the move
+        is fully completed.
+        """
+        # Get move lines and moves respectively
+        mls = self.pick.move_line_ids
+        mv = self.pick.move_lines
+        self.assertEqual(self.pick, mv.picking_id)
+        for ml in mls:
+            ml.qty_done = ml.product_uom_qty
+        self.assertEqual(mv.quantity_done, mv.product_uom_qty)
+        new_move = mv.split_out_incomplete_move()
+        self.assertFalse(new_move)
+
+    def test_split_out_incomplete_move_with_subset_of_completed_mls(self):
+        """
+        Test that when a move line is done, but not the set of move lines
+        to complete the move, the move is correctly split, with the done
+        mls in the original move and picking.
+        """
+        # Get move lines and moves respectively
+        mls = self.pick.move_line_ids
+        mv = self.pick.move_lines
+        self.assertEqual(len(mv), 1)
+        self.assertEqual(len(mls), 2)
+        self.assertEqual(self.pick, mv.picking_id)
+        # Update the ml with the min quantity. Do no hard code in case
+        # quant selection changes.
+        ml_qt_min = mls.sorted(lambda ml: ml.product_uom_qty)[0]
+        min_qty = ml_qt_min.product_uom_qty
+        ml_qt_min.qty_done = min_qty
+        other_ml = mls - ml_qt_min
+
+        # Do the split
+        self.assertEqual(mv.quantity_done, min_qty)
+        new_move = mv.split_out_incomplete_move()
+
+        # Check we have two moves
+        self.assertTrue(self.pick.move_lines)
+        self.assertTrue(new_move)
+
+        # Check the original picking move
+        self.assertEqual(self.pick.move_lines, mv)
+        self.assertEqual(self.pick.move_line_ids, ml_qt_min)
+        # Ge the move lines from the pick again to refresh it
+        ml = self.pick.move_line_ids
+        mv = self.pick.move_lines
+        # Check the quants
+        self.assertEqual(mv.quantity_done, min_qty)
+        self.assertEqual(mv.product_uom_qty, min_qty)
+        self.assertEqual(ml.qty_done, min_qty)
+        self.assertEqual(ml.product_uom_qty, min_qty)
+
+        # Check the new move
+        # Check the quants
+        self.assertEqual(new_move.quantity_done, 6 - min_qty)
+        self.assertEqual(new_move.product_uom_qty, 6 - min_qty)
+        self.assertEqual(new_move.move_line_ids, other_ml)
+
+    def test_split_out_incomplete_move_with_subset_of_completed_mls(self):
+        """
+        Test that when a move line is done, but not the set of move lines
+        to complete the move, the move is correctly split, with the done
+        mls in the original move and picking.
+        """
+        pick_info = [{"product": self.apple, "uom_qty": 10}]
+        self.create_quant(self.apple.id, self.test_stock_location_01.id, 5)
+        self.create_quant(self.apple.id, self.test_stock_location_02.id, 3)
+        pick = self.create_picking(self.picking_type_pick, products_info=pick_info, assign=True)
+        # Get move lines and moves respectively
+        mls = pick.move_line_ids
+        mv = pick.move_lines
+        self.assertEqual(pick, mv.picking_id)
+        self.assertEqual(len(mv), 1)
+        self.assertEqual(len(mls), 2)
+
+        ml_qty_3 = mls.filtered(lambda ml: ml.product_uom_qty == 3)
+        ml_qty_3.qty_done = 3
+        ml_qty_5 = mls.filtered(lambda ml: ml.product_uom_qty == 5)
+
+        # Do the split
+        new_move = mv.split_out_incomplete_move()
+
+        # Check the original move has the work done
+        self.assertEqual(pick.move_lines, mv)
+        self.assertEqual(pick.move_line_ids, ml_qty_3)
+        # Sanity check the quants
+        mv = pick.move_lines  # Refresh the moves
+        mls = pick.move_line_ids  # Refresh the mls
+        self.assertEqual(mv.product_uom_qty, 3)
+        self.assertEqual(mv.quantity_done, 3)
+        self.assertEqual(mls.product_uom_qty, 3)
+        self.assertEqual(mls.qty_done, 3)
+
+        # Check the new move has the work pending
+        new_mls = new_move.move_line_ids
+        self.assertEqual(new_move.product_uom_qty, 7)
+        self.assertEqual(new_move.quantity_done, 0)
+        self.assertEqual(new_mls, ml_qty_5)
+        self.assertEqual(new_mls.product_uom_qty, 5)
+        self.assertEqual(new_mls.qty_done, 0)
 
     def test_unreserve_initial_demand(self):
         """Test for _unreserve_initial_demand"""

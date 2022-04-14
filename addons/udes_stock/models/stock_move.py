@@ -1,5 +1,6 @@
 from odoo import models, fields, api, _
 from odoo.addons import decimal_precision as dp
+from odoo.exceptions import ValidationError
 
 
 class StockMove(models.Model):
@@ -177,5 +178,84 @@ class StockMove(models.Model):
             # TODO commenting as update_orig_ids has not been ported
             # if self.move_orig_ids:
             #     (new_move | self).update_orig_ids(self.move_orig_ids)
+
+        return new_move
+
+    def split_out_incomplete_move(self, **kwargs):
+        """
+        Split a partially complete move up into complete and incomplete moves.
+        This is essentially the reverse of split_out_move_line.
+        A new move is created for all incomplete work, and an old move is
+        adjusted to have the quantity in the move that is done. The original
+        move lines persist in the original move.
+
+        :returns: The created move
+            If a move with nothing is complete, return an empty record set
+            If a move is where everything is incomplete return self
+        :raises: An error if move lines attached to self are partially complete.
+        """
+        Move = self.env["stock.move"]
+        self.ensure_one()
+
+        mls = self.move_line_ids
+
+        # Raise an error if any of the move lines are partially fulfilled
+        if mls and any(ml.qty_done != 0 and ml.qty_done < ml.product_uom_qty for ml in mls):
+            raise ValidationError(
+                _("You cannot create a backorder for %s with a move line qty less than expected!")
+                % self.picking_id.name
+            )
+
+        # Check if there is something to split
+        if self.quantity_done == 0:
+            # Clear the picking information
+            self.write({"picking_id": False})
+            if mls:
+                mls.write({"picking_id": False})
+            return self
+        elif self.product_uom_qty == self.quantity_done:
+            return Move.browse()
+
+        # Split the move
+        # Manually create a new one and move the remaining quantity into it,
+        # along with previously created move lines with qty_done == 0.
+        total_move_qty = self.product_uom_qty
+        total_done_qty = sum(mls.mapped("qty_done"))
+        new_move_qty = int(total_move_qty - total_done_qty)
+
+        incomplete_move_lines = mls.filtered(lambda ml: ml.qty_done == 0)
+        default_values = {
+            "picking_id": False,
+            "move_line_ids": [],
+            "move_orig_ids": [],
+            # move_dest_ids not copied by default
+            # WS-MPS: this might need to be refined like move_orig_ids
+            "move_dest_ids": [(6, 0, self.move_dest_ids.ids)],
+            "product_uom_qty": new_move_qty,
+            "state": self.state,
+        }
+        default_values.update(kwargs)
+        new_move = self.copy(default_values)
+
+        # Update the moved move lines with the new move, and no picking id
+        incomplete_move_lines.write({"move_id": new_move.id, "picking_id": None})
+
+        # Adding context variables to avoid any change to be propagated to
+        # the following moves and do not unreserve any quant related to the
+        # move being split.
+        context_vars = {
+            "bypass_reservation_update": True,
+            "do_not_propagate": True,
+            "do_not_unreserve": True,
+        }
+        self.with_context(**context_vars).write({"product_uom_qty": total_done_qty})
+
+        # When not complete, splitting a move may change its state,
+        # so recompute
+        incomplete_moves = (self | new_move).filtered(lambda mv: mv.state not in ["done", "cancel"])
+        incomplete_moves._recompute_state()
+
+        if self.move_orig_ids:
+            (new_move | self).update_orig_ids(self.move_orig_ids)
 
         return new_move
