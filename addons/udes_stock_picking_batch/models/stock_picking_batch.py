@@ -826,6 +826,43 @@ class StockPickingBatch(models.Model):
 
         return batch
 
+    def remove_unfinished_work(self):
+        """
+        Remove pickings from batch if they are not started
+        Backorder half-finished pickings
+        """
+        Picking = self.env["stock.picking"]
+
+        self.ensure_one()
+
+        if not self.u_ephemeral:
+            raise ValidationError(_("Can only remove work from ephemeral batches"))
+
+        pickings_to_remove = Picking.browse()
+        pickings_to_add = Picking.browse()
+
+        for picking in self.picking_ids:
+            started_lines = picking.mapped("move_line_ids").filtered(
+                lambda x: x.qty_done > 0
+            )
+            if started_lines:
+                # backorder incomplete moves
+                if picking._requires_backorder(started_lines):
+                    pickings_to_add |= picking.with_context(
+                        lock_batch_state=True
+                    )._backorder_movelines(started_lines)
+                    pickings_to_remove |= picking
+            else:
+                pickings_to_remove |= picking
+
+        pickings_to_remove.with_context(lock_batch_state=True).write(
+            {"batch_id": False, "u_reserved_pallet": False}
+        )
+        pickings_to_add.with_context(lock_batch_state=True).write({"batch_id": self.id})
+        self._compute_state()
+
+        return self
+
 
 def get_next_name(obj, code):
     """
@@ -853,7 +890,9 @@ def get_next_name(obj, code):
 
     # Name pattern for continuation object.
     # Is two digits enough?
-    name_pattern = r"({}\d+)-(\d{{2}})".format(re.search('^(\D*)', ir_sequence).groups())
+    name_pattern = r"({}\d+)-(\d{{2}})".format(
+        re.search("^(\D*)", ir_sequence).groups()
+    )
 
     match = re.match(name_pattern, obj.name)
     if match:
