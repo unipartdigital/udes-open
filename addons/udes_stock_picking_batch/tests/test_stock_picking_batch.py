@@ -876,7 +876,7 @@ class TestBatchAddRemoveWork(common.BaseUDES):
         batch.drop_off_picked(
             continue_batch=True,
             move_line_ids=None,
-            location_barcode=self.test_output_location_01.name,
+            location_barcode=self.test_received_location_01.name,
             result_package_name=None,
         )
 
@@ -888,7 +888,7 @@ class TestBatchAddRemoveWork(common.BaseUDES):
         # create a new picking to be included in the new batch
         other_pack = Package.get_package("test_other_package", create=True)
         self.create_quant(
-            self.apple.id, self.test_location_01.id, 4, package_id=other_pack.id
+            self.apple.id, self.test_stock_location_01.id, 4, package_id=other_pack.id
         )
         other_picking = self.create_picking(
             self.picking_type_pick,
@@ -941,7 +941,7 @@ class TestBatchAddRemoveWork(common.BaseUDES):
         # create a new picking to be included in the new batch
         other_pack = Package.get_package("test_other_package", create=True)
         self.create_quant(
-            self.apple.id, self.test_location_01.id, 4, package_id=other_pack.id
+            self.apple.id, self.test_stock_location_01.id, 4, package_id=other_pack.id
         )
         self.create_picking(
             self.picking_type_pick,
@@ -992,7 +992,10 @@ class TestBatchAddRemoveWork(common.BaseUDES):
         Batch = Batch.with_user(self.outbound_user)
 
         self.create_quant(
-            self.apple.id, self.test_stock_location_01.id, 4, package_id=self.package_one.id
+            self.apple.id,
+            self.test_stock_location_01.id,
+            4,
+            package_id=self.package_one.id,
         )
         picking = self.create_picking(
             self.picking_type_pick,
@@ -1003,12 +1006,12 @@ class TestBatchAddRemoveWork(common.BaseUDES):
 
         return picking, Batch.create_batch(self.picking_type_pick.id, None)
 
-class TestContinuationBatchProcessing(common.BaseUDES):
 
+class TestContinuationBatchProcessing(common.BaseUDES):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.pack_4apples_info = [{'product': cls.apple, 'qty': 4}]
+        cls.pack_4apples_info = [{"product": cls.apple, "qty": 4}]
         User = cls.env["res.users"]
         cls.outbound_user = User.create({"name": "Outbound User", "login": "out_log"})
 
@@ -1019,55 +1022,185 @@ class TestContinuationBatchProcessing(common.BaseUDES):
         self.assertEqual(batch.user_id, self.outbound_user)
 
     def test_moves_outstanding_pickings_to_continuation_batch(self):
-        self.create_quant(self.apple.id, self.test_stock_location_01.id, 4,)
+        self.create_quant(
+            self.apple.id,
+            self.test_stock_location_01.id,
+            4,
+        )
 
         batch = self.create_batch(user=self.outbound_user)
-        picking = self.create_picking(self.picking_type_pick,
-                                      products_info=self.pack_4apples_info,
-                                      confirm=True,
-                                      assign=True,
-                                      batch_id=batch.id)
-        batch.state = 'in_progress'
+        picking = self.create_picking(
+            self.picking_type_pick,
+            products_info=self.pack_4apples_info,
+            confirm=True,
+            assign=True,
+            batch_id=batch.id,
+        )
+        batch.state = "in_progress"
         batch.close()
         self.assertNotEqual(picking.batch_id, batch)
 
     def test_adds_sequence_to_original_batch_name(self):
-        self.create_quant(self.apple.id, self.test_stock_location_01.id, 4,)
+        self.create_quant(
+            self.apple.id,
+            self.test_stock_location_01.id,
+            4,
+        )
 
         batch = self.create_batch(user=self.outbound_user)
-        picking = self.create_picking(self.picking_type_pick,
-                                      products_info=self.pack_4apples_info,
-                                      confirm=True,
-                                      assign=True,
-                                      batch_id=batch.id)
-        batch.state = 'in_progress'
+        picking = self.create_picking(
+            self.picking_type_pick,
+            products_info=self.pack_4apples_info,
+            confirm=True,
+            assign=True,
+            batch_id=batch.id,
+        )
+        batch.state = "in_progress"
         batch.close()
-        self.assertRegex(picking.batch_id.name, r'BATCH/\d+-01')
+        self.assertRegex(picking.batch_id.name, r"BATCH/\d+-01")
 
     def test_increments_sequence_for_continuation_batch(self):
-        self.create_quant(self.apple.id, self.test_stock_location_01.id, 4,)
+        self.create_quant(
+            self.apple.id,
+            self.test_stock_location_01.id,
+            4,
+        )
 
         batch01 = self.create_batch(user=self.outbound_user)
-        picking = self.create_picking(self.picking_type_pick,
-                                      products_info=self.pack_4apples_info,
-                                      confirm=True,
-                                      assign=True,
-                                      batch_id=batch01.id)
-        batch01.state = 'in_progress'
+        picking = self.create_picking(
+            self.picking_type_pick,
+            products_info=self.pack_4apples_info,
+            confirm=True,
+            assign=True,
+            batch_id=batch01.id,
+        )
+        batch01.state = "in_progress"
         batch01.close()
         batch02 = picking.batch_id
         batch02.close()
-        self.assertRegex(picking.batch_id.name, r'BATCH/\d+-02')
+        self.assertRegex(picking.batch_id.name, r"BATCH/\d+-02")
 
     def test_sets_original_name(self):
-        self.create_quant(self.apple.id, self.test_stock_location_01.id, 4,)
+        self.create_quant(
+            self.apple.id,
+            self.test_stock_location_01.id,
+            4,
+        )
 
         batch = self.create_batch(user=self.outbound_user)
-        picking = self.create_picking(self.picking_type_pick,
-                                      products_info=self.pack_4apples_info,
-                                      confirm=True,
-                                      assign=True,
-                                      batch_id=batch.id)
-        batch.state = 'in_progress'
+        picking = self.create_picking(
+            self.picking_type_pick,
+            products_info=self.pack_4apples_info,
+            confirm=True,
+            assign=True,
+            batch_id=batch.id,
+        )
+        batch.state = "in_progress"
         batch.close()
         self.assertEqual(picking.batch_id.u_original_name, batch.name)
+
+
+class TestBatchAddRemoveWork(common.BaseUDES):
+    @classmethod
+    def setUpClass(cls):
+        super(TestBatchAddRemoveWork, cls).setUpClass()
+
+        User = cls.env["res.users"]
+        cls.outbound_user = User.create({"name": "Outbound User", "login": "out_log"})
+
+        Batch = cls.env["stock.picking.batch"]
+        Batch = Batch.with_user(cls.outbound_user)
+
+        cls.pack_info = [{"product": cls.apple, "qty": 4}]
+        cls.multipack_info = [
+            {"product": cls.apple, "qty": 2},
+            {"product": cls.banana, "qty": 4},
+        ]
+
+        cls.create_quant(cls.apple.id, cls.test_stock_location_01.id, 12)
+        cls.create_quant(cls.banana.id, cls.test_stock_location_02.id, 8)
+
+        cls.picking = cls.create_picking(
+            cls.picking_type_pick,
+            products_info=cls.pack_info,
+            confirm=True,
+            assign=True,
+            name="pickingone",
+        )
+        cls.picking2 = cls.create_picking(
+            cls.picking_type_pick,
+            products_info=cls.pack_info,
+            confirm=True,
+            assign=True,
+            name="pickingtwo",
+        )
+        cls.picking3 = cls.create_picking(
+            cls.picking_type_goods_in,
+            products_info=cls.multipack_info,
+            confirm=True,
+            assign=True,
+            name="pickingthree",
+        )
+        cls.picking4 = cls.create_picking(
+            cls.picking_type_pick,
+            products_info=cls.multipack_info,
+            confirm=True,
+            assign=True,
+            name="pickingfour",
+        )
+
+        cls.batch = Batch.create_batch(cls.picking_type_pick.id, [cls.picking.priority])
+
+    @classmethod
+    def complete_pick(cls, picking):
+        for move in picking.move_lines:
+            move.write(
+                {
+                    "quantity_done": move.product_uom_qty,
+                    "location_dest_id": cls.test_received_location_01.id,
+                }
+            )
+
+    def test_test_remove_unfinished_work(self):
+        """Ensure that remove unfinished work removes picks
+        and backorders moves correctly"""
+
+        picking = self.picking
+        picking2 = self.picking2
+        picking4 = self.picking4
+        batch = self.batch
+
+        pickings = picking2 + picking4
+        pickings.write({"batch_id": batch.id})
+
+        # We have three pickings in this batch now
+        self.assertEqual(len(batch.picking_ids), 3)
+
+        # Complete pick2
+        self.complete_pick(picking2)
+
+        # semi complete pick3
+        picking4.move_lines[0].write(
+            {
+                "quantity_done": 2,
+                "location_dest_id": self.test_received_location_01.id,
+            }
+        )
+
+        # Record which move lines were complete and which weren't
+        done_moves = picking4.move_lines[0] + picking2.move_lines[0]
+        incomplete_moves = picking.move_lines[0] + picking4.move_lines[1]
+
+        # Remove unfinished work
+        batch.remove_unfinished_work()
+
+        # Pickings with incomplete work are removed, complete pickings remain
+        self.assertFalse(picking.batch_id)
+        self.assertEqual(picking2.batch_id, batch)
+        self.assertFalse(picking4.batch_id)
+
+        # Ensure both done moves remain in batch
+        self.assertEqual(done_moves.mapped("picking_id.batch_id"), batch)
+
+        # Ensure incomplete moves are in pickings that are not in batches
+        self.assertFalse(incomplete_moves.mapped("picking_id.batch_id"))
