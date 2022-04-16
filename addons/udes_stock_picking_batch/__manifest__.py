@@ -10,6 +10,7 @@
     "depends": [
         "base",
         "stock",
+        "udes_stock",
         "stock_picking_batch"
     ],
     "external_dependencies": {},
