@@ -103,6 +103,14 @@ This is essentially a collection of products that are to be moved from one locat
 | _prepare_task_info                  |    Prepare info of a task in a dict format                                                                                              |
 | _drop_off_criterion_summary         |    Generate product summary for drop off criterion for the move lines.                                                                  |
 
+### stock.move.line
+
+| Helpers                             | Description                                                                                                                             |
+|-------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------|
+| _determine_priority_skipped_moveline|    Returns a priority move line based on the first move line found that matches either the skipped product ids or skipped move_line_ids |
+| _prepare_task_info                  |    Prepare info of a task in a dict format                                                                                              |
+| _drop_off_criterion_summary         |    Generate product summary for drop off criterion for the move lines.                                                                  |
+
 ### stock.warehouse 
 Provides warehouse configuration.
 
