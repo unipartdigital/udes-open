@@ -911,26 +911,29 @@ class StockPickingBatch(models.Model):
         Raise a ValidationError in case it cannot perform a search
         or if multiple batches are found for the specified user.
         """
-        PickingBatch = self.env["stock.picking.batch"]
+        batches = self.get_user_batches(user_id)
+         
+        if len(batches) > 1:
+            raise ValidationError(
+                _("Found %d batches for the user, please contact " "administrator.")
+                % len(batches)
+            )
 
+        return batches or None
+    
+    def get_user_batches(self, user_id=None):
+        """Get all batches for user that are in_progress"""
         user_id = self._check_user_id(user_id)
-        batches = PickingBatch.search(
+        # Search for in progress batches
+        batches = self.sudo().search(
             [("user_id", "=", user_id), ("state", "=", "in_progress")]
         )
-        batch = None
-
-        if batches:
-            if len(batches) > 1:
-                raise ValidationError(
-                    _("Found %d batches for the user, please contact " "administrator.")
-                    % len(batches)
-                )
-
-            batch = batches
-
-        return batch
+        return batches
 
     def _check_user_id(self, user_id):
+        """
+        If no user_id is passed - set the user to the environment user. If user_id is False, raise an error.
+        """
         if user_id is None:
             user_id = self.env.user.id
 
@@ -938,97 +941,6 @@ class StockPickingBatch(models.Model):
             raise ValidationError(_("Cannot determine the user."))
 
         return user_id
-
-    def _create_batch(self, user_id, picking_type_id, picking_priorities=None, picking_id=None):
-        """
-        Create a batch for the specified user by including only
-        those pickings with the specified picking_type_id and picking
-        priorities (optional).
-        The batch will be marked as ephemeral.
-        In case no pickings exist, return None.
-        """
-        PickingBatch = self.env["stock.picking.batch"]
-        Picking = self.env["stock.picking"]
-
-        if picking_id:
-            picking = Picking.browse(picking_id)
-        else:
-            picking = Picking.search_for_pickings(picking_type_id, picking_priorities)
-
-        if not picking:
-            return None
-
-        picking_type = picking.mapped("picking_type_id")
-        picking_type.ensure_one()
-        if picking_type.u_reserve_pallet_per_picking:
-            max_reservable_pallets = picking_type.u_max_reservable_pallets
-            if len(picking) > max_reservable_pallets:
-                raise ValidationError(
-                    "Only %d pallets may be reserved at a time." % max_reservable_pallets
-                )
-
-        batch = PickingBatch.sudo().create({"user_id": user_id})
-        picking.write({"batch_id": batch.id})
-        batch.check_same_picking_priority(picking)
-        batch.write({"u_ephemeral": True})
-        batch.mark_as_todo()
-
-        return batch
-
-    def close(self):
-        """Unassign incomplete pickings from batches. In case of a
-        non-ephemeral batch then incomplete pickings are moved into a new
-        batch.
-        """
-        for batch in self:
-            # Unassign batch_id from incomplete stock pickings on ephemeral batches
-            batch.filtered(lambda b: b.u_ephemeral).mapped("picking_ids").filtered(
-                lambda sp: sp.state not in ("done", "cancel")
-            ).write({"batch_id": False, "u_reserved_pallet": False})
-
-            # Assign incomplete pickings to new batch
-            _logger.info("Creating continuation batch from %r.", batch.name)
-            pickings = (
-                batch.filtered(lambda b: not b.u_ephemeral)
-                    .mapped("picking_ids")
-                    .filtered(lambda sp: sp.state not in ("done", "cancel"))
-            )
-            _logger.info("Picking ids continuation %r", pickings)
-
-            batch._copy_continuation_batch(pickings)
-
-    def _copy_continuation_batch(self, pickings):
-        """
-        Copy a batch and add the provided pickings.
-        The new batch will be named BATCH/nnnnn-XX where XX is a sequence number
-        which will be incremented or set to '01'.
-        The batch will not be marked as ephemeral.
-        In case no pickings exist, return None.
-        """
-        self.ensure_one()
-
-        if not pickings:
-            return None
-
-        new_name = get_next_name(self, "picking.batch")
-        batch = self.sudo().copy({"name": new_name, "user_id": None})
-        _logger.info("Created continuation batch %r, %s", batch, batch.name)
-        if not self.u_original_name:
-            batch.write({"u_original_name": self.name})
-
-        pickings.write({"batch_id": batch.id})
-        batch.mark_as_todo()
-
-        return batch
-    def get_user_batches(self, user_id=None):
-        """Get all batches for user"""
-        if user_id is None:
-            user_id = self.env.user.id
-        # Search for in progress batches
-        batches = self.sudo().search(
-            [("user_id", "=", user_id), ("state", "=", "in_progress")]
-        )
-        return batches
 
     @api.model
     def assign_batch(self, picking_type_id, selection_criteria=None):
@@ -1071,7 +983,6 @@ class StockPickingBatch(models.Model):
         is raised in case of pickings that need to be completed,
         otherwise such batches will be marked as done.
         """
-        user_id = self._check_user_id(user_id)
         self._check_user_batch_has_same_picking_types(user_id)
         self._check_user_batch_in_progress(user_id)
 
