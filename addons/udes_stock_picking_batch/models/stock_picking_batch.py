@@ -366,7 +366,7 @@ class StockPickingBatch(models.Model):
 
         # Get completed movelines
         all_mls = self.get_available_move_lines()
-        completed_mls = (all_mls - all_mls.get_lines_incomplete()).sort_by_location_product()
+        completed_mls = (all_mls - all_mls.get_lines_incomplete()).sort_by_key()
 
         # Generate tasks for the completed move lines
         completed_tasks = self._populate_next_tasks(
@@ -386,7 +386,6 @@ class StockPickingBatch(models.Model):
         """Populate the next tasks according to the given criteria"""
         tasks = []
         while move_lines:
-            priority_ml = False
             # Check if there is a move line to give priority to
             priority_ml = move_lines._determine_priority_skipped_moveline(
                 skipped_product_ids, skipped_move_line_ids

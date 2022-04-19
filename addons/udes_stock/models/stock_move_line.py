@@ -170,7 +170,10 @@ class StockMoveLine(models.Model):
         return res
 
     def sort_by_key(self, sort_key=lambda ml: (ml.location_id.name, ml.product_id.id)):
-        """Return the move lines sorted by location and product"""
+        """Return the move lines sorted by location and product
+        :kwargs:
+            - sort_key: a callable lambda to determine the way of ordering
+        """
         return self.sorted(key=sort_key)
 
     def _round_qty(self, value):
@@ -230,17 +233,6 @@ class StockMoveLine(models.Model):
             )
             res = new_ml
         return res
-
-    def sort_by_location_product(self):
-        """ Return the move lines sorted by location and product
-        """
-        return self.sorted(key=lambda ml: (ml.location_id.name, ml.product_id.id))
-
-    def next_task_sort(self):
-        """Creating a method so we can override it by sorting another combination.
-        Would be easier and meaningful than to extend sort_by_location_product as it will not make
-        a lot sense if is changed the way of order"""
-        return self.sort_by_location_product()
 
     def get_fast_move_lines(self, domain, aux_domain=None):
         """Get move lines with a search order by id instead of ordering by model _order attribute

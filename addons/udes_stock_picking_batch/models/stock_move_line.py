@@ -40,6 +40,12 @@ class StockMoveLine(models.Model):
         else:
             return False
 
+    def next_task_sort(self):
+        """Creating a method so we can override it by sorting another combination.
+        Would be easier and meaningful than to extend sort_by_key as we may need to change the
+        behaviour of next_task_sort result rather than changing the behaviour of sort_by_key"""
+        return self.sort_by_key()
+
     def _prepare_task_info(self):
         """
         Prepares info of a task.

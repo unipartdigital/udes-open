@@ -69,7 +69,6 @@ This is essentially a collection of products that are to be moved from one locat
 | u_location_category_id      |    Many2one      | Used to know which pickers have the right equipment to pick it                                     |
 | u_reserved_pallet           |    string        | If reserving pallets per picking is enabled, this field stores the pallet reserved for this picking|
 
-### stock.move.line 
 | Helpers                       | Description                                                                                          |
 |-------------------------------|------------------------------------------------------------------------------------------------------|
 | get_move_lines_done           |    Return the recordset of move lines done                                                           |
@@ -78,6 +77,14 @@ This is essentially a collection of products that are to be moved from one locat
 | get_priorities                |    Return a list of dicts containing the priorities of the all defined priority groups               |
 | _priorities_has_ready_pickings|    Check if priorities have already ready pickings                                                   |
 
+
+### stock.move.line
+
+| Helpers                             | Description                                                                                                                             |
+|-------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------|
+| _determine_priority_skipped_moveline|    Returns a priority move line based on the first move line found that matches either the skipped product ids or skipped move_line_ids |
+| _prepare_task_info                  |    Prepare info of a task in a dict format                                                                                              |
+| _drop_off_criterion_summary         |    Generate product summary for drop off criterion for the move lines.                                                                  |
 
 ### stock.warehouse 
 Provides warehouse configuration.
