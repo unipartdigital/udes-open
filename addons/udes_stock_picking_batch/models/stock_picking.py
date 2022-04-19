@@ -77,12 +77,8 @@ class StockPicking(models.Model):
         """Compute location category from move lines"""
         for picking in self:
             if picking.move_line_ids:
-                categories = picking.move_line_ids.mapped(
-                    "location_id.u_location_category_id"
-                )
-                picking.u_location_category_id = (
-                    categories if len(categories) == 1 else False
-                )
+                categories = picking.move_line_ids.mapped("location_id.u_location_category_id")
+                picking.u_location_category_id = categories if len(categories) == 1 else False
 
     def get_move_lines_done(self):
         """Return the recordset of move lines done."""
@@ -111,15 +107,11 @@ class StockPicking(models.Model):
         if not dest_location:
             raise ValidationError(_("The specified location is unknown."))
 
-        valid_locations = self._get_child_dest_locations(
-            [("id", "=", dest_location.id)]
-        )
+        valid_locations = self._get_child_dest_locations([("id", "=", dest_location.id)])
 
         return valid_locations.exists()
 
-    def search_for_pickings(
-        self, picking_type_id, picking_priorities, limit=1, domain=None
-    ):
+    def search_for_pickings(self, picking_type_id, picking_priorities, limit=1, domain=None):
         """Search for next available pickings based on picking type and priorities
         Parameters
         ----------
@@ -154,9 +146,7 @@ class StockPicking(models.Model):
         if picking_type.u_use_location_categories:
             categories = Users.get_user_location_categories()
             if categories:
-                search_domain.append(
-                    ("u_location_category_id", "child_of", categories.ids)
-                )
+                search_domain.append(("u_location_category_id", "child_of", categories.ids))
         if picking_type.u_batch_dest_loc_not_allowed:
             search_domain.extend([("location_dest_id.u_blocked", "!=", True)])
         # Note: order should be determined by stock.picking._order
@@ -209,9 +199,9 @@ class StockPicking(models.Model):
 
     def batch_to_user(self, user):
         """
-        Assign the picking to a batch and assign a user to the batch. 
+        Assign the picking to a batch and assign a user to the batch.
         Won't create a new batch if the picking already belongs to batch owned by the user
-        Will raise an exception if: 
+        Will raise an exception if:
             - The picking belongs to a batch and there is no user assigned to the batch
             - The picking belongs to a batch and there is another user assigned to the batch
             - The user already has other batches in progress
@@ -234,9 +224,7 @@ class StockPicking(models.Model):
                     )
 
         if PickingBatch.get_user_batches(user.id):
-            raise ValidationError(
-                _("You (%s) already have a batch in progess") % user.name
-            )
+            raise ValidationError(_("You (%s) already have a batch in progess") % user.name)
 
         if not self.batch_id:
             batch = PickingBatch.create({"user_id": user.id, "u_ephemeral": True})
