@@ -160,9 +160,13 @@ class StockPicking(models.Model):
         return self.search_count(domain) >= 1
 
     def batch_to_user(self, user):
-        """Throws error if picking is batched to another user
-        or if user already has a batch
-        creates batch and adds picking to it otherwise
+        """
+        Assign the picking to a batch and assign a user to the batch. 
+        Won't create a new batch if the picking already belongs to batch owned by the user
+        Will raise an exception if: 
+            - The picking belongs to a batch and there is no user assigned to the batch
+            - The picking belongs to a batch and there is another user assigned to the batch
+            - The user already has other batches in progress
         """
 
         PickingBatch = self.env["stock.picking.batch"]
