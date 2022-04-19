@@ -124,9 +124,7 @@ class TestStockPickingBatch(common.BaseUDES):
 
         for idx in range(3):
             pack = Package.get_or_create("test_package_%d" % idx, create=True)
-            self.create_quant(
-                self.apple.id, self.test_stock_location_01.id, 4, package_id=pack.id
-            )
+            self.create_quant(self.apple.id, self.test_stock_location_01.id, 4, package_id=pack.id)
             self.create_picking(
                 self.picking_type_pick,
                 products_info=self.pack_4apples_info,
@@ -245,9 +243,7 @@ class TestStockPickingBatch(common.BaseUDES):
 
         for idx in range(2):
             pack = Package.get_or_create("test_package_%d" % idx, create=True)
-            self.create_quant(
-                self.apple.id, self.test_stock_location_01.id, 4, package_id=pack.id
-            )
+            self.create_quant(self.apple.id, self.test_stock_location_01.id, 4, package_id=pack.id)
             self.create_picking(
                 self.picking_type_pick,
                 products_info=self.pack_4apples_info,
@@ -259,9 +255,7 @@ class TestStockPickingBatch(common.BaseUDES):
         batch = Batch.create_batch(self.picking_type_pick.id, ["1"])
 
         self.assertIsNotNone(batch, "No batch created")
-        self.assertEqual(
-            len(batch.picking_ids), 1, "Multiple pickings were included in the batch"
-        )
+        self.assertEqual(len(batch.picking_ids), 1, "Multiple pickings were included in the batch")
         self.assertEqual(
             batch.picking_ids[0].priority,
             "2",
