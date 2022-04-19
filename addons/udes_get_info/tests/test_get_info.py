@@ -1,13 +1,12 @@
-from odoo.tests import common, tagged
+from . import common
 from ..models.models import BASIC_GET_INFO_VALUES
 from collections import Counter
 
 
-@tagged("post_install")
-class TestStockLocation(common.SavepointCase):
+class TestStockLocation(common.BaseTestCase):
     @classmethod
     def setUpClass(cls):
-        super(TestStockLocation, cls).setUpClass()
+        super().setUpClass()
         Location = cls.env["stock.location"]
         # Get stock location
         cls.stock_location = Location.search([]).filtered(lambda l: l.name == "Stock")
