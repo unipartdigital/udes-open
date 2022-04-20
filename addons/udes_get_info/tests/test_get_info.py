@@ -118,3 +118,14 @@ class TestStockLocation(common.BaseTestCase):
         # Check the amount of recursions for the different max_level values
         self.assertEqual(self._count_nested_dict_by_key(info_level1, "location_id"), 1)
         self.assertEqual(self._count_nested_dict_by_key(info_level3, "location_id"), 3)
+
+    def test_logs_names_of_models_with_missing_fields(self):
+        """The system will log missing fields and their associated models."""
+        with self.assertLogs("odoo.addons.udes_get_info.models.models", level="WARNING") as cm:
+            self.grandchild_location.get_info(extra_fields={"spam"})
+        self.assertEqual(
+            cm.output,
+            [
+                "WARNING:odoo.addons.udes_get_info.models.models:Cannot find field name 'spam' on model 'stock.location'"
+            ],
+        )

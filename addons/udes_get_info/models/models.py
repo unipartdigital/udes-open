@@ -36,7 +36,7 @@ def _get_info(self, level=1, max_level=None, info_fields=None, extra_fields=None
 
         if field_name not in self:
             # skip over fields which don't exist and logging warning on server logs
-            _logger.warning(_("Cannot find field name %s"), field_name)
+            _logger.warning(_("Cannot find field name %r on model %r"), field_name, self._name)
             continue
 
         result = self[field_name]
