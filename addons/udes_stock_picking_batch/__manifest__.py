@@ -24,7 +24,6 @@
         "views/stock_picking_type.xml",
         "views/res_users.xml",
         "views/stock_picking.xml",
-        "views/stock_picking_batch_views.xml",
     ],
     "demo": [],
 }
