@@ -49,7 +49,9 @@ class TestBatchToUser(common.BaseUDES):
             )
 
     def test_picking_has_no_batch_and_user_has_batches(self):
-        self.create_batch(self.outbound_user, state="in_progress")
+        batch = self.create_batch(self.outbound_user)
+        self._create_apple_quant_and_picking(batch)
+        batch.write({"state":"in_progress"})
 
         picking = self._create_apple_quant_and_picking()
 
@@ -68,7 +70,7 @@ class TestBatchToUser(common.BaseUDES):
         picking.batch_to_user(self.outbound_user)
 
         batches = PickingBatch.sudo().search(
-            [("user_id", "=", self.outbound_user.id), ("state", "=", "waiting")]
+            [("user_id", "=", self.outbound_user.id), ("state", "=", "in_progress")]
         )
 
         self.assertEqual(batches.picking_ids.id, picking.id)
