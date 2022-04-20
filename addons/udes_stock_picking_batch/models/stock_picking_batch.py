@@ -832,6 +832,7 @@ class StockPickingBatch(models.Model):
         Raise a ValidationError in case it cannot perform a search
         or if multiple batches are found for the specified user.
         """
+        user_id = self._check_user_id(user_id)
         batches = self.get_user_batches(user_id)
 
         if len(batches) > 1:
@@ -843,7 +844,8 @@ class StockPickingBatch(models.Model):
 
     def get_user_batches(self, user_id=None):
         """Get all batches for user that are in_progress"""
-        user_id = self._check_user_id(user_id)
+        if user_id is None:
+            user_id = self.env.user.id
         # Search for in progress batches
         batches = self.sudo().search([("user_id", "=", user_id), ("state", "=", "in_progress")])
         return batches
@@ -899,6 +901,7 @@ class StockPickingBatch(models.Model):
         is raised in case of pickings that need to be completed,
         otherwise such batches will be marked as done.
         """
+        user_id = self._check_user_id(user_id)
         self._check_user_batch_has_same_picking_types(user_id)
         self._check_user_batch_in_progress(user_id)
 
