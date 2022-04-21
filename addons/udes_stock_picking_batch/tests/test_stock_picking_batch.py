@@ -1,6 +1,7 @@
 from odoo.addons.udes_stock.tests import common
 from odoo.tests import common as odoo_common
 from odoo.exceptions import ValidationError
+import unittest
 
 
 class TestBatchState(common.BaseUDES):
@@ -869,6 +870,7 @@ class TestBatchAddRemoveWork(common.BaseUDES):
             "Does not have a picking with the expected priority",
         )
 
+    @unittest.skip("Backorder logic yet to be determined, review later")
     def test_create_batch_user_already_has_completed_batch(self):
         """
         When dropping off a partially reserved picking, a backorder in state
