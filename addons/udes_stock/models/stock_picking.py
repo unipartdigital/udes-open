@@ -228,12 +228,25 @@ class StockPicking(models.Model):
                 move lines associated to picking
         :returns: Move lines of picking
         """
-        mls = self.move_line_ids
+        mls = self.get_move_lines_ordered_by()
         if done:
-            return self.move_line_ids.get_lines_done()
+            return mls.get_lines_done()
         elif done == False:
-            return self.move_line_ids.get_lines_incomplete()
+            return mls.get_lines_incomplete()
         return mls
+
+    def get_move_lines_ordered_by(self, aux_domain=None, order="id"):
+        """Get move lines with a search order by id instead of ordering by model _order attribute
+        Args:
+            aux_domain (list): Optional domain to extend the default domain
+            order (char): Optional order
+        """
+        StockMoveLine = self.env["stock.move.line"]
+
+        domain = [("picking_id", "in", self.ids)]
+        if aux_domain is not None:
+            domain += aux_domain
+        return StockMoveLine.get_move_lines_ordered_by(domain=domain, order=order)
 
     def _backorder_move_lines(self, mls=None):
         """Creates a backorder pick from self (expects a singleton)

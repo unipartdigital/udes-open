@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <record id="view_picking_type_form_inherit" model="ir.ui.view">
+    <field name="name">stock.picking.type.form.inherit</field>
+    <field name="model">stock.picking.type</field>
+    <field name="inherit_id" ref="stock.view_picking_type_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//form/sheet/group[last()]" position="after">
+        <group string="Stock Picking Batch Config" name="picking_batch_config" groups='base.group_no_one'>
+          <field name="u_use_location_categories" />
+          <field name="u_batch_dest_loc_not_allowed" />
+          <field name="u_reserve_pallet_per_picking" />
+          <field name="u_max_reservable_pallets" />
+          <field name="u_allow_swapping_packages" />
+          <field name="u_return_to_skipped" />
+          <field name="u_drop_criterion" />
+        </group>
+      </xpath>
+    </field>
+  </record>
+</odoo>

@@ -170,7 +170,10 @@ class StockMoveLine(models.Model):
         return res
 
     def sort_by_key(self, sort_key=lambda ml: (ml.location_id.name, ml.product_id.id)):
-        """Return the move lines sorted by location and product"""
+        """Return the move lines sorted by location and product
+        :kwargs:
+            - sort_key: a callable lambda to determine the way of ordering
+        """
         return self.sorted(key=sort_key)
 
     def _round_qty(self, value):
@@ -230,3 +233,16 @@ class StockMoveLine(models.Model):
             )
             res = new_ml
         return res
+
+    def get_move_lines_ordered_by(self, domain, aux_domain=None, order="id"):
+        """Get move lines with a search order by id instead of ordering by model _order attribute
+        Args:
+            domain (list):  Default domain to search move lines
+            aux_domain (list): Optional domain to extend the default domain
+            order (Char): Optional order
+        """
+        StockMoveLine = self.env["stock.move.line"]
+
+        if aux_domain is not None:
+            domain += aux_domain
+        return StockMoveLine.search(domain, order=order)

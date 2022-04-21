@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <!-- Warehouse form inherit -->
+  <record id="view_warehouse_form_udes_stock_picking_batch" model="ir.ui.view">
+    <field name="name">stock.warehouse.udes_stock_picking_batch</field>
+    <field name="model">stock.warehouse</field>
+    <field name="inherit_id" ref="udes_stock.view_warehouse_inherited"/>
+    <field name="arch" type="xml">
+      <!-- Able to change delivery route -->
+      <xpath expr="//group[@name='udes_stock_config']" position="inside">
+        <field name="u_log_batch_picking" />
+      </xpath>
+    </field>
+  </record>
+
+</odoo>

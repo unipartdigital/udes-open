@@ -174,7 +174,8 @@ class StockMove(models.Model):
 
             move_lines.write({"state": new_move.state})
 
-            if self.move_orig_ids:
-                (new_move | self).update_orig_ids(self.move_orig_ids)
+            # TODO commenting as update_orig_ids has not been ported
+            # if self.move_orig_ids:
+            #     (new_move | self).update_orig_ids(self.move_orig_ids)
 
         return new_move
