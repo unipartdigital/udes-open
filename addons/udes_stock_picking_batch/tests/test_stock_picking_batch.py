@@ -7,8 +7,8 @@ class TestBatchState(common.BaseUDES):
     def setUpClass(cls):
         super().setUpClass()
 
-        cls.package_one = cls.create_package(name="test_package_one")
-        cls.package_two = cls.create_package(name="test_package_two")
+        cls.package_one = cls.create_package(name="00001")
+        cls.package_two = cls.create_package(name="00002")
 
         cls.pack_4apples_info = [{"product": cls.apple, "qty": 4}]
 
