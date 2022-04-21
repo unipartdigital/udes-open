@@ -15,8 +15,6 @@ class StockQuant(models.Model):
     # These fields will be extracted by get_info().
     _get_info_field_names = {
         "available_quantity",
-        "display_name",
-        "id",
         "location_id",
         "package_id",
         "product_id",

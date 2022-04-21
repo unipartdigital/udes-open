@@ -18,9 +18,6 @@ class StockPickingType(models.Model):
         "count_picking_ready",
         "default_location_dest_id",
         "default_location_src_id",
-        "display_name",
-        "id",
-        "name",
         "sequence",
         "warehouse_id",
     }
