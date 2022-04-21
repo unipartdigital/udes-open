@@ -6,6 +6,7 @@ class StockLocation(models.Model):
     _name = "stock.location"
     # Add messages and abstract model to locations
     _inherit = ["stock.location", "mail.thread", "mixin.stock.model"]
+    MSM_STR_DOMAIN = ("name", "barcode")
 
     def _domain_speed_category(self):
         """Domain for speed product category"""
