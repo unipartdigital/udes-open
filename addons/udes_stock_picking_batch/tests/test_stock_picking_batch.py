@@ -758,8 +758,18 @@ class TestBatchAddRemoveWork(common.BaseUDES):
         self.assertEqual(user_id, self.outbound_user.id)
 
     def test_get_batches_assigned_to_a_user(self):
-        batch = self.create_batch(user=self.outbound_user, state="in_progress")
+        batch = self.create_batch(user=self.outbound_user)
         batch = batch.with_user(self.outbound_user)
+        
+        picking_putaway = self.create_picking(
+            self.picking_type_putaway,
+            products_info=[{"product": self.apple, "qty": 4}],
+            confirm=True,
+            assign=True,
+            batch_id=batch.id,
+        )
+
+        batch.write({"state": "in_progress"})
 
         searched_batch = batch.get_user_batches(user_id=self.outbound_user.id)
 
@@ -773,7 +783,7 @@ class TestBatchAddRemoveWork(common.BaseUDES):
         self.create_quant(self.apple.id, self.test_received_location_01.id, 4)
         self.create_quant(self.banana.id, self.test_stock_location_01.id, 4)
 
-        batch = self.create_batch(user=self.outbound_user, state="ready")
+        batch = self.create_batch(user=self.outbound_user)
 
         picking_putaway = self.create_picking(
             self.picking_type_putaway,
@@ -791,9 +801,11 @@ class TestBatchAddRemoveWork(common.BaseUDES):
             batch_id=batch.id,
         )
 
-        batch = batch.assign_user(picking_type_id=self.picking_type_pick.id)
+        batch.write({"state": "ready"})
 
-        self.assertEqual(batch, False)
+        batch = batch.assign_batch(picking_type_id=self.picking_type_pick.id)
+
+        self.assertEqual(bool(batch), False)
 
     def test_assign_batches_for_batch_with_single_picking_type(self):
         """
@@ -803,7 +815,7 @@ class TestBatchAddRemoveWork(common.BaseUDES):
         self.create_quant(self.apple.id, self.test_received_location_01.id, 4)
         self.create_quant(self.banana.id, self.test_received_location_01.id, 4)
 
-        batch = self.create_batch(user=self.outbound_user, state="ready")
+        batch = self.create_batch(user=self.outbound_user)
 
         picking_putaway_1 = self.create_picking(
             self.picking_type_putaway,
@@ -821,7 +833,9 @@ class TestBatchAddRemoveWork(common.BaseUDES):
             batch_id=batch.id,
         )
 
-        batch = batch.assign_user(picking_type_id=self.picking_type_putaway.id)
+        batch.write({"state": "ready"})
+
+        batch = batch.assign_batch(picking_type_id=self.picking_type_putaway.id)
 
         self.assertEqual(batch.user_id.id, self.env.user.id)
 
@@ -851,7 +865,7 @@ class TestBatchAddRemoveWork(common.BaseUDES):
         self.assertEqual(len(batch.picking_ids), 1, "Multiple pickings were included in the batch")
         self.assertEqual(
             batch.picking_ids[0].priority,
-            "2",
+            "1",
             "Does not have a picking with the expected priority",
         )
 
@@ -901,7 +915,7 @@ class TestBatchAddRemoveWork(common.BaseUDES):
         self.assertEqual(batch.picking_ids[0].state, "done")
 
         # create a new picking to be included in the new batch
-        other_pack = Package.get_package("test_other_package", create=True)
+        other_pack = Package.get_or_create("test_other_package", create=True)
         self.create_quant(
             self.apple.id, self.test_stock_location_01.id, 4, package_id=other_pack.id
         )
@@ -954,7 +968,7 @@ class TestBatchAddRemoveWork(common.BaseUDES):
         batch = Batch.create_batch(self.picking_type_pick.id, None)
 
         # create a new picking to be included in the new batch
-        other_pack = Package.get_package("test_other_package", create=True)
+        other_pack = Package.get_or_create("test_other_package", create=True)
         self.create_quant(
             self.apple.id, self.test_stock_location_01.id, 4, package_id=other_pack.id
         )
@@ -974,7 +988,7 @@ class TestBatchAddRemoveWork(common.BaseUDES):
         with self.assertRaises(ValidationError) as err:
             Batch.create_batch(self.picking_type_pick.id, None)
 
-        self.assertTrue(err.exception.name.startswith("The user already has pickings"))
+        self.assertTrue(err.exception.args[0].startswith("The user already has pickings"))
 
     def test_automatic_batch_done(self):
         """Verifies the batch is done if the picking is complete"""
@@ -1165,6 +1179,7 @@ class TestBatchAddRemoveWork(common.BaseUDES):
         )
 
         cls.batch = Batch.create_batch(cls.picking_type_pick.id, [cls.picking.priority])
+        cls.picking.batch_id = cls.batch.id
 
     @classmethod
     def complete_pick(cls, picking):

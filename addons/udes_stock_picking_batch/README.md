@@ -32,6 +32,7 @@ The main class for handling batch transfers in warehouse management
 | state                       | Selection                  | State of the batch: draft, waiting, ready, in_progress, done, cancel                                 |
 | picking_ids                 | One2many {{stock.picking}} | Pickings assigned to a batch. Changed to allow editing of the field in different states of the batch |
 | u_original_name             |    Char                    | Name of the batch from which this batch was derived                                                  |
+| picking_type_ids            | Many2Many                  | Picking types in the batch                                                                           |
 
 
 | Helpers                       | Description                                                                                             |
@@ -72,6 +73,7 @@ The main class for handling batch transfers in warehouse management
 | close                                     | Unassign incomplete pickings from batches                                                                 |
 | _copy_continuation_batch                  | Copy a batch and add the provided pickings                                                                |
 | remove_unfinished_work                    | Remove pickings from batch if they are not started                                                        |
+| _compute_picking_type                     | Computes the picking_type_ids in the batch                                                                |
 
 | Global Methods                       | Description                                                                                             |
 |--------------------------------------|---------------------------------------------------------------------------------------------------------|

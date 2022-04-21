@@ -107,6 +107,22 @@ class StockPickingBatch(models.Model):
         required=False,
         help=("Name of the batch from which this batch was derived"),
     )
+    picking_type_ids = fields.Many2many(
+        "stock.picking.type",
+        string="Operation Types",
+        compute="_compute_picking_type",
+        store=True,
+        index=True,
+    )
+
+    @api.depends("picking_ids", "picking_ids.picking_type_id")
+    def _compute_picking_type(self):
+        for batch in self:
+            if batch.picking_ids:
+                batch.picking_type_ids = batch.picking_ids.mapped("picking_type_id")
+            elif not isinstance(batch.id, models.NewId):
+                # If the picking ids are empty use the stored picking type ids
+                batch.picking_type_ids = batch.read(["picking_type_ids"])[0]["picking_type_ids"]
 
     @api.constrains("user_id")
     def _compute_state(self):
@@ -873,6 +889,8 @@ class StockPickingBatch(models.Model):
         Note that the transition from state 'ready' to 'in_progress'
         is handled by computation of state function.
         """
+        batch = self.env["stock.picking.batch"]
+        
         batches = self.search([("state", "=", "ready")]).filtered(
             lambda b: all([pt.id == picking_type_id for pt in b.picking_type_ids])
         )
@@ -881,7 +899,7 @@ class StockPickingBatch(models.Model):
             batch = self._select_batch_to_assign(batches)
             batch.user_id = self.env.user
 
-            return batch
+        return batch
 
     def _select_batch_to_assign(self, batches):
         """
@@ -1045,7 +1063,7 @@ class StockPickingBatch(models.Model):
                 if picking._requires_backorder(started_lines):
                     pickings_to_add |= picking.with_context(
                         lock_batch_state=True
-                    )._backorder_movelines(started_lines)
+                    )._backorder_move_lines(started_lines)
                     pickings_to_remove |= picking
             else:
                 pickings_to_remove |= picking
@@ -1085,7 +1103,7 @@ def get_next_name(obj, code):
 
     # Name pattern for continuation object.
     # Is two digits enough?
-    name_pattern = r"({}\d+)-(\d{{2}})".format(re.search("^(\D*)", ir_sequence).groups())
+    name_pattern = r"({}\d+)-(\d{{2}})".format(re.search("^(\D*)", ir_sequence).groups()[0])
 
     match = re.match(name_pattern, obj.name)
     if match:
