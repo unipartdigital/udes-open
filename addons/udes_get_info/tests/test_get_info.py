@@ -27,6 +27,15 @@ class TestStockLocation(common.BaseTestCase):
         )
         cls.family_tree = (cls.grandchild_location, cls.child_location, cls.stock_location)
 
+    def tearDown(self):  # noqa: D102
+        Location = self.env["stock.location"]
+
+        # FIXME Some tests add location_id directly to the model's set of
+        # fields, but this breaks the mixin test for locations because
+        # location_id is not expected in the default return value.
+        # For now, make sure we remove 'location_id' after adding it.
+        Location._get_info_field_names.discard("location_id")
+
     def _count_nested_dict_by_key(self, d, key):
         """Helper to count the number of nested dictionaries by key"""
         count = int(key in d)
@@ -98,6 +107,11 @@ class TestStockLocation(common.BaseTestCase):
 
     def test_get_info_with_custom_fields(self):
         """Check the info returned with custom fields"""
+        # FIXME we shouldn't need to add location_id to _get_info_field_names
+        # for this test to work?
+        # Add location_id to _get_info_field_names
+        Location = self.env["stock.location"]
+        Location._get_info_field_names.add("location_id")
         # Define fields to search
         test_fields = {"location_id", "name"}
         # Run checks via helper
@@ -108,6 +122,11 @@ class TestStockLocation(common.BaseTestCase):
 
     def test_get_info_with_different_recursion(self):
         """Check the max_level does the correct amount of recursions"""
+        # FIXME we shouldn't need to add location_id to _get_info_field_names
+        # for this test to work?
+        # Add location_id to _get_info_field_names
+        Location = self.env["stock.location"]
+        Location._get_info_field_names.add("location_id")
         # Define fields to search for simplicity
         test_fields = {"location_id", "name"}
         # Run checks via helper
