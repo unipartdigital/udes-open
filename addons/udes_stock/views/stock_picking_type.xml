@@ -9,7 +9,7 @@
 
             <!-- Add UDES fields -->
             <xpath expr="//form/sheet/group[last()]" position="after">
-                <group class="udes_wide_list" string="UDES Config" groups='base.group_no_one'>
+                <group class="udes_wide_list" string="UDES Config" name="udes_config" groups='base.group_no_one'>
                     <field name="u_target_storage_format" />
                     <field name="u_user_scans" />
                     <field name="u_scan_parent_package_end" />
