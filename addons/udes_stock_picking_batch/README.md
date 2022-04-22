@@ -31,6 +31,8 @@ The main class for handling batch transfers in warehouse management
 | user_id                     | Many2one {{res.users}}     | User assigned to a batch. Changed to allow editing of the field in different states of the batch     |
 | state                       | Selection                  | State of the batch: draft, waiting, ready, in_progress, done, cancel                                 |
 | picking_ids                 | One2many {{stock.picking}} | Pickings assigned to a batch. Changed to allow editing of the field in different states of the batch |
+| u_original_name             |    Char                    | Name of the batch from which this batch was derived                                                  |
+| picking_type_ids            | Many2Many                  | Picking types in the batch                                                                           |
 
 
 | Helpers                       | Description                                                                                             |
@@ -59,6 +61,23 @@ The main class for handling batch transfers in warehouse management
 | done_picks                    | Returns pickings in state done or cancel                                                                |
 | ready_picks                   | Returns pickings in state assigned                                                                      |
 | unready_picks                 | Returns pickings in state draft, waiting or confirmed                                                   |
+| get_single_batch                          | Search for a picking batch in progress for the specified user                                             |
+| _check_user_id                            | Check the user id is valid - user_id = False will raise an exception.                                     |
+| get_user_batches                          | Search for all batches attached to a given user_id                                                        |
+| assign_batch                              | Return all batches that are ready, have the relevant picking type, and the passed selection criteria      |
+| _select_batch_to_assign                   | Orders the batch by name and returns the first one                                                        |
+| create_batch                              | Create and return a batch for the specified user if pickings exist.                                       |
+| _check_user_batch_has_same_picking_types  | Check if a user has a batch with different picking types                                                  |
+| _check_user_batch_in_progress             | Check if a user has a batch in progress                                                                   |
+| _create_batch                             | Create a batch for a user by including pickings with the specified picking_type_id and picking priorities |
+| close                                     | Unassign incomplete pickings from batches                                                                 |
+| _copy_continuation_batch                  | Copy a batch and add the provided pickings                                                                |
+| remove_unfinished_work                    | Remove pickings from batch if they are not started                                                        |
+| _compute_picking_type                     | Computes the picking_type_ids in the batch                                                                |
+
+| Global Methods                       | Description                                                                                             |
+|--------------------------------------|---------------------------------------------------------------------------------------------------------|
+| get_next_name                        | Get the next name for an object.          
 
 ### stock.picking.type
 The type of stock.picking can be defined by this type. It can represent a goods in, a putaway, an internal transfer, a pick, a goods out, or any other collection of stock moves the warehouse operators want to model within UDES.
@@ -74,6 +93,9 @@ The type of stock.picking can be defined by this type. It can represent a goods 
 | u_drop_criterion            |selection(string) | Way of grouping items when are ready to drop off, from a defined list of options( by products, by packages, by orders       |
 | u_auto_assign_batch_pick    | Boolean          | Flag to enable to reserve stock when pickings are added to a running batch                                                  |
 | u_remove_unready_batch      | Boolean          | Flat to enable to remove pickings that cannot be reserved when added to a running batch                                     |
+| u_auto_batch_pallet         |   boolean        | Flag to indicate whether picking type will automatically create batches when the user scans the pallet                      |
+| u_create_batch_for_user     |   boolean        | Flag to indicate whether to create a new batch and assign it to the user, if he does not have one already assigned          |
+| u_assign_batch_to_user      |   boolean        | Flag to indicate whether to assign a "ready" batch to the user, if he does not have one already assigned                    |
 
 ### stock.picking
 This is essentially a collection of products that are to be moved from one location to another.
@@ -94,6 +116,7 @@ This is essentially a collection of products that are to be moved from one locat
 | _trigger_batch_state_recompute    | Recompute batch state after removing picks based on flags                                            |
 | _action_assign                    | Always recompute batch state after assigning picking because @api.constraint is not working correctly|
 | write                             | Ensure we recompute batches that were removed from a picking                                         |
+| batch_to_user                     | Validates that a user can be assigned to a batch, then creates the batch for a picking.              | 
 
 ### stock.move.line
 
