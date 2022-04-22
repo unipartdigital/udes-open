@@ -31,7 +31,7 @@ def get_next_name(obj, code):
 
     # Name pattern for continuation object.
     # Is two digits enough?
-    name_pattern = r"({}\d+)-(\d{{2}})".format(re.search("^(\D*)", ir_sequence).groups())
+    name_pattern = r"({}\d+)-(\d{{2}})".format(re.search("^(\D*)", ir_sequence).groups()[0])
 
     match = re.match(name_pattern, obj.name)
     if match:
@@ -100,6 +100,29 @@ class StockPickingBatch(models.Model):
         compute="_compute_priority",
         help="Priority of a batch is the maximum priority of its pickings.",
     )
+    u_original_name = fields.Char(
+        string="Original batch name",
+        default="",
+        copy=True,
+        required=False,
+        help=("Name of the batch from which this batch was derived"),
+    )
+    picking_type_ids = fields.Many2many(
+        "stock.picking.type",
+        string="Operation Types",
+        compute="_compute_picking_type",
+        store=True,
+        index=True,
+    )
+
+    @api.depends("picking_ids", "picking_ids.picking_type_id")
+    def _compute_picking_type(self):
+        for batch in self:
+            if batch.picking_ids:
+                batch.picking_type_ids = batch.picking_ids.mapped("picking_type_id")
+            elif not isinstance(batch.id, models.NewId):
+                # If the picking ids are empty use the stored picking type ids
+                batch.picking_type_ids = batch.read(["picking_type_ids"])[0]["picking_type_ids"]
 
     @api.constrains("user_id")
     def _compute_state(self):
@@ -565,7 +588,8 @@ class StockPickingBatch(models.Model):
         if not remaining_tasks:
             # No viable movelines, create an empty task
             _logger.debug(
-                _("Batch '%s': no available move lines for creating " "a task"), self.name
+                _("Batch '%s': no available move lines for creating " "a task"),
+                self.name,
             )
             task = self._populate_next_task(incomplete_mls, task_grouping_criteria)
             task["tasks_picked"] = have_tasks_been_picked
@@ -574,7 +598,10 @@ class StockPickingBatch(models.Model):
         return remaining_tasks
 
     def get_next_task(
-        self, skipped_product_ids=None, skipped_move_line_ids=None, task_grouping_criteria=None
+        self,
+        skipped_product_ids=None,
+        skipped_move_line_ids=None,
+        task_grouping_criteria=None,
     ):
         """Get the next not completed task of the batch to be done.
         Expect a singleton.
@@ -602,7 +629,10 @@ class StockPickingBatch(models.Model):
 
         # Generate tasks for the completed move lines
         completed_tasks = self._populate_next_tasks(
-            completed_mls, True, task_grouping_criteria=task_grouping_criteria, limit=limit
+            completed_mls,
+            True,
+            task_grouping_criteria=task_grouping_criteria,
+            limit=limit,
         )
         return completed_tasks
 
@@ -801,12 +831,83 @@ class StockPickingBatch(models.Model):
                 picks_todo.sudo().with_context(tracking_disable=True)._action_done()
 
             _logger.info(
-                "%s action_done in %.2fs, %d queries", picks_todo, stats.elapsed, stats.count
+                "%s action_done in %.2fs, %d queries",
+                picks_todo,
+                stats.elapsed,
+                stats.count,
             )
         if not continue_batch:
             self.close()
 
         return self
+
+    def get_single_batch(self, user_id=None):
+        """
+        Search for a picking batch in progress for the specified user.
+        If no user is specified, the current user is considered.
+
+        Raise a ValidationError in case it cannot perform a search
+        or if multiple batches are found for the specified user.
+        """
+        user_id = self._check_user_id(user_id)
+        batches = self.get_user_batches(user_id)
+
+        if len(batches) > 1:
+            raise ValidationError(
+                _("Found %d batches for the user, please contact " "administrator.") % len(batches)
+            )
+
+        return batches or None
+
+    def get_user_batches(self, user_id=None):
+        """Get all batches for user that are in_progress"""
+        if user_id is None:
+            user_id = self.env.user.id
+        # Search for in progress batches
+        batches = self.sudo().search([("user_id", "=", user_id), ("state", "=", "in_progress")])
+        return batches
+
+    def _check_user_id(self, user_id):
+        """
+        If no user_id is passed - set the user to the environment user. If user_id is False, raise an error.
+        """
+        if user_id is None:
+            user_id = self.env.user.id
+
+        if not user_id:
+            raise ValidationError(_("Cannot determine the user."))
+
+        return user_id
+
+    @api.model
+    def assign_batch(self, picking_type_id, selection_criteria=None):
+        """
+        Determine all the batches in state 'ready' with pickings
+        of the specified picking types then return the one determined
+        by the selection criteria method (that should be overriden
+        by the relevant customer modules).
+
+        Note that the transition from state 'ready' to 'in_progress'
+        is handled by computation of state function.
+        """
+        batch = self.env["stock.picking.batch"]
+        
+        batches = self.search([("state", "=", "ready")]).filtered(
+            lambda b: all([pt.id == picking_type_id for pt in b.picking_type_ids])
+        )
+
+        if batches:
+            batch = self._select_batch_to_assign(batches)
+            batch.user_id = self.env.user
+
+        return batch
+
+    def _select_batch_to_assign(self, batches):
+        """
+        Orders the batches by name and returns the first one.
+        """
+        assert batches, "Expects a non-empty batches recordset"
+        return batches.sorted(key=lambda b: b.name)[0]
 
     def create_batch(self, picking_type_id, picking_priorities, user_id=None, picking_id=None):
         """
@@ -814,6 +915,7 @@ class StockPickingBatch(models.Model):
         exist. Return None otherwise. Pickings are filtered based on
         the specified picking priorities (list of int strings, for
         example ['2', '3']).
+
         If the user already has batches assigned, a ValidationError
         is raised in case of pickings that need to be completed,
         otherwise such batches will be marked as done.
@@ -856,25 +958,6 @@ class StockPickingBatch(models.Model):
                     "more:\n {}"
                 ).format(picks_txt)
             )
-
-    def get_user_batches(self, user_id=None):
-        """Get all batches for user that are in_progress"""
-        user_id = self._check_user_id(user_id)
-        # Search for in progress batches
-        batches = self.sudo().search([("user_id", "=", user_id), ("state", "=", "in_progress")])
-        return batches
-
-    def _check_user_id(self, user_id):
-        """
-        If no user_id is passed - set the user to the environment user. If user_id is False, raise an error.
-        """
-        if user_id is None:
-            user_id = self.env.user.id
-
-        if not user_id:
-            raise ValidationError(_("Cannot determine the user."))
-
-        return user_id
 
     def _create_batch(self, user_id, picking_type_id, picking_priorities=None, picking_id=None):
         """
@@ -927,8 +1010,8 @@ class StockPickingBatch(models.Model):
             _logger.info("Creating continuation batch from %r.", batch.name)
             pickings = (
                 batch.filtered(lambda b: not b.u_ephemeral)
-                    .mapped("picking_ids")
-                    .filtered(lambda sp: sp.state not in ("done", "cancel"))
+                .mapped("picking_ids")
+                .filtered(lambda sp: sp.state not in ("done", "cancel"))
             )
             _logger.info("Picking ids continuation %r", pickings)
 
@@ -937,6 +1020,7 @@ class StockPickingBatch(models.Model):
     def _copy_continuation_batch(self, pickings):
         """
         Copy a batch and add the provided pickings.
+
         The new batch will be named BATCH/nnnnn-XX where XX is a sequence number
         which will be incremented or set to '01'.
         The batch will not be marked as ephemeral.
@@ -957,3 +1041,39 @@ class StockPickingBatch(models.Model):
         batch.mark_as_todo()
 
         return batch
+
+    def remove_unfinished_work(self):
+        """
+        Remove pickings from batch if they are not started
+        Backorder half-finished pickings
+        """
+        Picking = self.env["stock.picking"]
+
+        self.ensure_one()
+
+        if not self.u_ephemeral:
+            raise ValidationError(_("Can only remove work from ephemeral batches"))
+
+        pickings_to_remove = Picking.browse()
+        pickings_to_add = Picking.browse()
+
+        for picking in self.picking_ids:
+            started_lines = picking.mapped("move_line_ids").filtered(lambda x: x.qty_done > 0)
+            if started_lines:
+                # backorder incomplete moves
+                if picking._requires_backorder(started_lines):
+                    pickings_to_add |= picking.with_context(
+                        lock_batch_state=True
+                    )._backorder_move_lines(started_lines)
+                    pickings_to_remove |= picking
+            else:
+                pickings_to_remove |= picking
+
+        pickings_to_remove.with_context(lock_batch_state=True).write(
+            {"batch_id": False, "u_reserved_pallet": False}
+        )
+        pickings_to_add.with_context(lock_batch_state=True).write({"batch_id": self.id})
+        self._compute_state()
+
+        return self
+

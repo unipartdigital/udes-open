@@ -1,4 +1,4 @@
-from odoo import models, fields, api
+from odoo import models, fields, api, _
 from .common import PRIORITY_GROUPS
 from odoo.exceptions import ValidationError
 
@@ -74,14 +74,14 @@ class StockPicking(models.Model):
 
     @api.depends("move_line_ids", "move_line_ids.location_id")
     def _compute_location_category(self):
-        """ Compute location category from move lines"""
+        """Compute location category from move lines"""
         for picking in self:
             if picking.move_line_ids:
                 categories = picking.move_line_ids.mapped("location_id.u_location_category_id")
                 picking.u_location_category_id = categories if len(categories) == 1 else False
 
     def get_move_lines_done(self):
-        """ Return the recordset of move lines done. """
+        """Return the recordset of move lines done."""
         return self.move_line_ids.filtered(lambda o: o.qty_done > 0)
 
     def is_valid_location_dest_id(self, location=None, location_ref=None):
@@ -196,3 +196,37 @@ class StockPicking(models.Model):
             ("state", "=", "assigned"),
         ]
         return self.search_count(domain) >= 1
+
+    def batch_to_user(self, user):
+        """
+        Assign the picking to a batch and assign a user to the batch.
+        Won't create a new batch if the picking already belongs to batch owned by the user
+        Will raise an exception if:
+            - The picking belongs to a batch and there is no user assigned to the batch
+            - The picking belongs to a batch and there is another user assigned to the batch
+            - The user already has other batches in progress
+        """
+
+        PickingBatch = self.env["stock.picking.batch"]
+
+        if self.batch_id:
+            if self.batch_id.user_id == user:
+                return True
+            else:
+                if not self.batch_id.user_id:
+                    raise ValidationError(
+                        _("Picking %s is already in an unassigned batch") % self.name
+                    )
+                else:
+                    raise ValidationError(
+                        _("Picking %s is in a batch owned by another user: %s")
+                        % (self.name, self.batch_id.user_id.name)
+                    )
+
+        if PickingBatch.get_user_batches(user.id):
+            raise ValidationError(_("You (%s) already have a batch in progess") % user.name)
+
+        if not self.batch_id:
+            batch = PickingBatch.create({"user_id": user.id, "u_ephemeral": True})
+            self.batch_id = batch.id
+            batch.mark_as_todo()

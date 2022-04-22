@@ -14,6 +14,9 @@
           <field name="u_allow_swapping_packages" />
           <field name="u_return_to_skipped" />
           <field name="u_drop_criterion" />
+          <field name="u_auto_batch_pallet" />
+          <field name="u_create_batch_for_user" />
+          <field name="u_assign_batch_to_user" />
         </group>
       </xpath>
     </field>
