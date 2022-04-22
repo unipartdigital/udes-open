@@ -652,7 +652,7 @@ class TestBatchAddRemoveWork(common.BaseUDES):
         super().setUpClass()
 
         User = cls.env["res.users"]
-        cls.outbound_user = User.create({"name": "Outbound User", "login": "out_log"})
+        cls.outbound_user = cls.env.user
 
         Batch = cls.env["stock.picking.batch"]
         Batch = Batch.with_user(cls.outbound_user)
@@ -879,16 +879,16 @@ class TestStockPickingBatch(common.BaseUDES):
         super(TestStockPickingBatch, cls).setUpClass()
         cls.pack_4apples_info = [{"product": cls.apple, "qty": 4}]
         User = cls.env["res.users"]
-        cls.outbound_user = User.create({"name": "Outbound User", "login": "out_log"})
+        cls.outbound_user = cls.env.user
 
     def setUp(self):
         super(TestStockPickingBatch, self).setUp()
         Package = self.env["stock.quant.package"]
 
-        self.package_one = Package.get_or_create("test_package_one", create=True)
-        self.package_two = Package.get_or_create("test_package_two", create=True)
-        self.package_three = Package.get_or_create("test_package_three", create=True)
-        self.package_four = Package.get_or_create("test_package_four", create=True)
+        self.package_one = self.create_package(name="00001")
+        self.package_two = self.create_package(name="00002")
+        self.package_three = self.create_package(name="00003")
+        self.package_four = self.create_package(name="00004")
 
     def test_get_single_batch_no_batch_no_picking(self):
         """Should not create anything if no picking exists"""
