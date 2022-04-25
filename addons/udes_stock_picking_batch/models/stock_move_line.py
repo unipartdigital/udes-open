@@ -1,10 +1,6 @@
-from collections import defaultdict
-from datetime import datetime
 import logging
 
-from odoo import models, fields, api, _
-from odoo.tools.float_utils import float_compare, float_round
-from odoo.osv import expression
+from odoo import models, _
 from odoo.exceptions import ValidationError
 
 _logger = logging.getLogger(__name__)
