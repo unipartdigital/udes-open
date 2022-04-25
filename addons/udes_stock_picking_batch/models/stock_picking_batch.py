@@ -60,16 +60,17 @@ class StockPickingBatch(models.Model):
     # Note: state field has been found to recompute itself everytime it was accessed even with store=True
     # lock_batch_state has been put in places to ensure correct behaviour.
     state = fields.Selection(
-        selection=[
-            ("draft", "Draft"),
+        selection_add=[
             ("waiting", "Waiting"),
             ("ready", "Ready"),
-            ("in_progress", "Running"),
-            ("done", "Done"),
-            ("cancel", "Cancelled"),
+            ("in_progress", "Running")
         ],
         compute="_compute_state",
         store=True,
+        ondelete={
+            "waiting": lambda spb: spb.write({"state": "draft"}),
+            "ready": lambda spb: spb.write({"state": "draft"})
+        },
     )
     picking_ids = fields.One2many(
         "stock.picking",
