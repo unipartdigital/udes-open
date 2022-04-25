@@ -10,9 +10,11 @@ class StockPicking(models.Model):
         comodel_name="stock.location.category",
         compute="_compute_location_category",
         string="Location Category",
-        help="Used to know which pickers have the right equipment to pick it. "
-             "In case multiple location categories are found in the picking it "
-             "will be empty.",
+        help=_(
+            "Used to know which pickers have the right equipment to pick it. "
+            "In case multiple location categories are found in the picking it "
+            "will be empty."
+        ),
         readonly=True,
         store=True,
     )
@@ -20,8 +22,10 @@ class StockPicking(models.Model):
         string="Reserved Pallet",
         index=True,
         copy=False,
-        help="If reserving pallets per picking is enabled, this field stores "
-             "the pallet reserved for this picking.",
+        help=_(
+            "If reserving pallets per picking is enabled, this field stores "
+            "the pallet reserved for this picking."
+        ),
     )
 
     @api.constrains("batch_id")
@@ -57,8 +61,25 @@ class StockPicking(models.Model):
         Recompute batch state. In theory this is not necessary
         but the constraint on state has not proven to work correctly.
         """
-        super(StockPicking, self).action_assign()
+        super().action_assign()
         self.batch_id._compute_state()
+
+    @api.model
+    def create(self, vals):
+        """
+        If we create a batch and assign it to a picking while we are creating a picking then the picking type of
+        the batch will not be set by Odoo14 stock_picking_batch module during picking creation because in the UI
+        you cannot create a batch while you create a picking, but you can only assign a picking later to a batch.
+        Solve the issue by setting the batch picking type here.
+        """
+        res = super().create(vals)
+        if vals.get("batch_id"):
+            if not res.batch_id.picking_type_id:
+                res.batch_id.picking_type_id = res.picking_type_id
+                # Call sanity check again because we changed the allowed picking types
+                # by assigning a picking type to the batch
+                res.batch_id._sanity_check()
+        return res
 
     def write(self, vals):
         """
@@ -67,10 +88,9 @@ class StockPicking(models.Model):
         we can't relate on the state after as batch_id might be
         removed during write.
         """
-
         if self.batch_id:
             self = self.with_context(orig_batches=self.batch_id)
-        return super(StockPicking, self).write(vals)
+        return super().write(vals)
 
     @api.depends("move_line_ids", "move_line_ids.location_id")
     def _compute_location_category(self):
