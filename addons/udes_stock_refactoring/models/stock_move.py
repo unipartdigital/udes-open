@@ -320,4 +320,4 @@ class StockMove(models.Model):
 
     def _get_picking_batch_domain(self):
         """Find existing draft batches. Returning with a method in order to be able to extend it."""
-        return [("state", "=", "draft"), ("picking_type_ids", "in", self.picking_type_id.ids)]
+        return [("state", "=", "draft"), ("picking_type_id", "in", self.picking_type_id.ids)]
