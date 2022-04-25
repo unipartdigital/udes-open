@@ -61,12 +61,12 @@ class StockPickingBatch(models.Model):
     # lock_batch_state has been put in places to ensure correct behaviour.
     state = fields.Selection(
         selection=[
-            ("draft", "Draft"),
-            ("waiting", "Waiting"),
-            ("ready", "Ready"),
-            ("in_progress", "Running"),
-            ("done", "Done"),
-            ("cancel", "Cancelled"),
+            ("draft", _("Draft")),
+            ("waiting", _("Waiting")),
+            ("ready", _("Ready")),
+            ("in_progress", _("Running")),
+            ("done", _("Done")),
+            ("cancel", _("Cancelled")),
         ],
         compute="_compute_state",
         store=True,
@@ -90,11 +90,11 @@ class StockPickingBatch(models.Model):
         ),
     )
     u_ephemeral = fields.Boolean(
-        string="Ephemeral", help=_("Ephemeral batches are unassigned if the user logs out.")
+        string=_("Ephemeral"), help=_("Ephemeral batches are unassigned if the user logs out.")
     )
     priority = fields.Selection(
         selection=PRIORITIES,
-        string="Priority",
+        string=_("Priority"),
         store=True,
         index=True,
         readonly=True,
@@ -102,7 +102,7 @@ class StockPickingBatch(models.Model):
         help=_("Priority of a batch is the maximum priority of its pickings."),
     )
     u_original_name = fields.Char(
-        string="Original batch name",
+        string=_("Original Batch Name"),
         default="",
         copy=True,
         required=False,

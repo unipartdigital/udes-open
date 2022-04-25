@@ -1,74 +1,86 @@
-from odoo import models, fields
+from odoo import models, fields, _
 
 
 class StockPickingType(models.Model):
     _inherit = "stock.picking.type"
 
     u_auto_assign_batch_pick = fields.Boolean(
-        string="Auto Assign Running Batch Picks",
-        help="Reserve automatically stock to picks when added to a running batch",
+        string=_("Auto Assign Running Batch Picks"),
+        help=_("Reserve automatically stock to picks when added to a running batch"),
         default=False,
     )
     u_remove_unready_batch = fields.Boolean(
-        string="Auto Remove Running Batch Unready Picks",
-        help="Remove automatically unready picks from a running batch when batch assigned or pick state changed",
+        string=_("Auto Remove Running Batch Unready Picks"),
+        help=_(
+            "Remove automatically unready picks from a running batch when batch assigned or pick state changed"
+        ),
         default=True,
     )
     u_use_location_categories = fields.Boolean(
-        string="Use Location Categories",
+        string=_("Use Location Categories"),
         default=False,
-        help="Flag to indicate whether to ask the user to select location "
-        "categories when starting the pick process. Location categories "
-        "are used to decide which pickings are suitable to the users.",
+        help=_(
+            "Flag to indicate whether to ask the user to select location "
+            "categories when starting the pick process. Location categories "
+            "are used to decide which pickings are suitable to the users."
+        ),
     )
     u_batch_dest_loc_not_allowed = fields.Boolean(
-        string="No Blocked Dest. Location Pickings",
+        string=_("No Blocked Dest. Location Pickings"),
         default=False,
-        help="When batch chooses picking it filter out pickings which has block destination "
-        "location. By default, block locations are allowed",
+        help=_(
+            "When batch chooses picking it filter out pickings which has block destination "
+            "location. By default, block locations are allowed"
+        ),
     )
     u_reserve_pallet_per_picking = fields.Boolean(
-        string="Reserve one pallet per picking",
+        string=_("Reserve One Pallet per Picking"),
         default=False,
-        help="If enabled, each picking in a batch will be associated with an individual pallet",
+        help=_("If enabled, each picking in a batch will be associated with an individual pallet"),
     )
     u_max_reservable_pallets = fields.Integer(
-        string="Maximum pallets that may be simultaneously reserved in a batch.",
+        string=_("Maximum Pallets That May Be Simultaneously Reserved in a Batch"),
         default=10,
-        help="This setting is only applied when u_reserve_pallet_per_picking is True",
+        help=_("This setting is only applied when u_reserve_pallet_per_picking is True"),
     )
-    u_allow_swapping_packages = fields.Boolean("Allow swapping packages")
+    u_allow_swapping_packages = fields.Boolean(string="Allow Swapping Packages", default=False)
     u_return_to_skipped = fields.Boolean(
-        string="Return to Skipped Items",
+        string=_("Return to Skipped Items"),
         default=False,
-        help="Flag to indicate if the skipped items will be returned to in the same batch.",
+        help=_("Flag to indicate if the skipped items will be returned to in the same batch."),
     )
     u_drop_criterion = fields.Selection(
         [
-            ("all", "Drop off everything in one location"),
-            ("by_products", "Group items by product"),
-            ("by_orders", "Group items by order"),
-            ("by_packages", "Drop off everything by package"),
+            ("all", _("Drop off everything in one location")),
+            ("by_products", _("Group Items by Product")),
+            ("by_orders", _("Group Items by Order")),
+            ("by_packages", _("Drop Off Everything by Package")),
         ],
         default="all",
-        string="Drop Off Criterion",
-        help="How to group items when dropping off.",
+        string=_("Drop Off Criterion"),
+        help=_("How to group items when dropping off."),
     )
     u_auto_batch_pallet = fields.Boolean(
-        string="Auto batch pallet",
+        string=_("Auto Batch Pallet"),
         default=False,
-        help="Flag to indicate whether picking type will automatically "
-        "create batches when the user scans the pallet",
+        help=_(
+            "Flag to indicate whether picking type will automatically "
+            "create batches when the user scans the pallet"
+        ),
     )
     u_create_batch_for_user = fields.Boolean(
-        string="Create batch for user",
+        string=_("Create Batch for User"),
         default=True,
-        help="Flag to indicate whether to create a new batch and assign it to "
-        "the user, if he does not have one already assigned.",
+        help=_(
+            "Flag to indicate whether to create a new batch and assign it to "
+            "the user, if he does not have one already assigned."
+        ),
     )
     u_assign_batch_to_user = fields.Boolean(
-        string="Assign batch to user",
+        string=_("Assign Batch to User"),
         default=False,
-        help='Flag to indicate whether to assign a "ready" batch to the '
-        "user, if he does not have one already assigned.",
+        help=_(
+            'Flag to indicate whether to assign a "ready" batch to the '
+            "user, if he does not have one already assigned."
+        ),
     )

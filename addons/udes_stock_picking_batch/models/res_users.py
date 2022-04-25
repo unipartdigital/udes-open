@@ -1,11 +1,12 @@
-from odoo import fields, models
+from odoo import fields, models, _
+from odoo.exceptions import ValidationError
 
 
 class ResUser(models.Model):
     _inherit = "res.users"
 
     u_location_category_ids = fields.Many2many(
-        comodel_name="stock.location.category", index=True, string="Location Category"
+        comodel_name="stock.location.category", index=True, string=_("Location Category")
     )
 
     def get_user_location_categories(self):

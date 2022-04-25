@@ -9,7 +9,7 @@ class StockPicking(models.Model):
     u_location_category_id = fields.Many2one(
         comodel_name="stock.location.category",
         compute="_compute_location_category",
-        string="Location Category",
+        string=_("Location Category"),
         help=_(
             "Used to know which pickers have the right equipment to pick it. "
             "In case multiple location categories are found in the picking it "
@@ -19,7 +19,7 @@ class StockPicking(models.Model):
         store=True,
     )
     u_reserved_pallet = fields.Char(
-        string="Reserved Pallet",
+        string=_("Reserved Pallet"),
         index=True,
         copy=False,
         help=_(
