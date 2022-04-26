@@ -364,12 +364,28 @@ class StockPicking(models.Model):
         )
         return bk_picking
 
-    def _requires_backorder(self, mls):
-        """Checks if a backorder is required by checking if all move lines
-        within a picking are present in mls
+    def _requires_backorder(self, mls=None):
+        """
+        Checks if a backorder is required.
+        If mls is None:
+            checks if all move lines have the qty_done = total move qty  (excluding cancelled)
+        If mls is not None:
+            checks if all move lines within a picking are present in mls
         Cannot be consolidated with _check_backorder in Odoo core, because it
         does not take into account any move lines parameter.
+
+        TODO: See Issue 1797 on update_orig_ids
+
+        :kwargs:
+            - mls: A record set of move lines, default None.
+        :returns: bool
         """
+        # If the mls arg is not passed check the whole picking in self
+        if mls is None:
+            mls = self.move_line_ids
+            moves = self.move_lines.filtered(lambda mv: mv.state != "cancel")
+            return sum(moves.mapped("product_uom_qty")) != sum(mls.mapped("qty_done"))
+
         mls_moves = mls.move_id
         for move in self.move_lines:
             if (
