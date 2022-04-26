@@ -238,3 +238,12 @@ class StockMove(models.Model):
             (new_move | self).update_orig_ids(self.move_orig_ids)
 
         return new_move
+
+    def update_orig_ids(self, origin_ids):
+        """ Updates move_orig_ids based on a given set of
+            origin_ids for moves in self by finding the ones
+            relevant to the current moves.
+
+        TODO: To be added/removed/updated from Issue: 1797
+        """
+        pass
