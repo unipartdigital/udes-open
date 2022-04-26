@@ -1,47 +1,13 @@
+import logging
+from itertools import chain
+
 from odoo import models, fields, _, api
 from odoo.exceptions import UserError, ValidationError
-from itertools import chain
 from .common import PRIORITIES
-import re
-import logging
+from odoo.addons.udes_stock.models.common import get_next_name
 
 _logger = logging.getLogger(__name__)
 
-
-def get_next_name(obj, code):
-    """
-    Get the next name for an object.
-    For when we want to create an object whose name links back to a previous
-    object.  For example BATCH/00001-02.
-    Assumes original names are of the form `r".*\d+"`.
-    Arguments:
-        obj - the source object for the name
-        code - the code for the object's model in the ir_sequence table
-    Returns:
-        The generated name, a string.
-    """
-    IrSequence = obj.env["ir.sequence"]
-
-    # Get the sequence for the object type.
-    obj.check_access_rights("read")
-    force_company = obj._context.get("force_company")
-    if not force_company:
-        force_company = obj.env.user.company_id.id
-    ir_sequence = IrSequence.next_by_code(code, force_company)
-
-    # Name pattern for continuation object.
-    # Is two digits enough?
-    name_pattern = r"({}\d+)-(\d{{2}})".format(re.search("^(\D*)", ir_sequence).groups()[0])
-
-    match = re.match(name_pattern, obj.name)
-    if match:
-        root = match.group(1)
-        new_sequence = int(match.group(2)) + 1
-    else:
-        # This must be the original object.
-        root = obj.name
-        new_sequence = 1
-    return "{}-{:0>2}".format(root, new_sequence)
 
 
 class StockPickingBatch(models.Model):

@@ -830,7 +830,7 @@ class TestContinuationBatchProcessing(common.BaseUDES):
         )
         batch.state = "in_progress"
         batch.close()
-        self.assertRegex(picking.batch_id.name, r"BATCH/\d+-01")
+        self.assertRegex(picking.batch_id.name, r"BATCH/\d+-001")
 
     def test_increments_sequence_for_continuation_batch(self):
         self.create_quant(
@@ -851,7 +851,7 @@ class TestContinuationBatchProcessing(common.BaseUDES):
         batch01.close()
         batch02 = picking.batch_id
         batch02.close()
-        self.assertRegex(picking.batch_id.name, r"BATCH/\d+-02")
+        self.assertRegex(picking.batch_id.name, r"BATCH/\d+-002")
 
     def test_sets_original_name(self):
         self.create_quant(
@@ -870,6 +870,7 @@ class TestContinuationBatchProcessing(common.BaseUDES):
         )
         batch.state = "in_progress"
         batch.close()
+        self.assertRegex(picking.batch_id.name, r"BATCH/\d+-001")
         self.assertEqual(picking.batch_id.u_original_name, batch.name)
 
 
