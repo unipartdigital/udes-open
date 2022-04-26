@@ -709,16 +709,13 @@ class TestBatchAddRemoveWork(common.BaseUDES):
                     "location_dest_id": cls.test_goodsout_location_01.id,
                 })
                 
-    
-
     def test_add_extra_pickings(self):
         """ Ensure that add extra picking adds pickings correctly"""
 
         batch = self.batch
 
         # We only have one picking at the moment
-        self.assertEqual(len(batch.picking_ids), 1)
-        self.assertEqual(batch.picking_ids[0].name, "pickingone")
+        self.assertEqual(batch.picking_ids, self.picking)
 
         # Add extra pickings
         batch.add_extra_pickings(self.picking_type_pick.id)
@@ -728,14 +725,13 @@ class TestBatchAddRemoveWork(common.BaseUDES):
 
         # Check that we now have three pickings including "pickingfour" and "pickingtwo"
         self.assertEqual(len(batch.picking_ids), 3)
-        self.assertIn("pickingfour", batch.mapped("picking_ids.name"))
-        self.assertIn("pickingtwo", batch.mapped("picking_ids.name"))
+        self.assertEqual(batch.picking_ids, self.picking | self.picking2 | self.picking4)
 
         # Should be no more work now, check error is raised
         with self.assertRaises(ValidationError) as err:
             batch.add_extra_pickings(self.picking_type_pick.id)
 
-    def test_test_remove_unfinished_work(self):
+    def test_remove_unfinished_work(self):
         """Ensure that remove unfinished work removes picks
         and backorders moves correctly"""
 
@@ -747,13 +743,13 @@ class TestBatchAddRemoveWork(common.BaseUDES):
         pickings = picking2 + picking4
         pickings.write({"batch_id": batch.id})
 
-        # We have three pickings in this batch now
-        self.assertEqual(len(batch.picking_ids), 3)
+        # We have all three pickings in the batch now
+        self.assertEqual(batch.picking_ids, picking | pickings)
 
         # Complete pick2
         self.complete_pick(picking2)
 
-        # semi complete pick3
+        # Partially complete pick3
         picking4.move_lines[0].write(
             {
                 "quantity_done": 2,
@@ -771,14 +767,19 @@ class TestBatchAddRemoveWork(common.BaseUDES):
         # Pickings with incomplete work are removed, complete pickings remain
         self.assertFalse(picking.batch_id)
         self.assertEqual(picking2.batch_id, batch)
-        self.assertFalse(picking4.batch_id)
+        self.assertEqual(picking4.batch_id, batch)
+
+        # Check that the remaining work has been made into a backorder
+        self.assertTrue(picking4.u_created_backorder_ids)
+        backorder = picking4.u_created_backorder_ids
+        self.assertEqual(backorder.move_line_ids.product_id, self.banana)
+        self.assertEqual(backorder.move_line_ids.product_uom_qty, 4)
 
         # Ensure both done moves remain in batch
         self.assertEqual(done_moves.mapped("picking_id.batch_id"), batch)
 
         # Ensure incomplete moves are in pickings that are not in batches
         self.assertFalse(incomplete_moves.mapped("picking_id.batch_id"))
-
 
 class TestContinuationBatchProcessing(common.BaseUDES):
     @classmethod
