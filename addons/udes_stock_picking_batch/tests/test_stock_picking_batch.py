@@ -257,9 +257,10 @@ class TestBatchMultiDropOff(common.BaseUDES):
         for line in picking.move_line_ids:
             line.write({"qty_done": line.product_uom_qty})
 
-    def _create_bacthed_pickings(self, products_info=None):
+    def _create_bacthed_picking(self, products_info=None):
         """Create a picking in a batch"""
         Batch = self.env["stock.picking.batch"]
+        Batch = Batch.with_user(self.outbound_user)
 
         if products_info is None:
             products_info = self.pack_2prods_info
@@ -282,14 +283,11 @@ class TestBatchMultiDropOff(common.BaseUDES):
         Test that when pick everything in a batch, and then drop off in steps
         the work correctly gets backordered.
         """
-
         MoveLine = self.env["stock.move.line"]
-        Batch = self.env["stock.picking.batch"]
-        Batch = Batch.with_user(self.outbound_user)
 
         self.picking_type_pick.u_drop_criterion = "by_products"
         out_location = self.test_goodsout_location_01.barcode
-        batch = self._create_bacthed_pickings(
+        batch = self._create_bacthed_picking(
             products_info=self.pack_2prods_info + [{"product": self.cherry, "uom_qty": 4}]
         )
         picking = batch.picking_ids
@@ -401,17 +399,12 @@ class TestBatchMultiDropOff(common.BaseUDES):
     def test_next_drop_off_by_products(self):
         """ Test next drop off criterion by products """
         MoveLine = self.env["stock.move.line"]
-        Batch = self.env["stock.picking.batch"]
-        Batch = Batch.with_user(self.outbound_user)
 
         self.picking_type_pick.u_drop_criterion = "by_products"
         out_location = self.test_goodsout_location_01.barcode
         # Create quants and picking for one order and two products
-        self.create_quant(self.apple.id, self.test_stock_location_01.id, 4)
-        self.create_quant(self.banana.id, self.test_stock_location_02.id, 4)
-        picking = self.create_picking(
-            self.picking_type_pick, products_info=self.pack_2prods_info, assign=True
-        )
+        batch = self._create_bacthed_picking()
+        picking = batch.picking_ids
         moves = picking.move_lines
         mls = picking.move_line_ids
         apple_ml = mls.filtered(lambda ml: ml.product_id == self.apple)
@@ -420,9 +413,6 @@ class TestBatchMultiDropOff(common.BaseUDES):
         banana_mv = banana_ml.move_id
         self.assertEqual(len(moves), 2)
 
-        # Create batch for outbound user
-        priority = picking.priority
-        batch = Batch.create_batch(self.picking_type_pick.id, [priority])
         # Mark all move lines to done
         self.complete_pick(picking)
         # Get next drop off info for apples
@@ -595,20 +585,12 @@ class TestBatchMultiDropOff(common.BaseUDES):
     def test_next_drop_off_nothing_to_drop(self):
         """ Test next drop off criterion by products but nothing to drop """
         MoveLine = self.env["stock.move.line"]
-        Batch = self.env["stock.picking.batch"]
-        Batch = Batch.with_user(self.outbound_user)
 
         self.picking_type_pick.u_drop_criterion = "by_products"
 
         # Create quants and picking for one order and two products
-        self.create_quant(self.apple.id, self.test_stock_location_01.id, 4)
-        self.create_quant(self.banana.id, self.test_stock_location_02.id, 4)
-        picking = self.create_picking(
-            self.picking_type_pick, products_info=self.pack_2prods_info, confirm=True, assign=True
-        )
-        # Create batch for outbound user
-        priority = picking.priority
-        batch = Batch.create_batch(self.picking_type_pick.id, [priority])
+        batch = self._create_bacthed_picking()
+        picking = batch.picking_ids
 
         # Get next drop off info for apples when nothing has been picked
         info = batch.get_next_drop_off(self.apple.barcode)
