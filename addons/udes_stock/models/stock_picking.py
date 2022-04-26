@@ -278,7 +278,43 @@ class StockPicking(models.Model):
             domain += aux_domain
         return StockMoveLine.get_move_lines_ordered_by(domain=domain, order=order)
 
-    def _backorder_move_lines(self):
+    def _check_backorder_allowed(self, mls_to_keep, moves_to_move):
+        """
+        Assert that a backorder is allowed to be generated from self
+        provided the subset of mls to move.
+        Asserts that:
+            * All moves being moved cannot be cancelled or done
+            * All mls to retain must either be done or cancelled if any mls are being moved
+            that have qty_done > 0.
+        
+        The latter condition is to ensure we do not place work done into
+        a backorder and validate it whilst leaving the remaining work incomplete in the
+        original picking. It does not restrict a user from essentially splitting a picking up,
+        provided either:
+            * The mls (and corresponding moves) being moved do not have the qty_done set
+            * All the mls being retained have qty_done == product_uom_qty if any mls being
+            moved have qty_done > 0.
+        """
+        self.ensure_one()
+
+        # Only look at moving out incomplete moves from the picking
+        incomplete_moves = self.move_lines.filtered(lambda mv: mv.state not in ("done", "cancel"))
+
+        if moves_to_move.filtered(lambda mv: mv.state in ("done", "cancel")):
+            raise ValidationError(_("You cannot move completed or cancelled moves to a backorder!"))
+
+        # Ensure that if we are moving done mls, all the mls_to_keep are also done
+        if (
+            mls_to_keep.get_lines_incomplete()
+            and (incomplete_moves.move_line_ids - mls_to_keep).get_lines_done()
+        ):
+            raise ValidationError(
+                _(
+                    "You cannot create a backorder for done move lines whilst retaining incomplete ones"
+                )
+            )
+
+    def _backorder_move_lines(self, mls_to_keep=None):
         """
         Create a backorder picking from self (expects a singleton)
         for all move lines not complete (and un-confirmed moves).
@@ -292,8 +328,9 @@ class StockPicking(models.Model):
         :returns: The created backorder
             If nothing to backorder (nothing done) returns an empty record set
         :raises:
-            ValidationError: Nothing to backorder, quantity_done for all moves is zero
             ValidationError: Move line exists with qty_done < product_uom_qty
+            ValidationError: Backorder not allowed, retaining incomplete work
+                whilst moving done work.
 
         NOTE: The current picking (self) is not yet complete until action_done
         is called. This is because the use case of this is not well defined,
@@ -301,11 +338,6 @@ class StockPicking(models.Model):
         One example may be because we want to call this on a sequence of move
         lines and propogate them through then call _action_done sequentially
         on the chain of pickings.
-        NOTE: Previous iterations have allowed the passing of a subset of move lines.
-        This is currently been removed because it creates an immediate backorder,
-        future iterations may want to move a subset of incomplete lines into a backorder,
-        when doing this the naming convention should be considered. The path becomes
-        a tree!
         """
         Picking = self.env["stock.picking"]
         Move = self.env["stock.move"]
@@ -313,44 +345,39 @@ class StockPicking(models.Model):
         # Based on backorder creation in stock_move._action_done
         self.ensure_one()
 
-        moves = self.move_lines
-        mls = self.move_line_ids
+        # Only look at moving out incomplete moves from the picking
+        # TODO: This should probably be a method in stock_move
+        incomplete_moves = self.move_lines.filtered(lambda mv: mv.state not in ("done", "cancel"))
 
-        # Return if nothing has ben done yet
-        if all(mv.quantity_done == 0 for mv in moves):
-            _logger.info(
-                "Nothing to backorder in picking %s, original picking retained!" % self.name
-            )
-            return Picking.browse()
+        # Check the state of self is allowed
+        incomplete_moves.check_move_lines_not_partially_fulfilled()
 
-        # Get the relevant moves, which are not fully fulfilled
-        unfulfilled_moves = moves.filtered(
-            lambda mv: sum(mv.move_line_ids.mapped("qty_done")) < mv.product_uom_qty
-        )
-
-        # Raise an error if:
-        # * there are moves or move lines that are not fully fulfilled so we can backorder
-        # something.
-        # * if move lines need splitting
-        if not unfulfilled_moves:
-            raise ValidationError(
-                _("There are no move lines within picking %s to backorder") % self.name
-            )
-        elif mls and any(ml.qty_done != 0 and ml.qty_done < ml.product_uom_qty for ml in mls):
-            raise ValidationError(
-                _("You cannot create a backorder for %s with a move line qty less than expected!")
-                % self.name
-            )
-
-        # Iterate over the moves not fulfilled, and split out recording the newly created moves
+        # Create a record for the moves to be moved into the backorder
         new_moves = Move.browse()
-        for move in unfulfilled_moves:
-            new_moves |= move.split_out_incomplete_move()
 
-        # Create picking for completed move
-        bk_picking = self._create_backorder_picking(new_moves)
+        # Determine the mls to keep if not provided
+        if not mls_to_keep:
+            mls_to_keep = incomplete_moves.move_line_ids.get_lines_done()
 
-        return bk_picking
+        # If any moves are untouched by mls_to_keep add them directly to new_moves
+        touched_moves = mls_to_keep.mapped("move_id")
+        untouched_moves = incomplete_moves - touched_moves
+        new_moves |= untouched_moves
+
+        # Check a backorder is allowed, we don't want to move work completed out, if
+        # the original picking is not done.
+        self._check_backorder_allowed(mls_to_keep, untouched_moves)
+
+        for move in touched_moves.get_uncovered_moves(mls_to_keep):
+            rel_mls = mls_to_keep & move.move_line_ids
+            new_moves |= move.split_out_move(mls_to_keep=rel_mls)
+
+        # Create backorder picking for remaining moves and return
+        if new_moves:
+            return self._create_backorder_picking(new_moves)
+
+        # If no bakcorder return an empty record set
+        return Picking.browse()
 
     def _create_backorder_picking(self, moves):
         """Helper to create a backorder picking from the given moves"""
