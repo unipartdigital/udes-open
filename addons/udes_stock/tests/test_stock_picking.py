@@ -183,9 +183,61 @@ class TestStockPickingBackordering(TestStockPickingCommon):
         old_moves = Move.search([("id", "in", moves.ids)])
         self.assertEqual(old_moves, moves)
 
-    def test_backorder_move_lines_raises_exception_when_qty_done_in_ml_less_than_product_uom_qty(
-        self,
-    ):
+    def test_check_backorder_allowed_raises_error_when_moving_cancelled_work(self):
+        """Test that an eror is raised when cancelled moves are moved into a new backorder"""
+        pick = self.create_picking(
+            picking_type=self.picking_type_goods_in,
+            products_info=[{"product": self.apple, "uom_qty": 50}, {"product": self.fig, "uom_qty": 50}],
+            assign=True,
+        )
+        moves  = pick.move_lines
+        mls = pick.move_line_ids
+        # Cancel the apple_mv
+        apple_mv = moves.filtered(lambda mv: mv.product_id == self.apple)
+        apple_ml = apple_mv.move_line_ids
+        self.assertTrue(apple_mv)
+        self.assertTrue(apple_ml)
+
+        apple_mv._action_cancel()
+        self.assertEqual(apple_mv.state, "cancel")
+
+        # Try and move the cancelled move into a backorder
+        with self.assertRaises(ValidationError) as e, mute_logger("odoo.sql_db"):
+            pick._check_backorder_allowed(mls - apple_ml, apple_mv)
+
+        # Check the error is as expected
+        self.assertEqual(
+            e.exception.args[0],
+            "You cannot move completed or cancelled moves to a backorder!"
+        )
+
+    def test__check_backorder_allowed_raises_error_when_moving_done_work_and_leaving_incomplete_work(self):
+        """Test that an eror is raised when scanned moves are moved into a new backorder,
+        and the current picking has incomplete work.
+        """
+        pick = self.create_picking(
+            picking_type=self.picking_type_goods_in,
+            products_info=[{"product": self.apple, "uom_qty": 50}, {"product": self.fig, "uom_qty": 50}],
+            assign=True,
+        )
+        moves  = pick.move_lines
+        mls = pick.move_line_ids
+        # Scan the apple ml
+        apple_mv = moves.filtered(lambda mv: mv.product_id == self.apple)
+        apple_ml = apple_mv.move_line_ids
+        apple_ml.qty_done = apple_ml.product_uom_qty 
+
+        # Try and move the cancelled move into a backorder
+        with self.assertRaises(ValidationError) as e, mute_logger("odoo.sql_db"):
+            pick._check_backorder_allowed(mls - apple_ml, apple_mv)
+
+        # Check the error is as expected
+        self.assertEqual(
+            e.exception.args[0],
+            "You cannot create a backorder for done move lines whilst retaining incomplete ones"
+        )
+
+    def test_backorder_move_lines_raises_exception_when_qty_done_in_ml_partially_complete(self,):
         """
         When trying to create a backorder with a move line of qty_done < product_uom_qty an
         error is raised.
@@ -196,36 +248,26 @@ class TestStockPickingBackordering(TestStockPickingCommon):
             products_info=[{"product": self.fig, "uom_qty": 50}],
             assign=True,
         )
-        pick.move_line_ids.qty_done = 10
-        with self.assertRaises(ValidationError) as e, mute_logger("odoo.sql_db"):
-            pick._backorder_move_lines()
+        ml = pick.move_line_ids
+        ml.qty_done = 10
 
-        # Check the error is as expected
-        self.assertEqual(
-            e.exception.args[0],
-            "You cannot create a backorder for %s with a move line qty less than expected!"
-            % pick.name,
-        )
+        # Run the test with and without mls
+        for move_line in [None, ml]:
+            with self.subTest(pass_mls=bool(move_line)), self.assertRaises(ValidationError) as e, mute_logger("odoo.sql_db"):
+                pick._backorder_move_lines(mls_to_keep=move_line)
 
-    def test_backorder_move_lines_returns_self_when_nothing_done(self):
-        """
-        When trying to create a backorder with no lines yet complete check it returns
-        an empty record set.
-        """
-        self.create_quant(self.fig.id, self.test_stock_location_02.id, 50)
-        pick = self.create_picking(
-            picking_type=self.picking_type_pick,
-            products_info=[{"product": self.fig, "uom_qty": 50}],
-            assign=True,
-        )
-        bk_picking = pick._backorder_move_lines()
-        self.assertFalse(bk_picking)
+                # Check the error is as expected
+                self.assertEqual(
+                    e.exception.args[0],
+                    "You cannot create a backorder with partially fulfilled move lines!",
+                )
 
-    def test_backorder_move_lines_raises_exception_when_nothing_to_backorder(self):
+    def test_backorder_move_lines_returns_empty_record_when_mls_cover_moves_and_everything_done(
+        self
+    ):
         """
-        When trying to create a backorder with no lines left to do ensure
-        the ValidationError is correctly raised. Everything has been fulfilled,
-        should just validate the picking.
+        Test when we try to backorder all the mls, with qty_done that covers the move, an
+        empty record set is returned.
         """
         self.create_quant(self.fig.id, self.test_stock_location_02.id, 50)
         pick = self.create_picking(
@@ -233,15 +275,12 @@ class TestStockPickingBackordering(TestStockPickingCommon):
             products_info=[{"product": self.fig, "uom_qty": 50}],
             assign=True,
         )
-        pick.move_line_ids.qty_done = 50
-        with self.assertRaises(ValidationError) as e, mute_logger("odoo.sql_db"):
-            pick._backorder_move_lines()
-
-        # Check the error is as expected
-        self.assertEqual(
-            e.exception.args[0],
-            "There are no move lines within picking %s to backorder" % pick.name,
-        )
+        ml = pick.move_line_ids
+        ml.qty_done = ml.product_uom_qty
+        for move_line in [ml, None]:
+            with self.subTest(mls_passed=bool(move_line)):
+                bk_pick = pick._backorder_move_lines(ml)
+                self.assertFalse(bk_pick, pick)
 
     def test_backorder_move_lines_when_complete_and_incomplete_mls(self):
         """
@@ -284,7 +323,7 @@ class TestStockPickingBackordering(TestStockPickingCommon):
         # Backorder move lines
         bk_picking = pick._backorder_move_lines()
 
-        # Check the original picking and that the orignal move lines exist
+        # Check the original picking and that the original move lines exist
         # and belong to the original picking.
         self.assertEqual(pick.state, "assigned")
         self.assertTrue(apple_ml)
@@ -306,7 +345,7 @@ class TestStockPickingBackordering(TestStockPickingCommon):
         # Check the naming convention holds
         self.assertEqual(bk_picking.name, f"{pick.name}-001")
 
-    def test_backorder_move_lines_propogates_partially_avilable_moves(self):
+    def test_backorder_move_lines_propagates_partially_available_moves(self):
         """
         Check when we backorder a picking where the move lines are fully completed,
         but the move is not, the backorder gets created for the remainder of the move.
@@ -326,7 +365,7 @@ class TestStockPickingBackordering(TestStockPickingCommon):
         self.assertEqual(fig_ml.qty_done, 5)
         bk_picking = pick._backorder_move_lines()
 
-        # Check original pick after backordering, the incoplete moves have been moved out
+        # Check original pick after backordering, the incomplete moves have been moved out
         # but the move line remains.
         self.assertEqual(pick.move_lines.state, "assigned")
         self.assertEqual(pick.move_lines, fig_mv)
@@ -352,15 +391,13 @@ class TestStockPickingBackordering(TestStockPickingCommon):
 
         Setup:
             Pick:
-                * fig: 20, 5 reserved, 3 done
-                * banana: 10, 5 reserved, 0 done
+                * banana: 13, 7 reserved, 3 done
 
         Expect:
         Original Pick:
-            * fig: 3, 3 reserved, 3 done
+            * banana: 3, 3 reserved, 3 done
         Backorder Pick:
-            * fig: 17, 2 reserved, 0 done
-            * banana: 10, 5 reserved, 0 done
+            * banana: 10, 4 reserved, 0 done
         """
         self.create_quant(self.banana.id, self.test_stock_location_01.id, 3)
         self.create_quant(self.banana.id, self.test_stock_location_02.id, 4)
@@ -380,7 +417,7 @@ class TestStockPickingBackordering(TestStockPickingCommon):
         # Do backordering
         bk_picking = pick._backorder_move_lines()
 
-        # Check original pick after backordering, the incoplete moves have been moved out
+        # Check original pick after backordering, the incomplete moves have been moved out
         updated_moves = pick.move_lines
         updated_mls = pick.move_line_ids
         self.assertEqual(updated_mls.state, "assigned")
@@ -403,6 +440,353 @@ class TestStockPickingBackordering(TestStockPickingCommon):
         self.assertEqual(bk_moves.product_uom_qty, 10)
         self.assertEqual(bk_mls.qty_done, 0)
         self.assertEqual(bk_mls.product_uom_qty, 4)
+
+    def test_backorder_move_lines_works_for_partially_fulfilled_and_available_moves(self):
+        """
+        Check when we backorder a picking with some moves fulfilled, partially fulfilled
+        and not fulfilled, the backorder and original picking are as expected.
+
+        Setup:
+            Pick:
+                * apple: 4, 4 reserved, 4 done
+                * banana: 13, 7 reserved, 3 done
+                * cherry: 8, 4 reserved, 0 done
+                * damson: 2, 2 reserved, 0 done
+
+        Expect:
+        Original Pick:
+            * apple: 4, 4 reserved, 4 done
+            * banana: 3, 3 reserved, 3 done
+        Backorder Pick:
+            * banana: 10, 4 reserved, 0 done
+            * cherry: 8, 4 reserved, 0 done
+            * damson: 2, 2 reserved, 0 done
+        """
+        self.create_quant(self.apple.id, self.test_stock_location_01.id, 4)
+        self.create_quant(self.banana.id, self.test_stock_location_01.id, 3)
+        self.create_quant(self.banana.id, self.test_stock_location_02.id, 4)
+        self.create_quant(self.cherry.id, self.test_stock_location_03.id, 4)
+        self.create_quant(self.damson.id, self.test_stock_location_04.id, 2)
+        pick = self.create_picking(
+            picking_type=self.picking_type_pick,
+            products_info=[
+                {"product": self.apple, "uom_qty": 4},
+                {"product": self.banana, "uom_qty": 13},
+                {"product": self.cherry, "uom_qty": 8},
+                {"product": self.damson, "uom_qty": 2},
+            ],
+            assign=True,
+        )
+        moves = pick.move_lines
+        mls = pick.move_line_ids
+        self.assertEqual(len(moves), 4)
+        self.assertEqual(len(mls), 5)
+
+        # Fulfill the apple ml
+        apple_mv = moves.filtered(lambda mv: mv.product_id == self.apple)
+        apple_ml = apple_mv.move_line_ids
+        apple_ml.qty_done = apple_ml.product_uom_qty
+
+        # Fulfill one banana move line
+        banana_mv = moves.filtered(lambda mv: mv.product_id == self.banana)
+        banana_mls = banana_mv.move_line_ids
+        banana_3ml = banana_mls.filtered(lambda ml: ml.product_uom_qty == 3)
+        banana_4ml = banana_mls.filtered(lambda ml: ml.product_uom_qty == 4)
+        banana_3ml.qty_done = banana_3ml.product_uom_qty
+
+        # Do nothing with the cherries
+        cherry_mv = moves.filtered(lambda mv: mv.product_id == self.cherry)
+        cherry_ml = cherry_mv.move_line_ids
+
+        # Do nothing with the damsons
+        damson_mv = moves.filtered(lambda mv: mv.product_id == self.damson)
+        damson_ml = damson_mv.move_line_ids
+
+        # Do backordering
+        bk_picking = pick._backorder_move_lines()
+
+        # Check original pick after backordering, the incomplete moves have been moved out
+        updated_moves = pick.move_lines
+        updated_mls = pick.move_line_ids
+        for ml in updated_mls:
+            with self.subTest(product=ml.product_id.name):
+                self.assertEqual(ml.state, "assigned")
+        self.assertEqual(updated_moves, banana_mv | apple_mv)
+        self.assertEqual(updated_mls, banana_3ml | apple_ml)
+        # Sanity check
+        self.assertCountEqual(updated_moves.mapped("quantity_done"), [3, 4])
+        self.assertCountEqual(updated_moves.mapped("product_uom_qty"), [3, 4])
+        self.assertCountEqual(updated_mls.mapped("qty_done"), [3, 4])
+        self.assertCountEqual(updated_mls.mapped("product_uom_qty"), [3, 4])
+
+        # Check backorder pick
+        self.assertEqual(pick, bk_picking.backorder_id)
+        bk_moves = bk_picking.move_lines
+        bk_mls = bk_picking.move_line_ids
+        self.assertIn(damson_mv, bk_moves)
+
+        # Test only the damson move is in the backordered moves
+        self.assertEqual(damson_mv | cherry_mv, bk_moves & moves)
+        self.assertEqual(damson_mv.state, "assigned")
+
+        # Test the new moves
+        for move in bk_moves - damson_mv:
+            with self.subTest(product=move.product_id.name):
+                self.assertEqual(move.state, "partially_available")
+
+        # The move lines should have been preserved
+        self.assertEqual(bk_mls, cherry_ml | banana_4ml | damson_ml)
+        # Sanity check
+        self.assertEqual(sum(bk_moves.mapped("quantity_done")), 0)
+        self.assertEqual(sum(bk_moves.mapped("product_uom_qty")), 20)
+        self.assertEqual(sum(bk_mls.mapped("qty_done")), 0)
+        self.assertEqual(sum(bk_mls.mapped("product_uom_qty")), 10)
+
+    def test_backorder_move_lines_returns_empty_record_when_mls_cover_moves_and_nothing_done(self):
+        """
+        When trying to create a backorder via _backorder_move_lines, if the mls cover the move
+        and the qty_done = 0, then it returns an empty record set.
+        """
+        self.create_quant(self.fig.id, self.test_stock_location_02.id, 50)
+        pick = self.create_picking(
+            picking_type=self.picking_type_pick,
+            products_info=[{"product": self.fig, "uom_qty": 50}],
+            assign=True,
+        )
+        ml = pick.move_line_ids
+        bk_pick = pick._backorder_move_lines(ml)
+        self.assertFalse(bk_pick)
+
+    def test_backorder_move_lines_creates_backorder_when_mls_do_not_cover_moves(self):
+        """
+        When trying to create a backorder via _backorder_move_lines, if the mls do not
+        cover the moves, then keep the mls in the original picking and place the rest
+        into the backorder.
+        """
+        self.create_quant(self.fig.id, self.test_stock_location_02.id, 50)
+        pick = self.create_picking(
+            picking_type=self.picking_type_pick,
+            products_info=[{"product": self.fig, "uom_qty": 100}],
+            assign=True,
+        )
+        move = pick.move_lines
+        ml = pick.move_line_ids
+        bk_picking = pick._backorder_move_lines(ml)
+
+        # Check the original picking just retains the available move line
+        self.assertEqual(pick.move_lines, move)
+        self.assertEqual(pick.move_lines.product_uom_qty, 50)
+        self.assertEqual(pick.move_line_ids, ml)
+        self.assertEqual(pick.move_line_ids.product_uom_qty, 50)
+
+        # Check the backorder picking has the unavailable quantity
+        self.assertTrue(bk_picking)
+        self.assertEqual(bk_picking.state, "confirmed")
+        self.assertEqual(bk_picking.move_lines.product_uom_qty, 50)
+        self.assertFalse(bk_picking.move_line_ids)
+
+
+    def test_backorder_move_lines_retains_all_mls_in_picking(self):
+        """
+        Check when we backorder a picking with a single move and multiple move
+        lines, we can reatain a particular subset.
+
+        Setup:
+            Pick:
+                * banana: 13, 7 reserved, 7 done
+
+        Expect:
+        Original Pick:
+            * banana: 3, 3 reserved, 3 done
+        Backorder Pick:
+            * banana: 10, 4 reserved, 0 done
+        """
+        self.create_quant(self.banana.id, self.test_stock_location_01.id, 3)
+        self.create_quant(self.banana.id, self.test_stock_location_02.id, 4)
+        pick = self.create_picking(
+            picking_type=self.picking_type_pick,
+            products_info=[{"product": self.banana, "uom_qty": 13}],
+            assign=True,
+        )
+        moves = pick.move_lines
+        mls = pick.move_line_ids
+        self.assertEqual(len(moves), 1)
+        self.assertEqual(len(mls), 2)
+
+        # Fulfill both banana mls, retain the one with qty 3
+        banana_mv = moves.filtered(lambda mv: mv.product_id == self.banana)
+        banana_mls = banana_mv.move_line_ids
+        banana_3ml = banana_mls.filtered(lambda ml: ml.product_uom_qty == 3)
+        banana_4ml = banana_mls.filtered(lambda ml: ml.product_uom_qty == 4)
+        banana_3ml.qty_done = banana_3ml.product_uom_qty
+        banana_4ml.qty_done = banana_4ml.product_uom_qty
+
+        # Do backordering
+        bk_picking = pick._backorder_move_lines(banana_3ml)
+
+        # Check original pick after backordering, the incomplete moves have been moved out
+        updated_move = pick.move_lines
+        updated_ml = pick.move_line_ids
+        self.assertEqual(updated_ml.state, "assigned")
+        self.assertEqual(updated_move, banana_mv)
+        self.assertEqual(updated_ml, banana_3ml)
+        # Sanity check
+        self.assertEqual(updated_move.quantity_done, 3)
+        self.assertEqual(updated_move.product_uom_qty, 3)
+        self.assertEqual(updated_ml.qty_done, 3)
+        self.assertEqual(updated_ml.product_uom_qty, 3)
+
+        # Check backorder pick
+        self.assertEqual(pick, bk_picking.backorder_id)
+        bk_move = bk_picking.move_lines
+        bk_ml = bk_picking.move_line_ids
+        self.assertNotIn(banana_mv, bk_move)
+        self.assertEqual(banana_4ml, bk_ml)
+        self.assertEqual(bk_move.state, "partially_available")
+
+        # Sanity check
+        self.assertEqual(bk_move.quantity_done, 4)
+        self.assertEqual(bk_move.product_uom_qty, 10)
+        self.assertEqual(bk_ml.qty_done, 4)
+        self.assertEqual(bk_ml.product_uom_qty, 4)
+
+    def test_backorder_move_lines_raises_error_when_retained_mls_not_done_but_others_are(self):
+        """
+        Check when we backorder a picking trying to retain mls not yet complete, it raises an
+        error if other mls are.
+        """
+        self.create_quant(self.banana.id, self.test_stock_location_01.id, 3)
+        self.create_quant(self.banana.id, self.test_stock_location_02.id, 4)
+        pick = self.create_picking(
+            picking_type=self.picking_type_pick,
+            products_info=[{"product": self.banana, "uom_qty": 13}],
+            assign=True,
+        )
+        moves = pick.move_lines
+        mls = pick.move_line_ids
+        self.assertEqual(len(moves), 1)
+        self.assertEqual(len(mls), 2)
+
+        # Fulfill the one with qty 4
+        banana_3ml = mls.filtered(lambda ml: ml.product_uom_qty == 3)
+        banana_4ml = mls - banana_3ml
+        banana_4ml.qty_done = banana_4ml.product_uom_qty
+
+        # Do backordering
+        with self.assertRaises(ValidationError) as e, mute_logger("odoo.sql_db"):
+            pick._backorder_move_lines(banana_3ml)
+
+        # Check the error is as expected
+        self.assertEqual(
+            e.exception.args[0],
+            "You cannot create a backorder for done move lines whilst retaining incomplete ones",
+        )
+
+    def test_backorder_move_lines_moves_all_move_quantity_when_not_fully_avialable(self):
+        """
+        Check when we backorder a picking with some moves fulfilled, partially fulfilled
+        and not fulfilled, the backorder and original picking are as expected.
+
+        Setup:
+            Pick:
+                * apple: 4, 4 reserved, 4 done
+                * banana: 13, 7 reserved, 7 done
+                * cherry: 8, 4 reserved, 4 done
+                * damson: 2, 2 reserved, 0 done
+
+        Retain only the 3ml for banana and cherry ml.
+        Expect:
+        Original Pick:
+            * banana: 3, 3 reserved, 3 done
+            * cherry: 4, 4 reserved, 4 done
+        Backorder Pick:
+            * apple: 4, 4 reserved, 4 done
+            * banana: 10, 4 reserved, 0 done
+            * cherry: 4, 0 reserved, 0 done
+            * damson: 2, 2 reserved, 0 done
+        """
+        self.create_quant(self.apple.id, self.test_stock_location_01.id, 4)
+        self.create_quant(self.banana.id, self.test_stock_location_01.id, 3)
+        self.create_quant(self.banana.id, self.test_stock_location_02.id, 4)
+        self.create_quant(self.cherry.id, self.test_stock_location_03.id, 4)
+        self.create_quant(self.damson.id, self.test_stock_location_04.id, 2)
+        pick = self.create_picking(
+            picking_type=self.picking_type_pick,
+            products_info=[
+                {"product": self.apple, "uom_qty": 4},
+                {"product": self.banana, "uom_qty": 13},
+                {"product": self.cherry, "uom_qty": 8},
+                {"product": self.damson, "uom_qty": 2},
+            ],
+            assign=True,
+        )
+        moves = pick.move_lines
+        mls = pick.move_line_ids
+        self.assertEqual(len(moves), 4)
+        self.assertEqual(len(mls), 5)
+
+        # Fulfill the apple ml
+        apple_mv = moves.filtered(lambda mv: mv.product_id == self.apple)
+        apple_ml = apple_mv.move_line_ids
+        apple_ml.qty_done = apple_ml.product_uom_qty
+
+        # Fulfill one banana move line
+        banana_mv = moves.filtered(lambda mv: mv.product_id == self.banana)
+        banana_mls = banana_mv.move_line_ids
+        banana_3ml = banana_mls.filtered(lambda ml: ml.product_uom_qty == 3)
+        banana_4ml = banana_mls.filtered(lambda ml: ml.product_uom_qty == 4)
+        banana_3ml.qty_done = banana_3ml.product_uom_qty
+
+        # Fulfill the cherry ml
+        cherry_mv = moves.filtered(lambda mv: mv.product_id == self.cherry)
+        cherry_ml = cherry_mv.move_line_ids
+        cherry_ml.qty_done = cherry_ml.product_uom_qty
+
+        # Do nothing with the damsons
+        damson_mv = moves.filtered(lambda mv: mv.product_id == self.damson)
+        damson_ml = damson_mv.move_line_ids
+
+        # Do backordering
+        bk_picking = pick._backorder_move_lines(cherry_ml | banana_3ml)
+
+        # Check original pick after backordering, the incomplete moves have been moved out
+        updated_moves = pick.move_lines
+        updated_mls = pick.move_line_ids
+        for ml in updated_mls:
+            with self.subTest(product=ml.product_id.name):
+                self.assertEqual(ml.state, "assigned")
+        self.assertEqual(updated_moves, banana_mv | cherry_mv)
+        self.assertEqual(updated_mls, banana_3ml | cherry_ml)
+        # Sanity check
+        self.assertCountEqual(updated_moves.mapped("quantity_done"), [3, 4])
+        self.assertCountEqual(updated_moves.mapped("product_uom_qty"), [3, 4])
+        self.assertCountEqual(updated_mls.mapped("qty_done"), [3, 4])
+        self.assertCountEqual(updated_mls.mapped("product_uom_qty"), [3, 4])
+
+        # Check backorder pick
+        self.assertEqual(pick, bk_picking.backorder_id)
+        bk_moves = bk_picking.move_lines
+        bk_mls = bk_picking.move_line_ids
+        self.assertIn(damson_mv, bk_moves)
+
+        # Test only the damson move is in the backordered moves
+        self.assertEqual(damson_mv | apple_mv, bk_moves & moves)
+        self.assertEqual(apple_mv.state, "assigned")
+        self.assertEqual(damson_mv.state, "assigned")
+        self.assertEqual(
+            bk_moves.filtered(lambda mv: mv.product_id == self.banana).state, "partially_available"
+        )
+        self.assertEqual(
+            bk_moves.filtered(lambda mv: mv.product_id == self.cherry).state, "confirmed"
+        )
+
+        # The move lines should have been preserved
+        self.assertEqual(bk_mls, apple_ml | banana_4ml | damson_ml)
+        # Sanity check
+        self.assertEqual(sum(bk_moves.mapped("quantity_done")), 4)
+        self.assertEqual(sum(bk_moves.mapped("product_uom_qty")), 20)
+        self.assertEqual(sum(bk_mls.mapped("qty_done")), 4)
+        self.assertEqual(sum(bk_mls.mapped("product_uom_qty")), 10)
 
 
 class TestStockPicking(TestStockPickingCommon):
@@ -605,16 +989,32 @@ class TestStockPicking(TestStockPickingCommon):
         self.assertFalse(self.test_picking_in.get_move_lines(done=False))
         self.assertEqual(move_lines.qty_done, 10)
 
-    def test_requires_backorder_simple(self):
-        """Simple requires backorder check"""
-        # Update moves
-        self.test_picking_in.move_lines.quantity_done = 10
-        # Check a backorder is not needed when picking move lines are passed to requires_backorder
+    def test_requires_backorder_is_false_when_moves_are_fully_covered_when_no_pending_work(self):
+        """
+        Test that if no move lines are passed, and the qty_done of the move lines covers the moves
+        in self then no backorder is required.
+        """
         mls = self.test_picking_in.move_line_ids
-        self.assertFalse(self.test_picking_in._requires_backorder(mls))
+        # Update move lines
+        for ml in mls:
+            ml.qty_done = ml.product_uom_qty
+        
+        self.assertFalse(self.test_picking_in._requires_backorder(mls=None))
 
-    def test_requires_backorder_multi_lines(self):
-        """Create picking with multiple lines backorder check"""
+    def test_requires_backorder_is_false_when_moves_are_fully_covered_by_passed_mls(self):
+        """
+        Test that if the move lines passed are not all done or do not cover the moves
+        in the picking, then a backorder is required.
+        """
+        mls = self.test_picking_in.move_line_ids
+
+        self.assertFalse(self.test_picking_in._requires_backorder(mls=mls))
+
+    def test_requires_backorder_when_moves_not_fully_covered(self):
+        """
+        Test that if the move lines passed are not all done or do not cover the moves
+        in the picking, then a backorder is required.
+        """
         self.create_quant(self.fig.id, self.test_stock_location_02.id, 50)
         self.create_quant(self.banana.id, self.test_stock_location_02.id, 50)
         pick = self.create_picking(
@@ -826,339 +1226,339 @@ class TestStockPicking(TestStockPickingCommon):
         )
 
 
-#     def test_assert_picking_quantities_computed_correctly(self):
-#         """Assert that qty todo/done and package discrepancies fields are computed correctly"""
-#         apple_qty = 10
-#         apple_qty_per_line = apple_qty / 2
-
-#         # Create quants for apples in two separate packages
-#         pack1 = self.create_package()
-#         pack2 = self.create_package()
-#         self.create_quant(
-#             self.apple.id, self.test_stock_location_01.id, apple_qty_per_line, package_id=pack1.id
-#         )
-#         self.create_quant(
-#             self.apple.id, self.test_stock_location_01.id, apple_qty_per_line, package_id=pack2.id
-#         )
-
-#         # Create picking with demand for all apples in stock, split over 2 lines
-#         pick = self.create_picking(
-#             self.picking_type_pick,
-#             products_info=[
-#                 {"product": self.apple, "uom_qty": apple_qty_per_line},
-#                 {"product": self.apple, "uom_qty": apple_qty_per_line},
-#             ],
-#             location_dest_id=self.test_received_location_01.id,
-#             location_id=self.test_stock_location_01.id,
-#             assign=True,
-#         )
-
-#         self.assertEqual(pick.u_quantity_done, 0, "Quantity done should be zero")
-#         self.assertEqual(
-#             pick.u_total_quantity, apple_qty, "Total quantity should match apple quantity"
-#         )
-#         self.assertTrue(pick.u_has_discrepancies, "Pick should have discrepancies")
-
-#         # Fulfil 1st move line
-#         pick.move_line_ids[0].qty_done = apple_qty_per_line
-
-#         self.assertEqual(
-#             pick.u_quantity_done,
-#             apple_qty_per_line,
-#             "Quantity done should match apple per line quantity",
-#         )
-#         self.assertTrue(pick.u_has_discrepancies, "Pick should have discrepancies")
-
-#         # Fulfil 2nd move line which should mean pick is no longer flagged as having discrepancies
-#         pick.move_line_ids[1].qty_done = apple_qty_per_line
-
-#         self.assertEqual(
-#             pick.u_quantity_done, apple_qty, "Quantity done should match apple quantity"
-#         )
-#         self.assertFalse(pick.u_has_discrepancies, "Pick should not have discrepancies")
-
-
-# class TestStockPickingUoM(TestStockPickingCommon):
-#     @classmethod
-#     def setUpClass(cls):
-#         super(TestStockPickingUoM, cls).setUpClass()
-#         Uom = cls.env["uom.uom"]
-#         unit = cls.env.ref("uom.product_uom_categ_unit")
-#         cls.half_dozen = Uom.create(
-#             {
-#                 "name": "HalfDozen",
-#                 "category_id": unit.id,
-#                 "factor_inv": 6,
-#                 "uom_type": "bigger",
-#                 "rounding": 1.0,
-#             }
-#         )
-
-#         cls.uom_dozen = cls.env.ref("uom.product_uom_dozen")
-#         cls.cherry.uom_id = cls.uom_dozen.id
-
-#         cls.create_quant(cls.banana.id, cls.test_stock_location_01.id, 120)
-#         cls.create_quant(cls.cherry.id, cls.test_stock_location_01.id, 120)
-
-#         cls.products = cls.cherry | cls.banana
-
-#     def _create_product_infos(self, uom_id=None):
-#         return [
-#             {"product": self.cherry, "uom_qty": 6, "uom_id": uom_id},
-#             {"product": self.banana, "uom_qty": 6, "uom_id": uom_id},
-#         ]
-
-#     def test_pepare_and_create_move(self):
-#         """Prepare and create multiple moves with different UoMs"""
-#         pick = self.create_picking(self.picking_type_goods_in)
-#         move_values = self.Picking._prepare_move(pick, [self._create_product_infos()])
-#         # Check the prepared move_values are correct
-#         self.assertEqual(len(move_values), 2)
-#         for product in self.products:
-#             with self.subTest(product=product.name):
-#                 self.assertEqual(
-#                     [mv for mv in move_values if mv.get("product_id") == product.id][0],
-#                     self._get_expected_move_values(pick, product, 6),
-#                 )
-
-#         # Check created move is as expected
-#         new_moves = self.Picking._create_move(move_values)
-#         self.assertEqual(len(new_moves), 2)
-#         banana_mv = new_moves.filtered(lambda mv: mv.product_id == self.banana)
-#         cherry_mv = new_moves.filtered(lambda mv: mv.product_id == self.cherry)
-
-#         # Check the moves have the same UoM as the product
-#         self.assertEqual(banana_mv.product_uom, self.banana.uom_id)
-#         self.assertEqual(cherry_mv.product_uom, self.cherry.uom_id)
-
-#         # Check the quantities of the moves
-#         self.assertEqual(banana_mv.product_qty, 6)
-#         self.assertEqual(banana_mv.product_uom_qty, 6)
-#         self.assertEqual(cherry_mv.product_qty, 6)
-#         self.assertEqual(cherry_mv.product_uom_qty, 6)
-
-#     def test_pepare_and_create_move_with_move_uom(self):
-#         """Prepare and create multiple moves with different UoMs, but try to sell everything
-#         in a single UoM.
-#         Here we have:
-#             * banana - units
-#             * cherry - dozens
-#         Try to sell things in boxes of 6
-#         """
-#         pick = self.create_picking(self.picking_type_goods_in)
-#         move_values = self.Picking._prepare_move(
-#             pick, [self._create_product_infos(uom_id=self.half_dozen.id)]
-#         )
-#         # Check the prepared move_values are correct
-#         self.assertEqual(len(move_values), 2)
-#         for product in self.products:
-#             with self.subTest(product=product.name):
-#                 self.assertEqual(
-#                     [mv for mv in move_values if mv.get("product_id") == product.id][0],
-#                     self._get_expected_move_values(pick, product, 6, uom_id=self.half_dozen.id),
-#                 )
-
-#         # Check created move is as expected
-#         new_moves = self.Picking._create_move(move_values)
-#         self.assertEqual(len(new_moves), 2)
-#         banana_mv = new_moves.filtered(lambda mv: mv.product_id == self.banana)
-#         cherry_mv = new_moves.filtered(lambda mv: mv.product_id == self.cherry)
-
-#         # Check the moves have half dozen UoM
-#         self.assertEqual(new_moves.product_uom, self.half_dozen)
-#         self.assertNotEqual(self.half_dozen, self.banana.uom_id)
-#         self.assertNotEqual(self.half_dozen, self.cherry.uom_id)
-
-#         # Check the quantities of the moves
-#         # Requested 36 items of everything, bananas are units so expect 36
-#         # Cherries come in dozens, so expect 3 packs of 12
-#         self.assertEqual(banana_mv.product_qty, 36)
-#         self.assertEqual(banana_mv.product_uom_qty, 6)
-#         self.assertEqual(cherry_mv.product_qty, 3)
-#         self.assertEqual(cherry_mv.product_uom_qty, 6)
-
-#     def test_complete_picking_with_product_uoms(self):
-#         """
-#         Create and complete a picking with multiple products with different UoMs
-#         """
-#         self.assertNotEqual(self.uom_dozen, self.banana.uom_id)
-#         pick = self.Picking.create_picking(
-#             picking_type=self.picking_type_pick,
-#             products_info=self._create_product_infos(),
-#             assign=True,
-#         )
-#         # State is assigned
-#         self.assertEqual(pick.state, "assigned")
-#         # Check the moves and move lines are in UoM of the product
-#         for mv in pick.move_lines:
-#             with self.subTest(product=mv.product_id.name):
-#                 self.assertEqual(mv.product_qty, 6)
-#                 self.assertEqual(mv.product_uom_qty, 6)
-#         for ml in pick.move_line_ids:
-#             with self.subTest(product=ml.product_id.name):
-#                 self.assertEqual(ml.product_qty, 6)
-#                 self.assertEqual(ml.product_uom_qty, 6)
-
-#         # Complete the picking
-#         pick.move_line_ids.qty_done = 6
-#         pick._action_done()
-#         self.assertEqual(pick.state, "done")
-#         # Check the total quantity in the picking, relative to the UoM of the products
-#         self.assertEqual(pick.u_total_quantity, 12)
-#         self.assertEqual(pick.u_quantity_done, 12)
-
-#     def test_complete_picking_with_specific_uom(self):
-#         """
-#         Create and complete a picking with a specific UoM
-#         Here we have:
-#             * banana - units
-#             * cherry - dozens
-#         Try to sell things in boxes of 6.
-
-#         Complete a picking of 6 boxes of 6 - product_uom_qty = 6
-#         Expect
-#           * banana: product_qty = 36 (36 / 36)
-#           * cherry: product_qty = 3 (36 / 12)
-
-#         """
-#         self.assertNotEqual(self.uom_dozen, self.banana.uom_id)
-#         pick = self.Picking.create_picking(
-#             picking_type=self.picking_type_pick,
-#             products_info=self._create_product_infos(uom_id=self.half_dozen.id),
-#             assign=True,
-#         )
-
-#         # Check the moves and move lines have the UoM of the move not the move line
-#         moves = pick.move_lines
-#         banana_move = moves.filtered(lambda m: m.product_id == self.banana)
-#         cherry_move = moves.filtered(lambda m: m.product_id == self.cherry)
-#         self.assertEqual(banana_move.product_qty, 36)
-#         self.assertEqual(banana_move.product_uom_qty, 6)
-#         self.assertEqual(cherry_move.product_qty, 3)
-#         self.assertEqual(cherry_move.product_uom_qty, 6)
-
-#         mls = pick.move_line_ids
-#         cherry_ml = mls.filtered(lambda ml: ml.product_id == self.cherry)
-#         banana_ml = mls.filtered(lambda ml: ml.product_id == self.banana)
-#         self.assertEqual(banana_ml.product_qty, 36)
-#         self.assertEqual(banana_ml.product_uom_qty, 6)
-#         self.assertEqual(cherry_ml.product_qty, 3)
-#         self.assertEqual(cherry_ml.product_uom_qty, 6)
-
-#         # Pick things in terms of the move UoM
-#         pick.move_line_ids.qty_done = 6
-#         pick._action_done()
-#         self.assertEqual(pick.state, "done")
-
-#         # Check the total quantity in the picking, relative to the UoM of the move
-#         # not the products.
-#         # So this is the sum of the product_uom_qty of the moves.
-#         self.assertEqual(pick.u_total_quantity, 12)
-#         self.assertEqual(pick.u_quantity_done, 12)
-
-
-# class TestStockPickingUnlinkingEmpties(common.BaseUDES):
-#     """
-#     Tests for unlinking empty pickings functionality.
-
-#     This class tests StockPicking.unlink_empty() directly, and indirectly
-#     StockPicking.get_empty_pickings().
-#     """
-
-#     def test_unlinks_tagged_empty_pickings_in_recordset(self):
-#         """Empty pickings with u_is_empty = True in a recordset are unlinked."""
-#         pick = self.create_picking(self.picking_type_pick)
-#         pick.u_is_empty = True
-
-#         result = pick.unlink_empty()
-
-#         self.assertFalse(result)
-
-#     def test_does_not_unlink_untagged_empty_picking(self):
-#         """An empty picking with u_is_empty = False will not be deleted."""
-#         pick = self.create_picking(self.picking_type_pick)
-#         pick.u_is_empty = False
-
-#         result = pick.unlink_empty()
-
-#         self.assertEqual(pick, result)
-
-#     def test_raises_exception_on_unlink_non_empty_pickings(self):
-#         """Non-empty pickings in a recordset are not unlinked."""
-#         pick = self.create_picking(
-#             self.picking_type_pick, products_info=[{"product": self.apple, "uom_qty": 1}]
-#         )
-#         pick.u_is_empty = True
-
-#         with self.assertRaisesRegex(
-#             ValidationError, r"Trying to unlink non empty pickings: \[\d+\]"
-#         ):
-#             pick.unlink_empty()
-
-#     def test_unlinks_empty_pickings_if_picking_type_configured(self):
-#         """Empty pickings for a picking type are unlinked if auto-unlinking is enabled."""
-#         Picking = self.env["stock.picking"]
-
-#         self.picking_type_pick.u_auto_unlink_empty = True
-#         pick = self.create_picking(self.picking_type_pick)
-#         pick.u_is_empty = True
-
-#         Picking.unlink_empty()
-
-#         self.assertFalse(pick.exists())
-
-#     def test_does_not_unlink_empty_pickings_if_picking_type_not_configured(self):
-#         """Empty pickings for a picking type remain if auto-unlinking is disabled."""
-#         Picking = self.env["stock.picking"]
-
-#         self.picking_type_pick.u_auto_unlink_empty = False
-#         pick = self.create_picking(self.picking_type_pick)
-#         pick.u_is_empty = True
-
-#         Picking.unlink_empty()
-
-#         self.assertTrue(pick.exists())
-
-
-# class TestBatchUserName(common.BaseUDES):
-#     """Test Batch User takes value expected and changes when expected"""
-
-#     @classmethod
-#     def setUpClass(cls):
-#         super(TestBatchUserName, cls).setUpClass()
-#         cls.create_quant(cls.apple.id, cls.test_stock_location_01.id, 10)
-
-#         cls.batch = cls.create_batch(user=cls.env.user)
-
-#         cls._pick_info = [{"product": cls.apple, "uom_qty": 5}]
-#         cls.picking = cls.create_picking(
-#             picking_type=cls.picking_type_pick, products_info=cls._pick_info, confirm=True
-#         )
-
-#         cls.stock_manager = cls.create_user(name="Stock Manager", login="Stock Manager Dude")
-
-#     def test_correct_batch_user_on_picking_tree_view(self):
-#         self.picking.write({"batch_id": self.batch.id})
-
-#         self.assertEqual(self.picking.u_batch_user_id, self.env.user)
-
-#     def test_no_batch_user_on_picking_when_no_batch(self):
-#         self.assertEqual(len(self.picking.u_batch_user_id), 0)
-
-#     def test_batch_user_on_picking_changes_when_user_is_changed_on_batch(self):
-#         self.picking.write({"batch_id": self.batch.id})
-
-#         self.batch.write({"user_id": self.stock_manager.id})
-
-#         self.assertEqual(self.picking.u_batch_user_id, self.stock_manager)
-
-#     def test_same_batch_user_on_multiple_pickings(self):
-#         picking_2 = self.create_picking(
-#             picking_type=self.picking_type_pick, products_info=self._pick_info, confirm=True
-#         )
-
-#         self.picking.write({"batch_id": self.batch.id})
-#         picking_2.write({"batch_id": self.batch.id})
-
-#         self.assertEqual(self.picking.u_batch_user_id, self.env.user)
-#         self.assertEqual(picking_2.u_batch_user_id, self.env.user)
+    def test_assert_picking_quantities_computed_correctly(self):
+        """Assert that qty todo/done and package discrepancies fields are computed correctly"""
+        apple_qty = 10
+        apple_qty_per_line = apple_qty / 2
+
+        # Create quants for apples in two separate packages
+        pack1 = self.create_package()
+        pack2 = self.create_package()
+        self.create_quant(
+            self.apple.id, self.test_stock_location_01.id, apple_qty_per_line, package_id=pack1.id
+        )
+        self.create_quant(
+            self.apple.id, self.test_stock_location_01.id, apple_qty_per_line, package_id=pack2.id
+        )
+
+        # Create picking with demand for all apples in stock, split over 2 lines
+        pick = self.create_picking(
+            self.picking_type_pick,
+            products_info=[
+                {"product": self.apple, "uom_qty": apple_qty_per_line},
+                {"product": self.apple, "uom_qty": apple_qty_per_line},
+            ],
+            location_dest_id=self.test_received_location_01.id,
+            location_id=self.test_stock_location_01.id,
+            assign=True,
+        )
+
+        self.assertEqual(pick.u_quantity_done, 0, "Quantity done should be zero")
+        self.assertEqual(
+            pick.u_total_quantity, apple_qty, "Total quantity should match apple quantity"
+        )
+        self.assertTrue(pick.u_has_discrepancies, "Pick should have discrepancies")
+
+        # Fulfil 1st move line
+        pick.move_line_ids[0].qty_done = apple_qty_per_line
+
+        self.assertEqual(
+            pick.u_quantity_done,
+            apple_qty_per_line,
+            "Quantity done should match apple per line quantity",
+        )
+        self.assertTrue(pick.u_has_discrepancies, "Pick should have discrepancies")
+
+        # Fulfil 2nd move line which should mean pick is no longer flagged as having discrepancies
+        pick.move_line_ids[1].qty_done = apple_qty_per_line
+
+        self.assertEqual(
+            pick.u_quantity_done, apple_qty, "Quantity done should match apple quantity"
+        )
+        self.assertFalse(pick.u_has_discrepancies, "Pick should not have discrepancies")
+
+
+class TestStockPickingUoM(TestStockPickingCommon):
+    @classmethod
+    def setUpClass(cls):
+        super(TestStockPickingUoM, cls).setUpClass()
+        Uom = cls.env["uom.uom"]
+        unit = cls.env.ref("uom.product_uom_categ_unit")
+        cls.half_dozen = Uom.create(
+            {
+                "name": "HalfDozen",
+                "category_id": unit.id,
+                "factor_inv": 6,
+                "uom_type": "bigger",
+                "rounding": 1.0,
+            }
+        )
+
+        cls.uom_dozen = cls.env.ref("uom.product_uom_dozen")
+        cls.cherry.uom_id = cls.uom_dozen.id
+
+        cls.create_quant(cls.banana.id, cls.test_stock_location_01.id, 120)
+        cls.create_quant(cls.cherry.id, cls.test_stock_location_01.id, 120)
+
+        cls.products = cls.cherry | cls.banana
+
+    def _create_product_infos(self, uom_id=None):
+        return [
+            {"product": self.cherry, "uom_qty": 6, "uom_id": uom_id},
+            {"product": self.banana, "uom_qty": 6, "uom_id": uom_id},
+        ]
+
+    def test_pepare_and_create_move(self):
+        """Prepare and create multiple moves with different UoMs"""
+        pick = self.create_picking(self.picking_type_goods_in)
+        move_values = self.Picking._prepare_move(pick, [self._create_product_infos()])
+        # Check the prepared move_values are correct
+        self.assertEqual(len(move_values), 2)
+        for product in self.products:
+            with self.subTest(product=product.name):
+                self.assertEqual(
+                    [mv for mv in move_values if mv.get("product_id") == product.id][0],
+                    self._get_expected_move_values(pick, product, 6),
+                )
+
+        # Check created move is as expected
+        new_moves = self.Picking._create_move(move_values)
+        self.assertEqual(len(new_moves), 2)
+        banana_mv = new_moves.filtered(lambda mv: mv.product_id == self.banana)
+        cherry_mv = new_moves.filtered(lambda mv: mv.product_id == self.cherry)
+
+        # Check the moves have the same UoM as the product
+        self.assertEqual(banana_mv.product_uom, self.banana.uom_id)
+        self.assertEqual(cherry_mv.product_uom, self.cherry.uom_id)
+
+        # Check the quantities of the moves
+        self.assertEqual(banana_mv.product_qty, 6)
+        self.assertEqual(banana_mv.product_uom_qty, 6)
+        self.assertEqual(cherry_mv.product_qty, 6)
+        self.assertEqual(cherry_mv.product_uom_qty, 6)
+
+    def test_pepare_and_create_move_with_move_uom(self):
+        """Prepare and create multiple moves with different UoMs, but try to sell everything
+        in a single UoM.
+        Here we have:
+            * banana - units
+            * cherry - dozens
+        Try to sell things in boxes of 6
+        """
+        pick = self.create_picking(self.picking_type_goods_in)
+        move_values = self.Picking._prepare_move(
+            pick, [self._create_product_infos(uom_id=self.half_dozen.id)]
+        )
+        # Check the prepared move_values are correct
+        self.assertEqual(len(move_values), 2)
+        for product in self.products:
+            with self.subTest(product=product.name):
+                self.assertEqual(
+                    [mv for mv in move_values if mv.get("product_id") == product.id][0],
+                    self._get_expected_move_values(pick, product, 6, uom_id=self.half_dozen.id),
+                )
+
+        # Check created move is as expected
+        new_moves = self.Picking._create_move(move_values)
+        self.assertEqual(len(new_moves), 2)
+        banana_mv = new_moves.filtered(lambda mv: mv.product_id == self.banana)
+        cherry_mv = new_moves.filtered(lambda mv: mv.product_id == self.cherry)
+
+        # Check the moves have half dozen UoM
+        self.assertEqual(new_moves.product_uom, self.half_dozen)
+        self.assertNotEqual(self.half_dozen, self.banana.uom_id)
+        self.assertNotEqual(self.half_dozen, self.cherry.uom_id)
+
+        # Check the quantities of the moves
+        # Requested 36 items of everything, bananas are units so expect 36
+        # Cherries come in dozens, so expect 3 packs of 12
+        self.assertEqual(banana_mv.product_qty, 36)
+        self.assertEqual(banana_mv.product_uom_qty, 6)
+        self.assertEqual(cherry_mv.product_qty, 3)
+        self.assertEqual(cherry_mv.product_uom_qty, 6)
+
+    def test_complete_picking_with_product_uoms(self):
+        """
+        Create and complete a picking with multiple products with different UoMs
+        """
+        self.assertNotEqual(self.uom_dozen, self.banana.uom_id)
+        pick = self.Picking.create_picking(
+            picking_type=self.picking_type_pick,
+            products_info=self._create_product_infos(),
+            assign=True,
+        )
+        # State is assigned
+        self.assertEqual(pick.state, "assigned")
+        # Check the moves and move lines are in UoM of the product
+        for mv in pick.move_lines:
+            with self.subTest(product=mv.product_id.name):
+                self.assertEqual(mv.product_qty, 6)
+                self.assertEqual(mv.product_uom_qty, 6)
+        for ml in pick.move_line_ids:
+            with self.subTest(product=ml.product_id.name):
+                self.assertEqual(ml.product_qty, 6)
+                self.assertEqual(ml.product_uom_qty, 6)
+
+        # Complete the picking
+        pick.move_line_ids.qty_done = 6
+        pick._action_done()
+        self.assertEqual(pick.state, "done")
+        # Check the total quantity in the picking, relative to the UoM of the products
+        self.assertEqual(pick.u_total_quantity, 12)
+        self.assertEqual(pick.u_quantity_done, 12)
+
+    def test_complete_picking_with_specific_uom(self):
+        """
+        Create and complete a picking with a specific UoM
+        Here we have:
+            * banana - units
+            * cherry - dozens
+        Try to sell things in boxes of 6.
+
+        Complete a picking of 6 boxes of 6 - product_uom_qty = 6
+        Expect
+          * banana: product_qty = 36 (36 / 36)
+          * cherry: product_qty = 3 (36 / 12)
+
+        """
+        self.assertNotEqual(self.uom_dozen, self.banana.uom_id)
+        pick = self.Picking.create_picking(
+            picking_type=self.picking_type_pick,
+            products_info=self._create_product_infos(uom_id=self.half_dozen.id),
+            assign=True,
+        )
+
+        # Check the moves and move lines have the UoM of the move not the move line
+        moves = pick.move_lines
+        banana_move = moves.filtered(lambda m: m.product_id == self.banana)
+        cherry_move = moves.filtered(lambda m: m.product_id == self.cherry)
+        self.assertEqual(banana_move.product_qty, 36)
+        self.assertEqual(banana_move.product_uom_qty, 6)
+        self.assertEqual(cherry_move.product_qty, 3)
+        self.assertEqual(cherry_move.product_uom_qty, 6)
+
+        mls = pick.move_line_ids
+        cherry_ml = mls.filtered(lambda ml: ml.product_id == self.cherry)
+        banana_ml = mls.filtered(lambda ml: ml.product_id == self.banana)
+        self.assertEqual(banana_ml.product_qty, 36)
+        self.assertEqual(banana_ml.product_uom_qty, 6)
+        self.assertEqual(cherry_ml.product_qty, 3)
+        self.assertEqual(cherry_ml.product_uom_qty, 6)
+
+        # Pick things in terms of the move UoM
+        pick.move_line_ids.qty_done = 6
+        pick._action_done()
+        self.assertEqual(pick.state, "done")
+
+        # Check the total quantity in the picking, relative to the UoM of the move
+        # not the products.
+        # So this is the sum of the product_uom_qty of the moves.
+        self.assertEqual(pick.u_total_quantity, 12)
+        self.assertEqual(pick.u_quantity_done, 12)
+
+
+class TestStockPickingUnlinkingEmpties(common.BaseUDES):
+    """
+    Tests for unlinking empty pickings functionality.
+
+    This class tests StockPicking.unlink_empty() directly, and indirectly
+    StockPicking.get_empty_pickings().
+    """
+
+    def test_unlinks_tagged_empty_pickings_in_recordset(self):
+        """Empty pickings with u_is_empty = True in a recordset are unlinked."""
+        pick = self.create_picking(self.picking_type_pick)
+        pick.u_is_empty = True
+
+        result = pick.unlink_empty()
+
+        self.assertFalse(result)
+
+    def test_does_not_unlink_untagged_empty_picking(self):
+        """An empty picking with u_is_empty = False will not be deleted."""
+        pick = self.create_picking(self.picking_type_pick)
+        pick.u_is_empty = False
+
+        result = pick.unlink_empty()
+
+        self.assertEqual(pick, result)
+
+    def test_raises_exception_on_unlink_non_empty_pickings(self):
+        """Non-empty pickings in a recordset are not unlinked."""
+        pick = self.create_picking(
+            self.picking_type_pick, products_info=[{"product": self.apple, "uom_qty": 1}]
+        )
+        pick.u_is_empty = True
+
+        with self.assertRaisesRegex(
+            ValidationError, r"Trying to unlink non empty pickings: \[\d+\]"
+        ):
+            pick.unlink_empty()
+
+    def test_unlinks_empty_pickings_if_picking_type_configured(self):
+        """Empty pickings for a picking type are unlinked if auto-unlinking is enabled."""
+        Picking = self.env["stock.picking"]
+
+        self.picking_type_pick.u_auto_unlink_empty = True
+        pick = self.create_picking(self.picking_type_pick)
+        pick.u_is_empty = True
+
+        Picking.unlink_empty()
+
+        self.assertFalse(pick.exists())
+
+    def test_does_not_unlink_empty_pickings_if_picking_type_not_configured(self):
+        """Empty pickings for a picking type remain if auto-unlinking is disabled."""
+        Picking = self.env["stock.picking"]
+
+        self.picking_type_pick.u_auto_unlink_empty = False
+        pick = self.create_picking(self.picking_type_pick)
+        pick.u_is_empty = True
+
+        Picking.unlink_empty()
+
+        self.assertTrue(pick.exists())
+
+
+class TestBatchUserName(common.BaseUDES):
+    """Test Batch User takes value expected and changes when expected"""
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestBatchUserName, cls).setUpClass()
+        cls.create_quant(cls.apple.id, cls.test_stock_location_01.id, 10)
+
+        cls.batch = cls.create_batch(user=cls.env.user)
+
+        cls._pick_info = [{"product": cls.apple, "uom_qty": 5}]
+        cls.picking = cls.create_picking(
+            picking_type=cls.picking_type_pick, products_info=cls._pick_info, confirm=True
+        )
+
+        cls.stock_manager = cls.create_user(name="Stock Manager", login="Stock Manager Dude")
+
+    def test_correct_batch_user_on_picking_tree_view(self):
+        self.picking.write({"batch_id": self.batch.id})
+
+        self.assertEqual(self.picking.u_batch_user_id, self.env.user)
+
+    def test_no_batch_user_on_picking_when_no_batch(self):
+        self.assertEqual(len(self.picking.u_batch_user_id), 0)
+
+    def test_batch_user_on_picking_changes_when_user_is_changed_on_batch(self):
+        self.picking.write({"batch_id": self.batch.id})
+
+        self.batch.write({"user_id": self.stock_manager.id})
+
+        self.assertEqual(self.picking.u_batch_user_id, self.stock_manager)
+
+    def test_same_batch_user_on_multiple_pickings(self):
+        picking_2 = self.create_picking(
+            picking_type=self.picking_type_pick, products_info=self._pick_info, confirm=True
+        )
+
+        self.picking.write({"batch_id": self.batch.id})
+        picking_2.write({"batch_id": self.batch.id})
+
+        self.assertEqual(self.picking.u_batch_user_id, self.env.user)
+        self.assertEqual(picking_2.u_batch_user_id, self.env.user)

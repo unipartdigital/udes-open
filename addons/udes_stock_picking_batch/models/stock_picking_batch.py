@@ -9,7 +9,6 @@ from odoo.addons.udes_stock.models.common import get_next_name
 _logger = logging.getLogger(__name__)
 
 
-
 class StockPickingBatch(models.Model):
     _name = "stock.picking.batch"
     _inherit = ["stock.picking.batch", "mixin.stock.model"]
@@ -689,8 +688,10 @@ class StockPickingBatch(models.Model):
         """
         Validate the move lines of the batch (expects a singleton)
         by moving them to the specified location.
-
         In case continue_batch is not flagged, close the batch.
+
+        Note that the work being dropped off always remains in its current picking, and the pending
+        work gets placed into any backorder. 
         """
         Location = self.env["stock.location"]
         MoveLine = self.env["stock.move.line"]
@@ -738,19 +739,21 @@ class StockPickingBatch(models.Model):
             to_add = Picking.browse()
             picks_todo = Picking.browse()
 
-            for pick in pickings:
-                pick_todo = pick
-                pick_mls = completed_move_lines.filtered(lambda x: x.picking_id == pick)
+            for pick, rel_mls in completed_move_lines.groupby("picking_id"):
+                # Check if the picking needs to be backordered based on all the move lines
+                # in the picking. If something is incomplete then they will be placed into
+                # a backorder.
+                if pick._requires_backorder(rel_mls):
+                    backorder = pick._backorder_move_lines(mls_to_keep=rel_mls)
+                    # Add the picking to the batch if they are still continuing and it
+                    # is available to be picked. Else kick it out for auto completion
+                    # of batches.
+                    if continue_batch and backorder.state in ("partially_available", "assigned"):
+                        to_add |= backorder
 
-                if pick._requires_backorder(pick_mls):
-                    pick_todo = pick._backorder_move_lines(pick_mls)
+                picks_todo |= pick
 
-                    to_add |= pick_todo
-
-                picks_todo |= pick_todo
-                pick.write({"u_reserved_pallet": False})
-
-            # Add backorders to the batch
+            # Add any created backorders if needed
             if to_add:
                 to_add.write({"batch_id": self.id})
 
@@ -963,24 +966,23 @@ class StockPickingBatch(models.Model):
             raise ValidationError(_("Can only remove work from ephemeral batches"))
 
         pickings_to_remove = Picking.browse()
-        pickings_to_add = Picking.browse()
 
         for picking in self.picking_ids:
-            started_lines = picking.mapped("move_line_ids").filtered(lambda x: x.qty_done > 0)
+            mls = picking.mapped("move_line_ids")
+            started_lines = mls.filtered(lambda ml: ml.qty_done > 0)
             if started_lines:
-                # backorder incomplete moves
-                if picking._requires_backorder(started_lines):
-                    pickings_to_add |= picking.with_context(
-                        lock_batch_state=True
-                    )._backorder_move_lines(started_lines)
-                    pickings_to_remove |= picking
+                mls_to_keep = mls & started_lines
+                # Create backorders for incomplete moves.
+                if picking._requires_backorder(mls=mls_to_keep):
+                    backorder = picking.with_context(lock_batch_state=True)._backorder_move_lines(mls_to_keep=mls_to_keep)
+                    # Ensure that backorder batch info is also cleared
+                    pickings_to_remove |= backorder
             else:
                 pickings_to_remove |= picking
 
         pickings_to_remove.with_context(lock_batch_state=True).write(
             {"batch_id": False, "u_reserved_pallet": False}
         )
-        pickings_to_add.with_context(lock_batch_state=True).write({"batch_id": self.id})
         self._compute_state()
 
         return self
