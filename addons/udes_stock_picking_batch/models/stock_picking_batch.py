@@ -266,7 +266,7 @@ class StockPickingBatch(models.Model):
             if not isinstance(batch.id, models.NewId):
                 old_priority = batch.read(["priority"])[0]["priority"]
             if batch.picking_ids:
-                priorities = batch.mapped("picking_ids.priority")
+                priorities = batch.picking_ids.mapped("priority")
                 new_priority = max(priorities)
             else:
                 # If the picking is empty keep the old priority
@@ -666,7 +666,7 @@ class StockPickingBatch(models.Model):
 
         if task_mls[0].picking_id.picking_type_id.u_user_scans in ["pallet", "package"]:
             # TODO: check pallets of packages if necessary
-            task["num_tasks_to_pick"] = len(move_lines.mapped("package_id"))
+            task["num_tasks_to_pick"] = len(move_lines.package_id)
             task["move_line_ids"] = move_lines.filtered(
                 lambda ml: ml.package_id == task_mls[0].package_id
             ).ids
@@ -909,6 +909,16 @@ class StockPickingBatch(models.Model):
         The batch will be marked as ephemeral.
         In case no pickings exist, return None.
         """
+        # TODO - This function actually searches for one picking but it talks about pickings... why?
+        #        What is this function actually supposed to do?
+        #        It seems that it should search and add multiple pickings since we search by picking type
+        #        But actually it only assigns the first picking found. This is prone to issues if we create 2
+        #        pickings and then call this function as potentially either could be selected first. This was
+        #        actually observed in the tests and corrected by first creating the desired picking and then
+        #        calling this function to avoid this issue.
+        #        Furthermore:
+        #        Picking.search_for_pickings() has argument limit set to 1 so it will only ever return 1 picking.
+        #        Tests also rely on this function retrieving 1 picking. This isn't very clear.
         PickingBatch = self.env["stock.picking.batch"]
         Picking = self.env["stock.picking"]
 
@@ -944,15 +954,14 @@ class StockPickingBatch(models.Model):
         """
         for batch in self:
             # Unassign batch_id from incomplete stock pickings on ephemeral batches
-            batch.filtered(lambda b: b.u_ephemeral).mapped("picking_ids").filtered(
+            batch.filtered(lambda b: b.u_ephemeral).picking_ids.filtered(
                 lambda sp: sp.state not in ("done", "cancel")
             ).write({"batch_id": False, "u_reserved_pallet": False})
 
             # Assign incomplete pickings to new batch
             _logger.info("Creating continuation batch from %r.", batch.name)
             pickings = (
-                batch.filtered(lambda b: not b.u_ephemeral)
-                .mapped("picking_ids")
+                batch.filtered(lambda b: not b.u_ephemeral).picking_ids
                 .filtered(lambda sp: sp.state not in ("done", "cancel"))
             )
             _logger.info("Picking ids continuation %r", pickings)
@@ -1000,7 +1009,7 @@ class StockPickingBatch(models.Model):
         pickings_to_add = Picking.browse()
 
         for picking in self.picking_ids:
-            started_lines = picking.mapped("move_line_ids").filtered(lambda x: x.qty_done > 0)
+            started_lines = picking.move_line_ids.filtered(lambda x: x.qty_done > 0)
             if started_lines:
                 # backorder incomplete moves
                 if picking._requires_backorder(started_lines):
@@ -1011,10 +1020,207 @@ class StockPickingBatch(models.Model):
             else:
                 pickings_to_remove |= picking
 
-        pickings_to_remove.with_context(lock_batch_state=True).write(
-            {"batch_id": False, "u_reserved_pallet": False}
-        )
-        pickings_to_add.with_context(lock_batch_state=True).write({"batch_id": self.id})
+        if len(pickings_to_remove):
+            pickings_to_remove.with_context(lock_batch_state=True).write(
+                {"batch_id": False, "u_reserved_pallet": False}
+            )
+        if len(pickings_to_add):
+            pickings_to_add.with_context(lock_batch_state=True).write({"batch_id": self.id})
         self._compute_state()
 
         return self
+
+    def unpickable_item(
+        self,
+        reason,
+        product_id=None,
+        location_id=None,
+        package_name=None,
+        lot_name=None,
+        raise_stock_investigation=True,
+        bypass_reassignment=False,
+    ):
+        """
+        Given an unpickable product or package, find the related
+        move lines in the current batch, backorder them and refine
+        the backorder. Then create a new stock investigation picking
+        for the unpickable stock.
+        An unpickable product requires at least the location_id and
+        optionally the package_id and lot_name.
+
+        :args:
+            - reason: str
+                The reason for which the stock is unpickable
+        :kwargs:
+            - product_id: int
+                The product id of unpickable stock
+            - location_id: int
+                The location id where the unpickable stock lives
+            - package_name: str
+                The package where the unpickable stock lives
+            - lot_name: str
+                The lot name of the unpickable stock
+            - raise_stock_investigation: Boolean
+                Flag to indicate whether to raise a stock investigation picking
+            - bypass_reassignment: Boolean
+                Flag to indicate whether to reassign stock moves for original pickings
+                after raising investigation
+            - reason: str
+                The reason for which the stock is unpickable
+        :returns:
+            True if the operation did not fail.
+        """
+        self.ensure_one()
+
+        Package = self.env["stock.quant.package"]
+        Picking = self.env["stock.picking"]
+        Location = self.env["stock.location"]
+        Product = self.env["product.product"]
+
+        if not self.picking_type_id.u_enable_unpickable_items:
+            raise ValidationError(
+                _(
+                    "This type of operation cannot handle unpickable items. "
+                    "Please, contact your team leader to resolve the issue. "
+                    "Press back when resolved."
+                )
+            )
+
+        product = Product.get_or_create(product_id) if product_id else None
+        location = Location.get_or_create(location_id) if location_id else None
+        package = Package.get_or_create(package_name) if package_name else None
+        allow_partial = False
+        move_lines = self.get_available_move_lines()
+
+        if product:
+            if not location:
+                raise ValidationError(
+                    _("Missing location parameter for unpickable product %s.") % product.name
+                )
+
+            move_lines = move_lines.filtered(
+                lambda ml: ml.product_id == product and ml.location_id == location
+            )
+
+            msg = _("Unpickable product %s at location %s") % (product.name, location.name)
+
+            if lot_name:
+                lot_name = [lot_name] if isinstance(lot_name, str) else lot_name
+                move_lines = move_lines.filtered(lambda ml: ml.lot_id.name in lot_name)
+                msg += _(" with serial number %s") % lot_name
+
+            if package:
+                move_lines = move_lines.filtered(lambda ml: ml.package_id == package)
+                msg += _(" in package %s") % package.name
+            elif move_lines.package_id:
+                raise ValidationError(
+                    _("Unpickable product from a package but no package name provided.")
+                )
+
+            # at this point we should only have one move_line
+            quants = move_lines.get_quants()
+            allow_partial = True
+        elif package:
+            if not location:
+                location = package.location_id
+
+            move_lines = move_lines.filtered(
+                lambda ml: ml.package_id == package or ml.package_id.parent_id == package
+            )
+            quants = package._get_contained_quants()
+            msg = _("Unpickable package %s at location %s") % (package.name, location.name)
+        else:
+            raise ValidationError(
+                _("Missing required information for unpickable item: product or package.")
+            )
+
+        # Filter out the move lines already picked in case under received
+        move_lines = move_lines.filtered(lambda ml: ml.qty_done == 0)
+
+        if not move_lines:
+            raise ValidationError(
+                _("Cannot find move lines todo for unpickable item in this batch.")
+            )
+
+        pickings = move_lines.picking_id
+        original_picking_ids = {}
+        if raise_stock_investigation:
+            to_investigate = Picking.browse()
+        for picking in pickings:
+            picking.message_post(body=msg)
+
+            if picking.batch_id != self:
+                raise ValidationError(_("Move line is not part of the batch."))
+
+            if picking.state in ["cancel", "done"]:
+                raise ValidationError(
+                    _(
+                        "Cannot mark a move line as unpickable "
+                        "when it is part of a completed Picking."
+                    )
+                )
+
+            original_id = None
+
+            if len(picking.move_line_ids - move_lines):
+                # Create a backorder for the affected move lines if
+                # there are other move lines not relevant to unpickable move lines
+                original_id = picking.id
+                # REVERSE TO KEEP THE MLS THAT WE WANT THE USER TO WORK ON
+                picking = picking._backorder_move_lines(picking.move_line_ids & move_lines)
+            original_picking_ids[picking] = original_id
+
+            if raise_stock_investigation:
+                to_investigate |= picking
+            else:
+                picking.batch_id = False
+
+        if raise_stock_investigation:
+            # By default the pick is unreserved
+            to_investigate.with_context(
+                lock_batch_state=True, allow_partial=allow_partial
+            ).raise_stock_investigation(reason=reason, quants=quants, location=location)
+            # Trigger refactor here to allow grouping of pickings by move key on confirm
+            # Need to loop over the pickings from the refactored moves as they might be
+            # in a different picking
+            # No unlinking of the empty pickings is done - this relies on the cron
+            # to do the clean up
+            refactored_moves = (
+                to_investigate.exists().move_lines._action_refactor(stage="confirm")
+            )
+            pickings_to_investigate = refactored_moves.picking_id
+            # 3 Pickings are generated, we create a stock investigation for a location but we want to keep
+            # processing the original picking, so the 3rd picking will contain a stock move for those products
+            # that are not found, take that picking and move the stock moves into the original picking as we
+            # want to keep picking those items but from a different location.
+            # Otherwise, if not, add the picking to the batch
+            if not bypass_reassignment:
+                for picking in pickings_to_investigate:
+                    moves = picking.move_lines
+                    original_picking_id = original_picking_ids.get(picking, None)
+                    if (
+                        picking.exists()
+                        and picking.state == "assigned"
+                        and original_picking_id is not None
+                        and not picking.picking_type_id.u_post_assign_action
+                        # Only if we do not do refactoring because if we do then it's wrong to
+                        # move the moves back to the original picking
+                    ):
+                        # A backorder has been created, but the stock is
+                        # available; get rid of the backorder after linking the
+                        # move lines to the original picking, so it can be
+                        # directly processed
+                        picking.move_line_ids.write({"picking_id": original_picking_id})
+                        picking.move_lines.write({"picking_id": original_picking_id})
+                        picking.unlink()
+                    else:
+                        # Moves may be part of a new picking after refactor, this should
+                        # be added back to the batch
+                        other_picking = moves.picking_id.filtered(lambda p: p.state == "assigned")
+                        if other_picking:
+                            # Need to check as we cannot directly write on empty recordset as original Odoo14
+                            # stock batch picking implementation will raise an error even if recordset is empty
+                            other_picking.write({"batch_id": self.id})
+            self._remove_unready_picks()
+            self._compute_state()
+        return True

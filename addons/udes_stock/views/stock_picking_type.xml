@@ -16,6 +16,7 @@
                     <field name="u_under_receive"/>
                     <field name="u_over_receive" />
                     <field name="u_auto_unlink_empty" />
+                    <field name="u_enable_unpickable_items" />
                 </group>
             </xpath>
         </field>

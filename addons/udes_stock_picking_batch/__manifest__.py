@@ -16,6 +16,7 @@
         "udes_get_info",
         "udes_stock_refactoring",
         "udes_stock",
+        "package_hierarchy",
     ],
     "external_dependencies": {},
     "data": [

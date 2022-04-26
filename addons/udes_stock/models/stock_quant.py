@@ -67,7 +67,7 @@ class StockQuant(models.Model):
             products[get_key(quant)] += value
         return products
 
-    def create_picking(self, picking_type, **kwargs):
+    def create_picking(self, picking_type, only_available=False, **kwargs):
         """
         Create a picking from quants
         Uses stock.picking create_picking functionality to create the picking.
@@ -88,7 +88,7 @@ class StockQuant(models.Model):
             if location:
                 kwargs.update({"location_id": location.id})
 
-        product_quantities = self.get_quantities_by_key()
+        product_quantities = self.get_quantities_by_key(only_available=only_available)
         products_info = [
             {"product": key, "uom_qty": val} for key, val in product_quantities.items()
         ]

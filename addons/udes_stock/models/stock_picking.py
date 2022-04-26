@@ -89,7 +89,7 @@ class StockPicking(models.Model):
         help="Pickings that are unused after refactoring are empty and ready to be deleted",
     )
 
-    # User responsible for Batch 
+    # User responsible for Batch
     u_batch_user_id = fields.Many2one(
         string="Batch User",
         related="batch_id.user_id",
@@ -182,9 +182,7 @@ class StockPicking(models.Model):
                 (and when the limit has been applied, if set)
         :returns: Move lines of picking
         """
-        locations = self._get_child_dest_locations(
-            self.get_empty_location_domain(), limit=limit
-        )
+        locations = self._get_child_dest_locations(self.get_empty_location_domain(), limit=limit)
 
         if sort:
             return locations.sorted(lambda l: l.name)
@@ -305,6 +303,7 @@ class StockPicking(models.Model):
         self,
         picking_type,
         products_info=None,
+        group_id=None,
         confirm=False,
         assign=False,
         create_batch=False,
@@ -335,7 +334,7 @@ class StockPicking(models.Model):
         pickings = Picking.create(picking_values)
         # Prepare stock.moves
         if products_info:
-            move_values = self._prepare_move(pickings, products_info)
+            move_values = self._prepare_move(pickings, products_info, group_id=group_id)
             # Create stock.moves
             self._create_move(move_values)
 
@@ -477,3 +476,57 @@ class StockPicking(models.Model):
             to_unlink.unlink()
 
         return self - records
+
+    @staticmethod
+    def get_stock_investigation_message(quants):
+        """
+        Dummy method to be overridden on a per-customer basis.
+
+        :returns: str
+        """
+        return ""
+
+    def raise_stock_investigation(self, reason, quants, location):
+        """
+        Raises a stock investigation picking with the provided reason, quants and location.
+        Un-reserves stock from affected pickings, creates stock investigation and reserves the stock,
+        finally tries to reserve stock for the original pickings.
+
+        :args:
+            - reason: str
+                The reason for which the stock is being investigated
+            - quants: stock.quant
+                The stock quants to reserve and investigate in the new picking
+            - location:
+                The location where the quants need to be investigated
+        """
+        Group = self.env["procurement.group"]
+
+        wh = self.env.user.get_user_warehouse()
+        stock_inv_pick_type = wh.u_stock_investigation_picking_type or wh.int_type_id
+        group = Group.get_or_create(reason, create=True)
+
+        # Post message and un-reserve stock
+        for pick in self:
+            pick.message_post(body=reason)
+            pick.do_unreserve()
+
+        # create a stock investigation pick
+        investigation_picking = quants.create_picking(
+            stock_inv_pick_type,
+            only_available=True,
+            location_id=location.id,
+            group_id=group.id,
+            confirm=True,
+            assign=True,
+        )
+
+        picking_details = self.get_stock_investigation_message(quants.exists())
+
+        if picking_details:
+            picking_header = "Stock Investigation created with: <br>"
+            investigation_picking.message_post(body=_(picking_header + picking_details))
+
+        # Try to re-assign the picking after creating the stock investigation
+        # picking as we have reserved the problematic stock
+        self.action_assign()

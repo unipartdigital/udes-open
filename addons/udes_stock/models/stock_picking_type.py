@@ -43,6 +43,11 @@ class StockPickingType(models.Model):
         the system.
         """,
     )
+    u_enable_unpickable_items = fields.Boolean(
+        string="Enable Unpickable Items",
+        default=False,
+        help="Flag to indicate if the current picking type should support handling of unpickable items.",
+    )
 
     def get_action_picking_tree_draft(self):
         return self._get_action("udes_stock.action_picking_tree_draft")

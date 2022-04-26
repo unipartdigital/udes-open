@@ -11,7 +11,9 @@
                         <group class="udes_wide_list" name="udes_stock_config" string="Stock Config">
                             <field name="u_good_location_id" />
                             <field name="u_damaged_location_id" />
+                            <field name="u_missing_stock_location_id" />
                             <field name="u_pi_count_move_picking_type" />
+                            <field name="u_stock_investigation_picking_type" />
                         </group>
                     </page>
                 </xpath>

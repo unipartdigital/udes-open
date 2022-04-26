@@ -45,6 +45,16 @@ class StockWarehouse(models.Model):
         string="Default Goods Location",
         help="Goods receive location used by mobile client",
     )
+    u_missing_stock_location_id = fields.Many2one(
+        comodel_name="stock.location",
+        string="Default Missing Stock Location",
+        help="The location where missing stock is moved to",
+    )
+    u_stock_investigation_picking_type = fields.Many2one(
+        comodel_name="stock.picking.type",
+        string="Stock Investigation Picking Type",
+        help="Picking type used to create stock investigation pickings.",
+    )
 
     def get_picking_types(self):
         """Returns a recordset with the picking_types of the warehouse"""

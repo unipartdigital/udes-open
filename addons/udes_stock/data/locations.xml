@@ -33,5 +33,12 @@
       <field name="active" eval="True"/>
     </record>
 
+    <!-- Construct "UPL/Stock investigation" location -->
+    <record id="location_stock_investigation" model="stock.location">
+      <field name="name">Stock Investigation</field>
+      <field name="comment">Stock Investigation</field>
+      <field name="active" eval="True"/>
+    </record>
+
   </data>
 </odoo>
