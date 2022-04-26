@@ -287,7 +287,7 @@ class TestStockMove(common.BaseUDES):
         self.pick.action_confirm()
         self.pick.action_assign()
 
-    def test_pepare_and_create_multiple_move_lines(self):
+    def test_prepare_and_create_multiple_move_lines(self):
         """Prepare and create a multiple move lines and check values are correct"""
         apple_uom_qty = 5
         banana_uom_qty = 2

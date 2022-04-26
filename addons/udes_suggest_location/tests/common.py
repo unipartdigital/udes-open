@@ -7,13 +7,6 @@ class SuggestedLocations(common.BaseUDES):
         super(SuggestedLocations, cls).setUpClass()
         # Create extra locations
         Location = cls.env["stock.location"]
-        cls.test_stock_location_03 = Location.create(
-            {
-                "name": "Test stock location 03",
-                "barcode": "LSTEST03",
-                "location_id": cls.stock_location.id,
-            }
-        )
         cls.test_goodsout_location_03, cls.test_goodsout_location_04 = Location.create(
             [
                 {
