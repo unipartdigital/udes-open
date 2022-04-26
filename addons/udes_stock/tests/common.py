@@ -142,9 +142,16 @@ class UnconfiguredBaseUDES(common.SavepointCase):
                     "barcode": "LSTEST02",
                     "location_id": cls.stock_location.id,
                 },
+                {
+                    "name": "Test stock location 03",
+                    "barcode": "LSTEST03",
+                    "location_id": cls.stock_location.id,
+                },
             ]
         )
-        cls.test_stock_location_01, cls.test_stock_location_02 = cls.test_stock_locations
+        cls.test_stock_location_01, cls.test_stock_location_02, cls.test_stock_location_03 = (
+            cls.test_stock_locations
+        )
 
         cls.warehouse_location = Location.create({"name": "Warehouse"})
 
@@ -488,8 +495,8 @@ class UnconfiguredBaseUDES(common.SavepointCase):
         names = pickings.mapped("name")
         return ", ".join(map(str, names))
 
-class BaseUDES(UnconfiguredBaseUDES):
 
+class BaseUDES(UnconfiguredBaseUDES):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
