@@ -330,15 +330,20 @@ class StockPicking(models.Model):
             new_moves |= move.split_out_incomplete_move()
 
         # Create picking for completed move
+        bk_picking = self._create_backorder_picking(new_moves)
+
+        return bk_picking
+
+    def _create_backorder_picking(self, moves):
+        """Helper to create a backorder picking from the given moves"""
         bk_picking = self.copy(
             {
                 "name": "/",
-                "move_lines": [(6, 0, new_moves.ids)],
-                "move_line_ids": [(6, 0, new_moves.move_line_ids.ids)],
+                "move_lines": [(6, 0, moves.ids)],
+                "move_line_ids": [(6, 0, moves.move_line_ids.ids)],
                 "backorder_id": self.id,
             }
         )
-
         return bk_picking
 
     def _requires_backorder(self, mls=None):
