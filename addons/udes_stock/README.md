@@ -3,13 +3,13 @@
 ## Default settings
 
 - product.product
-    - Track visiblity of active field
+    - Track visibility of active field
 - product.template
-    - Track visiblity of active field
+    - Track visibility of active field
     - Disable name translation
     - Default type stockable
 - stock.location
-    - Track visiblity of active field
+    - Track visibility of active field
     - Disable name translation
 - data/stock_config.xml
     - Batch pickings turned on
@@ -23,9 +23,10 @@
     - Input → Received
     - Stock → Normal Locations
     - Output → Goods Out Lane / Trailers
+    - Stock Investigation -> Stock Investigation
 - data/routes.xml
     - Goods in → Putaway
-    - Pick → Goods Out → Trailer Despatch
+    - Pick → Goods Out → Trailer Dispatch
 
 ## Requires
 - udes_common:
@@ -150,22 +151,24 @@ This is essentially a collection of products that are to be moved from one locat
 | u_assigned_user_ids     | one2many (res.users)     | Assigned users to the picking, can be more than one if picking type handles multi users    |
 
 
-| Helpers                   | Description                                                                                                                                                                                                                                                                                                                                       |
-|---------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| get_empty_locations       | Returns the recordset of locations that are child of the instance dest location and are empty.Expects a singleton instance.                                                                                                                                                                                                                       |
-| _get_child_dest_locations | Return the child locations of the instance dest location. Extra domains are added to the child locations search query, when specified. Expects a singleton instance.                                                                                                                                                                              |
-| get_move_lines            | Get move lines associated to picking, uses functions in stock_move_line.                                                                                                                                                                                                                                                                          |
-| backorder_move_lines     | Checks if a backorder is required, creates one according to _backorder_move_lines if so, else returns an empty record set; neither picking is validated. |
-| _backorder_move_lines     | Creates a backorder pick from self for all incomplete work, the original move retains with all completed work, new moves are created for the incomplete wrok.  The original pick is not validated. It should be called from within backorder_move_lines. |
-| _requires_backorder       | Checks if a backorder is required by checking if all move lines within a picking are present in mls. Cannot be consolidated with _check_backorder in Odoo core, because it does not take into account any move lines parameter.  |
-| _prepare_picking_info     | Prepare the picking_info and products_info, returning the picking_info as a list of pickings, and products_info None or as a list of lists of a dictionary of the product info. This is to allow us to create multiple pickings at once.                                                                                                          |
-| _prepare_move             | Return a list of the move details to be used later in creation of the move(s). Note: pickings and products_info should be formatted via _prepare_picking_info. Allows for multiple moves to be created at once.                                                                                                                                   | 
-| _create_batch             | Creates a batch                                                                                                                                                                                                                                                                                                                                   |
-| create_picking            | Create and return a picking for the given picking_type. For multiple pickings a list of lists of dicts of product_info should be passed, and pickings with the same picking_type and other kwargs are the same. The kwargs are applied to pickings, not moves. If needed, the moves can be created outside of create_pickings with _create_moves. |
-| _create_move              | Create and return move(s) for the given move_values. Should be used in conjunction with _prepare_move to obtain move_values                                                                                                                                                                                                                       |
-| get_empty_pickings        | Generate batches marked with u_is_empty in a recordset or picking type (if u_auto_unlink_pickings is on)                                                                                                                                                                                                                                          |
-| unlink_empty              | Deletes empty pickings generated by get_empty_pickings                                                                                                                                                                                                                                                                                            |
-| unassign_users            | Unassigning the user(s) from the pickings from self with optional skip_users                                                                                                                                                                                                                                                                      |
+| Helpers                         | Description                                                                                                                                                                                                                                                                                                                                       |
+|---------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| get_empty_locations             | Returns the recordset of locations that are child of the instance dest location and are empty.Expects a singleton instance.                                                                                                                                                                                                                       |
+| _get_child_dest_locations       | Returns the child locations of the instance dest location. Extra domains are added to the child locations search query, when specified. Expects a singleton instance.                                                                                                                                                                              |
+| get_move_lines                  | Gets move lines associated to picking, uses functions in stock_move_line.                                                                                                                                                                                                                                                                          |
+| backorder_move_lines            | Checks if a backorder is required, creates one according to _backorder_move_lines if so, else returns an empty record set; neither picking is validated.                                                                                                                                                                                          |
+| _backorder_move_lines           | Creates a backorder pick from self for all incomplete work, the original move retains with all completed work, new moves are created for the incomplete wrok.  The original pick is not validated. It should be called from within backorder_move_lines.                                                                                          |
+| _requires_backorder             | Checks if a backorder is required by checking if all move lines within a picking are present in mls. Cannot be consolidated with _check_backorder in Odoo core, because it does not take into account any move lines parameter.                                                                                                                   |
+| _prepare_picking_info           | Prepares the picking_info and products_info, returning the picking_info as a list of pickings, and products_info None or as a list of lists of a dictionary of the product info. This is to allow us to create multiple pickings at once.                                                                                                          |
+| _prepare_move                   | Returns a list of the move details to be used later in creation of the move(s). Note: pickings and products_info should be formatted via _prepare_picking_info. Allows for multiple moves to be created at once.                                                                                                                                   | 
+| _create_batch                   | Creates a batch                                                                                                                                                                                                                                                                                                                                   |
+| create_picking                  | Creates and returns a picking for the given picking_type. For multiple pickings a list of lists of dicts of product_info should be passed, and pickings with the same picking_type and other kwargs are the same. The kwargs are applied to pickings, not moves. If needed, the moves can be created outside of create_pickings with _create_moves. |
+| _create_move                    | Creates and returns move(s) for the given move_values. Should be used in conjunction with _prepare_move to obtain move_values                                                                                                                                                                                                                       |
+| get_empty_pickings              | Generate batches marked with u_is_empty in a recordset or picking type (if u_auto_unlink_pickings is on)                                                                                                                                                                                                                                          |
+| unlink_empty                    | Deletes empty pickings generated by get_empty_pickings                                                                                                                                                                                                                                                                                            |
+| unassign_users                  | Unassigning the user(s) from the pickings from self with optional skip_users                                                                                                                                                                                                                                                                      |
+| get_stock_investigation_message | Dummy method which is overridden in customer modules to provide further info in messages for stock investigations                                                                                                                                                                                                                                 |
+| raise_stock_investigation       | Raises a stock investigation picking with the provided reason, quants and                                                                                                                                                                                                                                                                         |
 
 ### Picking Type (model: stock.picking.type)
 
@@ -180,6 +183,7 @@ The type of stock.picking can is defined by this type. It can represent a goods 
 | u_over_receive            | Boolean | If the system is able to receive more than what is expected.                                                                             |
 | u_scan_parent_package_end | Boolean | If the system should ask the user to scan a parent package on drop off                                                                   |
 | u_multi_users_enabled     | Boolean | Flag to enable multi users processing same picking simultaneously.                                                                       |
+| u_enable_unpickable_items  | Boolean | Flag to indicate if the current picking type should support handling of unpickable items                                                 |
 
 | Helpers                       | Description                                          |
 |-------------------------------|------------------------------------------------------|
@@ -236,12 +240,13 @@ get_lines_incomplete  | Return the move lines in self that are not completed, i.
 Additional Details:
 - Inherits from: mail.thread
 
-| Field Name                   | Type    | Description                                                              |
-|------------------------------|---------|--------------------------------------------------------------------------|
-| active                       | Boolean | Track visibility on change                                               |
-| u_damaged_location_id        | int     | The location where damaged stock is stored at outside of Stock location. |
-| u_good_location_id           | int     | The location where received goods are stored at by mobile client.        |
-| u_pi_count_move_picking_type | int     | Picking type used to create PI Count move pickings.                      |
+| Field Name                         | Type     | Description                                                              |
+|------------------------------------|----------|--------------------------------------------------------------------------|
+| active                             | Boolean  | Track visibility on change                                               |
+| u_damaged_location_id              | int      | The location where damaged stock is stored at outside of Stock location. |
+| u_good_location_id                 | int      | The location where received goods are stored at by mobile client.        |
+| u_pi_count_move_picking_type       | int      | Picking type used to create PI Count move pickings.                      |
+| u_stock_investigation_picking_type | Many2one | Picking type used to create stock investigation pickings                 | 
 
 | Helpers           | Description                                                  |
 |-------------------|--------------------------------------------------------------|
