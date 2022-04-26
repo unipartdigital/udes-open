@@ -9,7 +9,6 @@ from odoo.addons.udes_stock.models.common import get_next_name
 _logger = logging.getLogger(__name__)
 
 
-
 class StockPickingBatch(models.Model):
     _name = "stock.picking.batch"
     _inherit = ["stock.picking.batch", "mixin.stock.model"]
@@ -26,16 +25,12 @@ class StockPickingBatch(models.Model):
     # Note: state field has been found to recompute itself everytime it was accessed even with store=True
     # lock_batch_state has been put in places to ensure correct behaviour.
     state = fields.Selection(
-        selection_add=[
-            ("waiting", "Waiting"),
-            ("ready", "Ready"),
-            ("in_progress", "Running")
-        ],
+        selection_add=[("waiting", "Waiting"), ("ready", "Ready"), ("in_progress", "Running")],
         compute="_compute_state",
         store=True,
         ondelete={
             "waiting": lambda spb: spb.write({"state": "draft"}),
-            "ready": lambda spb: spb.write({"state": "draft"})
+            "ready": lambda spb: spb.write({"state": "draft"}),
         },
     )
     picking_ids = fields.One2many(
@@ -52,8 +47,8 @@ class StockPickingBatch(models.Model):
         string="Last Pallet Used",
         index=True,
         help="Barcode of the last pallet used for this batch. "
-             "If the batch is in progress, indicates the pallet currently in "
-             "use.",
+        "If the batch is in progress, indicates the pallet currently in "
+        "use.",
     )
     u_ephemeral = fields.Boolean(
         string="Ephemeral", help="Ephemeral batches are unassigned if the user logs out"
@@ -555,8 +550,7 @@ class StockPickingBatch(models.Model):
         if not remaining_tasks:
             # No viable movelines, create an empty task
             _logger.debug(
-                _("Batch '%s': no available move lines for creating " "a task"),
-                self.name,
+                _("Batch '%s': no available move lines for creating " "a task"), self.name
             )
             task = self._populate_next_task(incomplete_mls, task_grouping_criteria)
             task["tasks_picked"] = have_tasks_been_picked
@@ -565,10 +559,7 @@ class StockPickingBatch(models.Model):
         return remaining_tasks
 
     def get_next_task(
-        self,
-        skipped_product_ids=None,
-        skipped_move_line_ids=None,
-        task_grouping_criteria=None,
+        self, skipped_product_ids=None, skipped_move_line_ids=None, task_grouping_criteria=None
     ):
         """Get the next not completed task of the batch to be done.
         Expect a singleton.
@@ -596,10 +587,7 @@ class StockPickingBatch(models.Model):
 
         # Generate tasks for the completed move lines
         completed_tasks = self._populate_next_tasks(
-            completed_mls,
-            True,
-            task_grouping_criteria=task_grouping_criteria,
-            limit=limit,
+            completed_mls, True, task_grouping_criteria=task_grouping_criteria, limit=limit
         )
         return completed_tasks
 
@@ -730,7 +718,7 @@ class StockPickingBatch(models.Model):
         Validate the move lines of the batch (expects a singleton)
         by moving them to the specified location.
 
-        In case continue_batch is not flagged, close the batch.
+        In case continue_batch is not flagged, close the batch. 
         """
         Location = self.env["stock.location"]
         MoveLine = self.env["stock.move.line"]
@@ -778,19 +766,42 @@ class StockPickingBatch(models.Model):
             to_add = Picking.browse()
             picks_todo = Picking.browse()
 
-            for pick in pickings:
-                pick_todo = pick
-                pick_mls = completed_move_lines.filtered(lambda x: x.picking_id == pick)
+            for pick, rel_mls in completed_move_lines.groupby("picking_id"):
+                backorder = None
+                # Check if the picking needs to be backordered based on all the move lines
+                # in the picking. If something is incomplete then they will be placed into
+                # a backorder.
+                if pick._requires_backorder():
+                    backorder = pick._backorder_move_lines()
+                    # Add the picking to the batch if they are still continuing.
+                    if continue_batch:
+                        to_add |= backorder
+                # Check for any mls that are not in rel_mls but have qty_done > 0.
+                # If there are mls, place them into an existing backorder,
+                # else create a new one.
+                remaining_mls = pick.move_line_ids - rel_mls
+                if remaining_mls:
+                    # Get the relevant moves to check. Split out the moves if necessary.
+                    remaining_moves = remaining_mls.mapped("move_id")
+                    new_moves = remaining_moves.split_out_move_lines(remaining_mls)
+                    if backorder:
+                        backorder.write(
+                            {
+                                "move_lines": [(6, 0, (backorder.move_lines | new_moves).ids)],
+                                "move_line_ids": [
+                                    (6, 0, (backorder.move_line_ids | remaining_mls).ids)
+                                ],
+                            }
+                        )
+                    else:
+                        backorder = pick._create_backorder_picking(new_moves)
 
-                if pick._requires_backorder(pick_mls):
-                    pick_todo = pick._backorder_move_lines(pick_mls)
+                    # Update the picking to still be in the batch at the moment.
+                    to_add |= backorder
 
-                    to_add |= pick_todo
+                picks_todo |= pick
 
-                picks_todo |= pick_todo
-                pick.write({"u_reserved_pallet": False})
-
-            # Add backorders to the batch
+            # Add any created backorders if needed
             if to_add:
                 to_add.write({"batch_id": self.id})
 
@@ -798,10 +809,7 @@ class StockPickingBatch(models.Model):
                 picks_todo.sudo().with_context(tracking_disable=True)._action_done()
 
             _logger.info(
-                "%s action_done in %.2fs, %d queries",
-                picks_todo,
-                stats.elapsed,
-                stats.count,
+                "%s action_done in %.2fs, %d queries", picks_todo, stats.elapsed, stats.count
             )
         if not continue_batch:
             self.close()
@@ -858,7 +866,7 @@ class StockPickingBatch(models.Model):
         is handled by computation of state function.
         """
         batch = self.env["stock.picking.batch"]
-        
+
         batches = self.search([("state", "=", "ready")]).filtered(
             lambda b: all([pt.id == picking_type_id for pt in b.picking_type_ids])
         )
@@ -1028,9 +1036,7 @@ class StockPickingBatch(models.Model):
             if started_lines:
                 # Create backorders for incomplete moves.
                 if picking._requires_backorder():
-                    backorder = picking.with_context(
-                        lock_batch_state=True
-                    )._backorder_move_lines()
+                    backorder = picking.with_context(lock_batch_state=True)._backorder_move_lines()
                     # Ensure that backorder batch info is also cleared
                     pickings_to_remove |= backorder
             else:
