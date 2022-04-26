@@ -193,9 +193,7 @@ class TestStockPickingBackordering(TestStockPickingCommon):
         self.create_quant(self.fig.id, self.test_stock_location_02.id, 50)
         pick = self.create_picking(
             picking_type=self.picking_type_pick,
-            products_info=[
-                {"product": self.fig, "uom_qty": 50},
-            ],
+            products_info=[{"product": self.fig, "uom_qty": 50}],
             assign=True,
         )
         pick.move_line_ids.qty_done = 10
@@ -217,9 +215,7 @@ class TestStockPickingBackordering(TestStockPickingCommon):
         self.create_quant(self.fig.id, self.test_stock_location_02.id, 50)
         pick = self.create_picking(
             picking_type=self.picking_type_pick,
-            products_info=[
-                {"product": self.fig, "uom_qty": 50},
-            ],
+            products_info=[{"product": self.fig, "uom_qty": 50}],
             assign=True,
         )
         bk_picking = pick._backorder_move_lines()
@@ -234,9 +230,7 @@ class TestStockPickingBackordering(TestStockPickingCommon):
         self.create_quant(self.fig.id, self.test_stock_location_02.id, 50)
         pick = self.create_picking(
             picking_type=self.picking_type_pick,
-            products_info=[
-                {"product": self.fig, "uom_qty": 50},
-            ],
+            products_info=[{"product": self.fig, "uom_qty": 50}],
             assign=True,
         )
         pick.move_line_ids.qty_done = 50
@@ -320,9 +314,7 @@ class TestStockPickingBackordering(TestStockPickingCommon):
         self.create_quant(self.fig.id, self.test_stock_location_02.id, 5)
         pick = self.create_picking(
             picking_type=self.picking_type_pick,
-            products_info=[
-                {"product": self.fig, "uom_qty": 20},
-            ],
+            products_info=[{"product": self.fig, "uom_qty": 20}],
             assign=True,
         )
         fig_mv = pick.move_lines
@@ -374,9 +366,7 @@ class TestStockPickingBackordering(TestStockPickingCommon):
         self.create_quant(self.banana.id, self.test_stock_location_02.id, 4)
         pick = self.create_picking(
             picking_type=self.picking_type_pick,
-            products_info=[
-                {"product": self.banana, "uom_qty": 13},
-            ],
+            products_info=[{"product": self.banana, "uom_qty": 13}],
             assign=True,
         )
         move = pick.move_lines
@@ -639,7 +629,9 @@ class TestStockPicking(TestStockPickingCommon):
         pick.move_lines[0].quantity_done = 10
         # Check a backorder is needed
         mls = pick.move_line_ids
-        self.assertTrue(pick._requires_backorder(mls))
+        for mls in (None, mls):
+            with self.subTest(has_mls=bool(mls)):
+                self.assertTrue(pick._requires_backorder(mls=mls))
 
     def test_assert_related_pickings_computed_correctly(self):
         """
