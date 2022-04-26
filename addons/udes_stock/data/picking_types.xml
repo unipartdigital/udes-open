@@ -26,6 +26,14 @@
       <field name="code">stock.picking</field>
     </record>
 
+    <!-- Create "Stock Investigation" sequence -->
+    <record id="sequence_stock_inv" model="ir.sequence">
+      <field name="name">Stock Investigation</field>
+      <field name="prefix">STOCKINV</field>
+      <field name="code">stock.picking</field>
+      <field name="padding" eval="5"/>
+    </record>
+
     <!-- Update "Goods In" picking type -->
     <record id="stock.picking_type_in" model="stock.picking.type">
       <field name="name">Goods In</field>
@@ -66,6 +74,21 @@
       <field name="default_location_dest_id" ref="stock.stock_location_stock"/>
       <field name="show_operations" eval="1"/>
       <field name="active">True</field>
+    </record>
+
+    <!-- Add Stock Investigation Picking Type -->
+    <record id="picking_type_stock_inv" model="stock.picking.type">
+      <field name="name">Stock Investigation</field>
+      <field name="sequence" eval="40"/>
+      <field name="code">internal</field>
+      <field name="sequence_id" ref="sequence_stock_inv"/>
+      <field name="sequence_code"></field>
+      <field name="use_existing_lots" eval="1"/>
+      <field name="default_location_src_id" ref="stock.stock_location_stock"/>
+      <field name="default_location_dest_id" ref="location_stock_investigation"/>
+      <field name="show_operations" eval="1"/>
+      <field name="active">False</field>
+      <field name="warehouse_id" ref="stock.warehouse0"/>
     </record>
 
   </data>
