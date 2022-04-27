@@ -813,15 +813,13 @@ class StockPickingBatch(models.Model):
             picks_todo = Picking.browse()
 
             for pick in pickings:
-                pick_todo = pick
                 pick_mls = completed_move_lines.filtered(lambda x: x.picking_id == pick)
 
                 if pick._requires_backorder(pick_mls):
-                    pick_todo = pick._backorder_move_lines(pick_mls)
+                    new_pick = pick._backorder_move_lines()
+                    to_add |= new_pick
 
-                    to_add |= pick_todo
-
-                picks_todo |= pick_todo
+                picks_todo |= pick
                 pick.write({"u_reserved_pallet": False})
 
             # Add backorders to the batch
