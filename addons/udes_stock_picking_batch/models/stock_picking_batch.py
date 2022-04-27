@@ -773,8 +773,10 @@ class StockPickingBatch(models.Model):
                 # a backorder.
                 if pick._requires_backorder():
                     backorder = pick._backorder_move_lines()
-                    # Add the picking to the batch if they are still continuing.
-                    if continue_batch:
+                    # Add the picking to the batch if they are still continuing and it
+                    # is available to be picked. Else kick it out for auto completion
+                    # of batches.
+                    if continue_batch and backorder.state == "assigned":
                         to_add |= backorder
                 # Check for any mls that are not in rel_mls but have qty_done > 0.
                 # If there are mls, place them into an existing backorder,

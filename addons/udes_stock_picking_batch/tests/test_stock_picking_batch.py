@@ -1,7 +1,5 @@
 from odoo.addons.udes_stock.tests import common
-from odoo.tests import common as odoo_common
 from odoo.exceptions import ValidationError
-import unittest
 
 
 class TestBatchState(common.BaseUDES):
@@ -585,12 +583,10 @@ class TestBatchMultiDropOff(common.BaseUDES):
     def test_next_drop_off_nothing_to_drop(self):
         """ Test next drop off criterion by products but nothing to drop """
         MoveLine = self.env["stock.move.line"]
-
         self.picking_type_pick.u_drop_criterion = "by_products"
 
         # Create quants and picking for one order and two products
         batch = self._create_bacthed_picking()
-        picking = batch.picking_ids
 
         # Get next drop off info for apples when nothing has been picked
         info = batch.get_next_drop_off(self.apple.barcode)
@@ -1248,7 +1244,6 @@ class TestStockPickingBatch(common.BaseUDES):
             batch.picking_ids[0].priority, "1", "Does not have a picking with the expected priority"
         )
 
-    @unittest.skip("Backorder logic yet to be determined, review later")
     def test_create_batch_user_already_has_completed_batch(self):
         """
         When dropping off a partially reserved picking, a backorder in state
@@ -1268,10 +1263,10 @@ class TestStockPickingBatch(common.BaseUDES):
         )
         # Create a picking partially reserved
         picking = self.create_picking(
-            self.picking_type_pick, products_info=self.pack_4apples_info, confirm=True, assign=True
+            self.picking_type_pick, products_info=self.pack_4apples_info, assign=True
         )
         batch = Batch.create_batch(self.picking_type_pick.id, None)
-        self.assertEqual(batch.picking_ids[0], picking)
+        self.assertEqual(batch.picking_ids, picking)
         for ml in picking.move_line_ids:
             ml.qty_done = ml.product_qty
         # On drop off a backorder is created for the remaining 2 units,
@@ -1284,30 +1279,33 @@ class TestStockPickingBatch(common.BaseUDES):
         )
 
         # check the picking is done and the backorder is not in the batch
-        self.assertEqual(len(batch.picking_ids), 1)
+        self.assertEqual(batch.picking_ids, picking)
         self.assertEqual(batch.state, "done")
-        self.assertEqual(batch.picking_ids[0].state, "done")
+        self.assertEqual(picking.state, "done")
+        # Check the created backorder
+        self.assertTrue(picking.u_created_backorder_ids)
+        backorder = picking.u_created_backorder_ids
+        self.assertEqual(backorder.state, "confirmed")
+        self.assertFalse(backorder.batch_id)
+        back_mvs = backorder.move_lines
+        self.assertEqual(back_mvs.product_id, self.apple)
+        self.assertEqual(back_mvs.product_uom_qty, 2)
 
-        # create a new picking to be included in the new batch
+        # create a new picking to be included in a new batch
         other_pack = Package.get_or_create("00010", create=True)
         self.create_quant(
             self.apple.id, self.test_stock_location_01.id, 4, package_id=other_pack.id
         )
         other_picking = self.create_picking(
-            self.picking_type_pick, products_info=self.pack_4apples_info, confirm=True, assign=True
+            self.picking_type_pick, products_info=self.pack_4apples_info, assign=True
         )
 
         new_batch = Batch.create_batch(self.picking_type_pick.id, None)
 
         # check outcome
-        self.assertIsNotNone(new_batch, "No batch created")
-        self.assertEqual(
-            len(new_batch.picking_ids), 1, "Multiple pickings were included in the batch"
-        )
-        self.assertEqual(
-            new_batch.picking_ids[0].id, other_picking.id, "Does not include the expected picking"
-        )
-        self.assertEqual(batch.state, "done", "Old batch was not completed")
+        self.assertIsNotNone(new_batch)
+        self.assertEqual(new_batch.picking_ids, other_picking)
+        self.assertEqual(new_batch.state, "in_progress")
 
     def test_create_batch_error_user_has_incomplete_batched_pickings(self):
         """
