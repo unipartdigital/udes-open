@@ -717,8 +717,36 @@ class StockPickingBatch(models.Model):
         """
         Validate the move lines of the batch (expects a singleton)
         by moving them to the specified location.
+        In case continue_batch is not flagged, close the batch.
 
-        In case continue_batch is not flagged, close the batch. 
+        Logic:
+        Case 1: Drop off mls that are part of a picking with work still not done
+        and no other mls in the picking have a qty_done > 0 that are not in move_line_ids.
+            * Create a backorder for the incomplete work
+            * If continue_batch is true and the backorder is pickable (assigned),then
+            add that backorder to the batch as well
+            * Drop off the move_line_ids
+        Case 2: Drop off mls that are part of a picking with other mls in the picking
+        that have a qty_done > 0 but are not in move_line_ids as they are to be dropped off
+        elsewhere.
+            * Create a backorder for the other mls that are not in move_line_ids
+            * Add the backorder to the picking
+            * Drop off the move_line_ids
+            * Batch should still be open as still need to drop off the scanned stuff.
+        Case 3: Drop off mls that are part of a picking with other mls in the picking
+        that have a qty_done > 0, and moves/mls that are not yet scanned. For example,
+        some unfulfilled moves, or move lines not yet scanned.
+            * Create a backorder for the work not yet scanned, incomplete moves
+            * If continue_batch is true and the backorder is pickable (assigned),then
+            add that backorder to the batch as well
+            * Add the move lines that have qty_done > 0 but not in move_line_ids to the
+            newly created backorder.
+            * Add the backorder to the picking as something still needs to be dropped after this
+            * Drop off the move_line_ids
+            * Batch should still be open as still need to drop off the scanned stuff.
+
+        Note that the work being dropped off always remains in its current picking, and the pending
+        work gets placed in the backorder. 
         """
         Location = self.env["stock.location"]
         MoveLine = self.env["stock.move.line"]
