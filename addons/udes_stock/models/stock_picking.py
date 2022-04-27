@@ -356,6 +356,10 @@ class StockPicking(models.Model):
         Cannot be consolidated with _check_backorder in Odoo core, because it
         does not take into account any move lines parameter.
 
+        TODO: Review the case when mls is not None. It uses the move_orig_ids,
+        but we no longer have update_orig_ids. The logic needs to be synchronised.
+        See Issue 1797.
+
         :kwargs:
             - mls: A record set of move lines, default None.
         :returns: bool
