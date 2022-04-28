@@ -298,34 +298,33 @@ class StockPicking(models.Model):
         if mls is None:
             moves = self.move_lines
             mls = self.move_line_ids
+            # Return if nothing has ben done yet
+            if all(mv.quantity_done == 0 for mv in moves):
+                _logger.info(
+                    "Nothing to backorder in picking %s, original picking retained!" % self.name
+                )
+                return Picking.browse()
+
+            # Get the relevant moves, which are not fully fulfilled
+            unfulfilled_moves = moves.filtered(
+                lambda mv: sum(mv.move_line_ids.mapped("qty_done")) < mv.product_uom_qty
+            )
+
+            # Raise an error if:
+            # * there are moves or move lines that are not fully fulfilled so we can backorder
+            # something.
+            # * if move lines need splitting
+            if not unfulfilled_moves:
+                raise ValidationError(
+                    _("There are no move lines within picking %s to backorder") % self.name
+                )
+            elif mls and any(ml.qty_done != 0 and ml.qty_done < ml.product_uom_qty for ml in mls):
+                raise ValidationError(
+                    _("You cannot create a backorder for %s with a move line qty less than expected!")
+                    % self.name
+                )
         else:
-            moves = mls.move_id
-
-        # Return if nothing has ben done yet
-        if all(mv.quantity_done == 0 for mv in moves):
-            _logger.info(
-                "Nothing to backorder in picking %s, original picking retained!" % self.name
-            )
-            return Picking.browse()
-
-        # Get the relevant moves, which are not fully fulfilled
-        unfulfilled_moves = moves.filtered(
-            lambda mv: sum(mv.move_line_ids.mapped("qty_done")) < mv.product_uom_qty
-        )
-
-        # Raise an error if:
-        # * there are moves or move lines that are not fully fulfilled so we can backorder
-        # something.
-        # * if move lines need splitting
-        if not unfulfilled_moves:
-            raise ValidationError(
-                _("There are no move lines within picking %s to backorder") % self.name
-            )
-        elif mls and any(ml.qty_done != 0 and ml.qty_done < ml.product_uom_qty for ml in mls):
-            raise ValidationError(
-                _("You cannot create a backorder for %s with a move line qty less than expected!")
-                % self.name
-            )
+            unfulfilled_moves = mls.move_id
 
         # Iterate over the moves not fulfilled, and split out recording the newly created moves
         new_moves = Move.browse()
