@@ -71,6 +71,12 @@ class StockMoveLine(models.Model):
                 return
         return super()._log_message(record, move, template, vals)
 
+    def get_lines_partially_complete(self):
+        """Return the move lines in self that are not completed,
+        i.e., 0 < quantity done < quantity to do
+        """
+        return self.filtered(lambda ml: 0 <  ml.qty_done < ml.product_uom_qty)
+
     def get_lines_incomplete(self):
         """Return the move lines in self that are not completed,
         i.e., quantity done < quantity to do

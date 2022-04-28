@@ -187,25 +187,33 @@ class TestStockMoveLine(common.BaseUDES):
         self.assertEqual(e.exception.args[0], msg)
 
     def test_get_move_lines_done_and_done_and_incomplete(self):
-        """Check the get_move_lines_done and get_move_lines_incomplete function works as expected"""
+        """Check:
+            * get_move_lines_done
+            * get_lines_partially_complete
+            * get_move_lines_incomplete
+        functions works as expected"""
         # Check no done move lines
-        self.assertEqual(len(self.mls.get_lines_done()), 0)
+        self.assertFalse(self.mls.get_lines_done())
+        self.assertFalse(self.mls.get_lines_partially_complete())
         self.assertEqual(len(self.mls.get_lines_incomplete()), 2)
         # Complete the apple move
         self.update_move(self.apple_move, 4)
         # Check that one move line is complete
-        self.assertEqual(len(self.mls.get_lines_done()), 1)
-        self.assertEqual(len(self.mls.get_lines_incomplete()), 1)
+        self.assertEqual(self.mls.get_lines_done(), self.apple_move.move_line_ids)
+        self.assertFalse(self.mls.get_lines_partially_complete())
+        self.assertEqual(self.mls.get_lines_incomplete(), self.banana_move.move_line_ids)
         # Complete partially the banana move
         self.update_move(self.banana_move, 1)
         # Check that one move line is complete still
-        self.assertEqual(len(self.mls.get_lines_done()), 1)
-        self.assertEqual(len(self.mls.get_lines_incomplete()), 1)
+        self.assertEqual(self.mls.get_lines_done(), self.apple_move.move_line_ids)
+        self.assertEqual(self.mls.get_lines_incomplete(), self.banana_move.move_line_ids)
+        self.assertEqual(self.mls.get_lines_partially_complete(), self.banana_move.move_line_ids)
         # Complete the rest of the move line and over receive - update move is cumulative
         self.update_move(self.banana_move, 10)
         # Check all move lines are complete
         self.assertEqual(len(self.mls.get_lines_done()), 2)
-        self.assertEqual(len(self.mls.get_lines_incomplete()), 0)
+        self.assertFalse(self.mls.get_lines_partially_complete())
+        self.assertFalse(self.mls.get_lines_incomplete())
 
     def test_get_quants(self):
         """Check get_quants returns what is expected"""
