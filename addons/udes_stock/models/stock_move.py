@@ -143,7 +143,7 @@ class StockMove(models.Model):
 
         return new_move
 
-    def split_out_incomplete_move(self, **kwargs):
+    def split_out_incomplete_move(self, mls_to_keep=None, **kwargs):
         """
         Split a partially complete move up into complete and incomplete moves.
         This is essentially the reverse of split_out_move_line.
@@ -175,7 +175,7 @@ class StockMove(models.Model):
             if mls:
                 mls.write({"picking_id": False})
             return self
-        elif self.product_uom_qty == self.quantity_done:
+        elif self.product_uom_qty == self.quantity_done and mls_to_keep == mls:
             return Move.browse()
 
         # Split the move
@@ -185,9 +185,12 @@ class StockMove(models.Model):
         total_done_qty = sum(mls.mapped("qty_done"))
         new_move_qty = int(total_move_qty - total_done_qty)
 
-        incomplete_move_lines = mls.filtered(lambda ml: ml.qty_done == 0)
+        if mls_to_keep is None:
+            mls_to_move = mls.filtered(lambda ml: ml.qty_done == 0)
+        else:
+            mls_to_move = mls - mls_to_keep
         return self._create_split_move(
-            incomplete_move_lines, total_done_qty, new_move_qty, **kwargs
+            mls_to_move, total_done_qty, new_move_qty, **kwargs
         )
 
     def _create_split_move(self, move_lines, remaining_qty, new_move_qty, **kwargs):

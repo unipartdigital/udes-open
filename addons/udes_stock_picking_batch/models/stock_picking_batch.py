@@ -799,32 +799,13 @@ class StockPickingBatch(models.Model):
                 # Check if the picking needs to be backordered based on all the move lines
                 # in the picking. If something is incomplete then they will be placed into
                 # a backorder.
-                if pick._requires_backorder():
-                    backorder = pick._backorder_move_lines()
+                if pick._requires_backorder(rel_mls):
+                    backorder = pick._backorder_move_lines(rel_mls)
                     # Add the picking to the batch if they are still continuing and it
                     # is available to be picked. Else kick it out for auto completion
                     # of batches.
                     if continue_batch and backorder.state == "assigned":
                         to_add |= backorder
-                # Check for any mls that are not in rel_mls but have qty_done > 0.
-                # If there are mls, place them into an existing backorder,
-                # else create a new one.
-                remaining_mls = pick.move_line_ids - rel_mls
-                if remaining_mls:
-                    # Get the relevant moves to check. Split out the moves if necessary.
-                    remaining_moves = remaining_mls.mapped("move_id")
-                    new_moves = remaining_moves.split_out_move_lines(remaining_mls)
-                    if backorder:
-                        backorder.write(
-                            {
-                                "move_lines": [(6, 0, (backorder.move_lines | new_moves).ids)],
-                                "move_line_ids": [
-                                    (6, 0, (backorder.move_line_ids | remaining_mls).ids)
-                                ],
-                            }
-                        )
-                    else:
-                        backorder = pick._create_backorder_picking(new_moves)
 
                     # Update the picking to still be in the batch at the moment.
                     to_add |= backorder

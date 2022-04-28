@@ -260,7 +260,7 @@ class StockPicking(models.Model):
             domain += aux_domain
         return StockMoveLine.get_move_lines_ordered_by(domain=domain, order=order)
 
-    def _backorder_move_lines(self):
+    def _backorder_move_lines(self, mls=None):
         """
         Create a backorder picking from self (expects a singleton)
         for all move lines not complete (and un-confirmed moves).
@@ -295,8 +295,11 @@ class StockPicking(models.Model):
         # Based on backorder creation in stock_move._action_done
         self.ensure_one()
 
-        moves = self.move_lines
-        mls = self.move_line_ids
+        if mls is None:
+            moves = self.move_lines
+            mls = self.move_line_ids
+        else:
+            moves = mls.move_id
 
         # Return if nothing has ben done yet
         if all(mv.quantity_done == 0 for mv in moves):
@@ -327,7 +330,8 @@ class StockPicking(models.Model):
         # Iterate over the moves not fulfilled, and split out recording the newly created moves
         new_moves = Move.browse()
         for move in unfulfilled_moves:
-            new_moves |= move.split_out_incomplete_move()
+            move_mls = mls.filtered(lambda ml: ml.move_id == move)
+            new_moves |= move.split_out_incomplete_move(move_mls)
 
         # Create picking for completed move
         bk_picking = self._create_backorder_picking(new_moves)
