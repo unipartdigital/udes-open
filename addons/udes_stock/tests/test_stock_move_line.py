@@ -24,14 +24,14 @@ class TestStockMoveLine(common.BaseUDES):
             lambda m: m.product_id == cls.banana
         )
 
-    def test01_get_quantities_by_key(self):
+    def test_get_quantities_by_key(self):
         """Get the quants related to the move lines"""
         # Set expected goods in picking info
         expected = {self.banana: 5, self.apple: 4}
         # Check it matches with the moves lines of the default goods in picking
         self.assertEqual(self.mls.get_quantities_by_key(), expected)
 
-    def test02_get_quantities_by_key_multiple_products(self):
+    def test_get_quantities_by_key_multiple_products(self):
         """Get the quants related to the move lines for multiple products"""
         # Create three quants in stock locations and different packages
         test_package_1 = self.create_package()
@@ -68,7 +68,7 @@ class TestStockMoveLine(common.BaseUDES):
         for key, expected_quantity in expected.items():
             self.assertEqual(key_quantities[key], expected_quantity)
 
-    def test03_sort_by_key(self):
+    def test_sort_by_key(self):
         """Get the move lines sorted by location and product"""
         # Check the order is originally: banana and apple
         self.assertEqual(
@@ -80,7 +80,7 @@ class TestStockMoveLine(common.BaseUDES):
             ["Test product Apple", "Test product Banana"],
         )
 
-    def test04_sort_by_key_custom(self):
+    def test_sort_by_key_custom(self):
         """Get the move lines sorted by product qty then product id"""
         pick_info = [
             {"product": self.banana, "uom_qty": 5},
@@ -105,7 +105,7 @@ class TestStockMoveLine(common.BaseUDES):
             ["Test product Fig", "Test product Apple", "Test product Banana"],
         )
 
-    def test05_split_by_qty_success(self):
+    def test_split_by_qty_success(self):
         """Test split of move lines by qty"""
         # Get apple move line from default goods in picking
         ml_apple = self.apple_move_line
@@ -120,7 +120,7 @@ class TestStockMoveLine(common.BaseUDES):
         # Original move line should have quantity 3
         self.assertEqual(ml_apple.product_qty, 3)
 
-    def test06_split_by_qty_failure(self):
+    def test_split_by_qty_failure(self):
         """Try to split the move line by qty more than that is in there"""
         # Get apple move line from default goods in picking
         ml_apple = self.apple_move_line
@@ -133,7 +133,7 @@ class TestStockMoveLine(common.BaseUDES):
         self.assertEqual(new_ml.product_qty, 4)
         self.assertEqual(new_ml.product_id, self.apple)
 
-    def test07_split_by_done_simple(self):
+    def test_split_by_done_simple(self):
         """Split the move line by qty done"""
         # Get apple move line from default goods in picking
         ml_apple = self.apple_move_line
@@ -151,7 +151,7 @@ class TestStockMoveLine(common.BaseUDES):
         self.assertEqual(ml_apple.product_qty, 3)
         self.assertEqual(ml_apple.qty_done, 3)
 
-    def test08_split_by_qty_with_done_qty_success(self):
+    def test_split_by_qty_with_done_qty_success(self):
         """Split the move line by qty when some has already been done,
         but the quantity to split matches with remaining quantity to do."""
         # Get apple move line from default goods in picking
@@ -170,7 +170,7 @@ class TestStockMoveLine(common.BaseUDES):
         self.assertEqual(ml_apple.product_qty, 3)
         self.assertEqual(ml_apple.qty_done, 3)
 
-    def test09_split_by_qty_with_done_qty_failure(self):
+    def test_split_by_qty_with_done_qty_failure(self):
         """Split the move line by qty when some has already been done,
         but the quantity to split matches with remaining quantity to do."""
         # Get apple move line from default goods in picking
@@ -186,7 +186,7 @@ class TestStockMoveLine(common.BaseUDES):
         msg = "Trying to split a move line with quantity done at picking %s" % self.picking.name
         self.assertEqual(e.exception.args[0], msg)
 
-    def test10_get_move_lines_done_and_done_and_incomplete(self):
+    def test_get_move_lines_done_and_done_and_incomplete(self):
         """Check the get_move_lines_done and get_move_lines_incomplete function works as expected"""
         # Check no done move lines
         self.assertEqual(len(self.mls.get_lines_done()), 0)
@@ -207,7 +207,7 @@ class TestStockMoveLine(common.BaseUDES):
         self.assertEqual(len(self.mls.get_lines_done()), 2)
         self.assertEqual(len(self.mls.get_lines_incomplete()), 0)
 
-    def test11_get_quants(self):
+    def test_get_quants(self):
         """Check get_quants returns what is expected"""
         # Create three quants in stock locations
         test_package_1 = self.create_package()
@@ -242,7 +242,7 @@ class TestStockMoveLine(common.BaseUDES):
             sum(quants.filtered(lambda q: q.product_id == self.banana).mapped("quantity")) == 5
         )
 
-    def test12_move_line_for_qty_simple(self):
+    def test_move_line_for_qty_simple(self):
         """Check move_lines_for_qty returns the move line if satisfied straightaway"""
         # Get apple move line from default goods in picking
         ml_apple = self.apple_move_line
@@ -252,7 +252,7 @@ class TestStockMoveLine(common.BaseUDES):
         self.assertIsNone(new_ml)
         self.assertEqual(quantity, 0)
 
-    def test13_move_line_for_qty_split(self):
+    def test_move_line_for_qty_split(self):
         """Test when a subset of move lines are to be returned, with one being split"""
         # Get banana move line from default goods in picking
         ml_banana = self.banana_move_line
@@ -264,7 +264,7 @@ class TestStockMoveLine(common.BaseUDES):
         self.assertEqual(new_ml.product_qty, 4, "Expected quantity of new ml was four")
         self.assertEqual(quantity, 0, "Expected the un-met quantity to be 0")
 
-    def test14_move_line_for_qty_split_cannot_fulfil(self):
+    def test_move_line_for_qty_split_cannot_fulfil(self):
         """Test when a subset of move lines are to be returned, where the quantity > than that in mls"""
         # Get banana move line from default goods in picking
         ml_banana = self.banana_move_line
@@ -275,7 +275,7 @@ class TestStockMoveLine(common.BaseUDES):
         self.assertEqual(quantity, 6, "Expected the un-met quantity to be six")
         self.assertIsNone(new_ml)
 
-    def test15_move_line_for_qty_partial_split_default_sorting(self):
+    def test_move_line_for_qty_partial_split_default_sorting(self):
         """Test when a subset of move lines are to be returned, with one being split, and one original one
         Uses the default sorting
         """
@@ -295,7 +295,7 @@ class TestStockMoveLine(common.BaseUDES):
         # Check that the largest move line is not split, and  smaller ones are
         self.assertEqual(result.mapped("product_qty"), [17.0, 2.0])
 
-    def test16_move_line_for_qty_partial_split_no_sorting(self):
+    def test_move_line_for_qty_partial_split_no_sorting(self):
         """Test when a subset of move lines are to be returned, with one being split, and one original one
         Does not use the default sorting, sort = False
         """
@@ -316,7 +316,7 @@ class TestStockMoveLine(common.BaseUDES):
         # Check that the small move line is not split
         self.assertEqual(result.mapped("product_qty"), [5.0, 14.0])
 
-    def test17_move_line_for_qty_exact_qty(self):
+    def test_move_line_for_qty_exact_qty(self):
         """Check move_lines_for_qty returns the move line of the exact size when possible"""
         mls = self.mls.filtered(lambda ml: ml.product_id == self.banana)
         result, new_ml, quantity = mls.move_lines_for_qty(5)
@@ -326,7 +326,7 @@ class TestStockMoveLine(common.BaseUDES):
         self.assertIsNone(new_ml)
         self.assertEqual(quantity, 0)
 
-    def test18_get_search_domain_not_strict(self):
+    def test_get_search_domain_not_strict(self):
         """Check _get_search_domain(strict=False) returns what is expected"""
         # Create a quant in stock locations
         test_package_1 = self.create_package()
@@ -353,7 +353,7 @@ class TestStockMoveLine(common.BaseUDES):
         ]
         self.assertEqual(banana_domain, expected_domain)
 
-    def test19_get_search_domain_strict(self):
+    def test_get_search_domain_strict(self):
         """Check _get_search_domain(strict=True) returns what is expected"""
         # Create a quant in stock locations
         test_package_1 = self.create_package()
