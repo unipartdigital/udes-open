@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <record id="picking_assigned_to_users_tree" model="ir.ui.view">
+    <field name="name">res.users.assigned.picking.tree</field>
+    <field name="model">res.users</field>
+    <field name="arch" type="xml">
+      <tree string="Assigned Pickings" create="0" default_order="u_picking_assigned_time">
+        <field name="name"/>
+        <field name="login"/>
+        <field name="u_picking_id"/>
+        <field name="u_picking_assigned_time"/>
+      </tree>
+    </field>
+  </record>
+
+  <record id="picking_assigned_to_users_search" model="ir.ui.view">
+    <field name="name">res.users.assigned.picking.search</field>
+    <field name="model">res.users</field>
+    <field name="arch" type="xml">
+      <search string="Assigned Pickings">
+        <field name="u_picking_id" string="Transfer"/>
+        <field name="name" string="User"
+               filter_domain="['|',('name','ilike',self), ('login','ilike',self)]"/>
+        <separator/>
+        <group expand="0" string="Group By">
+          <filter string="Picking" name="group_by_picking_id" domain="[]"
+                  context="{'group_by': 'u_picking_id'}"/>
+          <filter string="Assigned Date" name="by_assigned_time" domain="[]"
+                  context="{'group_by': 'u_picking_assigned_time'}"/>
+        </group>
+      </search>
+    </field>
+  </record>
+
+  <record id="picking_assigned_to_users_action" model="ir.actions.act_window">
+    <field name="name">Assigned Pickings</field>
+    <field name="res_model">res.users</field>
+    <field name="type">ir.actions.act_window</field>
+    <field name="view_mode">tree</field>
+    <field name="view_id" ref="picking_assigned_to_users_tree"/>
+    <field name="search_view_id" ref="picking_assigned_to_users_search"/>
+    <field name="help" type="html">
+      <p class="o_view_nocontent_empty_folder">
+        There is no picking assigned yet
+      </p>
+      <p>
+        This menu gives you the list of users and the pickings they are assigned to.
+      </p>
+    </field>
+  </record>
+
+  <menuitem
+      action="picking_assigned_to_users_action"
+      id="picking_assigned_to_users_menu"
+      parent="stock.menu_warehouse_report" sequence="200"/>
+
+</odoo>
