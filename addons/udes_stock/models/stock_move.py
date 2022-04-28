@@ -159,24 +159,32 @@ class StockMove(models.Model):
         Move = self.env["stock.move"]
         self.ensure_one()
 
-        mls = self.move_line_ids
+        if mls_to_keep is None:
+            mls = self.move_line_ids
 
-        # Raise an error if any of the move lines are partially fulfilled
-        if mls and any(ml.qty_done != 0 and ml.qty_done < ml.product_uom_qty for ml in mls):
-            raise ValidationError(
-                _("You cannot create a backorder for %s with a move line qty less than expected!")
-                % self.picking_id.name
-            )
+            # Raise an error if any of the move lines are partially fulfilled
+            if mls and any(ml.qty_done != 0 and ml.qty_done < ml.product_uom_qty for ml in mls):
+                raise ValidationError(
+                    _("You cannot create a backorder for %s with a move line qty less than expected!")
+                    % self.picking_id.name
+                )
 
-        # Check if there is something to split
-        if self.quantity_done == 0:
-            # Clear the picking information
-            self.write({"picking_id": False})
-            if mls:
-                mls.write({"picking_id": False})
-            return self
-        elif self.product_uom_qty == self.quantity_done and mls_to_keep == mls:
-            return Move.browse()
+            # Check if there is something to split
+            if self.quantity_done == 0:
+                # Clear the picking information
+                self.write({"picking_id": False})
+                if mls:
+                    mls.write({"picking_id": False})
+                return self
+            elif self.product_uom_qty == self.quantity_done:
+                return Move.browse()
+
+            mls_to_move = mls.filtered(lambda ml: ml.qty_done == 0)
+        else:
+            mls = mls_to_keep
+            mls_to_move = self.move_line_ids - mls
+            if not mls_to_move:
+                return Move.browse()
 
         # Split the move
         # Manually create a new one and move the remaining quantity into it,
@@ -185,10 +193,6 @@ class StockMove(models.Model):
         total_done_qty = sum(mls.mapped("qty_done"))
         new_move_qty = int(total_move_qty - total_done_qty)
 
-        if mls_to_keep is None:
-            mls_to_move = mls.filtered(lambda ml: ml.qty_done == 0)
-        else:
-            mls_to_move = mls - mls_to_keep
         return self._create_split_move(
             mls_to_move, total_done_qty, new_move_qty, **kwargs
         )

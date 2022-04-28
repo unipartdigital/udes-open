@@ -284,7 +284,7 @@ class TestStockPickingBackordering(TestStockPickingCommon):
         # Backorder move lines
         bk_picking = pick._backorder_move_lines()
 
-        # Check the original picking and that the orignal move lines exist
+        # Check the original picking and that the original move lines exist
         # and belong to the original picking.
         self.assertEqual(pick.state, "assigned")
         self.assertTrue(apple_ml)
@@ -306,7 +306,7 @@ class TestStockPickingBackordering(TestStockPickingCommon):
         # Check the naming convention holds
         self.assertEqual(bk_picking.name, f"{pick.name}-001")
 
-    def test_backorder_move_lines_propogates_partially_avilable_moves(self):
+    def test_backorder_move_lines_propagates_partially_available_moves(self):
         """
         Check when we backorder a picking where the move lines are fully completed,
         but the move is not, the backorder gets created for the remainder of the move.
@@ -326,7 +326,7 @@ class TestStockPickingBackordering(TestStockPickingCommon):
         self.assertEqual(fig_ml.qty_done, 5)
         bk_picking = pick._backorder_move_lines()
 
-        # Check original pick after backordering, the incoplete moves have been moved out
+        # Check original pick after backordering, the incomplete moves have been moved out
         # but the move line remains.
         self.assertEqual(pick.move_lines.state, "assigned")
         self.assertEqual(pick.move_lines, fig_mv)
@@ -380,7 +380,7 @@ class TestStockPickingBackordering(TestStockPickingCommon):
         # Do backordering
         bk_picking = pick._backorder_move_lines()
 
-        # Check original pick after backordering, the incoplete moves have been moved out
+        # Check original pick after backordering, the incomplete moves have been moved out
         updated_moves = pick.move_lines
         updated_mls = pick.move_line_ids
         self.assertEqual(updated_mls.state, "assigned")
