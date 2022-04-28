@@ -15,6 +15,7 @@
                     <field name="u_scan_parent_package_end" />
                     <field name="u_under_receive"/>
                     <field name="u_over_receive" />
+                    <field name="u_multi_users_enabled" />
                     <field name="u_auto_unlink_empty" />
                 </group>
             </xpath>

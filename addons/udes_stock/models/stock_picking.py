@@ -4,6 +4,8 @@ import logging
 from odoo import api, models, fields, _
 from odoo.exceptions import ValidationError, UserError
 from .common import get_next_name
+from odoo.addons.udes_common.models.fields import PreciseDatetime
+from odoo.exceptions import ValidationError
 
 _logger = logging.getLogger(__name__)
 
@@ -96,6 +98,22 @@ class StockPicking(models.Model):
         related="batch_id.user_id",
         store=False,
         help="User responsible for the batch",
+    )
+    # Date started for the picking, the done date time can be date_done
+    # although the precision is less.
+    u_date_started = PreciseDatetime(
+        string="Date Started",
+        help="Last date when the picking has been assigned.",
+        readonly=True,
+        copy=False,
+    )
+    u_assigned_user_ids = fields.One2many(
+        comodel_name="res.users",
+        inverse_name="u_picking_id",
+        string="Assigned Users",
+        copy=False,
+        readonly=True,
+        help="The assigned users to the picking",
     )
 
     def get_next_picking_name(self, vals, picking_type=None):
@@ -533,3 +551,36 @@ class StockPicking(models.Model):
             to_unlink.unlink()
 
         return self - records
+
+    def unassign_users(self, skip_users=None):
+        """
+        Unassign the user(s) from the pickings in self.
+        """
+        for picking in self:
+            picking._unassign_users(skip_users=skip_users)
+
+    def _unassign_users(self, skip_users=None):
+        """
+        Unassign the user(s) from the picking in self if multiple users cannot
+        exist on that picking type.
+        If skip_users is specified, kick out all users in the picking except
+        those in the skip_users recordset.
+        """
+        User = self.env["res.users"]
+        self.ensure_one()
+
+        picking = self
+        users_to_unassign = User.browse()
+
+        picking_type = picking.picking_type_id
+        if not picking_type.can_handle_multiple_users():
+            users_to_unassign = picking.u_assigned_user_ids
+            if skip_users:
+                users_to_unassign -= skip_users
+            # TODO create_switch_user_event is a method that is not ported and doesn't seem
+            # that should be ported as part of this module
+            # if users_to_unassign:
+            #     picking.create_switch_user_event(user_ids=users_to_unassign)
+        users_to_unassign.sudo().write(
+            {"u_picking_id": False, "u_picking_assigned_time": False}
+        )

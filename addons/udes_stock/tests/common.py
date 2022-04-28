@@ -488,6 +488,16 @@ class UnconfiguredBaseUDES(common.SavepointCase):
         names = pickings.mapped("name")
         return ", ".join(map(str, names))
 
+    @classmethod
+    def update_move_lines(cls, move_lines, qty=None, user=None):
+        if user is None:
+            user = cls.env.user
+        for move_line in move_lines:
+            qty = move_line.product_uom_qty if qty is None else qty
+            vals = {"qty_done": qty}
+            move_line.with_env(cls.env(user=user)).write(vals)
+
+
 class BaseUDES(UnconfiguredBaseUDES):
 
     @classmethod
