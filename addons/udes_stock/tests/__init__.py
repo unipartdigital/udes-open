@@ -34,3 +34,4 @@ from . import test_stock_location_picking_zone
 from . import test_location_countable
 from . import test_location_state
 from . import test_product_template  # noqa: F401
+from . import test_backorder

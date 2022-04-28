@@ -956,19 +956,17 @@ class StockPicking(models.Model):
             )
 
     def _requires_backorder(self, mls):
-        """Checks if a backorder is required
-        by checking if all move.lines
-        within a picking is present in mls
+        """
+        Checks if a backorder is required by checking if all moves within a picking are present
+        in the movelines. Cancelled moves are not considered.
         """
         mls_moves = mls.mapped("move_id")
-        # return (mls_moves | self.move_lines) != mls_moves or \
-        # (mls | self.move_line_ids) != mls or \
-        # self.mapped('move_lines.move_orig_ids').filtered(lambda x: x.state not in ('done', 'cancel'))
-        for move in self.move_lines:
+        
+        for move in self.move_lines.filtered(lambda mv: mv.state != "cancel"):
             if (
                 move not in mls_moves
-                or not move.move_line_ids == mls.filtered(lambda x: x.move_id == move)
-                or move.move_orig_ids.filtered(lambda x: x.state not in ("done", "cancel"))
+                or not move.move_line_ids == mls.filtered(lambda ml: ml.move_id == move)
+                or move.move_orig_ids.filtered(lambda mv: mv.state not in ("done", "cancel"))
             ):
                 return True
         return False
