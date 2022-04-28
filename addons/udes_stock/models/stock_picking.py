@@ -323,11 +323,12 @@ class StockPicking(models.Model):
                     _("You cannot create a backorder for %s with a move line qty less than expected!")
                     % self.name
                 )
+            new_moves = Move.browse()
         else:
             unfulfilled_moves = mls_to_keep.move_id
+            new_moves = self.move_lines - unfulfilled_moves
 
         # Iterate over the moves not fulfilled, and split out recording the newly created moves
-        new_moves = Move.browse()
         for move in unfulfilled_moves:
             move_mls = None
             if mls_to_keep:

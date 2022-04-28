@@ -800,7 +800,7 @@ class StockPickingBatch(models.Model):
                 # in the picking. If something is incomplete then they will be placed into
                 # a backorder.
                 if pick._requires_backorder(rel_mls):
-                    backorder = pick._backorder_move_lines(rel_mls)
+                    backorder = pick._backorder_move_lines(mls_to_keep=rel_mls)
                     # Add the picking to the batch if they are still continuing and it
                     # is available to be picked. Else kick it out for auto completion
                     # of batches.
