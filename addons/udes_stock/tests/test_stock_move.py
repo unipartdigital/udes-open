@@ -16,7 +16,7 @@ class TestStockMove(common.BaseUDES):
         cls.quant1 = cls.create_quant(cls.banana.id, cls.test_stock_location_01.id, 5)
         cls.quant2 = cls.create_quant(cls.banana.id, cls.test_stock_location_02.id, 3)
         cls.pick = cls.create_picking(
-            cls.picking_type_pick, products_info=cls._pick_info, confirm=True, assign=True
+            cls.picking_type_pick, products_info=cls._pick_info, assign=True
         )
 
     def _get_expected_move_line_values(self, move, qty, **kwargs):
@@ -124,7 +124,7 @@ class TestStockMove(common.BaseUDES):
             sum(Quant.search([]).mapped("reserved_quantity")),
         )
 
-    def test_split_out_incomplete_move_raises_exception_when_qty_done_in_ml_less_than_product_uom_qty(
+    def test_split_out_move_raises_exception_when_qty_done_in_ml_less_than_product_uom_qty(
         self,
     ):
         """
@@ -133,33 +133,33 @@ class TestStockMove(common.BaseUDES):
         """
         self.pick.move_line_ids.qty_done = 1
         with self.assertRaises(ValidationError) as e, mute_logger("odoo.sql_db"):
-            self.pick.move_lines.split_out_incomplete_move()
+            self.pick.move_lines.split_out_move()
 
         # Check the error is as expected
         self.assertEqual(
             e.exception.args[0],
-            "You cannot create a backorder for %s with a move line qty less than expected!"
+            "There are partially fulfilled move lines in picking %s!"
             % self.pick.name,
         )
 
-    def test_split_out_incomplete_move_with_nothing_done(self):
+    def test_split_out_move_with_nothing_done(self):
         """
-        Test that split_out_incomplete_move returns self when the move
+        Test that split_out_move returns self when the move
         is not complete, and that the picking info has been removed.
         """
         # Get move lines and moves respectively
         mls = self.pick.move_line_ids
         mv = self.pick.move_lines
         self.assertEqual(self.pick, mv.picking_id)
-        new_move = mv.split_out_incomplete_move()
+        new_move = mv.split_out_move()
         self.assertEqual(new_move, mv)
         self.assertEqual(new_move.move_line_ids, mls)
         self.assertFalse(new_move.picking_id)
         self.assertFalse(new_move.move_line_ids.picking_id)
 
-    def test_split_out_incomplete_move_with_everything_done(self):
+    def test_split_out_move_with_everything_done(self):
         """
-        Test that split_out_incomplete_move returns an empty record when the move
+        Test that split_out_move returns an empty record when the move
         is fully completed.
         """
         # Get move lines and moves respectively
@@ -169,10 +169,10 @@ class TestStockMove(common.BaseUDES):
         for ml in mls:
             ml.qty_done = ml.product_uom_qty
         self.assertEqual(mv.quantity_done, mv.product_uom_qty)
-        new_move = mv.split_out_incomplete_move()
+        new_move = mv.split_out_move()
         self.assertFalse(new_move)
 
-    def test_split_out_incomplete_move_with_subset_of_completed_mls(self):
+    def test_split_out_move_with_subset_of_completed_mls(self):
         """
         Test that when a move line is done, but not the set of move lines
         to complete the move, the move is correctly split, with the done
@@ -193,7 +193,7 @@ class TestStockMove(common.BaseUDES):
 
         # Do the split
         self.assertEqual(mv.quantity_done, min_qty)
-        new_move = mv.split_out_incomplete_move()
+        new_move = mv.split_out_move()
 
         # Check we have two moves
         self.assertTrue(self.pick.move_lines)
@@ -217,7 +217,7 @@ class TestStockMove(common.BaseUDES):
         self.assertEqual(new_move.product_uom_qty, 6 - min_qty)
         self.assertEqual(new_move.move_line_ids, other_ml)
 
-    def test_split_out_incomplete_move_with_subset_of_completed_mls(self):
+    def test_split_out_move_with_subset_of_completed_mls(self):
         """
         Test that when a move line is done, but not the set of move lines
         to complete the move, the move is correctly split, with the done
@@ -239,7 +239,7 @@ class TestStockMove(common.BaseUDES):
         ml_qty_5 = mls.filtered(lambda ml: ml.product_uom_qty == 5)
 
         # Do the split
-        new_move = mv.split_out_incomplete_move()
+        new_move = mv.split_out_move()
 
         # Check the original move has the work done
         self.assertEqual(pick.move_lines, mv)

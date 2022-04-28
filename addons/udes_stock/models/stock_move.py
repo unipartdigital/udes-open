@@ -160,19 +160,40 @@ class StockMove(models.Model):
             if move.product_uom_qty > sum(keep_mls.mapped("product_uom_qty")):
                 uncovered_moves |= move
         return uncovered_moves
-        
-    def split_out_incomplete_move(self, **kwargs):
-        """
-        Split a partially complete move up into complete and incomplete moves.
-        This is essentially the reverse of split_out_move_line.
-        A new move is created for all incomplete work, and an old move is
-        adjusted to have the quantity in the move that is done. The original
-        move lines persist in the original move.
 
-        :returns: The created move
-            If a move with nothing is complete, return an empty record set
-            If a move is where everything is incomplete return self
-        :raises: An error if move lines attached to self are partially complete.
+    def check_move_lines_not_partially_fulfilled(self):
+        """
+        Check that any of the move lines in self are not partially completed,
+        i.e there are no mls where 0 < qty_done < product_uom_qty.
+        """
+        mls = self.move_line_ids
+        if mls.get_lines_partially_complete():
+            raise ValidationError(
+                _("There are partially fulfilled move lines in picking %s!") % self.picking_id.name
+            )
+
+    def split_out_move(self, mls_to_keep=None, **kwargs):
+        """
+        Split the move in self.
+            * mls is None: Retain all mls with qty_done == product_uom_qty in self
+        and move all other work into the new move.
+            * mls is not None: Retain mls_to_keep in self, and remove all other work,
+        into the new move.
+        
+        :kwargs:
+            - mls_to_keep: The move lines to keep in self, if None use all mls with
+            qty_done == product_uom_qty.
+        :returns: 
+            - If a move has nothing complete, return self, detached from the pickng
+            - If a move has everything complete, return an empty record set
+            - If the move is partially complete, return the new move with the incomplete
+            work. 
+        :raises: An error if any move lines attached to self are partially complete.
+        :raises: An error if any move lines being moved are done, and any move line reatined
+            is incomplete.
+
+        WARNING: Assumes that if a move is over picked (product_uom_qty < quantity_done) then
+        any adjustment to that move has been done before hand.
         """
         Move = self.env["stock.move"]
         self.ensure_one()
@@ -180,33 +201,47 @@ class StockMove(models.Model):
         mls = self.move_line_ids
 
         # Raise an error if any of the move lines are partially fulfilled
-        if mls and any(ml.qty_done != 0 and ml.qty_done < ml.product_uom_qty for ml in mls):
-            raise ValidationError(
-                _("You cannot create a backorder for %s with a move line qty less than expected!")
-                % self.picking_id.name
-            )
+        self.check_move_lines_not_partially_fulfilled()
 
         # Check if there is something to split
-        if self.quantity_done == 0:
+        #   * If the quantity_done on the move is zero, and no move lines are passed,
+        #   there is no need to split up the move.
+        #   * If the mls_to_keep cover the whole move
+        # We just return self, but with it kicked out of the picking.
+        if (self.quantity_done == 0 and not mls_to_keep) or (
+            mls_to_keep and sum(mls_to_keep.mapped("product_uom_qty")) == self.product_uom_qty
+        ):
             # Clear the picking information
             self.write({"picking_id": False})
             if mls:
                 mls.write({"picking_id": False})
             return self
-        elif self.product_uom_qty == self.quantity_done:
+
+        # Get the mls_to_keep when not specified in the call
+        if mls_to_keep is None:
+            mls_to_keep = mls.get_lines_done()
+
+        mls_to_move = mls - mls_to_keep
+        # Ensure that if any mls_to_move are done, all mls_to_keep are as well!
+        if mls_to_move.get_lines_done() and mls_to_keep.get_lines_incomplete():
+            raise ValidationError(
+                _(
+                    "You cannot move done move lines into a new move, if the existing move has incomplete lines"
+                )
+            )
+
+        # Return an empty record set if the move has been fulfilled for now.
+        if self.product_uom_qty == sum(mls_to_keep.mapped("qty_done")):
             return Move.browse()
 
         # Split the move
         # Manually create a new one and move the remaining quantity into it,
         # along with previously created move lines with qty_done == 0.
         total_move_qty = self.product_uom_qty
-        total_done_qty = sum(mls.mapped("qty_done"))
-        new_move_qty = int(total_move_qty - total_done_qty)
+        current_move_qty = sum(mls_to_keep.mapped("product_uom_qty"))
+        new_move_qty = int(total_move_qty - current_move_qty)
 
-        incomplete_move_lines = mls.filtered(lambda ml: ml.qty_done == 0)
-        return self._create_split_move(
-            incomplete_move_lines, total_done_qty, new_move_qty, **kwargs
-        )
+        return self._create_split_move(mls_to_move, current_move_qty, new_move_qty, **kwargs)
 
     def _create_split_move(self, move_lines, remaining_qty, new_move_qty, **kwargs):
         """
