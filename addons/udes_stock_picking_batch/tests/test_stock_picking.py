@@ -32,8 +32,7 @@ class TestBatchToUser(common.BaseUDES):
         with self.assertRaises(ValidationError) as cm:
             picking.batch_to_user(self.outbound_user)
             self.assertEqual(
-                str(cm.exception),
-                f"Picking {picking.name} is already in an unassigned batch",
+                str(cm.exception), f"Picking {picking.name} is already in an unassigned batch"
             )
 
     def test_picking_has_batch_and_batch_assigned_to_different_user(self):
@@ -51,7 +50,7 @@ class TestBatchToUser(common.BaseUDES):
     def test_picking_has_no_batch_and_user_has_batches(self):
         batch = self.create_batch(self.outbound_user)
         self._create_apple_quant_and_picking(batch)
-        batch.write({"state":"in_progress"})
+        batch.write({"state": "in_progress"})
 
         picking = self._create_apple_quant_and_picking()
 

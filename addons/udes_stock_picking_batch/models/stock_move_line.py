@@ -50,9 +50,7 @@ class StockMoveLine(models.Model):
         """
         self.picking_id.ensure_one()
         picking = self.picking_id
-        task = {
-            "picking_id": picking.id,
-        }
+        task = {"picking_id": picking.id}
 
         # Check if user_scans is manually set in context first
         user_scans = self.env.context.get("user_scans")
