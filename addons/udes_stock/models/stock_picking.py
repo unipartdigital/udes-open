@@ -378,6 +378,48 @@ class StockPicking(models.Model):
         # If no bakcorder return an empty record set
         return Picking.browse()
 
+    def backorder_move_lines(self, mls_to_keep=None):
+        """
+        Create a backorder from self (singleton).
+
+        Check first a backorder is required via `_requires_backorder`.
+
+        If a backorder is required then:
+            * mls_to_keep is None: Retain all move lines that
+            have product_uom_qty == qty_done. All remaining work is
+            placed into a backorder.
+            * mls_to_keep is not None: Retain mls_to_keep in the original
+            picking and backorder all remaining work.
+
+        :returns:
+            * The newly created backorder, or an empty record set.
+        :raises:
+            ValidationError: Move line exists with qty_done < product_uom_qty
+            ValidationError: Backorder not allowed, retaining incomplete work
+                whilst moving done work.
+
+        NOTE: Neither pickings have `_action_done` called on them, this is strictly to
+        create a backorder.
+        NOTE: An appropriate use case of this method would be when trying to drop off
+        working, or move work out of a picking so the original can be processed. The choice
+        of empty record set is such that you can iteratively keep adding the returned result
+        to another record set with no change if a backorder is not required.
+
+        ```
+        backorders = Picking.browse()
+        for picking in original_pickings:
+            # Determine mls to keep in the original picking and backorder the rest
+            mls_to_keep = ...
+            backorders |= picking.backorder_move_lines(mls_to_keep)
+            
+        original_pickings._action_done()
+        ```
+        """
+        Picking = self.env["stock.picking"]
+        if self._requires_backorder(mls=mls_to_keep):
+            return self._backorder_move_lines(mls_to_keep=mls_to_keep)
+        return Picking.browse()
+
     def _create_backorder_picking(self, moves):
         """Helper to create a backorder picking from the given moves"""
         bk_picking = self.copy(
