@@ -131,7 +131,7 @@ class StockMove(models.Model):
             raise ValueError(_("Cannot split move lines from a move they are not part of."))
         if (
             move_lines == self.move_line_ids
-            and not self.move_orig_ids.filtered(lambda m: m.state not in ("done", "cancel"))
+            and not self.move_orig_ids.get_incomplete_moves()
             and not self.state == "partially_available"
         ):
             new_move = self
@@ -142,6 +142,13 @@ class StockMove(models.Model):
             new_move = self._create_split_move(move_lines, remaing_move_qty, new_move_qty, **kwargs)
 
         return new_move
+
+    def get_incomplete_moves(self):
+        """
+        Return the set of incomplete moves from self.
+        We define incomplete as a move that is not in state `done` or `cancel`.
+        """
+        return self.filtered(lambda mv: mv.state not in ("done", "cancel"))
 
     def get_uncovered_moves(self, mls):
         """
