@@ -292,7 +292,7 @@ class TestStockMove(common.BaseUDES):
         self.assertEqual(move_lines, new_move_lines)
         self.assertIn(pack2_ml, new_move_lines)
 
-    def test_pepare_and_create_single_move_line(self):
+    def test_prepare_and_create_single_move_line(self):
         """Prepare and create a single move line and check values are correct"""
         product_uom_qty = 2
 
