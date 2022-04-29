@@ -143,6 +143,24 @@ class StockMove(models.Model):
 
         return new_move
 
+    def get_uncovered_moves(self, mls):
+        """
+        Return the moves in self not covered by mls regardless of the mls state.
+        Here we define uncovered as:
+            move product_uom_qty > sum relevant mls product_uom_qty
+        Namely, all the mls passed cannot fulfil the associated move.
+        """
+        Move = self.env["stock.move"]
+        # Pre-cache mls
+        self.move_line_ids
+
+        uncovered_moves = Move.browse()
+        for move in self:
+            keep_mls = move.move_line_ids & mls
+            if move.product_uom_qty > sum(keep_mls.mapped("product_uom_qty")):
+                uncovered_moves |= move
+        return uncovered_moves
+        
     def split_out_incomplete_move(self, **kwargs):
         """
         Split a partially complete move up into complete and incomplete moves.
