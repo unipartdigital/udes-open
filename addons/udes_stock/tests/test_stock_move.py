@@ -33,6 +33,36 @@ class TestStockMove(common.BaseUDES):
         expected_move_values.update(kwargs)
         return expected_move_values
 
+    def _setup_picking(self):
+        """
+        Create another picking with three moves, three move lines.
+
+        Moves:
+            * apple: qty=2, reserved=2, qty_done=2, mls=1
+            * banana: qty=6, reserved=6, qty_done=6, mls=2
+            * cherry: qty=4, reserved=0, qty_done=0, mls=0
+        
+        :return:
+            - picking, moves, mls
+        """
+        # Create a picking
+        product_info = [{"product": self.apple, "uom_qty": 2},
+            {"product": self.banana, "uom_qty": 6},
+            {"product": self.cherry, "uom_qty": 4}]
+        self.create_quant(self.apple.id, self.test_stock_location_01.id, 2)
+        self.create_quant(self.banana.id, self.test_stock_location_01.id, 1)
+        self.create_quant(self.banana.id, self.test_stock_location_02.id, 5)
+        pick = self.create_picking(
+            self.picking_type_pick, products_info=product_info, assign=True
+        )
+
+        # Check the state of the picking
+        moves = pick.move_lines
+        mls = pick.move_line_ids
+        self.assertEqual(len(moves), 3)
+        self.assertEqual(len(mls), 3)
+        return pick, moves, mls
+
     def test_split_out_move_lines_raise_error(self):
         """Raise a value error when try to split out move lines from another move"""
         # Create another picking
@@ -331,3 +361,64 @@ class TestStockMove(common.BaseUDES):
         # Confirm picking and assign the stock
         self.pick.action_confirm()
         self.pick.action_assign()
+
+    def test_get_uncovered_moves_returns_empty_record_set_when_fully_covered(self):
+        """
+        Test that when the mls fully cover the moves an empty record set is returned.
+        """
+        # Create a picking
+        picking, _moves, _mls = self._setup_picking()
+
+        # Create quants to cover the cherry moves
+        self.create_quant(self.cherry.id, self.test_stock_location_01.id, 4)
+        picking.action_assign()
+        self.assertEqual(picking.state, "assigned")
+
+        # Get the relevant moves and mls
+        mls = picking.move_line_ids
+        moves = picking.move_lines
+        apple_move = moves.filtered(lambda mv: mv.product_id == self.apple)
+        apple_ml = apple_move.move_line_ids
+        self.assertEqual(sum(mls.mapped("product_uom_qty")), sum(moves.mapped("product_uom_qty")))
+        
+        # Test no moves returned when fully covered for the whole picking
+        self.assertFalse(moves.get_uncovered_moves(mls))
+
+        # Test no moves returned when fully covered for the whole picking
+        self.assertFalse(apple_move.get_uncovered_moves(apple_ml))
+
+    def test_get_uncovered_moves_returns_all_moves_if_nothing_covered(self):
+        """
+        Test that if none of the move lines cover the moves, all the moves are returned
+        """
+        MoveLine = self.env["stock.move.line"]
+
+        # Create a picking
+        _picking, moves, _mls = self._setup_picking()
+        empty_mls = MoveLine.browse()
+
+        # Test all moves are returned against an empty record set
+        self.assertEqual(moves.get_uncovered_moves(empty_mls), moves)
+        # Test all moves are returned against mls not attached to the moves
+        self.assertEqual(moves.get_uncovered_moves(self.pick.move_line_ids), moves)
+
+
+    def test_get_uncovered_moves_returns_move_if_only_partially_covered(self):
+        """
+        Test that if none of the move lines cover the moves, all the moves are returned
+        """
+        # Create a picking
+        _picking, moves, mls = self._setup_picking()        
+        banana_mv = moves.filtered(lambda mv: mv.product_id == self.banana)
+        banana_mls = banana_mv.move_line_ids
+        self.assertEqual(len(banana_mv), 1)
+        self.assertEqual(len(banana_mls), 2)
+        banana_1ml = mls.filtered(lambda ml: ml.product_id == self.banana and ml.product_uom_qty == 1)
+        banana_5ml = mls.filtered(lambda ml: ml.product_id == self.banana and ml.product_uom_qty == 5)
+
+        # Test when called against only the banana move
+        self.assertEqual(banana_mv.get_uncovered_moves(banana_1ml), banana_mv)
+        self.assertEqual(banana_mv.get_uncovered_moves(banana_5ml), banana_mv)
+        # Test when called against all moves in the picking
+        self.assertEqual(moves.get_uncovered_moves(banana_1ml), moves)
+        self.assertEqual(moves.get_uncovered_moves(banana_5ml), moves)
