@@ -298,9 +298,9 @@ class StockPicking(models.Model):
         self.ensure_one()
 
         # Only look at moving out incomplete moves from the picking
-        incomplete_moves = self.move_lines.filtered(lambda mv: mv.state not in ("done", "cancel"))
+        incomplete_moves = self.move_lines.get_incomplete_moves()
 
-        if moves_to_move.filtered(lambda mv: mv.state in ("done", "cancel")):
+        if moves_to_move - incomplete_moves:
             raise ValidationError(_("You cannot move completed or cancelled moves to a backorder!"))
 
         # Ensure that if we are moving done mls, all the mls_to_keep are also done
@@ -346,8 +346,7 @@ class StockPicking(models.Model):
         self.ensure_one()
 
         # Only look at moving out incomplete moves from the picking
-        # TODO: This should probably be a method in stock_move
-        incomplete_moves = self.move_lines.filtered(lambda mv: mv.state not in ("done", "cancel"))
+        incomplete_moves = self.move_lines.get_incomplete_moves()
 
         # Check the state of self is allowed
         incomplete_moves.check_move_lines_not_partially_fulfilled()

@@ -63,6 +63,26 @@ class TestStockMove(common.BaseUDES):
         self.assertEqual(len(mls), 3)
         return pick, moves, mls
 
+    def test_get_incomplete_moves_returns_the_correct_move_set(self):
+        """
+        Test that get_incomplete_moves returns only those moves not in
+        state cancel or done.
+        """
+        _picking, moves, _mls = self._setup_picking()
+
+        # Test when nothing complete the record set is the original move
+        self.assertEqual(moves.get_incomplete_moves(), moves)
+
+        # Test when complete one move it is not returned
+        apple_move = moves.filtered(lambda mv: mv.product_id == self.apple)
+        banana_move = moves.filtered(lambda mv: mv.product_id == self.banana)
+        apple_move.move_line_ids.qty_done = apple_move.product_uom_qty
+        apple_move._action_done()
+        self.assertEqual(apple_move.state, "done")
+        banana_move._action_cancel()
+        self.assertEqual(banana_move.state, "cancel")
+        self.assertEqual(moves.get_incomplete_moves(), moves - apple_move - banana_move)
+
     def test_split_out_move_lines_raise_error(self):
         """Raise a value error when try to split out move lines from another move"""
         # Create another picking
