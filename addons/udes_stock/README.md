@@ -41,6 +41,7 @@ One reason why update picking has not been migrated over, as it is just a lot of
 In common.py we store helper functions used across models that don't need to be bound to the classes in which they are used.
 
 | Method | Description |
+|-|-|
 | get_next_name | Get the next name in the sequenece via the current sequence or code, used for things like pickings and batches. This is used in stock.picking to enforce backorders have `-001`, `-002` etc appended to the original name rather than a unique name. |
 
 ### MixinStockModel (model: mixin.stock.model)
@@ -113,7 +114,7 @@ Additional Details:
 Physical packages of products. They can be used to represent parcels sent to customers, a pallet of products sent from a supplier, a tote used to pick products so they can be sent, or any combination of the above.
 
 Additional Details:
-- Change _description to o780 mikyl8"Package"
+- Change _description to "Package"
 - Additionally Inherits from: mixin.stock.model
 
 | Field Name | Description             | Value |
@@ -258,6 +259,31 @@ Model used to register users that can access the system in the way has been defi
 | assign_picking_to_users       | Assigning a picking to users                                 |
 | _unassign_pickings_from_user  | Unassigning pickings from users                              |
 
+## Addtional Information
+
+### Picking Naming Convention
+
+If a backorder gets created from a picking, then it will either have `-001` appended if the prefix does not exist, else it will cause it to increment by one. How sequencing works is that the suffixed sequences refer to the level in the picking tree, not the nth backorder.
+
+Example:
+
+Ref        | Name       | Orignal | Parent | 1st Gen Children |
+-|-|-|-|-|
+Pick       | Pick001    | Pick001 |   -    | Pick1, Pick2     |
+Pick1      | Pick001-01 | Pick001 | Pick   | Pick3            |
+Pick2      | Pick001-01 | Pick001 | Pick   | Pick4, Pick5     |
+Pick3      | Pick001-02 | Pick001 | Pick1  |        -         |
+Pick4      | Pick001-02 | Pick001 | Pick2  |        -         |
+Pick5      | Pick001-02 | Pick001 | Pick2  |        -         |
+
+```mermaid
+graph TD;
+    A["Original Picking (Pick001)"] --> B["pick1 (Pick001-001)"];
+    A --> C["pick 2  (Pick001-001)"];
+    B --> D["pick3  (Pick001-002)"];
+    C --> E["pick4  (Pick001-002)"];
+    C --> F["pick5  (Pick001-002)"];
+```
 
 ## Future work:
 
