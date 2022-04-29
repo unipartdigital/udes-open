@@ -255,11 +255,7 @@ class TestBatchMultiDropOff(common.BaseUDES):
     @classmethod
     def complete_pick(cls, picking):
         for line in picking.move_line_ids:
-            line.write(
-                {
-                    "qty_done": line.product_uom_qty,
-                }
-            )
+            line.write({"qty_done": line.product_uom_qty})
 
     def test_next_drop_off_by_products(self):
         """ Test next drop off criterion by products """
@@ -707,7 +703,8 @@ class TestBatchAddRemoveWork(common.BaseUDES):
                 {
                     "quantity_done": move.product_uom_qty,
                     "location_dest_id": cls.test_goodsout_location_01.id,
-                })
+                }
+            )
 
     def test_add_extra_pickings(self):
         """ Ensure that add extra picking adds pickings correctly"""
@@ -753,10 +750,7 @@ class TestBatchAddRemoveWork(common.BaseUDES):
 
         # semi complete pick3
         picking4.move_lines[0].write(
-            {
-                "quantity_done": 2,
-                "location_dest_id": self.test_received_location_01.id,
-            }
+            {"quantity_done": 2, "location_dest_id": self.test_received_location_01.id}
         )
 
         # Record which move lines were complete and which weren't
@@ -793,11 +787,7 @@ class TestContinuationBatchProcessing(common.BaseUDES):
         self.assertEqual(batch.user_id, self.outbound_user)
 
     def test_moves_outstanding_pickings_to_continuation_batch(self):
-        self.create_quant(
-            self.apple.id,
-            self.test_stock_location_01.id,
-            4,
-        )
+        self.create_quant(self.apple.id, self.test_stock_location_01.id, 4)
 
         batch = self.create_batch(user=self.outbound_user)
         picking = self.create_picking(
@@ -812,11 +802,7 @@ class TestContinuationBatchProcessing(common.BaseUDES):
         self.assertNotEqual(picking.batch_id, batch)
 
     def test_adds_sequence_to_original_batch_name(self):
-        self.create_quant(
-            self.apple.id,
-            self.test_stock_location_01.id,
-            4,
-        )
+        self.create_quant(self.apple.id, self.test_stock_location_01.id, 4)
 
         batch = self.create_batch(user=self.outbound_user)
         picking = self.create_picking(
@@ -831,11 +817,7 @@ class TestContinuationBatchProcessing(common.BaseUDES):
         self.assertRegex(picking.batch_id.name, r"BATCH/\d+-01")
 
     def test_increments_sequence_for_continuation_batch(self):
-        self.create_quant(
-            self.apple.id,
-            self.test_stock_location_01.id,
-            4,
-        )
+        self.create_quant(self.apple.id, self.test_stock_location_01.id, 4)
 
         batch01 = self.create_batch(user=self.outbound_user)
         picking = self.create_picking(
@@ -852,11 +834,7 @@ class TestContinuationBatchProcessing(common.BaseUDES):
         self.assertRegex(picking.batch_id.name, r"BATCH/\d+-02")
 
     def test_sets_original_name(self):
-        self.create_quant(
-            self.apple.id,
-            self.test_stock_location_01.id,
-            4,
-        )
+        self.create_quant(self.apple.id, self.test_stock_location_01.id, 4)
 
         batch = self.create_batch(user=self.outbound_user)
         picking = self.create_picking(
@@ -906,16 +884,10 @@ class TestStockPickingBatch(common.BaseUDES):
         Batch = Batch.with_user(self.outbound_user)
 
         self.create_quant(
-            self.apple.id,
-            self.test_stock_location_01.id,
-            4,
-            package_id=self.package_one.id,
+            self.apple.id, self.test_stock_location_01.id, 4, package_id=self.package_one.id
         )
         self.create_picking(
-            self.picking_type_pick,
-            products_info=self.pack_4apples_info,
-            confirm=True,
-            assign=True,
+            self.picking_type_pick, products_info=self.pack_4apples_info, confirm=True, assign=True
         )
         batch = Batch.get_single_batch()
 
@@ -931,16 +903,10 @@ class TestStockPickingBatch(common.BaseUDES):
         Batch = Batch.with_user(self.outbound_user)
 
         self.create_quant(
-            self.apple.id,
-            self.test_stock_location_01.id,
-            4,
-            package_id=self.package_one.id,
+            self.apple.id, self.test_stock_location_01.id, 4, package_id=self.package_one.id
         )
         self.create_quant(
-            self.apple.id,
-            self.test_stock_location_01.id,
-            4,
-            package_id=self.package_two.id,
+            self.apple.id, self.test_stock_location_01.id, 4, package_id=self.package_two.id
         )
 
         batch01 = self.create_batch(user=self.outbound_user)
@@ -974,8 +940,7 @@ class TestStockPickingBatch(common.BaseUDES):
             Batch.get_single_batch()
 
         self.assertEqual(
-            err.exception.args[0],
-            "Found 2 batches for the user, please contact administrator.",
+            err.exception.args[0], "Found 2 batches for the user, please contact administrator."
         )
 
     def test_get_single_batch_no_batch_multiple_pickings(self):
@@ -1029,7 +994,7 @@ class TestStockPickingBatch(common.BaseUDES):
     def test_get_batches_assigned_to_a_user(self):
         batch = self.create_batch(user=self.outbound_user)
         batch = batch.with_user(self.outbound_user)
-        
+
         picking_putaway = self.create_picking(
             self.picking_type_putaway,
             products_info=[{"product": self.apple, "qty": 4}],
@@ -1126,9 +1091,7 @@ class TestStockPickingBatch(common.BaseUDES):
         self.assertIsNotNone(batch, "No batch created")
         self.assertEqual(len(batch.picking_ids), 1, "Multiple pickings were included in the batch")
         self.assertEqual(
-            batch.picking_ids[0].priority,
-            "1",
-            "Does not have a picking with the expected priority",
+            batch.picking_ids[0].priority, "1", "Does not have a picking with the expected priority"
         )
 
     @unittest.skip("Backorder logic yet to be determined, review later")
@@ -1147,17 +1110,11 @@ class TestStockPickingBatch(common.BaseUDES):
 
         # set a batch with a complete picking
         self.create_quant(
-            self.apple.id,
-            self.test_stock_location_01.id,
-            2,
-            package_id=self.package_one.id,
+            self.apple.id, self.test_stock_location_01.id, 2, package_id=self.package_one.id
         )
         # Create a picking partially reserved
         picking = self.create_picking(
-            self.picking_type_pick,
-            products_info=self.pack_4apples_info,
-            confirm=True,
-            assign=True,
+            self.picking_type_pick, products_info=self.pack_4apples_info, confirm=True, assign=True
         )
         batch = Batch.create_batch(self.picking_type_pick.id, None)
         self.assertEqual(batch.picking_ids[0], picking)
@@ -1183,10 +1140,7 @@ class TestStockPickingBatch(common.BaseUDES):
             self.apple.id, self.test_stock_location_01.id, 4, package_id=other_pack.id
         )
         other_picking = self.create_picking(
-            self.picking_type_pick,
-            products_info=self.pack_4apples_info,
-            confirm=True,
-            assign=True,
+            self.picking_type_pick, products_info=self.pack_4apples_info, confirm=True, assign=True
         )
 
         new_batch = Batch.create_batch(self.picking_type_pick.id, None)
@@ -1194,14 +1148,10 @@ class TestStockPickingBatch(common.BaseUDES):
         # check outcome
         self.assertIsNotNone(new_batch, "No batch created")
         self.assertEqual(
-            len(new_batch.picking_ids),
-            1,
-            "Multiple pickings were included in the batch",
+            len(new_batch.picking_ids), 1, "Multiple pickings were included in the batch"
         )
         self.assertEqual(
-            new_batch.picking_ids[0].id,
-            other_picking.id,
-            "Does not include the expected picking",
+            new_batch.picking_ids[0].id, other_picking.id, "Does not include the expected picking"
         )
         self.assertEqual(batch.state, "done", "Old batch was not completed")
 
@@ -1217,16 +1167,10 @@ class TestStockPickingBatch(common.BaseUDES):
 
         # set a batch with a complete picking
         self.create_quant(
-            self.apple.id,
-            self.test_stock_location_01.id,
-            4,
-            package_id=self.package_one.id,
+            self.apple.id, self.test_stock_location_01.id, 4, package_id=self.package_one.id
         )
         self.create_picking(
-            self.picking_type_pick,
-            products_info=self.pack_4apples_info,
-            confirm=True,
-            assign=True,
+            self.picking_type_pick, products_info=self.pack_4apples_info, confirm=True, assign=True
         )
         batch = Batch.create_batch(self.picking_type_pick.id, None)
 
@@ -1236,10 +1180,7 @@ class TestStockPickingBatch(common.BaseUDES):
             self.apple.id, self.test_stock_location_01.id, 4, package_id=other_pack.id
         )
         self.create_picking(
-            self.picking_type_pick,
-            products_info=self.pack_4apples_info,
-            confirm=True,
-            assign=True,
+            self.picking_type_pick, products_info=self.pack_4apples_info, confirm=True, assign=True
         )
 
         # check pre-conditions
@@ -1259,10 +1200,7 @@ class TestStockPickingBatch(common.BaseUDES):
         Batch = Batch.with_user(self.outbound_user)
 
         self.create_quant(
-            self.apple.id,
-            self.test_stock_location_01.id,
-            4,
-            package_id=self.package_one.id,
+            self.apple.id, self.test_stock_location_01.id, 4, package_id=self.package_one.id
         )
         picking = self.create_picking(
             self.picking_type_pick,
@@ -1284,18 +1222,10 @@ class TestStockPickingBatch(common.BaseUDES):
         Batch = Batch.with_user(self.outbound_user)
 
         self.create_quant(
-            self.apple.id,
-            self.test_stock_location_01.id,
-            4,
-            package_id=self.package_one.id,
+            self.apple.id, self.test_stock_location_01.id, 4, package_id=self.package_one.id
         )
         picking = self.create_picking(
-            self.picking_type_pick,
-            products_info=self.pack_4apples_info,
-            confirm=True,
-            assign=True,
+            self.picking_type_pick, products_info=self.pack_4apples_info, confirm=True, assign=True
         )
 
         return picking, Batch.create_batch(self.picking_type_pick.id, None)
-
-
