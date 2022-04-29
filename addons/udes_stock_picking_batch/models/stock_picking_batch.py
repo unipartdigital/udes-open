@@ -743,13 +743,12 @@ class StockPickingBatch(models.Model):
                 # Check if the picking needs to be backordered based on all the move lines
                 # in the picking. If something is incomplete then they will be placed into
                 # a backorder.
-                if pick._requires_backorder(rel_mls):
-                    backorder = pick._backorder_move_lines(mls_to_keep=rel_mls)
-                    # Add the picking to the batch if they are still continuing and it
-                    # is available to be picked. Else kick it out for auto completion
-                    # of batches.
-                    if continue_batch and backorder.state in ("partially_available", "assigned"):
-                        to_add |= backorder
+                backorder = pick.backorder_move_lines(mls_to_keep=rel_mls)
+                # Add the picking to the batch if they are still continuing and it
+                # is available to be picked. Else kick it out for auto completion
+                # of batches.
+                if continue_batch and backorder.state in ("partially_available", "assigned"):
+                    to_add |= backorder
 
                 picks_todo |= pick
 
@@ -972,11 +971,9 @@ class StockPickingBatch(models.Model):
             started_lines = mls.filtered(lambda ml: ml.qty_done > 0)
             if started_lines:
                 mls_to_keep = mls & started_lines
-                # Create backorders for incomplete moves.
-                if picking._requires_backorder(mls=mls_to_keep):
-                    backorder = picking.with_context(lock_batch_state=True)._backorder_move_lines(mls_to_keep=mls_to_keep)
-                    # Ensure that backorder batch info is also cleared
-                    pickings_to_remove |= backorder
+                # Create backorders for incomplete moves and ensure that backorder batch info is
+                # also cleared
+                pickings_to_remove |= picking.with_context(lock_batch_state=True)._backorder_move_lines(mls_to_keep=mls_to_keep)
             else:
                 pickings_to_remove |= picking
 

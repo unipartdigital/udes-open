@@ -211,7 +211,7 @@ class TestStockPickingBackordering(TestStockPickingCommon):
             "You cannot move completed or cancelled moves to a backorder!"
         )
 
-    def test__check_backorder_allowed_raises_error_when_moving_done_work_and_leaving_incomplete_work(self):
+    def test_check_backorder_allowed_raises_error_when_moving_done_work_and_leaving_incomplete_work(self):
         """Test that an eror is raised when scanned moves are moved into a new backorder,
         and the current picking has incomplete work.
         """
