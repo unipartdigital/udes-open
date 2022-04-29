@@ -934,7 +934,7 @@ class TestStockPicking(TestStockPickingCommon):
         # Check batch created
         self.assertTrue(picks.batch_id)
 
-    def test_pepare_and_create_move(self):
+    def test_prepare_and_create_move(self):
         """Prepare and create a single move"""
         pick = self.create_picking(self.picking_type_goods_in)
         move_values = self.Picking._prepare_move(
@@ -1278,10 +1278,10 @@ class TestStockPicking(TestStockPickingCommon):
         self.assertFalse(pick.u_has_discrepancies, "Pick should not have discrepancies")
 
 
-class TestStockPickingUoM(TestStockPickingCommon):
+class TestDifferentUoMinPickings(TestStockPickingCommon):
     @classmethod
     def setUpClass(cls):
-        super(TestStockPickingUoM, cls).setUpClass()
+        super(TestDifferentUoMinPickings, cls).setUpClass()
         Uom = cls.env["uom.uom"]
         unit = cls.env.ref("uom.product_uom_categ_unit")
         cls.half_dozen = Uom.create(
@@ -1308,8 +1308,15 @@ class TestStockPickingUoM(TestStockPickingCommon):
             {"product": self.banana, "uom_qty": 6, "uom_id": uom_id},
         ]
 
-    def test_pepare_and_create_move(self):
-        """Prepare and create multiple moves with different UoMs"""
+    def test_move_created_with_two_move_lines_and_default_uom(self):
+        """
+        Prepare and create multiple moves with different UoMs.
+
+        Create a single goods in picking with:
+            - 6 Bananas
+            - 6 Cherries
+        all with unitary UoM.
+        """
         pick = self.create_picking(self.picking_type_goods_in)
         move_values = self.Picking._prepare_move(pick, [self._create_product_infos()])
         # Check the prepared move_values are correct
@@ -1337,7 +1344,7 @@ class TestStockPickingUoM(TestStockPickingCommon):
         self.assertEqual(cherry_mv.product_qty, 6)
         self.assertEqual(cherry_mv.product_uom_qty, 6)
 
-    def test_pepare_and_create_move_with_move_uom(self):
+    def test_prepare_and_create_move_with_move_uom(self):
         """Prepare and create multiple moves with different UoMs, but try to sell everything
         in a single UoM.
         Here we have:
