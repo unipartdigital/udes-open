@@ -73,7 +73,6 @@ class TestStockPickingCommon(common.BaseUDES):
 
 
 class TestStockPickingBackordering(TestStockPickingCommon):
-
     def test_picking_naming_convention(self):
         """
         Test that backorders get created with a -001 suffix,
@@ -267,10 +266,13 @@ class TestStockPickingBackordering(TestStockPickingCommon):
         """Test that an eror is raised when cancelled moves are moved into a new backorder"""
         pick = self.create_picking(
             picking_type=self.picking_type_goods_in,
-            products_info=[{"product": self.apple, "uom_qty": 50}, {"product": self.fig, "uom_qty": 50}],
+            products_info=[
+                {"product": self.apple, "uom_qty": 50},
+                {"product": self.fig, "uom_qty": 50},
+            ],
             assign=True,
         )
-        moves  = pick.move_lines
+        moves = pick.move_lines
         mls = pick.move_line_ids
         # Cancel the apple_mv
         apple_mv = moves.filtered(lambda mv: mv.product_id == self.apple)
@@ -287,25 +289,29 @@ class TestStockPickingBackordering(TestStockPickingCommon):
 
         # Check the error is as expected
         self.assertEqual(
-            e.exception.args[0],
-            "You cannot move completed or cancelled moves to a backorder!"
+            e.exception.args[0], "You cannot move completed or cancelled moves to a backorder!"
         )
 
-    def test_check_backorder_allowed_raises_error_when_moving_done_work_and_leaving_incomplete_work(self):
+    def test_check_backorder_allowed_raises_error_when_moving_done_work_and_leaving_incomplete_work(
+        self
+    ):
         """Test that an eror is raised when scanned moves are moved into a new backorder,
         and the current picking has incomplete work.
         """
         pick = self.create_picking(
             picking_type=self.picking_type_goods_in,
-            products_info=[{"product": self.apple, "uom_qty": 50}, {"product": self.fig, "uom_qty": 50}],
+            products_info=[
+                {"product": self.apple, "uom_qty": 50},
+                {"product": self.fig, "uom_qty": 50},
+            ],
             assign=True,
         )
-        moves  = pick.move_lines
+        moves = pick.move_lines
         mls = pick.move_line_ids
         # Scan the apple ml
         apple_mv = moves.filtered(lambda mv: mv.product_id == self.apple)
         apple_ml = apple_mv.move_line_ids
-        apple_ml.qty_done = apple_ml.product_uom_qty 
+        apple_ml.qty_done = apple_ml.product_uom_qty
 
         # Try and move the cancelled move into a backorder
         with self.assertRaises(ValidationError) as e, mute_logger("odoo.sql_db"):
@@ -314,7 +320,7 @@ class TestStockPickingBackordering(TestStockPickingCommon):
         # Check the error is as expected
         self.assertEqual(
             e.exception.args[0],
-            "You cannot create a backorder for done move lines whilst retaining incomplete ones"
+            "You cannot create a backorder for done move lines whilst retaining incomplete ones",
         )
 
     def test_backorder_move_lines_raises_exception_when_qty_done_in_ml_partially_complete(self,):
@@ -333,7 +339,9 @@ class TestStockPickingBackordering(TestStockPickingCommon):
 
         # Run the test with and without mls
         for move_line in [None, ml]:
-            with self.subTest(pass_mls=bool(move_line)), self.assertRaises(ValidationError) as e, mute_logger("odoo.sql_db"):
+            with self.subTest(pass_mls=bool(move_line)), self.assertRaises(
+                ValidationError
+            ) as e, mute_logger("odoo.sql_db"):
                 pick._backorder_move_lines(mls_to_keep=move_line)
 
                 # Check the error is as expected
@@ -664,7 +672,6 @@ class TestStockPickingBackordering(TestStockPickingCommon):
         self.assertEqual(bk_picking.state, "confirmed")
         self.assertEqual(bk_picking.move_lines.product_uom_qty, 50)
         self.assertFalse(bk_picking.move_line_ids)
-
 
     def test_backorder_move_lines_retains_all_mls_in_picking(self):
         """
@@ -1002,7 +1009,7 @@ class TestStockPicking(TestStockPickingCommon):
         )
         # Correct number of picks
         self.assertEqual(len(picks), 2)
-        # Check default locations for pick
+        # Check default locations for picks
         self.assertEqual(picks.location_id, self.test_stock_location_01)
         self.assertEqual(picks.location_dest_id, self.test_goodsout_location_01)
         # Check products
@@ -1078,7 +1085,7 @@ class TestStockPicking(TestStockPickingCommon):
         # Update move lines
         for ml in mls:
             ml.qty_done = ml.product_uom_qty
-        
+
         self.assertFalse(self.test_picking_in._requires_backorder(mls=None))
 
     def test_requires_backorder_is_false_when_moves_are_fully_covered_by_passed_mls(self):
@@ -1305,7 +1312,6 @@ class TestStockPicking(TestStockPickingCommon):
             f"expected backorder: {expected_backorder}",
         )
 
-
     def test_assert_picking_quantities_computed_correctly(self):
         """Assert that qty todo/done and package discrepancies fields are computed correctly"""
         apple_qty = 10
@@ -1333,11 +1339,9 @@ class TestStockPicking(TestStockPickingCommon):
             assign=True,
         )
 
-        self.assertEqual(pick.u_quantity_done, 0, "Quantity done should be zero")
-        self.assertEqual(
-            pick.u_total_quantity, apple_qty, "Total quantity should match apple quantity"
-        )
-        self.assertTrue(pick.u_has_discrepancies, "Pick should have discrepancies")
+        self.assertEqual(pick.u_quantity_done, 0)
+        self.assertEqual(pick.u_total_quantity, apple_qty)
+        self.assertTrue(pick.u_has_discrepancies)
 
         # Fulfil 1st move line
         pick.move_line_ids[0].qty_done = apple_qty_per_line
@@ -1347,15 +1351,13 @@ class TestStockPicking(TestStockPickingCommon):
             apple_qty_per_line,
             "Quantity done should match apple per line quantity",
         )
-        self.assertTrue(pick.u_has_discrepancies, "Pick should have discrepancies")
+        self.assertTrue(pick.u_has_discrepancies)
 
         # Fulfil 2nd move line which should mean pick is no longer flagged as having discrepancies
         pick.move_line_ids[1].qty_done = apple_qty_per_line
 
-        self.assertEqual(
-            pick.u_quantity_done, apple_qty, "Quantity done should match apple quantity"
-        )
-        self.assertFalse(pick.u_has_discrepancies, "Pick should not have discrepancies")
+        self.assertEqual(pick.u_quantity_done, apple_qty)
+        self.assertFalse(pick.u_has_discrepancies)
 
 
 class TestDifferentUoMinPickings(TestStockPickingCommon):
