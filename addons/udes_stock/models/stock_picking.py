@@ -445,8 +445,6 @@ class StockPicking(models.Model):
         Cannot be consolidated with _check_backorder in Odoo core, because it
         does not take into account any move lines parameter.
 
-        TODO: See Issue 1797 on update_orig_ids
-
         :kwargs:
             - mls: A record set of move lines, default None.
         :returns: bool
@@ -468,7 +466,7 @@ class StockPicking(models.Model):
                 move not in mls_moves
                 # All mls cover the move
                 or move.product_uom_qty != sum(rel_mls.mapped("product_uom_qty"))
-                # TODO: Issue 1797
+                # Any of the oriignal moves remain incomplete
                 or move.move_orig_ids.get_incomplete_moves()
             ):
                 return True
