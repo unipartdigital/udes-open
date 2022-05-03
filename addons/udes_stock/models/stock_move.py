@@ -1,6 +1,10 @@
+import logging
+
 from odoo import models, fields, api, _
-from odoo.addons import decimal_precision as dp
 from odoo.exceptions import ValidationError
+
+
+_logger = logging.getLogger(__name__)
 
 
 class StockMove(models.Model):
@@ -289,21 +293,83 @@ class StockMove(models.Model):
 
         # When not complete, splitting a move may change its state,
         # so recompute
-        incomplete_moves = (self | new_move).filtered(lambda mv: mv.state not in ["done", "cancel"])
+        incomplete_moves = (self | new_move).get_incomplete_moves()
         incomplete_moves._recompute_state()
 
         move_lines.write({"state": new_move.state})
 
         if self.move_orig_ids:
-            (new_move | self).update_orig_ids(self.move_orig_ids)
+            # Update the current and new move original move ids.
+            (self | new_move).update_orig_ids(self.move_orig_ids)
 
         return new_move
 
-    def update_orig_ids(self, origin_ids):
-        """ Updates move_orig_ids based on a given set of
-            origin_ids for moves in self by finding the ones
-            relevant to the current moves.
-
-        TODO: To be added/removed/updated from Issue: 1797
+    def _make_mls_comparison_lambda(self, move_line):
         """
-        pass
+        This makes the lambda for checking the a move_line against move_orign_ids
+        This can be overridden in other modules if desired.
+        If no matching is made, it defaults to a matching on the dest location
+        and product id. This is not very robust and can lead to over-matching.
+        
+        The saving grace of the default behaviour is that it is not very common.
+        Normally, if not lot tracked, there are packages/pallets, and if not there
+        are procurment groups which block the merging of moves/pickings.
+
+        :args:
+            - move_line to match self with
+        :returns:
+            - lambda expression for matching
+        """
+        lot_name = move_line.lot_id.name or move_line.lot_name
+        package = move_line.package_id
+
+        if lot_name and package:
+            return lambda ml: ml.result_package_id == package and (
+                ml.lot_name == lot_name or ml.lot_id.name == lot_name
+            )
+        elif lot_name:
+            return lambda ml: ml.lot_name == lot_name or ml.lot_id.name == lot_name
+        elif package:
+            return lambda ml: ml.result_package_id == package
+
+        return (
+            lambda ml: ml.location_dest_id == move_line.location_id
+            and ml.product_id == move_line.product_id
+        )
+
+    def update_orig_ids(self, origin_ids):
+        """ 
+        Updates the move_orig_ids for all moves in self.
+        All incomplete original moves in self are retained since they should
+        still point to self. For all move lines in each move, match the move line
+        to one from the original id, if any match attach those moves as well.
+
+        Using _make_mls_comparison_lambda does cause over matching if they are not identifable
+        this is left because of the issue of intraceability should be avoided.
+        
+        Examples can be found in test_stock_move.py
+
+        NOTE: If there are performance issues with mapped and computing the over matching
+        consider moving the warning to the _make_mls_comparison_lambda or disable the checks
+        for live and have it as a UAT testing commit.
+        """
+        origin_mls = origin_ids.move_line_ids
+        for move in self:
+            total_quantity = move.product_uom_qty
+            # Retain incomplete moves of the original ids
+            updated_origin_ids = move.move_orig_ids.get_incomplete_moves()
+            # Include the subsequent completed moves from self
+            for move_line in move.move_line_ids:
+                previous_mls = origin_mls.filtered(self._make_mls_comparison_lambda(move_line))
+                total_quantity -= sum(previous_mls.mapped("qty_done"))
+                updated_origin_ids |= previous_mls.move_id
+            if total_quantity < 0:
+                _logger.warning(
+                    """
+                    Move lines are being matched by location destination and
+                    product, this has lead to over matching of the original move ids.
+                    Relevant moves: %s
+                    """,
+                    updated_origin_ids.ids,
+                )
+            move.move_orig_ids = updated_origin_ids

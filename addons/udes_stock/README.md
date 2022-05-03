@@ -207,6 +207,8 @@ When using/creating/splitting moves, we use the UoM of the move.
 | _unreserve_initial_demand | Override stock default function to keep the old move lines, so there is no need to create them again.|
 | split_out_move_lines      | Split sufficient quantity from self to cover move_lines, and attach move_lines to the new move. Return the move that now holds all of move_lines. If self is completely covered by move_lines, it will be removed from its picking and returned. |
 | split_out_move      | Split a move into two, the original move retains all work completed (qty_done > 0), the new move contains all work not yet done. |
+| _make_mls_comparison_lambda | Method to generate a lambda expression to match move lines |
+| update_orig_ids      | Update the original moves in self with the specfied original move ids. This is used when moves are being split, refactored etc, and the next/previous pickings need to be remapped. |
 
 ### Stock Move Line (model: stock.move.line)
 
