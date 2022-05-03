@@ -367,10 +367,13 @@ class StockPicking(models.Model):
     def _requires_backorder(self, mls=None):
         """
         Checks if a backorder is required.
-        If mls is None:
-            checks if all move lines have the qty_done = total move qty  (excluding cancelled)
-        If mls is not None:
-            checks if all move lines within a picking are present in mls
+        * If mls is None:
+            - Checks if all move lines have the qty_done = total move qty (excluding cancelled)
+        * If mls is not None:
+            - Checks the move lines cover all moves within a picking. All moves are covered
+            by the mls iff: The total of the move lines == total of the move 
+            (minus any cancelled or done).
+        
         Cannot be consolidated with _check_backorder in Odoo core, because it
         does not take into account any move lines parameter.
 
@@ -386,12 +389,19 @@ class StockPicking(models.Model):
             moves = self.move_lines.filtered(lambda mv: mv.state != "cancel")
             return sum(moves.mapped("product_uom_qty")) != sum(mls.mapped("qty_done"))
 
+        # Look through all incomplete moves to check if the mls passed cover the 
+        # remaining moves.
         mls_moves = mls.move_id
-        for move in self.move_lines:
+        incomplete_moves = self.move_lines.get_incomplete_moves()
+        for move in incomplete_moves:
+            rel_mls = mls.filtered(lambda x: x.move_id == move)
             if (
+                # Move not in the specified mls
                 move not in mls_moves
-                or not move.move_line_ids == mls.filtered(lambda x: x.move_id == move)
-                or move.move_orig_ids.filtered(lambda x: x.state not in ("done", "cancel"))
+                # All mls cover the move
+                or move.product_uom_qty != sum(rel_mls.mapped("product_uom_qty"))
+                # TODO: Issue 1797
+                or move.move_orig_ids.get_incomplete_moves()
             ):
                 return True
         return False
