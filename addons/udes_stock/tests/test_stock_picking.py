@@ -617,21 +617,88 @@ class TestStockPicking(TestStockPickingCommon):
         """Create picking with multiple lines backorder check"""
         self.create_quant(self.fig.id, self.test_stock_location_02.id, 50)
         self.create_quant(self.banana.id, self.test_stock_location_02.id, 50)
-        pick = self.Picking.create_picking(
-            picking_type=self.picking_type_pick,
+        pick = self.create_picking(
+            self.picking_type_pick,
             products_info=[
                 {"product": self.fig, "uom_qty": 50},
                 {"product": self.banana, "uom_qty": 50},
             ],
-            location_id=self.test_stock_location_02.id,
+            assign=True,
         )
-        # Update a moves and complete action
-        pick.move_lines[0].quantity_done = 10
+        self.assertEqual(pick.state, "assigned")
+        # Update a move line
+        all_mls = pick.move_line_ids
+        all_mls[0].qty_done = 10
+
         # Check a backorder is needed
-        mls = pick.move_line_ids
-        for mls in (None, mls):
+        for mls in (None, all_mls[0]):
             with self.subTest(has_mls=bool(mls)):
                 self.assertTrue(pick._requires_backorder(mls=mls))
+
+    def test_requires_backorder_when_moves_not_fully_covered_due_to_partially_available(self):
+        """Test that if a picking is partially available a backorder is required"""
+        self.create_quant(self.fig.id, self.test_stock_location_02.id, 50)
+        pick = self.create_picking(
+            self.picking_type_pick,
+            products_info=[{"product": self.fig, "uom_qty": 500}],
+            assign=True,
+        )
+        self.assertEqual(len(pick.move_line_ids), 1)
+        self.assertEqual(pick.move_lines.state, "partially_available")
+        self.assertEqual(pick.state, "assigned")
+        # Update a move line
+        fig_ml = pick.move_line_ids
+        fig_ml.qty_done = fig_ml.product_uom_qty
+
+        # Check a backorder is needed
+        for mls in (None, fig_ml):
+            with self.subTest(has_mls=bool(mls)):
+                self.assertTrue(pick._requires_backorder(mls=mls))
+
+    def test_requires_backorder_when_moves_cancelled(self):
+        """
+        Test that if a picking is partially cancelled a backorder is required
+        only if the remaining mls are incomplete.
+        """
+        self.create_quant(self.fig.id, self.test_stock_location_01.id, 50)
+        self.create_quant(self.banana.id, self.test_stock_location_02.id, 50)
+        self.create_quant(self.apple.id, self.test_stock_location_03.id, 50)
+        pick = self.create_picking(
+            self.picking_type_pick,
+            products_info=[
+                {"product": self.fig, "uom_qty": 50},
+                {"product": self.banana, "uom_qty": 50},
+                {"product": self.apple, "uom_qty": 50},
+            ],
+            assign=True,
+        )
+        moves = pick.move_lines
+        self.assertEqual(len(moves), 3)
+        self.assertEqual(len(pick.move_line_ids), 3)
+        self.assertEqual(pick.state, "assigned")
+
+        # Update the fig move line
+        mls = pick.move_line_ids
+        fig_ml = mls.filtered(lambda ml: ml.product_id == self.fig)
+        fig_ml.qty_done = fig_ml.product_uom_qty
+        self.assertEqual(fig_ml.move_id.state, "assigned")
+
+        # Cancel the banana move
+        banana_mv = moves.filtered(lambda ml: ml.product_id == self.banana)
+        banana_mv._action_cancel()
+        self.assertEqual(banana_mv.state, "cancel")
+
+        # Complete the apple move
+        apple_mv = moves.filtered(lambda ml: ml.product_id == self.apple)
+        apple_mv.move_line_ids.qty_done = apple_mv.move_line_ids.product_uom_qty
+        apple_mv._action_done()
+        self.assertEqual(apple_mv.state, "done")
+
+        # Check when nothing passed, or the fig_ml passed, it skips over the
+        # requirement for the cancelled move
+        for x_mls in (None, fig_ml):
+            with self.subTest(has_mls=bool(x_mls)):
+                self.assertFalse(pick._requires_backorder(mls=x_mls))
 
     def test_assert_related_pickings_computed_correctly(self):
         """
