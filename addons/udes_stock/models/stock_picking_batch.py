@@ -762,10 +762,16 @@ class StockPickingBatch(models.Model):
 
     def drop_off_picked(self, continue_batch, move_line_ids, location_barcode, result_package_name):
         """
-        Validate the move lines of the batch (expects a singleton)
-        by moving them to the specified location.
+        Validate the move lines of the batch (expects a singleton) by moving them
+        to the specified location and if continue_batch is not flagged then close the batch.
+        Also clears the u_last_reserved_pallet_name flag in the batch as the pallet has been dropped off.
 
-        In case continue_batch is not flagged, close the batch.
+        :args:
+            - continue_batch: Flag, if True the batch is not closed
+            - move_line_ids: model stock.move.line, the move lines to validate
+            - location_barcode: String, the destination location barcode for the move lines
+            - result_package_name: String, the barcode for the package to be set as result package in move lines
+        :returns: the batch in self
         """
         self.ensure_one()
 
@@ -828,6 +834,10 @@ class StockPickingBatch(models.Model):
 
                 picks_todo |= pick_todo
                 pick.write({"u_reserved_pallet": False})
+
+            # If we dropped a package then reset the last package reserved as
+            # it will not be possible to keep using it
+            self.u_last_reserved_pallet_name = False
 
             # Add backorders to the batch
             to_add.write({"batch_id": self.id})
