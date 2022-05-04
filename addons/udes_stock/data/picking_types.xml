@@ -2,6 +2,14 @@
 <odoo>
   <data>
 
+    <!-- Create "Replen" sequence -->
+    <record id="sequence_replen" model="ir.sequence">
+      <field name="name">Replen</field>
+      <field name="code">stock.picking</field>
+      <field name="prefix">REP</field>
+      <field name="padding">5</field>
+    </record>
+
     <!-- Create "Internal" sequence -->
     <record id="sequence_internal" model="ir.sequence">
       <field name="name">Internal Transfer</field>
@@ -89,6 +97,19 @@
       <field name="show_operations" eval="1"/>
       <field name="active">False</field>
       <field name="warehouse_id" ref="stock.warehouse0"/>
+    </record>
+
+    <record id="picking_type_replen" model="stock.picking.type">
+      <field name="name">Replen</field>
+      <field name="sequence" eval="19"/>
+      <field name="code">internal</field>
+      <field name="sequence_id" ref="sequence_replen"/>
+      <field name="sequence_code">Replen</field>
+      <field name="use_existing_lots" eval="1"/>
+      <field name="default_location_src_id" ref="stock.stock_location_stock"/>
+      <field name="default_location_dest_id" ref="stock.stock_location_output"/>
+      <field name="show_operations" eval="1"/>
+      <field name="active">True</field>
     </record>
 
   </data>

@@ -9,6 +9,7 @@
             <!-- Add barcode -->
             <xpath expr="//field[@name='return_location']" position="after">
                 <field name="barcode"/>
+                <field name="u_limit_orderpoints" />
             </xpath>
 
             <xpath expr="//field[@name='removal_strategy_id']" position="after">
