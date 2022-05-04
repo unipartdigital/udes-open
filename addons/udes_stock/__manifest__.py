@@ -16,6 +16,8 @@
         "data/company.xml",
         "data/product_categories.xml",
         "data/warehouse.xml",
+        "data/routes.xml",
+        "data/scheduler.xml",
         "wizard/stock_backorder_confirmation_views.xml",
         "wizard/stock_immediate_transfer_views.xml",
         "views/product_views.xml",

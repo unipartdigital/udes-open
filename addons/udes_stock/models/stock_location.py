@@ -48,6 +48,12 @@ class StockLocation(models.Model):
         help="Used to know which pickers have the right equipment to pick from it.",
     )
 
+    u_limit_orderpoints = fields.Boolean(
+        index=True,
+        string="Limit Orderpoints",
+        help="If set, allow only one orderpoint on this location and its descendants.",
+    )
+
     def get_common_ancestor(self):
         """
         Returns the smallest location containing all the locations in self.
@@ -70,3 +76,13 @@ class StockLocation(models.Model):
             return Location.browse()
         else:
             return Location.browse(int(id))
+
+    def limits_orderpoints(self):
+        """Determines whether this location, or an ancestor, permits only a
+        single orderpoint on itself.
+
+        Returns: a boolean: True if limited, False otherwise.
+        """
+        self.ensure_one()
+        limited = self.search([("u_limit_orderpoints", "=", True)])
+        return bool(self.search_count([("id", "child_of", limited.ids), ("id", "=", self.id)]))
