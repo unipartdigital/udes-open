@@ -22,6 +22,16 @@ class BaseModel(models.AbstractModel):
         """Override to remove buttons/editable functionality for view only desktop users
         and take into account archiving restrictions for the given user"""
 
+        def _add_confirmation_warning_on_toggle_active(doc):
+            """Add confirm attribute on toggle_active button"""
+            nodes = doc.xpath("//button[@name='toggle_active']")
+            confirm_message = "Are you sure you want to modify this record? " \
+                              "If archived will become unavailable and hidden from searches."
+            for node in nodes:
+                node.attrib["confirm"] = confirm_message
+                setup_modifiers(node, {})
+            return bool(nodes)
+
         def _remove_active(doc):
             """Remove any field or smart button related to the active field from the doc"""
             for node in doc.xpath("//button[@name='toggle_active']"):
@@ -55,9 +65,8 @@ class BaseModel(models.AbstractModel):
         )
 
         model = res.get("model", False)
+        doc = etree.XML(res["arch"])
         if self.env.user.u_desktop_readonly and not ModelException.is_exempt(model):
-            doc = etree.XML(res["arch"])
-
             doc.set("create", "false")
             doc.set("edit", "false")
             doc.set("duplicate", "false")
@@ -95,10 +104,12 @@ class BaseModel(models.AbstractModel):
             # Remove archive option in tree view and make calendar readonly
             res["readonly_desktop_user"] = True  # Used in basic_view.js
         elif not ResArchivingRestriction._get_can_archive(model):
-            doc = etree.XML(res["arch"])
             if doc.tag == "form":
                 _remove_active(doc)
                 res["arch"] = etree.tostring(doc)
             res["cannot_archive_record"] = True  # Used in basic_view.js
-
+        elif doc.tag == "form":
+            toggle_active_updated = _add_confirmation_warning_on_toggle_active(doc)
+            if toggle_active_updated:
+                res["arch"] = etree.tostring(doc)
         return res
