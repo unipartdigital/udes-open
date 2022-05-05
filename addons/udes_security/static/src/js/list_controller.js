@@ -1,4 +1,4 @@
-odoo.define('udes_stock.ListController', function (require) {
+odoo.define('udes_security.ListController', function (require) {
 "use strict";
 
 var ListController = require('web.ListController');

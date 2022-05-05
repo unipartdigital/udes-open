@@ -8,6 +8,7 @@
                 <script type="text/javascript" src="/udes_security/static/src/js/calendar_view.js"></script>
                 <script type="text/javascript" src="/udes_security/static/src/js/kanban_column.js"></script>
                 <script type="text/javascript" src="/udes_security/static/src/js/kanban_renderer.js"></script>
+                <script type="text/javascript" src="/udes_security/static/src/js/list_controller.js"></script>
             </xpath>
         </template>
     </data>
