@@ -16,5 +16,21 @@
             <field name="code">model.confirm_orders()</field>
         </record>
 
+        <!-- Confirm Sale Orders and Reserve Stock in a single cron job -->
+        <record id="merge_confirm_orders_reserve_stock" model="ir.cron">
+          <field name="name">Merged Confirm Orders and Reserve Stock</field>
+            <field name="active" eval="False" />
+            <field name="user_id" ref="base.user_root" />
+            <field name="interval_number">5</field>
+            <field name="interval_type">minutes</field>
+            <field name="numbercall">-1</field>
+            <field name="doall">0</field>
+            <field name="model_id" ref="udes_sale_stock.model_sale_order"/>
+            <field name="state">code</field>
+            <field name="code">
+                model.merge_confirm_orders_reserve_stock(confirm_orders_batch_size=1000, confirm_orders_commit_size=1000, finish=False)
+            </field>
+        </record>
+
 	</data>
 </odoo>
