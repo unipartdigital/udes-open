@@ -315,7 +315,7 @@ class SaleOrder(models.Model):
         """Returns the domain for sale orders to attempt confirmation."""
         return [("state", "=", "draft")]
 
-    def confirm_orders(self):
+    def confirm_orders(self, size=1000):
         """Attempt to confirm sale orders.
 
         If self is empty, find orders to confirm via _get_confirmation_domain.
@@ -341,7 +341,7 @@ class SaleOrder(models.Model):
         else:
             to_confirm = self.search(self._get_confirmation_domain())
 
-        for _, batch in to_confirm.batched(size=1000):
+        for _, batch in to_confirm.batched(size=size):
             tries = 0
             while True:
                 try:
@@ -392,6 +392,53 @@ class SaleOrder(models.Model):
                                                collected_exceptions=collected_exceptions) from None
 
         return True
+
+    def merge_confirm_orders_reserve_stock(
+        self,
+        confirm_orders_batch_size=1000,
+        confirm_orders_commit_size=1000,
+        finish=False,
+    ):
+        """Confirm Orders and Reserve Stock in a single cron job so the two processes can be
+        run simultaneously.
+        The process is described below:
+        1. Reserve stock if there are no orders to confirm.
+        2. Split all orders to confirm in sizes with confirm_orders_batch_size.
+        3. For every orders_to_confirm batch ,confirm and commit
+            orders within confirm_orders_commit_size.
+        4. After confirming orders_to_confirm batch, reserve stock.
+        5. If needed to confirm only 1 confirm_orders_batch_size finish variable
+        will get out and finish the cron job.
+        6. Not confirmed orders and not reserved stock will be picked in the
+        next cron job if finish is set to true.
+        :param int confirm_orders_batch_size:
+            Number of orders to be confirmed before reserving stock.
+        :param int confirm_orders_commit_size:
+            Number of orders to be confirmed before committing.
+        :param boolean finish:
+            Flag if True will finish the cron job after the first iteration and pick the
+            remaining orders to confirm on the next cron run.
+        """
+        SaleOrder = self.env["sale.order"]
+        StockPicking = self.env["stock.picking"]
+
+        orders_to_confirm = SaleOrder.get_orders_to_confirm()
+        # If there aren't any orders to confirm just run the reserve stock cron
+        if not orders_to_confirm:
+            StockPicking.reserve_stock()
+        for _, batched_orders in orders_to_confirm.batched(size=confirm_orders_batch_size):
+            # Confirm orders cron and reserve stock after for every confirm_orders_batch_size
+            batched_orders.confirm_orders(size=confirm_orders_commit_size)
+            StockPicking.reserve_stock()
+            # Break the for loop in case we want to finish the cron job after the first iteration
+            if finish:
+                break
+
+        return True
+
+    def get_orders_to_confirm(self):
+        """ Getting orders to confirm. Placing into a method in order to be easier to override"""
+        return self.search(self._get_confirmation_domain())
 
 
 class SaleOrderCancelWizard(models.TransientModel):

@@ -12,5 +12,11 @@
       <value eval="[ref('settings_stock_config')]"/>
     </function>
 
+    <!-- Setting batch size to split orders to confirm when is needed especially on specific requirements -->
+    <record id="confirm_orders_batch_size" model="ir.config_parameter">
+      <field name="key">udes_sale_stock.confirm_orders_batch_size</field>
+      <field name="value" eval="10"/>
+    </record>
+
   </data>
 </odoo>
