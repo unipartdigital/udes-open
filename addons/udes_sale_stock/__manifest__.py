@@ -14,6 +14,8 @@
         "views/edi_sale_request_views.xml",
         "views/sale_order_views.xml",
         "views/stock_warehouse.xml",
+        "views/branding_res_config_settings.xml",
+        "data/branding_digest_tip_data.xml",
     ],
     "qweb": [],
     "test": [],

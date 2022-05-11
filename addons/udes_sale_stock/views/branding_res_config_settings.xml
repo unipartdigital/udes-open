@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Removing odoo url links from Sales config settings -->
+  <record id="res_config_settings_view_form_sale" model="ir.ui.view">
+    <field name="name">res.config.settings.view.form.inherit.sale.udes</field>
+    <field name="model">res.config.settings</field>
+    <field name="priority" eval="20"/>
+    <field name="inherit_id" ref="sale_management.res_config_settings_view_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//div[@id='variant_options']//a" position="replace"/>
+      <xpath expr="//div[@id='pricelist_configuration']//a" position="replace"/>
+      <xpath expr="//div[@id='sale_config_online_confirmation_sign']//a" position="replace"/>
+      <xpath expr="//div[@id='sale_config_online_confirmation_pay']//a" position="replace"/>
+      <xpath expr="//div[@id='invoice_delivery_addresses']//a" position="replace"/>
+      <xpath expr="//div[@id='standardized_offers_setting']//a" position="replace"/>
+      <xpath expr="//div[@id='sales_settings_invoicing_policy']//a" position="replace"/>
+      <xpath expr="//div[@id='down_payments']//a" position="replace"/>
+      <xpath expr="//div[@id='amazon_connector']//a" position="replace"/>
+    </field>
+  </record>
+
+  <!-- Removing odoo url links from sales account config settings -->
+  <record id="res_config_settings_view_form_stock_account" model="ir.ui.view">
+    <field name="name">res.config.settings.view.form.inherit.stock.account.udes</field>
+    <field name="model">res.config.settings</field>
+    <field name="priority" eval="20"/>
+    <field name="inherit_id" ref="stock_account.res_config_settings_view_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//div[@id='additional_cost_setting']//a" position="replace"/>
+    </field>
+  </record>
+
+  <!-- Removing odoo url links from invoicing config settings -->
+  <record id="res_config_settings_view_form_account" model="ir.ui.view">
+    <field name="name">res.config.settings.view.form.inherit.account.udes</field>
+    <field name="model">res.config.settings</field>
+    <field name="priority" eval="50"/>
+    <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//div[@id='eu_service']//a" position="replace"/>
+      <xpath expr="//div[@id='invoicing_settings']//widget" position="replace"/>
+    </field>
+  </record>
+
+  <!-- Removing odoo url links from inventory config settings -->
+  <record id="res_config_settings_view_form_stock" model="ir.ui.view">
+    <field name="name">res.config.settings.view.form.inherit.stock.udes</field>
+    <field name="model">res.config.settings</field>
+    <field name="priority" eval="50"/>
+    <field name="inherit_id" ref="stock.res_config_settings_view_form"/>
+    <field name="arch" type="xml">
+        <xpath expr="//div[@id='purchase_po_lead']/parent::div//a" position="replace"/>
+    </field>
+  </record>
+  
+</odoo>
