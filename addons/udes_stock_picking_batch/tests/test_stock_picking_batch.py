@@ -1848,6 +1848,53 @@ class TestUnpickableItems(TestStockPickingBatch):
         # no backorder has been created
         self.assertEqual(len(picking.u_created_backorder_ids), 0)
 
+    def test_unpickable_item_product_ok_multiple_lines_backordered_correctly(self):
+        """
+        If can't pick one move line a backorder is created for stock investigation,
+        and the remaining stays in the original picking.
+        """
+        quant_apple_1 = self.create_quant(self.apple.id, self.test_stock_location_01.id, 4)
+        quant_banana_1 = self.create_quant(self.banana.id, self.test_stock_location_01.id, 3)
+        quant_apple_2 = self.create_quant(self.apple.id, self.test_stock_location_02.id, 4)
+        quant_banana_2 = self.create_quant(self.banana.id, self.test_stock_location_02.id, 3)
+
+        products_info = [{'product': self.apple, 'qty': 8},
+                         {'product': self.banana, 'qty': 6}]
+        picking = self.create_picking(self.picking_type_pick,
+                                      products_info=products_info,
+                                      assign=True)
+
+
+        Batch = self.env['stock.picking.batch']
+        Batch = Batch.with_user(self.outbound_user)
+        batch = Batch.create_batch(self.picking_type_pick.id, None)
+
+        self.assertIn(picking, batch.picking_ids)
+        self.assertEqual(picking.state, 'assigned')
+        self.assertEqual(len(picking.move_line_ids), 4)
+        self.assertEqual(picking.move_line_ids.product_id, self.apple | self.banana)
+        self.assertEqual(sum(picking.move_lines.mapped("product_uom_qty")), 14)
+        self.assertEqual(sum(picking.move_line_ids.mapped("product_uom_qty")), 14)
+
+        reason = 'missing item'
+        move_line = picking.move_line_ids.filtered(lambda ml: ml.product_id == self.apple and ml.location_id == self.test_stock_location_01)
+
+        batch.unpickable_item(product_id=move_line.product_id.id,
+                              location_id=move_line.location_id.id,
+                              reason=reason)
+
+        # picking state should be assigned
+        self.assertEqual(picking.state, 'assigned')
+        # no backorder has been created
+        self.assertEqual(len(picking.u_created_backorder_ids), 1)
+
+        backorder = picking.u_created_backorder_ids
+
+        self.assertIn(picking, batch.picking_ids)
+        self.assertNotIn(backorder, batch.picking_ids)
+        self.assertEqual(sum(picking.move_lines.mapped("product_uom_qty")), 10)
+        self.assertEqual(sum(backorder.move_lines.mapped("product_uom_qty")), 4)
+        
     def test_unpickable_item_product_ok_two_picks(self):
         """
         Tests that calling unpickable item for a product with location
