@@ -52,11 +52,21 @@ class StockPicking(models.Model):
 
     def action_assign(self):
         """
-        Recompute batch state. In theory this is not necessary
+        Ensure the batch state is recomputed. In theory this is not necessary
         but the constraint on state has not proven to work correctly.
         """
-        super().action_assign()
+        res = super().action_assign()
         self.batch_id._compute_state()
+        return res
+
+    def _action_done(self):
+        """
+        Ensure the batch state is recomputed. In theory this is not necessary
+        but the constraint on state has not proven to work correctly.
+        """
+        res = super()._action_done()
+        self.batch_id._compute_state()
+        return res
 
     @api.model
     def create(self, vals):
