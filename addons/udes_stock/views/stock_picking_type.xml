@@ -20,6 +20,10 @@
                     <field name="u_enable_unpickable_items" />
                 </group>
             </xpath>
+
+            <!-- Not needed for UDES as in only applicable to Odoo style prefix -->
+            <xpath expr="//field[@name='sequence_code']" position="replace"/>
+
         </field>
     </record>
 
