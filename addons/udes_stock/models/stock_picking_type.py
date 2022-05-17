@@ -16,7 +16,7 @@ class StockPickingType(models.Model):
     _inherit = "stock.picking.type"
 
     # Overwrite sequence_code as it is only needed for old Odoo prefixes.
-    sequence_code = fields.Char("Sequence_code", required=False)
+    sequence_code = fields.Char(required=False)
 
     u_user_scans = fields.Selection(
         [("pallet", "Pallets"), ("package", "Packages"), ("product", "Products")],
@@ -93,7 +93,11 @@ class StockPickingType(models.Model):
     @api.model
     def create(self, vals):
         """
-        Purpose: If picking_type is to be full copy, then set the sequence_id on the record else set the sequence_code to the name 
+        Purpose: When copying the picking type, the sequence id is not copied. This can lead to issues when trying to create the picking type.
+        If the picking type is to be a direct copy then a search will be done for the original record and the sequence will be attached to the
+        new record. If it isn't going to be a direct copy i.e. have a different name, then the sequence code should be set. This can happen when
+        calling .copy(vals) on a record, where vals contains an updated name field. In this case the copied record will have the old Odoo style
+        prefix.  
         """
         Stockpickingtype = self.env["stock.picking.type"]
         stock_picking_type_record = Stockpickingtype.search([("name","=",vals["name"])])

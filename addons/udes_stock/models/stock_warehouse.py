@@ -67,22 +67,17 @@ class StockWarehouse(models.Model):
             raise ValidationError(_("Cannot find picking types for warehouse %s.") % self.name)
 
         return picking_types
-    
+
     def _get_sequence_values(self):
         """
         Purpose: Overwrite the hardcoded sequence values. This will mean that when the warehouse is created the sequences for each picking type
         will not be created with the old Odoo prefix (The sequences should not be created at all). When the warehouse name is updated the
-        sequences for the picking types will not be updated with the old Odoo prefix. 
+        sequences for the picking types will not be updated with the old Odoo prefix.
         """
         return {
-            'in_type_id': {
-            },
-            'out_type_id': {
-            },
-            'pack_type_id': {
-            },
-            'pick_type_id': {
-            },
-            'int_type_id': {
-            },
+            "in_type_id": {},
+            "out_type_id": {},
+            "pack_type_id": {},
+            "pick_type_id": {},
+            "int_type_id": {},
         }
