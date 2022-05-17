@@ -25,6 +25,16 @@
           <field name="priority"/>
           <field name="u_last_reserved_pallet_name" groups="udes_security.group_trusted_user"/>
         </xpath>
+
+        <!-- Hide Put in Pack button -->
+        <xpath expr="//button[@name='action_put_in_pack']" position="attributes">
+          <attribute name="invisible">1</attribute>
+        </xpath>
+
+        <!-- Hide Validate button -->
+        <xpath expr="//button[@name='action_done']" position="attributes">
+          <attribute name="invisible">1</attribute>
+        </xpath>
       </field>
     </record>
 

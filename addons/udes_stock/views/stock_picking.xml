@@ -101,6 +101,17 @@
                 <attribute name="invisible">1</attribute>
             </xpath>
 
+            <!-- Hide Return button for all -->
+            <xpath expr="//button[@name='%(stock.act_stock_return_picking)d']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <!-- Rename to avoid confusion between discard and cancel -->
+            <xpath expr="//button[@name='action_cancel']" position="attributes">
+                <attribute name="string">Cancel Pick</attribute>
+                <attribute name="attrs">{'invisible': [('state', 'in', ('draft', 'done', 'cancel'))]}</attribute>
+            </xpath>
+
         </field>
     </record>
 
