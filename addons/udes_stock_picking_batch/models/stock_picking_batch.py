@@ -255,7 +255,7 @@ class StockPickingBatch(models.Model):
         Location = self.env["stock.location"]
 
         try:
-            location = Location.get_location(location_ref)
+            location = Location.get_or_create(location_ref)
         except Exception:
             return False
 
@@ -733,6 +733,7 @@ class StockPickingBatch(models.Model):
                 result_package = Package.get_or_create(result_package_name, create=True)
 
                 if picking_type.u_target_storage_format == "pallet_packages":
+                    # TODO: use new package hierarchy
                     to_update["u_result_parent_package_id"] = result_package.id
                 elif picking_type.u_target_storage_format == "pallet_products":
                     to_update["result_package_id"] = result_package.id

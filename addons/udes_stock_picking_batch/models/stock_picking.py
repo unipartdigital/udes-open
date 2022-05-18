@@ -127,7 +127,7 @@ class StockPicking(models.Model):
         if not location and not location_ref:
             raise ValidationError("Must specify a location or ref")
 
-        dest_location = location or Location.get_location(location_ref)
+        dest_location = location or Location.get_or_create(location_ref)
         if not dest_location:
             raise ValidationError(_("The specified location is unknown."))
 
