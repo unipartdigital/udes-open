@@ -61,6 +61,11 @@ class StockPickingType(models.Model):
         default=False,
         help="Flag to indicate if the current picking type should support handling of unpickable items.",
     )
+    u_validate_real_time = fields.Boolean(
+        string="Validate In Real Time",
+        default=False,
+        help="When True, operations are automatically validated in real time.",
+    )
 
     def get_action_picking_tree_draft(self):
         return self._get_action("udes_stock.action_picking_tree_draft")
@@ -106,3 +111,8 @@ class StockPickingType(models.Model):
         else:
             vals["sequence_code"] = vals["name"].upper().replace(" ", "_")
         return super(StockPickingType, self).create(vals)
+
+    # TODO: Review
+    def is_picking_type_check(self):
+        """ Place holder """
+        return False

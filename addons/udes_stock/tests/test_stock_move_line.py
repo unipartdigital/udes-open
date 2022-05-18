@@ -392,3 +392,148 @@ class TestStockMoveLine(common.BaseUDES):
         ]
 
         self.assertEqual(banana_domain, expected_domain)
+
+
+class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
+    @classmethod
+    def setUpClass(cls):
+        super(TestStockMoveLinePrepareAndMarkMoveLines, cls).setUpClass()
+        # Order the banana first to allow for sorting checks later on
+        cls._pick_info = [
+            {"product": cls.banana, "uom_qty": 5},
+            {"product": cls.apple, "uom_qty": 4},
+        ]
+        cls.picking = cls.create_picking(
+            cls.picking_type_goods_in, products_info=cls._pick_info, confirm=True, assign=True
+        )
+        cls.mls = cls.picking.move_line_ids
+        cls.apple_move = cls.picking.move_lines.filtered(lambda m: m.product_id == cls.apple)
+        cls.banana_move = cls.picking.move_lines.filtered(lambda m: m.product_id == cls.banana)
+        cls.apple_move_line = cls.picking.move_line_ids.filtered(
+            lambda m: m.product_id == cls.apple
+        )
+        cls.banana_move_line = cls.picking.move_line_ids.filtered(
+            lambda m: m.product_id == cls.banana
+        )
+
+    def test_by_source_package(self):
+        """ Combinations having source package and no product_ids.
+            Move lines of the source package are returned as one only entry in the result.
+            When move lines do not match with the ones of the package it raises ValidationError.
+        """
+        # Setup data with source package, so better use picking_type_pick
+        package = self.create_package()
+        self.create_quant(self.apple.id, self.test_stock_location_01.id, 10, package_id=package.id)
+        pick_info = [{"product": self.apple, "uom_qty": 5}]
+        pick = self.create_picking(
+            picking_type=self.picking_type_pick, products_info=pick_info, confirm=True, assign=True
+        )
+        mls = pick.move_line_ids
+        self.assertEqual(mls.package_id, package)
+        # Prepare extra parameters for prepare
+        result_package = self.create_package()
+        location_dest = self.test_goodsout_location_01
+
+        # When no other parameters, the move lines are returned with an empty dict
+        empty_res = mls.prepare(package=package)
+        self.assertEqual(empty_res[mls], {})
+
+        # When other parameters, the move lines are returned with a dict and them
+        res = mls.prepare(
+            package=package, result_package=result_package, location_dest=location_dest
+        )
+        self.assertEqual(res[mls]["result_package_id"], result_package.id)
+        self.assertEqual(res[mls]["location_dest_id"], location_dest.id)
+
+        # When move lines do not match raises ValidationError,
+        # so get the move lines from the goods-in
+        goods_in = self.picking
+        other_mls = goods_in.move_line_ids
+        with self.assertRaises(ValidationError) as e:
+            no_res = other_mls.prepare(package=package)
+        msg = f"All package {package.name} move lines cannot be found in picking {goods_in.name}"
+        self.assertIn(e.exception.args[0], msg)
+
+        # Mark moves lines as done, only using the res with parameters
+        marked = mls.mark_as_done(res[mls])
+        self.assertTrue(marked)
+        self.assertEqual(mls.qty_done, 5)
+        self.assertEqual(mls.result_package_id.id, result_package.id)
+        self.assertEqual(mls.location_dest_id.id, location_dest.id)
+
+    def test_no_params(self):
+        """ Combinations not having source package nor product_ids."""
+        goods_in = self.picking
+        mls = goods_in.move_line_ids
+        apple_ml = self.apple_move_line
+        banana_ml = self.banana_move_line
+        original_location_dest = apple_ml.location_dest_id
+        # When no other parameters, the move lines are returned with an empty dict
+        res = mls.prepare()
+        self.assertEqual(res[mls], {})
+
+        # Mark moves lines as done with emtpy dict
+        marked = mls.mark_as_done(res[mls])
+        self.assertTrue(marked)
+        self.assertEqual(apple_ml.qty_done, 4)
+        self.assertEqual(banana_ml.qty_done, 5)
+        self.assertFalse(apple_ml.result_package_id)
+        self.assertEqual(apple_ml.location_dest_id, original_location_dest)
+
+    def test_by_product_ids(self):
+        """ Combinations having product_ids.
+            [{"barcode": "PROD01", "uom_qty":1}]
+        """
+        goods_in = self.picking
+        mls = goods_in.move_line_ids
+        apple_barcode = self.apple.barcode
+        banana_barcode = self.banana.barcode
+        apple_ml = self.apple_move_line
+        banana_ml = self.banana_move_line
+        original_location_dest = self.apple_move_line.location_dest_id
+        # Prepare parameters for prepare
+        result_package = self.create_package()
+        location_dest = self.test_goodsout_location_01
+        apple_product_ids = [{"barcode": apple_barcode, "uom_qty": 1}]
+        banana_product_ids = [{"barcode": banana_barcode, "uom_qty": 3}]
+
+        # This will split apple_ml and its result will be an empty dict
+        apple_res = mls.prepare(product_ids=apple_product_ids)
+        self.assertEqual(apple_res[apple_ml]["qty_done"], 1)
+        self.assertEqual(len(goods_in.move_line_ids), 3)
+        self.assertEqual(apple_ml.product_uom_qty, 1)
+
+        # This will split banana_ml and its result won't be an empty dict
+        banana_res = mls.prepare(
+            product_ids=banana_product_ids,
+            result_package=result_package,
+            location_dest=location_dest,
+        )
+        self.assertEqual(banana_res[banana_ml]["qty_done"], 3)
+        self.assertEqual(banana_res[banana_ml]["result_package_id"], result_package.id)
+        self.assertEqual(banana_res[banana_ml]["location_dest_id"], location_dest.id)
+        self.assertEqual(len(goods_in.move_line_ids), 4)
+        self.assertEqual(banana_ml.product_uom_qty, 3)
+
+        # Mark apple moves line as done
+        marked = apple_ml.mark_as_done(apple_res[apple_ml])
+        self.assertTrue(marked)
+        self.assertEqual(apple_ml.qty_done, 1)
+        self.assertFalse(apple_ml.result_package_id)
+        self.assertEqual(apple_ml.location_dest_id, original_location_dest)
+        # Mark banana moves line as done
+        marked = banana_ml.mark_as_done(banana_res[banana_ml])
+        self.assertTrue(marked)
+        self.assertEqual(banana_ml.qty_done, 3)
+        self.assertEqual(banana_ml.result_package_id, result_package)
+        self.assertNotEqual(banana_ml.location_dest_id, original_location_dest)
+
+    def test_over_mark_error(self):
+        """ Trying to mark as done more than the quantity in a move line raises ValidationError """
+        banana_ml = self.banana_move_line
+        prod_name = self.banana.name
+        with self.assertRaises(ValidationError) as e:
+            marked = self.banana_move_line.mark_as_done({"qty_done": 100})
+        msg = f"Move line {banana_ml.id} for product {prod_name} does not have enough " \
+              f"quantity: 100 vs 5"
+        self.assertEqual(e.exception.args[0], msg)

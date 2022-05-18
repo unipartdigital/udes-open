@@ -306,14 +306,14 @@ class StockMove(models.Model):
 
     def _make_mls_comparison_lambda(self, move_line):
         """
-        This makes the lambda for checking the a move_line against move_orign_ids
+        This makes the lambda for checking the move_line against move_origin_ids
         This can be overridden in other modules if desired.
         If no matching is made, it defaults to a matching on the dest location
         and product id. This is not very robust and can lead to over-matching.
         
         The saving grace of the default behaviour is that it is not very common.
         Normally, if not lot tracked, there are packages/pallets, and if not there
-        are procurment groups which block the merging of moves/pickings.
+        are procurement groups which block the merging of moves/pickings.
 
         :args:
             - move_line to match self with

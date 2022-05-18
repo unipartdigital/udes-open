@@ -245,6 +245,9 @@ class StockPicking(models.Model):
         Location = self.env["stock.location"]
 
         domain = [("id", "child_of", self.location_dest_id.ids)]
+        # TODO: review if this is the best filter
+        if self.location_dest_id.usage != "internal":
+            domain.append(("usage", "=", "internal"))
         if aux_domain is not None:
             domain.extend(aux_domain)
         return Location.search(domain, limit=limit)
@@ -375,7 +378,7 @@ class StockPicking(models.Model):
         if new_moves:
             return self._create_backorder_picking(new_moves)
 
-        # If no bakcorder return an empty record set
+        # If no backorder return an empty record set
         return Picking.browse()
 
     def backorder_move_lines(self, mls_to_keep=None):
@@ -455,7 +458,7 @@ class StockPicking(models.Model):
             moves = self.move_lines.filtered(lambda mv: mv.state != "cancel")
             return sum(moves.mapped("product_uom_qty")) != sum(mls.mapped("qty_done"))
 
-        # Look through all incomplete moves to check if the mls passed cover the 
+        # Look through all incomplete moves to check if the mls passed cover the
         # remaining moves.
         mls_moves = mls.move_id
         incomplete_moves = self.move_lines.get_incomplete_moves()
@@ -679,9 +682,7 @@ class StockPicking(models.Model):
             # that should be ported as part of this module
             # if users_to_unassign:
             #     picking.create_switch_user_event(user_ids=users_to_unassign)
-        users_to_unassign.sudo().write(
-            {"u_picking_id": False, "u_picking_assigned_time": False}
-        )
+        users_to_unassign.sudo().write({"u_picking_id": False, "u_picking_assigned_time": False})
 
     @staticmethod
     def get_stock_investigation_message(quants):
@@ -739,3 +740,81 @@ class StockPicking(models.Model):
         # Try to re-assign the picking after creating the stock investigation
         # picking as we have reserved the problematic stock
         self.action_assign()
+
+    def _check_entire_pack(self):
+        """
+        Override to avoid values at result_package_id when
+        user scans products/avoid _check_entire_pack of products
+        """
+        pickings = self.filtered(
+            lambda p: p.picking_type_id.u_user_scans != "product"
+            and p.picking_type_id.u_target_storage_format != "product"
+        )
+        super(StockPicking, pickings)._check_entire_pack()
+
+    def log_name(self):
+        """This can probably go to models later"""
+        return f"Picking{self.id, self.name}"
+
+    def assert_valid_state(self):
+        """Checks if the transfer is in a valid state, i.e., not done or cancel
+        otherwise it raises and error
+        """
+        self.ensure_one()
+        if self.state in ("done", "cancel"):
+            raise ValidationError(_("Wrong state %s for %s") % (self.state, self.log_name()))
+
+    def add_unexpected_parts(self, product_quantities):
+        """ TODO not needed for now, add to readme when implemented
+            return new mls?
+        """
+        raise ValidationError(_("Cannot handle over receiving!"))
+
+    def validate_picking(self, create_backorder=False, force_validate=False):
+        """ Validates a picking and returns its backorder if any has been created.
+            Will raise an error if create_backorder is False and there are incomplete lines.
+            Optionally will mark as done all lines of the picking if force_validate is set to True.
+        """
+        Picking = self.env["stock.picking"]
+
+        new_picking = Picking.browse()
+        requires_backorder = False
+        mls_to_keep = None
+        with self.statistics() as stats:
+            self.assert_valid_state()
+            # Mark all move lines as done if force validate
+            if force_validate:
+                self.move_line_ids.mark_as_done()
+            # Check if a backorder is required and can be created:
+            # a) Multi users is enabled
+            # b) There are incomplete move lines and create backorder is allowed
+            multi_users_enabled = self.picking_type_id.u_multi_users_enabled
+            if self.move_line_ids.get_lines_incomplete():
+                if multi_users_enabled:
+                    user = self.env.user
+                    mls_to_keep = self.move_line_ids.filtered(
+                        lambda ml: ml.qty_done > 0 and ml.u_done_by_id == user
+                    )
+                    requires_backorder = True
+                elif not create_backorder:
+                    raise ValidationError(
+                        _(
+                            "Cannot validate %s because there are move lines todo and "
+                            "backorder not allowed"
+                        )
+                        % self.log_name()
+                    )
+                else:
+                    requires_backorder = True
+            if requires_backorder:
+                new_picking = self.backorder_move_lines(mls_to_keep=mls_to_keep)
+
+            self._action_done()
+        _logger.info(
+            "%s udes_stock::validate_picking in %.2fs, %d queries",
+            self.log_name(),
+            stats.elapsed,
+            stats.count,
+        )
+
+        return new_picking

@@ -88,6 +88,7 @@ class StockQuantPackage(models.Model):
 
         if aux_domain is None:
             aux_domain = [("state", "not in", ["done", "cancel"])]
+        # TODO: do we want to use child_of instead of in?
         domain = aux_domain + [
             "|",
             ("result_package_id", "in", self.ids),

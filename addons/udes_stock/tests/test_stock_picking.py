@@ -1651,3 +1651,103 @@ class TestBatchUserName(common.BaseUDES):
 
         self.assertEqual(self.picking.u_batch_user_id, self.env.user)
         self.assertEqual(picking_2.u_batch_user_id, self.env.user)
+
+
+class TestStockPickingValidatePicking(common.BaseUDES):
+    """Test validate picking"""
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestStockPickingValidatePicking, cls).setUpClass()
+        cls.create_quant(cls.apple.id, cls.test_stock_location_01.id, 10)
+
+        cls._pick_info = [{"product": cls.apple, "uom_qty": 5}]
+        cls.picking = cls.create_picking(
+            picking_type=cls.picking_type_pick,
+            products_info=cls._pick_info,
+            confirm=True,
+            assign=True,
+        )
+
+    def move_line_done(self, move_line, quantity, user=False):
+        """ Update quantity done of a move line, if user is provided update the context"""
+        if user:
+            # Temporary change the user of the object
+            original_user = self.env.user
+            move_line = move_line.with_user(user)
+        move_line.qty_done = quantity
+        new_ml = move_line._split()
+        if user:
+            # Change user back to the original
+            new_ml = new_ml.with_user(original_user)
+        return new_ml
+
+    def test_assert_valid_state(self):
+        """ Validating a picking in state done raises an error.
+        """
+        pick = self.picking
+        pick.state = "done"
+        with self.assertRaises(ValidationError) as e:
+            backorder = pick.validate_picking()
+        msg = f"Wrong state done for {pick.log_name()}"
+        self.assertEqual(e.exception.args[0], msg)
+
+    def test_force_validate(self):
+        """ Force validating a picking will mark as done all its move lines and then
+        validate the picking.
+        """
+        pick = self.picking
+        mls = pick.move_line_ids
+        self.assertEqual(mls.qty_done, 0)
+        backorder = pick.validate_picking(force_validate=True)
+        # No backorder
+        self.assertFalse(backorder)
+        # Original picking in state done
+        self.assertEqual(pick.state, "done")
+
+    def test_create_backorder(self):
+        """ Validating a picking with a move partially done raise validation error unless
+        create_backorer=True is provided.
+        """
+        pick = self.picking
+        mls = pick.move_line_ids
+        # Create uncompleted move line done by admin
+        new_mls = self.move_line_done(mls, 2)
+        # Validate without parameter raises error
+        with self.assertRaises(ValidationError) as e:
+            backorder = pick.validate_picking()
+        msg = f"Cannot validate {pick.log_name()} because there are move lines todo and " \
+              f"backorder not allowed"
+        self.assertEqual(e.exception.args[0], msg)
+        # Validate with parameter works fine
+        backorder = pick.validate_picking(create_backorder=True)
+        # Backorder created with the uncompleted move line
+        self.assertNotEqual(backorder, pick)
+        self.assertEqual(backorder.state, "assigned")
+        self.assertEqual(backorder.move_line_ids, new_mls)
+        # Original picking in state done
+        self.assertEqual(pick.state, "done")
+
+    def test_multi_users_enabled(self):
+        """ Validating a picking with multi users enabled will create a backorder for all the lines
+        not done or done by other users
+        """
+        other_user = self.create_user(name="Other user", login="Other Dude")
+
+        pick = self.picking
+        mls = pick.move_line_ids
+        # Create uncompleted move line done by admin
+        new_mls = self.move_line_done(mls, 2)
+        # Create uncompleted move line done by admin
+        new_mls_2 = self.move_line_done(new_mls, 2, other_user)
+        expected_backorder_mls = new_mls | new_mls_2
+        # Enable multiple users
+        pick.picking_type_id.u_multi_users_enabled = True
+        # Validate picking
+        res_pick = self.picking.validate_picking()
+        # Backorder created with the uncompleted move line and move line done by other_user
+        self.assertNotEqual(res_pick, pick)
+        self.assertEqual(res_pick.state, "assigned")
+        self.assertEqual(res_pick.move_line_ids, expected_backorder_mls)
+        # Original picking in state done
+        self.assertEqual(pick.state, "done")

@@ -18,6 +18,7 @@
                     <field name="u_multi_users_enabled" />
                     <field name="u_auto_unlink_empty" />
                     <field name="u_enable_unpickable_items" />
+                    <field name="u_validate_real_time" />
                 </group>
             </xpath>
 

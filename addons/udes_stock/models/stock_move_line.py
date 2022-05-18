@@ -75,7 +75,7 @@ class StockMoveLine(models.Model):
         """Return the move lines in self that are not completed,
         i.e., 0 < quantity done < quantity to do
         """
-        return self.filtered(lambda ml: 0 <  ml.qty_done < ml.product_uom_qty)
+        return self.filtered(lambda ml: 0 < ml.qty_done < ml.product_uom_qty)
 
     def get_lines_incomplete(self):
         """Return the move lines in self that are not completed,
@@ -252,3 +252,139 @@ class StockMoveLine(models.Model):
         if aux_domain is not None:
             domain += aux_domain
         return StockMoveLine.search(domain, order=order)
+
+    def _find_move_lines(self, uom_qty, product=None, package=None, lot_name=None, location=None):
+        """ Find a subset of move lines from self matching the subset of the key:
+            product, package, lot and location.
+        """
+        funcs = []
+        if product:
+            funcs.append(lambda ml: ml.product_id == product)
+        if package:
+            funcs.append(lambda ml: ml.package_id == package)
+        if location:
+            funcs.append(lambda ml: ml.location_id == location)
+        if lot_name:
+            funcs.append(lambda ml: (lot_name == lot_name or ml.lot_id.name == lot_name))
+        func = lambda ml: all(f(ml) for f in funcs)
+
+        # Find move lines
+        mls = self.filtered(func)
+        mls_fulfill, new_ml, uom_qty = mls.move_lines_for_qty(uom_qty)
+        if uom_qty > 0:
+            # Note: when implementing add_unexpected_parts() review if this is the best place
+            mls_fulfill |= self.picking_id.add_unexpected_parts()
+        return mls_fulfill, new_ml
+
+    def prepare(
+        self, product_ids=None, package=None, location=None, result_package=None, location_dest=None
+    ):
+        """ Prepare incomplete move lines in self into groups of mls to be updated with
+            the same values. It will split move lines if required.
+            Product_ids is a list of dictionaries with the following keys:
+            * barcode: string
+            * qty: integer
+            * lot_names: list of strings (optional)
+            Example: [{"barcode": "PROD01", "uom_qty":1}]
+
+        """
+        Product = self.env["product.product"]
+
+        vals = {}
+        if result_package:
+            vals["result_package_id"] = result_package.id
+        if location_dest:
+            vals["location_dest_id"] = location_dest.id
+        mls = self.get_lines_incomplete()
+        incoming = mls.u_picking_type_id.code == "incoming"
+        res = defaultdict(dict)
+        if not product_ids:
+            if package:
+                pack_mls = package._get_current_move_lines()
+                # TODO: this is probably where swap package should go
+                if (pack_mls & mls) != pack_mls:
+                    raise ValidationError(
+                        _("All package %s move lines cannot be found in picking %s") %
+                        (package.name, mls.picking_id.name)
+                    )
+                res[pack_mls] = vals
+            else:
+                res[mls] = vals
+            # Set to empty list to bypass the for
+            product_ids = []
+        for prod in product_ids:
+            product_barcode = prod["barcode"]
+            product = Product.get_or_create(product_barcode)
+            quantity = prod["uom_qty"]
+            lot_names = prod.get("lot_names", [])
+            product_tracking = product.tracking
+            is_serial = product_tracking == "serial"
+            is_lot = product_tracking == "lot"
+            if is_serial and len(lot_names) != quantity:
+                raise ValidationError(
+                    _("Not enough serial numbers provided.")
+                )
+            elif is_lot and len(lot_names) != 1:
+                raise ValidationError(
+                    _("Too many lots provided.")
+                )
+            qty_done = quantity
+            if product_tracking != "none":
+                quantity_fulfilled = 0
+                if is_serial:
+                    qty_done = 1
+                for lot_name in lot_names:
+                    lot_name_val = lot_name
+                    # If it is incoming we don't need to match the lot
+                    if incoming:
+                        lot_name = None
+                    else:
+                        lot_name_val = None
+                    prod_mls, new_ml = mls._find_move_lines(
+                        qty_done, product, package, lot_name, location
+                    )
+                    prod_dict = {
+                        "qty_done": qty_done,
+                        "lot_name": lot_name_val
+                    }
+                    prod_dict.update(vals)
+                    res[prod_mls] = prod_dict
+                    quantity_fulfilled += qty_done
+                    mls -= prod_mls
+                    if new_ml:
+                        mls |= new_ml
+                    if quantity_fulfilled == quantity:
+                        break
+            else:
+                prod_mls, new_ml = mls._find_move_lines(
+                    qty_done, product, package, None, location
+                )
+                prod_dict = {"qty_done": qty_done}
+                prod_dict.update(vals)
+                res[prod_mls] = prod_dict
+                mls -= prod_mls
+                if new_ml:
+                    mls |= new_ml
+        return dict(res)
+
+    def mark_as_done(self, values=None):
+        """ Marks as done the move lines in self and updates them with the values provided.
+            When no quantity is passed, it will mark the full line as done.
+            Move lines should always have enough quantity.
+        """
+        if values is None:
+            values = {}
+        for ml in self:
+            ml_vals = values.copy()
+            new_uom_qty = ml_vals.get("qty_done", None)
+            current_uom_qty = ml.product_uom_qty
+            if new_uom_qty is None:
+                ml_vals["qty_done"] = current_uom_qty
+            elif new_uom_qty > current_uom_qty:
+                raise ValidationError(
+                    _("Move line %i for product %s does not have enough quantity: %i vs %i")
+                    % (ml.id, ml.product_id.name, new_uom_qty, current_uom_qty)
+                )
+            ml.write(ml_vals)
+
+        return True
