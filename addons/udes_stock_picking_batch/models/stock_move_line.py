@@ -65,7 +65,7 @@ class StockMoveLine(models.Model):
         else:
             package = self.package_id
             package.ensure_one()
-            info = package.get_info(extra_fields={"location_id", "quant_ids"}, max_level=3)
+            info = package.get_info(extra_fields={"location_id", "quant_ids"}, level=3)
 
             if not info:
                 raise ValidationError(
