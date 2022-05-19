@@ -1,7 +1,6 @@
 FROM unipartdigital/udes-tester:14.0
 
 # Prerequisite module download
-#
 ADD https://codeload.github.com/unipartdigital/odoo-package-hierarchy/zip/${ODOO_VERSION} \
     /opt/odoo-package-hierarchy.zip
 USER root
@@ -12,16 +11,20 @@ RUN unzip -q -d /opt /opt/odoo-package-hierarchy.zip ; \
 # install psycopg2
 USER odoo
 RUN pip3 install psycopg2-binary==2.8.5 --user
+
 # Add modules
-#
 USER root
 ADD addons /opt/odoo-addons
 
 # Module installation (without tests)
-#
 RUN odoo-wrapper --without-demo=all -i \
-    udes_stock,udes_common,udes_stock_packaging
+    udes_common,udes_get_info,udes_simple_location_blocking,udes_stock,udes_stock_packaging,udes_stock_refactoring,udes_stock_routing,udes_suggest_location
 
 # Module tests
-#
-CMD ["--test-enable", "-i", "udes_stock,udes_common,udes_stock_packaging,udes_get_info"]
+CMD ["--test-enable", "-i", "udes_common,udes_get_info,udes_simple_location_blocking,udes_stock,udes_stock_packaging,udes_stock_refactoring,udes_stock_routing,udes_suggest_location"]
+
+# Skip modules that depend on external modules
+# - udes_stock_picking_batch
+# - udes_sale_stock
+# - edi_notifier
+# - udes_stock_cron
