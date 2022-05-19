@@ -100,9 +100,9 @@ class StockPickingType(models.Model):
         prefix.  
         """
         Stockpickingtype = self.env["stock.picking.type"]
-        stock_picking_type_record = Stockpickingtype.search([("name","=",vals["name"])])
-        if len(stock_picking_type_record) != 0: 
+        stock_picking_type_record = Stockpickingtype.search([("name","=",vals["name"]), ("company_id", "=", vals.get("company_id"))])
+        if len(stock_picking_type_record) != 0 and not vals.get("sequence_id"): 
             vals["sequence_id"] = stock_picking_type_record[0].sequence_id.id
         else:
-            vals["sequence_code"] = vals["name"]
+            vals["sequence_code"] = vals["name"].upper().replace(" ", "_")
         return super(StockPickingType, self).create(vals)
