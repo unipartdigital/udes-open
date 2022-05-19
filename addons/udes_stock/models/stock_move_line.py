@@ -880,6 +880,10 @@ class StockMoveLine(models.Model):
         task = {
             "picking_id": picking.id,
         }
+        if picking.picking_type_id.u_reserve_pallet_per_picking:
+            task.update({
+                "reserved_pallet": picking.u_reserved_pallet
+            })
 
         # Check if user_scans is manually set in context first
         user_scans = self.env.context.get("user_scans")
