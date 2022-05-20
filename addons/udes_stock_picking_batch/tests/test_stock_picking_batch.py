@@ -1002,6 +1002,9 @@ class TestStockPickingBatch(common.BaseUDES):
     @classmethod
     def setUpClass(cls):
         super(TestStockPickingBatch, cls).setUpClass()
+        cls.picking_type_investigation_ids = [cls.picking_type_internal.id,
+                                          cls.warehouse.u_stock_investigation_picking_type.id]
+        cls.picking_type_investigation_expression = [('picking_type_id', 'in', cls.picking_type_investigation_ids)]
         cls.pack_4apples_info = [{"product": cls.apple, "qty": 4}]
 
         # TODO - Fix to be outbound user when users are implemented
@@ -1404,7 +1407,7 @@ class TestUnpickableItems(TestStockPickingBatch):
 
         self.assertEqual(picking.state, 'confirmed')
         self.assertEqual(batch.state, 'done')
-        self.assertEqual(unpickable_picking.picking_type_id, self.picking_type_internal)
+        self.assertIn(unpickable_picking.picking_type_id.id, self.picking_type_investigation_ids)
         self.assertEqual(unpickable_picking.state, 'assigned')
 
     def test_unpickable_item_single_move_line_pallet_of_packages(self):
@@ -1424,8 +1427,7 @@ class TestUnpickableItems(TestStockPickingBatch):
 
         self.assertEqual(picking.state, 'confirmed')
         self.assertEqual(batch.state, 'done')
-        self.assertEqual(unpickable_picking.picking_type_id,
-                         self.picking_type_internal)
+        self.assertIn(unpickable_picking.picking_type_id.id, self.picking_type_investigation_ids)
         self.assertEqual(unpickable_picking.state, 'assigned')
 
     def test_unpickable_item_package_not_found(self):
@@ -1899,7 +1901,7 @@ class TestUnpickableItems(TestStockPickingBatch):
         # Check no backorder has been created
         self.assertEqual(len(picking.u_created_backorder_ids), 0)
         # check that the investigation has reserved 3 only
-        inv_picking = Picking.search([('picking_type_id', '=', self.picking_type_internal.id)])
+        inv_picking = Picking.search(self.picking_type_investigation_expression)
         self.assertEqual(len(inv_picking), 1)
         self.assertEqual(len(inv_picking.move_line_ids), 1)
         self.assertEqual(inv_picking.move_line_ids[0].product_qty, 3)
@@ -1954,7 +1956,7 @@ class TestUnpickableItems(TestStockPickingBatch):
         # Check no backorder has been created
         self.assertEqual(len(pickings.filtered('u_created_backorder_ids')), 0)
         # check that the investigation has reserved 4
-        inv_picking = Picking.search([('picking_type_id', '=', self.picking_type_internal.id)])
+        inv_picking = Picking.search(self.picking_type_investigation_expression)
         self.assertEqual(len(inv_picking), 1)
         self.assertEqual(len(inv_picking.move_line_ids), 1)
         self.assertEqual(inv_picking.move_line_ids.product_qty, 4)
@@ -2013,7 +2015,7 @@ class TestUnpickableItems(TestStockPickingBatch):
         # Check no backorder has been created
         self.assertEqual(len(pickings.filtered('u_created_backorder_ids')), 0)
         # check that the investigation has reserved 3 only
-        inv_picking = Picking.search([('picking_type_id', '=', self.picking_type_internal.id)])
+        inv_picking = Picking.search(self.picking_type_investigation_expression)
         self.assertEqual(len(inv_picking), 1)
         self.assertEqual(len(inv_picking.move_line_ids), 1)
         self.assertEqual(inv_picking.move_line_ids[0].product_qty, 3)
@@ -2072,7 +2074,7 @@ class TestUnpickableItems(TestStockPickingBatch):
         # Check backorder has been created
         self.assertEqual(len(pickings.filtered('u_created_backorder_ids')), 1)
         # check that the investigation has reserved 4
-        inv_picking = Picking.search([('picking_type_id', '=', self.picking_type_internal.id)])
+        inv_picking = Picking.search(self.picking_type_investigation_expression)
         self.assertEqual(len(inv_picking), 1)
         self.assertEqual(len(inv_picking.move_line_ids), 1)
         self.assertEqual(inv_picking.move_line_ids.product_qty, 4)
