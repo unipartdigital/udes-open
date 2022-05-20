@@ -132,3 +132,90 @@ class StockQuantPackage(models.Model):
             raise ValidationError(
                 _("Cannot mark partially reserved package %s as done.") % self.name
             )
+
+    def prepare_result_packages(
+        self,
+        product_ids,
+        package,
+        result_package_name,
+        result_parent_package_name,
+        target_storage_format,
+        scan_parent_package_end,
+    ):
+        """
+        Compute result_package and result_parent_package based on the target_storage_format supplied
+        and the input parameters.
+        """
+        Package = self.env["stock.quant.package"]
+
+        result_package = None
+        result_parent_package = None
+
+        if target_storage_format == "pallet_packages":
+
+            # CASE A: both package names given
+            if result_package_name and result_parent_package_name:
+                result_package = Package.get_or_create(result_package_name, create=True)
+                result_parent_package = Package.get_or_create(
+                    result_parent_package_name, create=True
+                )
+            # CASE B: only one of the package names is given as result_package
+            elif result_package_name or scan_parent_package_end:
+                # At pallet_packages, result_package parameter is expected
+                # to be the result_parent_package of the move_line
+                # It might be a new pallet id
+                if not scan_parent_package_end:
+                    result_parent_package = Package.get_or_create(result_package_name, create=True)
+                # MPS: maybe this if is not needed
+                if not package:
+                    if product_ids:
+                        # Products are being packed
+                        result_package = Package.create({})
+                    elif not all([ml.result_package_id for ml in self]):
+                        # Setting result_parent_package expects to have
+                        # result_package for all the move lines
+                        raise ValidationError(
+                            _("Some of the move lines don't have result package.")
+                        )
+                    else:
+                        # We don't have either package or products and all lines have
+                        # result_package_id so parent_package should be result package parameter
+                        result_parent_package = Package.get_or_create(
+                            result_package_name, create=True
+                        )
+                        result_package = None
+                else:
+                    # Products are being packed into a new package
+                    result_package = None
+                    if product_ids:
+                        result_package = Package.create({})
+            # CASE C: wrong combination of package names given
+            elif product_ids:
+                raise ValidationError(
+                    _("Invalid parameters for target storage format, expecting result package.")
+                )
+
+        elif target_storage_format == "pallet_products":
+            if result_package_name:
+                # Moving stock into a pallet of products, result_package
+                # might be new pallet id
+                result_package = Package.get_or_create(result_package_name, create=True)
+            elif product_ids and not result_package_name and not scan_parent_package_end:
+                raise ValidationError(
+                    _("Invalid parameters for target storage format, expecting result package.")
+                )
+
+        elif target_storage_format == "package":
+            if product_ids and not package and not result_package_name:
+                # Mark_as_done products without package or result_package
+                # Create result_package when packing products without
+                # result_package being set
+                result_package = Package.create({})
+
+        elif target_storage_format == "product":
+            # Error when trying to mark_as_done a full package or setting result package
+            # when result storage format is products
+            if result_package_name:
+                raise ValidationError(_("Invalid parameters for products target storage format."))
+
+        return result_package, result_parent_package

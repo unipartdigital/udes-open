@@ -74,3 +74,15 @@ class StockPicking(models.Model):
                         bypass_reserve_full_packages=True,
                         quant_ids=quant_ids
                     ).action_assign()
+
+    def construct_package_hierarchy_links(self):
+        # TODO: add link/unlink to parent if needed like old _set_u_result_parent_package_id()
+        # PackageHierarchyLink = self.env["package.hierarchy.link"]
+        # new_link = PackageHierarchyLink.create(
+        #     {
+        #         "child_id": result_package.id,
+        #         "parent_id": result_parent_package.parent_id.id,
+        #         "move_line_ids": [(6, 0, mls.ids)],
+        #     }
+        # )
+        super().construct_package_hierarchy_links()
