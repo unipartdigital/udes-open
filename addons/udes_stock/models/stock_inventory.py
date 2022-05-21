@@ -438,7 +438,9 @@ class StockInventoryLine(models.Model):
     def _update_package_parent(self):
         """Update Package's Parent Package if it has been updated on the Inventory Line"""
         for line in self.filtered(
-            lambda l: l.package_id and l.u_result_parent_package_id != l.u_package_parent_package_id
+            lambda l: l.package_id
+            and l.u_result_parent_package_id != l.u_package_parent_package_id
+            and l.product_qty != 0 
         ):
             line.package_id.sudo().write({"package_id": line.u_result_parent_package_id.id})
 
