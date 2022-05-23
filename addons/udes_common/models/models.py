@@ -5,8 +5,9 @@ import itertools
 from operator import itemgetter
 from .. import tools
 
-from odoo import models, _
+from odoo import models, api, _
 from odoo.exceptions import ValidationError
+from lxml import etree
 
 _logger = logging.getLogger(__name__)
 
@@ -66,6 +67,7 @@ def groupby(self, key, sort=True):
     Any recordsets within a tuple in ``key`` will be replaced with a list of IDs from each
     recordset.
     """
+
     def tuple_contains_recordset(tup):
         """Returns True if the supplied tuple contains a recordset, otherwise False"""
         for item in tup:
@@ -100,8 +102,7 @@ def groupby(self, key, sort=True):
                 recs = recs.sorted(key=lambda x: get_ids_from_recordset_in_tuple(key(x)))
             else:
                 recs = recs.sorted(key=key)
-    return ((k, self.browse(x.id for x in v))
-            for k, v in itertools.groupby(recs, key=key))
+    return ((k, self.browse(x.id for x in v)) for k, v in itertools.groupby(recs, key=key))
 
 
 @add_if_not_exists(models.BaseModel)
@@ -134,3 +135,46 @@ def selection_display_name(self, selection_field_name):
     # Odoo has a nice function that handles all the weird ways you can define selections!
     selection_values_dict = dict(selection_field._description_selection(self.env))
     return selection_values_dict.get(self[selection_field_name], False)
+
+
+class Base(models.AbstractModel):
+    _inherit = "base"
+
+    # Adding a default empty list for base model, it will be override when needed for
+    # specific models.
+    DetailedFormViewFields = []
+
+    @api.model
+    def fields_view_get(self, view_id=None, view_type="form", toolbar=False, submenu=False):
+        """Override fields_view_get to remove/hide information that is specified in models"""
+        res = super().fields_view_get(view_id, view_type, toolbar, submenu)
+        doc = etree.XML(res["arch"])
+        if self._context.get("view_all_fields"):
+            # Hide the view more button
+            doc = etree.XML(res["arch"])
+            for node in doc.xpath("//button[@name='action_detailed_view']"):
+                node.getparent().remove(node)
+        else:
+            if not self.DetailedFormViewFields:
+                return res
+            if view_type == "form":
+                for field_name in self.DetailedFormViewFields:
+                    for node in doc.xpath("//field[@name='%s']" % field_name):
+                        node.getparent().remove(node)
+        res["arch"] = etree.tostring(doc)
+        return res
+
+    def base_model_detailed_view(self, model, form_view):
+        """Main method which can be called from all models to redirect to a form view with context
+        view_all_fields True in order to remove the fields that are configured in helpers"""
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "view_type": "form",
+            "view_model": "form",
+            "views": [(form_view.id, "form")],
+            "res_model": model,
+            "view_id": form_view.id,
+            "res_id": self.id,
+            "context": {"view_all_fields": True},
+        }
