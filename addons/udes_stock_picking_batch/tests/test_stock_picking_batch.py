@@ -685,6 +685,9 @@ class TestBatchGetNextTask(common.BaseUDES):
         )
         cls.batch = cls.create_batch(user=cls.outbound_user)
         cls.picking.batch_id = cls.batch.id
+        # Test expected configs
+        cls.picking_type_pick.u_user_scans = "package"
+        cls.picking_type_pick.u_return_to_skipped = False
 
     def test_picking_ordering_is_persisted_in_task(self):
         """ Ensure that get_next_task respects the ordering criteria """
