@@ -37,6 +37,18 @@ class StockPicking(models.Model):
 
     _order = "priority desc, scheduled_date asc, sequence asc, id asc"
 
+    # Adding fields to be hidden by default from form view.
+    DetailedFormViewFields = [
+        "u_first_picking_ids",
+        "u_prev_picking_ids",
+        "u_next_picking_ids",
+        "u_created_back_orders",
+        "u_first_pickings_qty",
+        "u_prev_pickings_qty",
+        "u_next_pickings_qty",
+        "u_back_orders_qty",
+    ]
+
     priority = fields.Selection(selection=common.PRIORITIES)
     sequence = fields.Integer("Sequence", default=0)
     is_locked = fields.Boolean(
@@ -62,11 +74,21 @@ class StockPicking(models.Model):
         compute="_compute_related_picking_ids",
         help="Previous pickings",
     )
+    u_prev_pickings_qty = fields.Integer(
+        "Previous Pickings Qty",
+        compute="_compute_related_picking_ids",
+        help="Previous pickings quantity",
+    )
     u_next_picking_ids = fields.One2many(
         "stock.picking",
         string="Next Pickings",
         compute="_compute_related_picking_ids",
         help="Next pickings",
+    )
+    u_next_pickings_qty = fields.Integer(
+        "Next Pickings Qty",
+        compute="_compute_related_picking_ids",
+        help="Next pickings quantity",
     )
     u_first_picking_ids = fields.One2many(
         "stock.picking",
@@ -74,11 +96,21 @@ class StockPicking(models.Model):
         compute="_compute_first_picking_ids",
         help="First pickings in the chain",
     )
+    u_first_pickings_qty = fields.Integer(
+        "First Pickings Qty",
+        compute="_compute_first_picking_ids",
+        help="First pickings quantity",
+    )
     u_created_back_orders = fields.One2many(
         "stock.picking",
         string="Created Back Orders",
         compute="_compute_related_picking_ids",
         help="Created Back Orders",
+    )
+    u_back_orders_qty = fields.Integer(
+        "Created Back Orders Qty",
+        compute="_compute_related_picking_ids",
+        help="Created back orders quantity",
     )
     u_original_picking_id = fields.Many2one(
         "stock.picking",
@@ -251,10 +283,16 @@ class StockPicking(models.Model):
         Picking = self.env["stock.picking"]
         for picking in self:
             if picking.id:
-                picking.u_created_back_orders = Picking.get_pickings(backorder_id=picking.id)
+                back_orders = Picking.get_pickings(backorder_id=picking.id)
+                picking.u_created_back_orders = back_orders
+                picking.u_back_orders_qty = len(back_orders)
 
-            picking.u_prev_picking_ids = picking.mapped("move_lines.move_orig_ids.picking_id")
-            picking.u_next_picking_ids = picking.mapped("move_lines.move_dest_ids.picking_id")
+            next_pickings = picking.mapped("move_lines.move_dest_ids.picking_id")
+            prev_pickings = picking.mapped("move_lines.move_orig_ids.picking_id")
+            picking.u_prev_picking_ids = prev_pickings
+            picking.u_prev_pickings_qty = len(prev_pickings)
+            picking.u_next_picking_ids = next_pickings
+            picking.u_next_pickings_qty = len(next_pickings)
 
     @api.depends("move_lines", "move_lines.move_orig_ids", "move_lines.move_orig_ids.picking_id")
     def _compute_first_picking_ids(self):
@@ -264,7 +302,9 @@ class StockPicking(models.Model):
             while moves:
                 first_moves |= moves.filtered(lambda x: not x.move_orig_ids)
                 moves = moves.mapped("move_orig_ids")
-            picking.u_first_picking_ids = first_moves.mapped("picking_id")
+            first_pickings = first_moves.mapped("picking_id")
+            picking.u_first_picking_ids = first_pickings
+            picking.u_first_pickings_qty = len(first_pickings)
 
     def can_handle_partials(self, **kwargs):
         self.ensure_one()
@@ -327,7 +367,12 @@ class StockPicking(models.Model):
             if node.tag in ("kanban", "tree", "form", "gantt"):
                 node.set("delete", "false")
                 result["arch"] = etree.tostring(node, encoding="unicode")
-
+        # Set Autofocus on Additional Info
+        if self._context.get("view_all_fields"):
+            doc = etree.XML(result["arch"])
+            for node in doc.xpath("//page[@name='extra']"):
+                node.set("autofocus", "autofocus")
+            result["arch"] = etree.tostring(doc)
         return result
 
     def assert_not_pending(self):
@@ -2847,3 +2892,61 @@ class StockPicking(models.Model):
         """Add `created_due_to_backorder` to context when creating a backorder through UI"""
         self = self.with_context(created_due_to_backorder=True)
         return super()._create_backorder(backorder_moves)
+
+    def action_detailed_view(self):
+        """Function will call the picking form with a context view_all_fields set to True
+        which will un hide the fields that were hidden"""
+        form_view = self.env.ref("stock.view_picking_form")
+        return self.base_model_detailed_view(self._name, form_view)
+
+    def open_related_pickings(self, picking_ids, related_pickings_description):
+        """Main method which is called from all models to redirect to a form view with context
+        view_all_fields True in order to remove the fields that are configured in helpers"""
+        self.ensure_one()
+        if len(picking_ids) == 1:
+            form_view = self.env.ref("stock.view_picking_form")
+            action = {
+                "type": "ir.actions.act_window",
+                "view_type": "form",
+                "view_model": "form",
+                "views": [(form_view.id, "form")],
+                "res_model": "stock.picking",
+                "view_id": form_view.id,
+                "res_id": picking_ids[0],
+                "context": {"view_all_fields": False},
+            }
+        else:
+            action = {
+                "type": "ir.actions.act_window",
+                "name": _("%s") % related_pickings_description,
+                "res_model": "stock.picking",
+                "view_type": "form",
+                "view_mode": "tree,form",
+                "domain": [("id", "in", picking_ids)],
+                "context": {"view_all_fields": False},
+            }
+        return action
+
+    def open_first_pickings(self):
+        """Open first pickings button will redirect to first pickings"""
+        return self.open_related_pickings(
+            self.u_first_picking_ids.ids, "First Pickings"
+        )
+
+    def open_prev_pickings(self):
+        """Open prev pickings button will redirect to previous pickings"""
+        return self.open_related_pickings(
+            self.u_prev_picking_ids.ids, "Previous Pickings"
+        )
+
+    def open_next_pickings(self):
+        """Open next pickings button will redirect to next pickings"""
+        return self.open_related_pickings(
+            self.u_next_picking_ids.ids, "Next Pickings"
+        )
+
+    def open_back_orders(self):
+        """Open back orders button will redirect to created back orders"""
+        return self.open_related_pickings(
+            self.u_created_back_orders.ids, "Created Back Orders"
+        )
