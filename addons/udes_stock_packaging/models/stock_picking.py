@@ -86,3 +86,18 @@ class StockPicking(models.Model):
         #     }
         # )
         super().construct_package_hierarchy_links()
+
+    @staticmethod
+    def _get_package_search_domain(package):
+        """
+        Generate the domain for searching pickings that use a package taking
+        into account package-hierarchy functionality.
+
+        :args:
+            - package: a stock.quant.package object
+        """
+        return [
+            "|",
+            ("move_line_ids.package_id", "child_of", package.id),
+            ("move_line_ids.result_package_id", "child_of", package.id),
+        ]

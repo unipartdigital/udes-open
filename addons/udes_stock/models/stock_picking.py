@@ -930,3 +930,18 @@ class StockPicking(models.Model):
         return self.open_related_pickings(
             self.u_created_backorder_ids.ids, "Created Back Orders"
         )
+
+    @staticmethod
+    def _get_package_search_domain(package):
+        """
+        Generate the domain for searching pickings that use a package.
+        Useful as this can be overridden in other modules if functionality is expanded.
+
+        :args:
+            - package: a stock.quant.package object
+        """
+        return [
+            "|",
+            ("move_line_ids.package_id", "=", package.id),
+            ("move_line_ids.result_package_id", "=", package.id),
+        ]
