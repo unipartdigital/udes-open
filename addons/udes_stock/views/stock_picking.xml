@@ -145,6 +145,19 @@
 
             </xpath>
 
+            <!-- Destination location field changed to read-only for goods-in -->
+            <xpath expr="//field[@name='location_dest_id']" position="attributes">
+                <attribute name="attrs">{'readonly': ['|',('picking_type_code', '=', 'incoming'),('state', 'not in', 'draft')]}</attribute>
+            </xpath>
+
+            <!--
+                Origin (Source Document) field changed to required for goods-in
+                Origin also set to readonly unless the picking is in draft state
+            -->
+            <xpath expr="//field[@name='origin']" position="attributes">
+                <attribute name="attrs">{'readonly': [('state', '!=', 'draft')],  'required': [('picking_type_code', '=', 'incoming')]}</attribute>
+            </xpath>
+
         </field>
     </record>
 
