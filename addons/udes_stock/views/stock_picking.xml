@@ -164,6 +164,39 @@
                 <attribute name="context">{'move_line_ids': [id]}</attribute>
             </xpath>
 
+            <!-- Add button to show all fields, by default hidden fields will not be shown -->
+            <xpath expr="//page[@name='extra']" position="inside">
+                <button name="action_detailed_view" string="Show Related Pickings" type="object"/>
+            </xpath>
+
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button class="oe_stat_button"
+                        name="open_first_pickings"
+                        icon="fa-exchange"
+                        type="object" invisible="not context.get('view_all_fields', False)">
+                    <field name="u_first_pickings_qty" widget="statinfo" string="First Pickings"/>
+                </button>
+                <button class="oe_stat_button"
+                        name="open_prev_pickings"
+                        icon="fa-exchange"
+                        type="object" invisible="not context.get('view_all_fields', False)">
+                    <field name="u_prev_pickings_qty" widget="statinfo" string="Previous Pickings"/>
+                </button>
+                <button class="oe_stat_button"
+                        name="open_next_pickings"
+                        icon="fa-exchange"
+                        type="object" invisible="not context.get('view_all_fields', False)">
+                    <field name="u_next_pickings_qty" widget="statinfo" string="Next Pickings"/>
+                </button>
+                <button class="oe_stat_button"
+                        name="open_back_orders"
+                        icon="fa-exchange"
+                        type="object" invisible="not context.get('view_all_fields', False)">
+                    <field name="u_back_orders_qty" widget="statinfo" string="Created Back Orders"/>
+                </button>
+
+            </xpath>
+
         </field>
     </record>
 
