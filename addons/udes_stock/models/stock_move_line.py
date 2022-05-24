@@ -272,8 +272,8 @@ class StockMoveLine(models.Model):
         mls = self.filtered(func)
         mls_fulfill, new_ml, uom_qty = mls.move_lines_for_qty(uom_qty)
         if uom_qty > 0:
-            # Note: when implementing add_unexpected_parts() review if this is the best place
-            mls_fulfill |= self.picking_id.add_unexpected_parts()
+            # TODO: when implementing add_unexpected_parts() review if this is the best place
+            mls_fulfill |= self.picking_id.add_unexpected_parts(uom_qty)
         return mls_fulfill, new_ml
 
     def prepare(
