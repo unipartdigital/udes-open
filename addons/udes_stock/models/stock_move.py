@@ -261,7 +261,7 @@ class StockMove(models.Model):
         :args:
             move_lines: the move lines to be placed into the new move
             new_move_qty: the new move quantity (not equal to move line
-            quantity since partially avialble moves could occur.)
+            quantity since partially available moves could occur.)
         :returns:
             - The new move
         """

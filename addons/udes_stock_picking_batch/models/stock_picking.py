@@ -229,8 +229,9 @@ class StockPicking(models.Model):
             - The picking belongs to a batch and there is no user assigned to the batch
             - The picking belongs to a batch and there is another user assigned to the batch
             - The user already has other batches in progress
+        NOTE: uses sudo to override permissions as assign a batch should be possible for most users
         """
-
+        self = self.sudo()
         PickingBatch = self.env["stock.picking.batch"]
 
         if self.batch_id:

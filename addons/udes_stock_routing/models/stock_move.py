@@ -5,8 +5,11 @@ class StockMove(models.Model):
 
     def push_from_drop(self):
         """
-        Creates new moves for the moves that have just dropped stock in a location.  
+        Creates new moves for the moves that have just dropped stock in a location.
+        NOTE: Uses sudo to override permissions. This is because the use case for this function
+        is independent of the user permissions.
         """
+        self = self.sudo()
         Move = self.env["stock.move"]
         MoveLine = self.env["stock.move.line"]
         Push = self.env["stock.rule"]
