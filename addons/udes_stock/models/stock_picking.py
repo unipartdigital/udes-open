@@ -366,7 +366,7 @@ class StockPicking(models.Model):
         to enforce that splitting of mls is done prior to calling this method.
         The original picking (self) is not validated.
 
-        The reason for this method is to maintain tracability of move lines,
+        The reason for this method is to maintain traceability of move lines,
         and not delete and re-create them inside _action_done().
 
         :returns: The created backorder
@@ -380,7 +380,7 @@ class StockPicking(models.Model):
         is called. This is because the use case of this is not well defined,
         but instead think this of a helper method in drop off actions.
         One example may be because we want to call this on a sequence of move
-        lines and propogate them through then call _action_done sequentially
+        lines and propagate them through then call _action_done sequentially
         on the chain of pickings.
         """
         Picking = self.env["stock.picking"]
@@ -465,8 +465,15 @@ class StockPicking(models.Model):
         return Picking.browse()
 
     def _create_backorder_picking(self, moves):
-        """Helper to create a backorder picking from the given moves"""
-        bk_picking = self.copy(
+        """
+        Helper to create a backorder picking from the given moves
+        NOTE: function uses sudo to override permissions. This is because creating
+        a backorder requires having the picking create permission and we treat backorders
+        creation differently from generic picking creation. E.g. the system needs to be able
+        to create barckorders when pickings are validated regardless of the user's generic
+        permissions.
+        """
+        bk_picking = self.sudo().copy(
             {
                 "name": "/",
                 "move_lines": [(6, 0, moves.ids)],
