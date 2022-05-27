@@ -281,18 +281,45 @@ class StockPicking(models.Model):
     )
     def _compute_related_picking_ids(self):
         Picking = self.env["stock.picking"]
-        for picking in self:
-            if picking.id:
-                back_orders = Picking.get_pickings(backorder_id=picking.id)
-                picking.u_created_back_orders = back_orders
-                picking.u_back_orders_qty = len(back_orders)
-
-            next_pickings = picking.mapped("move_lines.move_dest_ids.picking_id")
-            prev_pickings = picking.mapped("move_lines.move_orig_ids.picking_id")
-            picking.u_prev_picking_ids = prev_pickings
-            picking.u_prev_pickings_qty = len(prev_pickings)
-            picking.u_next_picking_ids = next_pickings
-            picking.u_next_pickings_qty = len(next_pickings)
+        if self.ids:
+            # To avoid messy ORM joins, get next/prev picking ids
+            # with a direct query for all picks in self
+            self.env.cr.execute(
+                """
+                SELECT
+                    sp.id,
+                    array_agg(DISTINCT next_pick.id) AS next_picks,
+                    array_agg(DISTINCT prev_pick.id) AS prev_picks,
+                    array_agg(DISTINCT backorder.id) AS backorder_picks
+                FROM
+                    stock_picking sp
+                    LEFT JOIN stock_picking backorder ON backorder.backorder_id = sp.id
+                    LEFT JOIN stock_move sm ON sm.picking_id = sp.id
+                    LEFT JOIN stock_move_move_rel dest_move_rel ON sm.id = dest_move_rel.move_orig_id
+                    LEFT JOIN stock_move_move_rel orig_move_rel ON sm.id = orig_move_rel.move_dest_id
+                    LEFT JOIN stock_move orig_move ON orig_move.id = orig_move_rel.move_orig_id
+                    LEFT JOIN stock_move dest_move ON dest_move.id = dest_move_rel.move_dest_id
+                    LEFT JOIN stock_picking next_pick ON dest_move.picking_id = next_pick.id
+                    LEFT JOIN stock_picking prev_pick ON orig_move.picking_id = prev_pick.id
+                WHERE
+                    sp.id IN %s
+                GROUP BY sp.id
+            """,
+                (tuple(self.ids),),
+            )
+            for pick_id, next_pick_ids, prev_pick_ids, backorder_ids in self.env.cr.fetchall():
+                picking = Picking.browse(pick_id)
+                # Cleanup empty entries, will only ever be one None due to DISTINCT
+                next_pick_ids = list(filter(None, next_pick_ids))
+                prev_pick_ids = list(filter(None, prev_pick_ids))
+                backorder_ids = list(filter(None, backorder_ids))
+                # Set the computed columns
+                picking.u_next_picking_ids = next_pick_ids
+                picking.u_prev_picking_ids = prev_pick_ids
+                picking.u_created_back_orders = backorder_ids
+                picking.u_next_pickings_qty = len(next_pick_ids)
+                picking.u_prev_pickings_qty = len(prev_pick_ids)
+                picking.u_back_orders_qty = len(backorder_ids)
 
     @api.depends("move_lines", "move_lines.move_orig_ids", "move_lines.move_orig_ids.picking_id")
     def _compute_first_picking_ids(self):
