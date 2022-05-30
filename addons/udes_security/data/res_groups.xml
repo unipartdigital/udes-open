@@ -24,12 +24,21 @@
 
     <record id="group_desktop_access" model="res.groups">
         <field name="name">Desktop Access</field>
-        <field name="category_id" ref="base.module_category_extra" />
+        <field name="category_id" ref="udes_security.module_category_users" />
+    </record>
+    <!-- Cannot self reference, so we extend the record after we create it -->
+    <record id="udes_security.group_desktop_access" model="res.groups">
+        <field name="u_required_group_id_to_change" ref="udes_security.group_desktop_access" />
     </record>
 
     <!-- Set desktop access as implied group for any user that can manage user access rights -->
     <record id="base.group_erp_manager" model="res.groups">
         <field name="implied_ids" eval="[(4, ref('udes_security.group_desktop_access'))]" />
+    </record>
+
+    <!-- Only allow current users with technical settings rights to add/remove this group to/from users -->
+    <record id="base.group_system" model="res.groups">
+        <field name="u_required_group_id_to_change" ref="base.group_system" />
     </record>
 
 </odoo>
