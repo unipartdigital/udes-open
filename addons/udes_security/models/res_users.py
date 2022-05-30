@@ -1,8 +1,5 @@
-import re
-import base64
 import logging
-from odoo import models, fields, _, api, SUPERUSER_ID, http
-from odoo.exceptions import Warning as UserError
+from odoo import models, fields, _, api
 from odoo.exceptions import AccessError
 from odoo.http import root
 from collections import namedtuple
@@ -19,13 +16,13 @@ class ResUsers(models.Model):
     u_is_trusted_user = fields.Boolean(string="Trusted User?", compute="_compute_is_trusted_user")
 
     def _compute_is_trusted_user(self):
-        """ Set to True for user if they have trusted user security group, otherwise False """
+        """Set to True for user if they have trusted user security group, otherwise False"""
         for user in self:
             user.u_is_trusted_user = user.has_group("udes_security.group_trusted_user")
 
     @api.model
     def create(self, vals):
-        """ Override to check active user has permission to grant groups to new user """
+        """Override to check active user has permission to grant groups to new user"""
         self._check_user_group_modify(vals, new_user=True)
         user = super(ResUsers, self).create(vals)
         return user
@@ -36,7 +33,6 @@ class ResUsers(models.Model):
         """
         self._check_user_group_modify(vals)
         return super(ResUsers, self).write(vals)
-
 
     def _get_first_disallowed_user_group_modify(self, groups):
         """
@@ -55,12 +51,22 @@ class ResUsers(models.Model):
         return disallowed_group
 
     def _check_user_group_modify(self, vals, new_user=False):
-        """ Raise error if active user does not have permission to add/remove group from user """
+        """
+        Raise error if active user does not have permission to add/remove group from user.
+
+        Superuser and admin are exempt from the checks.
+        """
         Group = self.env["res.groups"]
 
         unreified_group_vals = self._remove_reified_groups(vals)
 
-        if "groups_id" in unreified_group_vals and self.env.uid != SUPERUSER_ID:
+        if (
+            "groups_id" in unreified_group_vals
+            and not self.env.user._is_superuser_or_admin()
+            and not self.env.su
+        ):
+            current_user_group_ids = self.groups_id.ids
+
             # Validate the many2many write to check that the
             # supplied user group is not being added or removed.
             disallowed_group = False
@@ -72,18 +78,25 @@ class ResUsers(models.Model):
                     pass
 
                 elif operation in (3, 4):
-                    # Remove and add group
+                    # 3 = remove group
+                    # 4 = add group
                     group_id = action[1]
                     group = Group.browse(group_id)
 
                     if group.u_required_group_id_to_change:
                         # If new user record, only check if the group is being added
-                        if not new_user or operation == 4:
+                        # If a group is being removed,
+                        # check if the user actually had that group already
+                        if operation == 4 or (
+                            not new_user and operation == 3 and group_id in current_user_group_ids
+                        ):
                             groups_to_check = group
 
                 elif operation == 5:
                     # Remove all groups
-                    groups_to_check = self.mapped("groups_id").filtered("u_required_group_id_to_change")
+                    groups_to_check = self.mapped("groups_id").filtered(
+                        "u_required_group_id_to_change"
+                    )
 
                 elif operation == 6:
                     # Replace all groups
@@ -106,13 +119,12 @@ class ResUsers(models.Model):
 
                 if disallowed_group:
                     _logger.warning(
-                        f"User {self.env.uid} tried to change {disallowed_group.name} group."
+                        f"User {self.env.uid} tried to change {disallowed_group.full_name} group."
                     )
                     raise AccessError(
                         _(
                             "%s cannot be added or removed due to security restrictions. "
                             "Please contact your system administrator."
                         )
-                        % disallowed_group.name
+                        % disallowed_group.full_name
                     )
-
