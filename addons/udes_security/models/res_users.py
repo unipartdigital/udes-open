@@ -3,6 +3,7 @@ from odoo import models, fields, _, api
 from odoo.exceptions import AccessError
 from odoo.http import root
 from collections import namedtuple
+from odoo.addons.udes_common.tools import RelFieldOps
 
 _store = root.session_store
 _logger = logging.getLogger(__name__)
@@ -74,12 +75,10 @@ class ResUsers(models.Model):
                 groups_to_check = Group.browse()
                 operation = action[0]
 
-                if operation in (0, 1, 2):
+                if operation in (RelFieldOps.Create, RelFieldOps.Update, RelFieldOps.Delete):
                     pass
 
-                elif operation in (3, 4):
-                    # 3 = remove group
-                    # 4 = add group
+                elif operation in (RelFieldOps.Remove, RelFieldOps.Add):
                     group_id = action[1]
                     group = Group.browse(group_id)
 
@@ -92,13 +91,13 @@ class ResUsers(models.Model):
                         ):
                             groups_to_check = group
 
-                elif operation == 5:
+                elif operation == RelFieldOps.RemoveAll:
                     # Remove all groups
                     groups_to_check = self.mapped("groups_id").filtered(
                         "u_required_group_id_to_change"
                     )
 
-                elif operation == 6:
+                elif operation == RelFieldOps.Replace:
                     # Replace all groups
                     group_ids = action[2]
                     groups = Group.browse(group_ids)
