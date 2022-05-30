@@ -42,3 +42,13 @@ class Groups(models.Model):
                         )
                         % group.name
                     )
+
+    def set_required_group_to_change_to_self(self, overwrite=False):
+        """
+        For each group in self, set required group to change to itself.
+
+        If overwrite is not True, the group will not be updated if it already
+        has a required group to change set.
+        """
+        for group in self.filtered(lambda g: overwrite or not g.u_required_group_id_to_change):
+            group.write({"u_required_group_id_to_change": group.id})
