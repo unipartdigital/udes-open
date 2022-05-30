@@ -19,13 +19,14 @@ class Groups(models.Model):
 
     def write(self, vals):
         """ Override to ensure active user has permission to change users in group """
-        self._check_user_group_modify(vals)
+        if not self.env.user._is_superuser_or_admin():
+            self._check_user_group_modify(vals)
         return super(Groups, self).write(vals)
 
     def _check_user_group_modify(self, vals):
         """ Raise error if active user does not have permission to modify group users """
         users = vals.get("users")
-    
+
         if not self.env.su and users:
             active_user_groups = self.env.user.groups_id
             groups_to_check = self.filtered("u_required_group_id_to_change")
@@ -33,14 +34,15 @@ class Groups(models.Model):
             for group in groups_to_check:
                 if group.u_required_group_id_to_change not in active_user_groups:
                     _logger.warning(
-                        f"User {self.env.uid} tried to change {group.name} group for users {users}."
+                        f"User {self.env.uid} tried to change {group.full_name} group for users "
+                        f"{users}."
                     )
                     raise AccessError(
                         _(
                             "%s cannot be added or removed due to security "
                             "restrictions. Please contact your system administrator."
                         )
-                        % group.name
+                        % group.full_name
                     )
 
     def set_required_group_to_change_to_self(self, overwrite=False):
