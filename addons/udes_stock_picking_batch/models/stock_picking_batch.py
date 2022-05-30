@@ -421,9 +421,13 @@ class StockPickingBatch(models.Model):
 
         if reserve_pallet_per_picking:
             # The front end will always send only one picking.
-            picking.write({"u_reserved_pallet": pallet_name})
+            # NOTE: Added sudo() - Uses sudo() here as a user might not have the full access rights to stock.picking.batch
+            # but still needs more access rights for the flow
+            picking.sudo().write({"u_reserved_pallet": pallet_name})
         else:
-            self.write({"u_last_reserved_pallet_name": pallet_name})
+            # NOTE: Added sudo() - Uses sudo() here as a user might not have the full access rights to stock.picking.batch
+            # but still needs more access rights for the flow
+            self.sudo().write({"u_last_reserved_pallet_name": pallet_name})
 
     def _get_task_grouping_criteria(self):
         """
@@ -763,7 +767,9 @@ class StockPickingBatch(models.Model):
 
             # If we dropped a package then reset the last package reserved in the batch as we usually
             # ask the user to scan a new pallet once it has been dropped off in a new location
-            self.u_last_reserved_pallet_name = False
+            # NOTE: Added sudo() - Uses sudo() here as a user might not have the full access rights to stock.picking.batch
+            # but still needs more access rights for the flow
+            self.sudo().u_last_reserved_pallet_name = False
 
             # Add any created backorders if needed
             if to_add:
@@ -1007,7 +1013,9 @@ class StockPickingBatch(models.Model):
         pickings_to_remove.with_context(lock_batch_state=True).write(
             {"batch_id": False, "u_reserved_pallet": False}
         )
-        self._compute_state()
+        # NOTE: Added sudo() - Uses sudo() here as a user might not have the full access rights to stock.picking.batch
+        # but still needs more access rights for the flow
+        self.sudo()._compute_state()
 
         return self
 
@@ -1163,9 +1171,11 @@ class StockPickingBatch(models.Model):
 
         if raise_stock_investigation:
             # By default the pick is unreserved
+            # NOTE: Added sudo() - Uses sudo() here as a user might not have the full access rights to stock.picking.batch
+            # but still needs more access rights for the flow
             to_investigate.with_context(
                 lock_batch_state=True, allow_partial=allow_partial
-            ).raise_stock_investigation(reason=reason, quants=quants, location=location)
+            ).raise_stock_investigation(reason=reason, quants=quants.sudo(), location=location)
             # Trigger refactor here to allow grouping of pickings by move key on confirm. Need to loop
             # over the pickings from the refactored moves as they might be  in a different picking.
             # No unlinking of the empty pickings is done - this relies on the cron to do the clean up
@@ -1207,5 +1217,7 @@ class StockPickingBatch(models.Model):
                             # stock batch picking model will raise an error even if recordset is empty
                             other_picking.write({"batch_id": self.id})
             self._remove_unready_picks()
-            self._compute_state()
+            # NOTE: Added sudo() - Uses sudo() here as a user might not have the full access rights to stock.picking.batch
+            # but still needs more access rights for the flow
+            self.sudo()._compute_state()
         return True

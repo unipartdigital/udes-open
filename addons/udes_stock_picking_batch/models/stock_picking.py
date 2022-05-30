@@ -252,6 +252,8 @@ class StockPicking(models.Model):
             raise ValidationError(_("You (%s) already have a batch in progess") % user.name)
 
         if not self.batch_id:
-            batch = PickingBatch.create({"user_id": user.id, "u_ephemeral": True})
-            self.batch_id = batch.id
+            # NOTE: Added sudo() - Uses sudo() here as a user might not have the full access rights to stock.picking
+            # but still needs more access rights for the flow
+            batch = PickingBatch.sudo().create({"user_id": user.id, "u_ephemeral": True})
+            self.sudo().batch_id = batch.id
             batch.mark_as_todo()
