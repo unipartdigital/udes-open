@@ -9,6 +9,7 @@
     "version": "14.0.0.0.0",
     "depends": ["base", "web", "portal", "udes_common"],
     "data": [
+        "data/ir_module_category_data.xml",
         "data/res_groups.xml",
         "data/res_users.xml",
         "security/ir.model.access.csv",
