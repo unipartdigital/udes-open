@@ -855,7 +855,9 @@ class StockPicking(models.Model):
                 else:
                     requires_backorder = True
             if requires_backorder:
-                new_picking = self.backorder_move_lines(mls_to_keep=mls_to_keep)
+                # NOTE: Added sudo() - Uses sudo() here as a user might not have the full access rights to stock.picking
+                # but still needs more access rights for the flow
+                new_picking = self.sudo().backorder_move_lines(mls_to_keep=mls_to_keep)
 
             # NOTE: Added sudo() - Uses sudo() here as a user might not have the full access rights to stock.picking
             # but still needs more access rights for the flow
