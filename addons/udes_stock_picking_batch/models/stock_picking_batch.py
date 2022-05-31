@@ -754,7 +754,9 @@ class StockPickingBatch(models.Model):
                 # Check if the picking needs to be backordered based on all the move lines
                 # in the picking. If something is incomplete then they will be placed into
                 # a backorder.
-                backorder = pick.backorder_move_lines(mls_to_keep=rel_mls)
+                # NOTE: Added sudo() - Uses sudo() here as a user might not have the full access rights to stock.picking.batch
+                # but still needs more access rights for the flow
+                backorder = pick.sudo().backorder_move_lines(mls_to_keep=rel_mls)
                 # Add the picking to the batch if they are still continuing and it
                 # is available to be picked. Else kick it out for auto completion
                 # of batches.
@@ -773,7 +775,9 @@ class StockPickingBatch(models.Model):
 
             # Add any created backorders if needed
             if to_add:
-                to_add.write({"batch_id": self.id})
+                # NOTE: Added sudo() - Uses sudo() here as a user might not have the full access rights to stock.picking.batch
+                # but still needs more access rights for the flow
+                to_add.sudo().write({"batch_id": self.id})
 
             with self.statistics() as stats:
                 picks_todo.sudo().with_context(tracking_disable=True)._action_done()
@@ -782,7 +786,9 @@ class StockPickingBatch(models.Model):
                 "%s action_done in %.2fs, %d queries", picks_todo, stats.elapsed, stats.count
             )
         if not continue_batch:
-            self.close()
+            # NOTE: Added sudo() - Uses sudo() here as a user might not have the full access rights to stock.picking.batch
+            # but still needs more access rights for the flow
+            self.sudo().close()
 
         return self
 
@@ -1006,7 +1012,9 @@ class StockPickingBatch(models.Model):
                 mls_to_keep = mls & started_lines
                 # Create backorders for incomplete moves and ensure that backorder batch info is
                 # also cleared
-                pickings_to_remove |= picking.with_context(lock_batch_state=True)._backorder_move_lines(mls_to_keep=mls_to_keep)
+                # NOTE: Added sudo() - Uses sudo() here as a user might not have the full access rights to stock.picking.batch
+                # but still needs more access rights for the flow
+                pickings_to_remove |= picking.with_context(lock_batch_state=True).sudo()._backorder_move_lines(mls_to_keep=mls_to_keep)
             else:
                 pickings_to_remove |= picking
 
@@ -1160,8 +1168,10 @@ class StockPickingBatch(models.Model):
                 # Create a backorder for the affected move lines if there are other move
                 # lines not relevant to unpickable move lines. Also, set the backorder as
                 # the picking to investigate
+                # NOTE: Added sudo() - Uses sudo() here as a user might not have the full access rights to stock.picking.batch
+                # but still needs more access rights for the flow
                 original_id = picking_to_investigate.id
-                picking_to_investigate = picking_to_investigate._backorder_move_lines(mls_to_backorder)
+                picking_to_investigate = picking_to_investigate.sudo()._backorder_move_lines(mls_to_backorder)
             original_picking_ids[picking_to_investigate] = original_id
 
             if raise_stock_investigation:
