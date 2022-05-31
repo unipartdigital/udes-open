@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Prevent users that can manage user access rights from being able to create, edit or delete ACLs -->
+    <record id="base.access_ir_model_access_group_erp_manager" model="ir.model.access">
+        <field name="perm_write">0</field>
+        <field name="perm_create">0</field>
+        <field name="perm_unlink">0</field>
+    </record>
+
+</odoo>
