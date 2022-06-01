@@ -10,7 +10,10 @@ class ResUsers(models.Model):
         Note: Admin here means the admin user that Odoo creates by default,
               not just any user with permission to edit settings.
         """
-        if self.env.user._is_superuser():
+        if not self and self.env.su:
+            return True
+        
+        if self._is_superuser():
             return True
 
         try:
