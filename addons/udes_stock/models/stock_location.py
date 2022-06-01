@@ -1,5 +1,6 @@
 import os.path
-from odoo import fields, models
+from odoo import fields, models, api
+from .stock_picking_type import TARGET_STORAGE_FORMAT_OPTIONS
 
 
 class StockLocation(models.Model):
@@ -7,6 +8,38 @@ class StockLocation(models.Model):
     # Add messages and abstract model to locations
     _inherit = ["stock.location", "mail.thread", "mixin.stock.model"]
     MSM_STR_DOMAIN = ("name", "barcode")
+
+    @api.depends(
+        "u_location_storage_format",
+        "location_id",
+        "location_id.u_storage_format",
+        "location_id.u_location_storage_format"
+    )
+    def _compute_storage_format(self):
+        """Determine the storage format of the location.
+
+        If not set on self, get the format of the nearest ancestor that specifies a format.
+        """
+        Location = self.env["stock.location"]
+
+        for location in self:
+            storage_format = location.u_location_storage_format
+            if storage_format:
+                location.u_storage_format = storage_format
+                continue
+            # Check ancestors
+            parent_storage_format = False
+            parent = location.location_id
+            while not parent_storage_format and parent:
+                # No need to read all fields but only parent and storage_format fields
+                result = parent.read(fields=["location_id", "u_location_storage_format"])
+                if result[0].get("location_id"):
+                    parent_id = result[0].get("location_id")[0]
+                    parent = Location.browse(parent_id)
+                else:
+                    parent = False
+                parent_storage_format = result[0].get("u_location_storage_format", False)
+            location.u_storage_format = parent_storage_format
 
     def _domain_speed_category(self):
         """Domain for speed product category"""
@@ -52,6 +85,28 @@ class StockLocation(models.Model):
         index=True,
         string="Limit Orderpoints",
         help="If set, allow only one orderpoint on this location and its descendants.",
+    )
+    u_storage_format = fields.Selection(
+        TARGET_STORAGE_FORMAT_OPTIONS,
+        string="Storage Format",
+        compute="_compute_storage_format",
+        help="""
+                Computed storage format to use for the location.
+
+                The format set directly on the location will be used if applicable.
+                Otherwise the format of the nearest ancestor with a format specified will be used.
+                """,
+        store=True,
+    )
+    u_location_storage_format = fields.Selection(
+        TARGET_STORAGE_FORMAT_OPTIONS,
+        string="Location Storage Format",
+        help="""
+                Storage format specified directly for this location.
+
+                If not set then the location will use the format
+                of the nearest ancestor that has a format specified.
+                """
     )
 
     def get_common_ancestor(self):
