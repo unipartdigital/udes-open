@@ -98,6 +98,13 @@ class ResUser(models.Model):
         if not picking.u_date_started:
             picking.write({"u_date_started": now})
 
+    def unassign_user_on_logout(self):
+        """
+        When logging out, unassign the user, we need to do this as sudo as
+        it raises a permission error.
+        """
+        self.sudo().unassign_pickings_from_users()
+
     def unassign_pickings_from_users(self, new_picking=False):
         """Finding users that need to be unassigned"""
         users_to_unassign = self.filtered(
