@@ -229,14 +229,47 @@ class StockPicking(models.Model):
 
     @api.depends("move_lines", "move_lines.quantity_done", "move_lines.ordered_qty")
     @api.one
+    # def _compute_picking_quantities(self):
+    #     """ Compute the quantity done and to do of the picking from the moves"""
+    #     total_qty_done = 0.0
+    #     total_qty_todo = 0.0
+    #     has_discrepancies = False
+    #     s = time.time()
+    #     self.with_context(prefetch_fields=False).mapped("move_line_ids.state")
+    #     moves = self.move_lines.filtered(lambda ml: ml.state != "cancel")
+    #     moves.mapped("quantity_done")
+    #     moves.with_context(prefetch_fields=False).mapped("ordered_qty")
+    #     e = time.time()
+    #     print("$"*30)
+    #     print(f"Took {e-s} to filter moves")
+    #
+    #     for move in moves:
+    #         qty_done = move.quantity_done
+    #         qty_todo = move.ordered_qty
+    #         if qty_done != qty_todo:
+    #             has_discrepancies = True
+    #         total_qty_done += qty_done
+    #         total_qty_todo += qty_todo
+    #
+    #     e2 = time.time()
+    #     print(f"Took {e2-e} to compute stuff")
+    #     self.u_quantity_done = total_qty_done
+    #     self.u_total_quantity = total_qty_todo
+    #     self.u_has_discrepancies = has_discrepancies
     def _compute_picking_quantities(self):
         """ Compute the quantity done and to do of the picking from the moves"""
+        Move = self.env["stock.move"]
+
         total_qty_done = 0.0
         total_qty_todo = 0.0
         has_discrepancies = False
-        for move in self.move_lines.filtered(lambda ml: ml.state != "cancel"):
-            qty_done = move.quantity_done
-            qty_todo = move.ordered_qty
+        moves_info = Move.search_read([
+            ("picking_id", "=", self.id),
+            ("state", "!=", "cancel")
+        ], ["quantity_done", "ordered_qty"], order="id")
+        for move in moves_info:
+            qty_done = move["quantity_done"]
+            qty_todo = move["ordered_qty"]
             if qty_done != qty_todo:
                 has_discrepancies = True
             total_qty_done += qty_done
@@ -255,6 +288,9 @@ class StockPicking(models.Model):
         warehouse = User.get_user_warehouse()
         pallet_regex = warehouse.u_pallet_barcode_regex
         package_regex = warehouse.u_package_barcode_regex
+
+        self.with_context(prefetch_fields=False).mapped("move_line_ids.result_package_id.name")
+        self.with_context(prefetch_fields=False).mapped("move_line_ids.u_result_parent_package_id.name")
 
         all_packages = self.move_line_ids.mapped("result_package_id") | self.move_line_ids.mapped(
             "u_result_parent_package_id"
