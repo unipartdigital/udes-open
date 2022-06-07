@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Stock Moves Report -->
+    <record id="stock.stock_move_action" model="ir.actions.act_window">
+        <!-- Remove default filters to match UDES11 -->
+        <field name="context">{'search_default_done': 0, 'search_default_groupby_location_id': 0}</field>
+    </record>
+</odoo>
