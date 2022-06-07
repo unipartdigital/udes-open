@@ -15,6 +15,9 @@ TARGET_STORAGE_FORMAT_OPTIONS = [
 class StockPickingType(models.Model):
     _inherit = "stock.picking.type"
 
+    # Disable translation to avoid issues with renaming
+    name = fields.Char(translate=False)
+
     # Overwrite sequence_code as it is only needed for old Odoo prefixes.
     sequence_code = fields.Char(required=False)
 
