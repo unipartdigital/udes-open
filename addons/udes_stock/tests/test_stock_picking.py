@@ -63,7 +63,8 @@ class TestStockPickingCommon(common.BaseUDES):
                     )
                 else:
                     # Assert that the recordset only contains the expected picks
-                    expected_pick_names = self.get_picking_names(expected_picks)
+                    expected_pick_names = self.get_picking_names(
+                        expected_picks)
 
                     self.assertEqual(
                         returned_picks,
@@ -125,7 +126,8 @@ class TestStockPickingBackordering(TestStockPickingCommon):
             # NOTE: Get the next picking by picking type and state, doing it via u_created_back_orders
             # hits a cache error after 240.
             picking = Picking.search(
-                [("picking_type_id", "=", self.picking_type_pick.id), ("state", "=", "assigned")]
+                [("picking_type_id", "=", self.picking_type_pick.id),
+                 ("state", "=", "assigned")]
             )
             self.assertEqual(len(picking), 1)
             self.assertEqual(picking.backorder_id, prev_picking)
@@ -149,31 +151,33 @@ class TestStockPickingBackordering(TestStockPickingCommon):
             % (sequence, MAX_SEQUENCE),
         )
 
-    def test_the_crazy_picking_tree(self):
+    def test_backorders_are_named_in_order_of_creation(self):
         """
-        Test the crazy picking tree!
+        Test that even if a picking tree is created, that the backorders are named
+        accroding to the order they are created.
 
         Pick 001 - 6 moves (ignore the moves that is not the important bit!)
 
-        We want to show the crazy picking tree structure
+        We want to show the picking tree structure and the naming,
+        the Ref column refers to the order a picking is created in.
 
         Ref        | Name       | Orignal | Parent | 1st Gen Children |
-        Pick       | Pick001    | Pick001 |   -    | Pick1, Pick2     |
-        Pick1      | Pick001-01 | Pick001 | Pick   | Pick3            |
-        Pick2      | Pick001-01 | Pick001 | Pick   | Pick4, Pick5     |
-        Pick3      | Pick001-02 | Pick001 | Pick1  |        -         |
-        Pick4      | Pick001-02 | Pick001 | Pick2  |        -         |
-        Pick5      | Pick001-02 | Pick001 | Pick2  |        -         |
+        Pick       | Pick001    | Pick001 |   -    | Pick1, Pick3     |
+        Pick1      | Pick001-01 | Pick001 | Pick   | Pick2            |
+        Pick2      | Pick001-02 | Pick001 | Pick1  |        -         |
+        Pick3      | Pick001-03 | Pick001 | Pick   | Pick4, Pick5     |
+        Pick4      | Pick001-04 | Pick001 | Pick3  |        -         |
+        Pick5      | Pick001-05 | Pick001 | Pick3  |        -         |
 
                         Original Picking (Pick001)
                                 |
             ----------------------------------------
             |                                       |
-        pick1  (Pick001-001)                      pick 2  (Pick001-001)
+        pick1  (Pick001-001)                      pick 3  (Pick001-003)
             |                                       |
             |                           -------------------------
             |                           |                       |
-        pick3  (Pick001-002)        pick4  (Pick001-002)        pick5  (Pick001-002)
+        pick2  (Pick001-002)        pick4  (Pick001-004)        pick5  (Pick001-005)
         """
         pick = self.create_picking(
             picking_type=self.picking_type_goods_in,
@@ -192,24 +196,23 @@ class TestStockPickingBackordering(TestStockPickingCommon):
 
         abcd_products = self.apple | self.banana | self.cherry | self.damson
 
-        # Create two backorders from the original
+        # Create a backorder from the original, then a backorder from that
         pick1 = pick.backorder_move_lines(
             mls_to_keep=mls.filtered(lambda mv: mv.product_id in abcd_products)
         )
-        pick2 = pick.backorder_move_lines(
-            mls_to_keep=mls.filtered(lambda mv: mv.product_id == self.apple)
-        )
-
-        # Now create a backorder from pick1
-        pick3 = pick1.backorder_move_lines(
+        pick2 = pick1.backorder_move_lines(
             mls_to_keep=mls.filtered(lambda mv: mv.product_id == self.grape)
         )
 
-        # Create two backorders of pick 2
-        pick4 = pick2.backorder_move_lines(
-            mls_to_keep=mls.filtered(lambda mv: mv.product_id in (self.cherry | self.banana))
+        # Now create a backorder from the original, then two backorders from that
+        pick3 = pick.backorder_move_lines(
+            mls_to_keep=mls.filtered(lambda mv: mv.product_id == self.apple)
         )
-        pick5 = pick2.backorder_move_lines(
+        pick4 = pick3.backorder_move_lines(
+            mls_to_keep=mls.filtered(
+                lambda mv: mv.product_id in (self.cherry | self.banana))
+        )
+        pick5 = pick3.backorder_move_lines(
             mls_to_keep=mls.filtered(lambda mv: mv.product_id == self.banana)
         )
 
@@ -223,10 +226,10 @@ class TestStockPickingBackordering(TestStockPickingCommon):
         # Check naming convention
         self.assertNotRegex("-", pick.name)
         self.assertEqual(pick1.name, pick.name + "-001")
-        self.assertEqual(pick2.name, pick.name + "-001")
-        self.assertEqual(pick3.name, pick.name + "-002")
-        self.assertEqual(pick4.name, pick.name + "-002")
-        self.assertEqual(pick5.name, pick.name + "-002")
+        self.assertEqual(pick2.name, pick.name + "-002")
+        self.assertEqual(pick3.name, pick.name + "-003")
+        self.assertEqual(pick4.name, pick.name + "-004")
+        self.assertEqual(pick5.name, pick.name + "-005")
 
     def test_action_done_deletes_and_recreates_move_lines(self):
         """
@@ -246,7 +249,8 @@ class TestStockPickingBackordering(TestStockPickingCommon):
                 {"product": self.fig, "uom_qty": 10},
             ],
         )
-        banana_ml = pick.move_lines.filtered(lambda ml: ml.product_id == self.banana)
+        banana_ml = pick.move_lines.filtered(
+            lambda ml: ml.product_id == self.banana)
         fig_ml = pick.move_lines.filtered(lambda ml: ml.product_id == self.fig)
         banana_ml.quantity_done = 10
         fig_ml.quantity_done = 10
@@ -404,7 +408,8 @@ class TestStockPickingBackordering(TestStockPickingCommon):
 
         # Get information to check later
         mls = pick.move_line_ids
-        apple_ml = pick.move_line_ids.filtered(lambda ml: ml.product_id == self.apple)
+        apple_ml = pick.move_line_ids.filtered(
+            lambda ml: ml.product_id == self.apple)
         apple_mv = apple_ml.move_id
         banana_ml = mls - apple_ml
         banana_mv = banana_ml.move_id
@@ -864,10 +869,12 @@ class TestStockPickingBackordering(TestStockPickingCommon):
         self.assertEqual(apple_mv.state, "assigned")
         self.assertEqual(damson_mv.state, "assigned")
         self.assertEqual(
-            bk_moves.filtered(lambda mv: mv.product_id == self.banana).state, "partially_available"
+            bk_moves.filtered(lambda mv: mv.product_id ==
+                              self.banana).state, "partially_available"
         )
         self.assertEqual(
-            bk_moves.filtered(lambda mv: mv.product_id == self.cherry).state, "confirmed"
+            bk_moves.filtered(lambda mv: mv.product_id ==
+                              self.cherry).state, "confirmed"
         )
 
         # The move lines should have been preserved
@@ -882,7 +889,8 @@ class TestStockPickingBackordering(TestStockPickingCommon):
 class TestStockPicking(TestStockPickingCommon):
     def test_get_empty_locations(self):
         """Get empty locations - for goods in"""
-        self.assertEqual(self.test_picking_in.get_empty_locations(), self.test_received_location_01)
+        self.assertEqual(self.test_picking_in.get_empty_locations(),
+                         self.test_received_location_01)
         # Add stock to a location - to check empty locations obtained
         self.create_quant(self.apple.id, self.test_received_location_01.id, 5)
         self.assertFalse(self.test_picking_in.get_empty_locations())
@@ -892,17 +900,21 @@ class TestStockPicking(TestStockPickingCommon):
         # Create location 'A' in zone 'Z'
         # When sorted by location name directly 'A' will appear first,
         # but in default location ordering it will be last
-        zone_z = self.Location.create({"name": "Zone Z", "location_id": self.received_location.id})
-        loc_a = self.Location.create({"name": "A", "barcode": "LRTESTA", "location_id": zone_z.id})
+        zone_z = self.Location.create(
+            {"name": "Zone Z", "location_id": self.received_location.id})
+        loc_a = self.Location.create(
+            {"name": "A", "barcode": "LRTESTA", "location_id": zone_z.id})
 
         # Set destination location of the test Goods In picking to the received zone
         self.test_picking_in.location_dest_id = self.received_location
 
         # Empty locations sorted by name, 'A' appears first
-        self.assertEqual(self.test_picking_in.get_empty_locations(sort=True)[0], loc_a)
+        self.assertEqual(
+            self.test_picking_in.get_empty_locations(sort=True)[0], loc_a)
 
         # Empty locations not sorted, 'A' appears last
-        self.assertEqual(self.test_picking_in.get_empty_locations(sort=False)[-1], loc_a)
+        self.assertEqual(
+            self.test_picking_in.get_empty_locations(sort=False)[-1], loc_a)
 
     def test_get_empty_locations_limited(self):
         """Empty locations are limited when `limit` is set, otherwise not"""
@@ -910,28 +922,33 @@ class TestStockPicking(TestStockPickingCommon):
         self.test_picking_in.location_dest_id = self.received_location
 
         # Empty locations not limited by default
-        self.assertGreater(len(self.test_picking_in.get_empty_locations(limit=None)), 1)
+        self.assertGreater(
+            len(self.test_picking_in.get_empty_locations(limit=None)), 1)
 
         # Only one empty location is returned
-        self.assertEqual(len(self.test_picking_in.get_empty_locations(limit=1)), 1)
+        self.assertEqual(
+            len(self.test_picking_in.get_empty_locations(limit=1)), 1)
 
     def test_get_child_locations_simple_success(self):
         """Get child locations"""
         locations = self.test_goodsout_locations | self.out_location
-        self.assertEqual(self.test_picking_pick._get_child_dest_locations(), locations)
+        self.assertEqual(
+            self.test_picking_pick._get_child_dest_locations(), locations)
 
     def test_get_child_locations_simple_success_with_extra_domain(self):
         """Get child locations - with extra domain"""
         aux_domain = [("name", "=", self.test_goodsout_location_01.name)]
         self.assertEqual(
-            self.test_picking_pick._get_child_dest_locations(aux_domain=aux_domain),
+            self.test_picking_pick._get_child_dest_locations(
+                aux_domain=aux_domain),
             self.test_goodsout_location_01,
         )
 
     def test_get_child_locations_with_incorrrect_extra_domain(self):
         """Return no child locations when an incorrect extra domain is given, no error is thrown"""
         aux_domain = [("name", "=", "Not a location")]
-        self.assertFalse(self.test_picking_pick._get_child_dest_locations(aux_domain=aux_domain))
+        self.assertFalse(
+            self.test_picking_pick._get_child_dest_locations(aux_domain=aux_domain))
 
     def test_create_picking_no_moves(self):
         """Create a picking from picking type but has no moves created as no products_info given"""
@@ -1001,8 +1018,10 @@ class TestStockPicking(TestStockPickingCommon):
         picks = self.Picking.create_picking(
             picking_type=self.picking_type_pick,
             products_info=[
-                [{"product": self.apple, "uom_qty": 2}, {"product": self.banana, "uom_qty": 4}],
-                [{"product": self.apple, "uom_qty": 1}, {"product": self.banana, "uom_qty": 1}],
+                [{"product": self.apple, "uom_qty": 2}, {
+                    "product": self.banana, "uom_qty": 4}],
+                [{"product": self.apple, "uom_qty": 1}, {
+                    "product": self.banana, "uom_qty": 1}],
             ],
             location_id=self.test_stock_location_01.id,
             location_dest_id=self.test_goodsout_location_01.id,
@@ -1014,7 +1033,8 @@ class TestStockPicking(TestStockPickingCommon):
         self.assertEqual(len(picks), 2)
         # Check default locations for picks
         self.assertEqual(picks.location_id, self.test_stock_location_01)
-        self.assertEqual(picks.location_dest_id, self.test_goodsout_location_01)
+        self.assertEqual(picks.location_dest_id,
+                         self.test_goodsout_location_01)
         # Check products
         self.assertEqual(picks.move_lines.product_id, products)
         # Check state
@@ -1032,7 +1052,8 @@ class TestStockPicking(TestStockPickingCommon):
         )
         # Check the prepared move_values are correct
         self.assertEqual(len(move_values), 1)
-        self.assertEqual(move_values[0], self._get_expected_move_values(pick, self.elderberry, 10))
+        self.assertEqual(move_values[0], self._get_expected_move_values(
+            pick, self.elderberry, 10))
         # Check create move
         new_move = self.Picking._create_move(move_values)
         self.assertEqual(len(new_move), 1)
@@ -1068,14 +1089,16 @@ class TestStockPicking(TestStockPickingCommon):
         self.assertEqual(move_lines, self.test_picking_in.move_line_ids)
         moves = self.test_picking_in.move_lines
         # Check the state of the move lines, qty, qty_done
-        self.assertEqual(self.test_picking_in.get_move_lines(done=False), move_lines)
+        self.assertEqual(self.test_picking_in.get_move_lines(
+            done=False), move_lines)
         self.assertFalse(self.test_picking_in.get_move_lines(done=True))
         self.assertEqual(move_lines.qty_done, 0)
         self.assertEqual(move_lines.product_qty, 10)
         # Update the associated move, and complete pick
         self.update_move(moves, 10)
         # Check the get move lines function works for done lines
-        self.assertEqual(self.test_picking_in.get_move_lines(done=True), move_lines)
+        self.assertEqual(
+            self.test_picking_in.get_move_lines(done=True), move_lines)
         self.assertFalse(self.test_picking_in.get_move_lines(done=False))
         self.assertEqual(move_lines.qty_done, 10)
 
@@ -1282,7 +1305,8 @@ class TestStockPicking(TestStockPickingCommon):
     def test_assert_created_backorders_computed_correctly(self):
         """Assert that Created Backorders field is computed correctly"""
         apple_qty = 1
-        self.create_quant(self.apple.id, self.test_stock_location_01.id, apple_qty)
+        self.create_quant(
+            self.apple.id, self.test_stock_location_01.id, apple_qty)
 
         # Create picking with demand for more apple's than are in stock
         pick = self.create_picking(
@@ -1300,7 +1324,8 @@ class TestStockPicking(TestStockPickingCommon):
         pick._action_done()
 
         # Assert that a backorder was generated
-        expected_backorder = self.Picking.search([("backorder_id", "=", pick.id)], limit=1)
+        expected_backorder = self.Picking.search(
+            [("backorder_id", "=", pick.id)], limit=1)
         self.assertEqual(
             len(expected_backorder),
             1,
@@ -1403,13 +1428,15 @@ class TestDifferentUoMinPickings(TestStockPickingCommon):
         all with unitary UoM.
         """
         pick = self.create_picking(self.picking_type_goods_in)
-        move_values = self.Picking._prepare_move(pick, [self._create_product_infos()])
+        move_values = self.Picking._prepare_move(
+            pick, [self._create_product_infos()])
         # Check the prepared move_values are correct
         self.assertEqual(len(move_values), 2)
         for product in self.products:
             with self.subTest(product=product.name):
                 self.assertEqual(
-                    [mv for mv in move_values if mv.get("product_id") == product.id][0],
+                    [mv for mv in move_values if mv.get(
+                        "product_id") == product.id][0],
                     self._get_expected_move_values(pick, product, 6),
                 )
 
@@ -1446,8 +1473,10 @@ class TestDifferentUoMinPickings(TestStockPickingCommon):
         for product in self.products:
             with self.subTest(product=product.name):
                 self.assertEqual(
-                    [mv for mv in move_values if mv.get("product_id") == product.id][0],
-                    self._get_expected_move_values(pick, product, 6, uom_id=self.half_dozen.id),
+                    [mv for mv in move_values if mv.get(
+                        "product_id") == product.id][0],
+                    self._get_expected_move_values(
+                        pick, product, 6, uom_id=self.half_dozen.id),
                 )
 
         # Check created move is as expected
@@ -1516,7 +1545,8 @@ class TestDifferentUoMinPickings(TestStockPickingCommon):
         self.assertNotEqual(self.uom_dozen, self.banana.uom_id)
         pick = self.Picking.create_picking(
             picking_type=self.picking_type_pick,
-            products_info=self._create_product_infos(uom_id=self.half_dozen.id),
+            products_info=self._create_product_infos(
+                uom_id=self.half_dozen.id),
             assign=True,
         )
 
@@ -1578,7 +1608,8 @@ class TestStockPickingUnlinkingEmpties(common.BaseUDES):
     def test_raises_exception_on_unlink_non_empty_pickings(self):
         """Non-empty pickings in a recordset are not unlinked."""
         pick = self.create_picking(
-            self.picking_type_pick, products_info=[{"product": self.apple, "uom_qty": 1}]
+            self.picking_type_pick, products_info=[
+                {"product": self.apple, "uom_qty": 1}]
         )
         pick.u_is_empty = True
 
@@ -1627,7 +1658,8 @@ class TestBatchUserName(common.BaseUDES):
             picking_type=cls.picking_type_pick, products_info=cls._pick_info, confirm=True
         )
 
-        cls.stock_manager = cls.create_user(name="Stock Manager", login="Stock Manager Dude")
+        cls.stock_manager = cls.create_user(
+            name="Stock Manager", login="Stock Manager Dude")
 
     def test_correct_batch_user_on_picking_tree_view(self):
         self.picking.write({"batch_id": self.batch.id})

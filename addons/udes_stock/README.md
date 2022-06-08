@@ -279,26 +279,26 @@ Model used to register users that can access the system in the way has been defi
 
 ### Picking Naming Convention
 
-If a backorder gets created from a picking, then it will either have `-001` appended if the prefix does not exist, else it will cause it to increment by one. How sequencing works is that the suffixed sequences refer to the level in the picking tree, not the nth backorder.
+If a backorder gets created from a picking, then it will either have `-001` appended if the prefix does not exist, else it will cause it to increment it by one. Sequencing works as if the tree is actually a chain, the suffix refers to the point of its creation, not the position in the tree.
 
-Example:
+Example (The Ref coulmn refers to the order of creation):
 
 Ref        | Name       | Orignal | Parent | 1st Gen Children |
 -|-|-|-|-|
-Pick       | Pick001    | Pick001 |   -    | Pick1, Pick2     |
-Pick1      | Pick001-01 | Pick001 | Pick   | Pick3            |
-Pick2      | Pick001-01 | Pick001 | Pick   | Pick4, Pick5     |
-Pick3      | Pick001-02 | Pick001 | Pick1  |        -         |
-Pick4      | Pick001-02 | Pick001 | Pick2  |        -         |
-Pick5      | Pick001-02 | Pick001 | Pick2  |        -         |
+Pick       | Pick001    | Pick001 |   -    | Pick1, Pick3     |
+Pick1      | Pick001-01 | Pick001 | Pick   | Pick2            |
+Pick2      | Pick001-02 | Pick001 | Pick1  |        -         |
+Pick3      | Pick001-03 | Pick001 | Pick   | Pick4, Pick5     |
+Pick4      | Pick001-04 | Pick001 | Pick3  |        -         |
+Pick5      | Pick001-05 | Pick001 | Pick3  |        -         |
 
 ```mermaid
 graph TD;
     A["Original Picking (Pick001)"] --> B["pick1 (Pick001-001)"];
-    A --> C["pick 2  (Pick001-001)"];
-    B --> D["pick3  (Pick001-002)"];
-    C --> E["pick4  (Pick001-002)"];
-    C --> F["pick5  (Pick001-002)"];
+    A --> C["pick3  (Pick001-003)"];
+    B --> D["pick2  (Pick001-002)"];
+    C --> E["pick4  (Pick001-004)"];
+    C --> F["pick5  (Pick001-005)"];
 ```
 
 ## Future work:
