@@ -64,7 +64,8 @@ class StockWarehouse(models.Model):
         # get picking types of the warehouse
         picking_types = PickingType.search([("warehouse_id", "=", self.id)])
         if not picking_types:
-            raise ValidationError(_("Cannot find picking types for warehouse %s.") % self.name)
+            raise ValidationError(
+                _("Cannot find picking types for warehouse %s.") % self.name)
 
         return picking_types
 
@@ -74,10 +75,11 @@ class StockWarehouse(models.Model):
         will not be created with the old Odoo prefix (The sequences should not be created at all). When the warehouse name is updated the
         sequences for the picking types will not be updated with the old Odoo prefix.
         """
+        vals = {'company_id': self.company_id.id, }
         return {
-            "in_type_id": {},
-            "out_type_id": {},
-            "pack_type_id": {},
-            "pick_type_id": {},
-            "int_type_id": {},
+            "in_type_id": vals,
+            "out_type_id": vals,
+            "pack_type_id": vals,
+            "pick_type_id": vals,
+            "int_type_id": vals,
         }
