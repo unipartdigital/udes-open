@@ -281,7 +281,7 @@ Model used to register users that can access the system in the way has been defi
 
 If a backorder gets created from a picking, then it will either have `-001` appended if the prefix does not exist, else it will cause it to increment it by one. Sequencing works as if the tree is actually a chain, the suffix refers to the point of its creation, not the position in the tree.
 
-Example (The Ref coulmn refers to the order of creation):
+Example (The Ref column refers to the order of creation):
 
 Ref        | Name       | Orignal | Parent | 1st Gen Children |
 -|-|-|-|-|
