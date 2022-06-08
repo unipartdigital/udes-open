@@ -13,7 +13,7 @@ class UnconfiguredBaseUDES(common.SavepointCase):
         super(UnconfiguredBaseUDES, cls).setUpClass()
 
         # Products
-        ## Untracked
+        # Untracked
         cls.apple = cls.create_product("Apple")
         cls.banana = cls.create_product("Banana")
         cls.cherry = cls.create_product("Cherry")
@@ -22,7 +22,7 @@ class UnconfiguredBaseUDES(common.SavepointCase):
         cls.fig = cls.create_product("Fig")
         cls.grape = cls.create_product("Grape")
 
-        ## Serial/Lot tracking
+        # Serial/Lot tracking
         cls.strawberry = cls.create_product("Strawberry", tracking="serial")
         cls.tangerine = cls.create_product("Tangerine", tracking="lot")
 
@@ -80,7 +80,8 @@ class UnconfiguredBaseUDES(common.SavepointCase):
     def create_quant(cls, product_id, location_id, qty, lot_name=None, **kwargs):
         """Create and return a quant of a product at location"""
         Quant = cls.env["stock.quant"]
-        vals = {"product_id": product_id, "location_id": location_id, "quantity": qty}
+        vals = {"product_id": product_id,
+                "location_id": location_id, "quantity": qty}
         if lot_name:
             lot = cls.create_lot(product_id, lot_name)
             vals["lot_id"] = lot.id
@@ -268,7 +269,8 @@ class UnconfiguredBaseUDES(common.SavepointCase):
             }
         )
 
-        cls.create_simple_inbound_route(cls.picking_type_goods_in, cls.picking_type_putaway)
+        cls.create_simple_inbound_route(
+            cls.picking_type_goods_in, cls.picking_type_putaway)
         cls.create_simple_outbound_route(
             cls.picking_type_pick, cls.picking_type_goods_out, cls.picking_type_trailer_dispatch
         )
@@ -292,7 +294,8 @@ class UnconfiguredBaseUDES(common.SavepointCase):
         sequence_putaway = Sequence.create(
             {"name": "TestPutaway", "prefix": "TESTPUT", "padding": 5}
         )
-        picking_type_internal.write({"sequence_id": sequence_putaway.id, "sequence": 13})
+        picking_type_internal.write(
+            {"sequence_id": sequence_putaway.id, "sequence": 13})
 
         location_path_vals = {
             "name": "TestPutaway",
@@ -324,7 +327,8 @@ class UnconfiguredBaseUDES(common.SavepointCase):
         cls.route_out = Route.create(route_vals)
 
         # Goods out
-        sequence_vals = {"name": "TestGoodsOut", "prefix": "TESTGOODSOUT", "padding": 5}
+        sequence_vals = {"name": "TestGoodsOut",
+                         "prefix": "TESTGOODSOUT", "padding": 5}
         sequence_goodsout = Sequence.create(sequence_vals)
 
         out_vals = {"sequence_id": sequence_goodsout.id, "sequence": 13}
@@ -446,10 +450,9 @@ class UnconfiguredBaseUDES(common.SavepointCase):
         move_lines = Move._create_move_line(move_line_values)
         return move_lines
 
-    @classmethod
-    def create_company(cls, name, **kwargs):
+    def create_company(self, name, **kwargs):
         """Create and return a company"""
-        Company = cls.env["res.company"]
+        Company = self.env["res.company"]
         vals = {"name": name}
         vals.update(kwargs)
         return Company.create(vals)
