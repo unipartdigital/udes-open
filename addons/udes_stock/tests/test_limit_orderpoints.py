@@ -39,9 +39,9 @@ class LimitOrderpointsTestCase(common.BaseUDES):
             self.create_orderpoint(self.banana, self.op_test_output_location_01, 5, 10)
         ex = cm.exception
         self.assertEqual(
-            "An order point for location {} already exists on "
-            "{}.".format(self.op_test_output_location_01.name, self.apple.name),
-            ex.name,
+            f"An order point for location {self.op_test_output_location_01.name} "
+            f"already exists on {self.apple.name}",
+            ex.args[0],
         )
 
     def test02_cannot_add_orderpoint_if_limit_on_parent(self):
@@ -53,9 +53,9 @@ class LimitOrderpointsTestCase(common.BaseUDES):
             self.create_orderpoint(self.banana, self.op_test_output_location_01, 5, 10)
         ex = cm.exception
         self.assertEqual(
-            "An order point for location {} already exists on "
-            "{}.".format(self.op_test_output_location_01.name, self.apple.name),
-            ex.name,
+            f"An order point for location {self.op_test_output_location_01.name} "
+            f"already exists on {self.apple.name}",
+            ex.args[0],
         )
 
     def test03_cannot_add_orderpoint_if_limit_on_grandparent(self):
@@ -67,7 +67,7 @@ class LimitOrderpointsTestCase(common.BaseUDES):
             self.create_orderpoint(self.banana, self.op_test_output_location_01, 5, 10)
         ex = cm.exception
         self.assertEqual(
-            "An order point for location {} already exists on "
-            "{}.".format(self.op_test_output_location_01.name, self.apple.name),
-            ex.name,
+            f"An order point for location {self.op_test_output_location_01.name} "
+            f"already exists on {self.apple.name}",
+            ex.args[0],
         )
