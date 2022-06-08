@@ -149,31 +149,33 @@ class TestStockPickingBackordering(TestStockPickingCommon):
             % (sequence, MAX_SEQUENCE),
         )
 
-    def test_the_crazy_picking_tree(self):
+    def test_backorders_are_named_in_order_of_creation(self):
         """
-        Test the crazy picking tree!
+        Test that even if a picking tree is created, that the backorders are named
+        accroding to the order they are created.
 
         Pick 001 - 6 moves (ignore the moves that is not the important bit!)
 
-        We want to show the crazy picking tree structure
+        We want to show the picking tree structure and the naming,
+        the Ref column refers to the order a picking is created in.
 
         Ref        | Name       | Orignal | Parent | 1st Gen Children |
-        Pick       | Pick001    | Pick001 |   -    | Pick1, Pick2     |
-        Pick1      | Pick001-01 | Pick001 | Pick   | Pick3            |
-        Pick2      | Pick001-01 | Pick001 | Pick   | Pick4, Pick5     |
-        Pick3      | Pick001-02 | Pick001 | Pick1  |        -         |
-        Pick4      | Pick001-02 | Pick001 | Pick2  |        -         |
-        Pick5      | Pick001-02 | Pick001 | Pick2  |        -         |
+        Pick       | Pick001    | Pick001 |   -    | Pick1, Pick3     |
+        Pick1      | Pick001-01 | Pick001 | Pick   | Pick2            |
+        Pick2      | Pick001-02 | Pick001 | Pick1  |        -         |
+        Pick3      | Pick001-03 | Pick001 | Pick   | Pick4, Pick5     |
+        Pick4      | Pick001-04 | Pick001 | Pick3  |        -         |
+        Pick5      | Pick001-05 | Pick001 | Pick3  |        -         |
 
                         Original Picking (Pick001)
                                 |
             ----------------------------------------
             |                                       |
-        pick1  (Pick001-001)                      pick 2  (Pick001-001)
+        pick1  (Pick001-001)                      pick 3  (Pick001-003)
             |                                       |
             |                           -------------------------
             |                           |                       |
-        pick3  (Pick001-002)        pick4  (Pick001-002)        pick5  (Pick001-002)
+        pick2  (Pick001-002)        pick4  (Pick001-004)        pick5  (Pick001-005)
         """
         pick = self.create_picking(
             picking_type=self.picking_type_goods_in,
@@ -192,24 +194,22 @@ class TestStockPickingBackordering(TestStockPickingCommon):
 
         abcd_products = self.apple | self.banana | self.cherry | self.damson
 
-        # Create two backorders from the original
+        # Create a backorder from the original, then a backorder from that
         pick1 = pick.backorder_move_lines(
             mls_to_keep=mls.filtered(lambda mv: mv.product_id in abcd_products)
         )
-        pick2 = pick.backorder_move_lines(
-            mls_to_keep=mls.filtered(lambda mv: mv.product_id == self.apple)
-        )
-
-        # Now create a backorder from pick1
-        pick3 = pick1.backorder_move_lines(
+        pick2 = pick1.backorder_move_lines(
             mls_to_keep=mls.filtered(lambda mv: mv.product_id == self.grape)
         )
 
-        # Create two backorders of pick 2
-        pick4 = pick2.backorder_move_lines(
+        # Now create a backorder from the original, then two backorders from that
+        pick3 = pick.backorder_move_lines(
+            mls_to_keep=mls.filtered(lambda mv: mv.product_id == self.apple)
+        )
+        pick4 = pick3.backorder_move_lines(
             mls_to_keep=mls.filtered(lambda mv: mv.product_id in (self.cherry | self.banana))
         )
-        pick5 = pick2.backorder_move_lines(
+        pick5 = pick3.backorder_move_lines(
             mls_to_keep=mls.filtered(lambda mv: mv.product_id == self.banana)
         )
 
@@ -223,10 +223,10 @@ class TestStockPickingBackordering(TestStockPickingCommon):
         # Check naming convention
         self.assertNotRegex("-", pick.name)
         self.assertEqual(pick1.name, pick.name + "-001")
-        self.assertEqual(pick2.name, pick.name + "-001")
-        self.assertEqual(pick3.name, pick.name + "-002")
-        self.assertEqual(pick4.name, pick.name + "-002")
-        self.assertEqual(pick5.name, pick.name + "-002")
+        self.assertEqual(pick2.name, pick.name + "-002")
+        self.assertEqual(pick3.name, pick.name + "-003")
+        self.assertEqual(pick4.name, pick.name + "-004")
+        self.assertEqual(pick5.name, pick.name + "-005")
 
     def test_action_done_deletes_and_recreates_move_lines(self):
         """

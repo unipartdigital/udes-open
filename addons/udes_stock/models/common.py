@@ -43,6 +43,16 @@ def get_next_name(obj, code, sequence=None):
     else:
         ir_sequence = sequence
 
+        # In the case when we want to sequence an object within a model,
+        # for example a picking, we search for the last record that has
+        # a similar name. We cannot rely on the sequence, as the obj may exist
+        # in a tree and may be closer to the source node. For example in pickings,
+        # we may be creating the 10th backorder from PICK0002, sequencing would give
+        # PICK0002-0001, we want PICK0002-0010.
+        ObjModel = obj
+        base_name = obj.name.split("-")[0]
+        obj = ObjModel.search([("name", "=ilike", base_name + "%")], limit=1, order="id Desc")
+
     # Determine the amount of padding from the maximum sequence value
     # Note: This assumes a sensible MAX_SEQUENCE value, i.e integer.
     padding = len(str(MAX_SEQUENCE))
