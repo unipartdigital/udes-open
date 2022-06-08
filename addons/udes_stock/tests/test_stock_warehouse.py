@@ -9,7 +9,7 @@ class TestStockWarehouseModel(BaseUDES):
         super(TestStockWarehouseModel, cls).setUpClass()
         cls.Warehouse = cls.env["stock.warehouse"]
 
-    def create_company_2(self):
+    def create_company_2(self, name):
         Company = self.env["res.company"]
         return Company.create({"name": name})
 
