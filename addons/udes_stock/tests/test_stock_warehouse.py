@@ -9,6 +9,10 @@ class TestStockWarehouseModel(BaseUDES):
         super(TestStockWarehouseModel, cls).setUpClass()
         cls.Warehouse = cls.env["stock.warehouse"]
 
+    def create_company_2(self):
+        Company = self.env["res.company"]
+        return Company.create({"name": name})
+
     def test_can_find_expected_picking_type(self):
         """Test checks if the test picking types are present"""
         test_picking_types = self.warehouse.get_picking_types().filtered(
@@ -24,8 +28,9 @@ class TestStockWarehouseModel(BaseUDES):
     def test_get_default_picking_types_new_warehouse(self):
         """Create a new warehouse and look at the default picking types"""
         # Create a new company creates a new warehouse
-        test_company = self.create_company("test_company")
-        new_warehouse = self.Warehouse.search([("company_id", "=", test_company.id)])
+        test_company = self.create_company_2("test_company")
+        new_warehouse = self.Warehouse.search(
+            [("company_id", "=", test_company.id)])
         test_picking_types = new_warehouse.get_picking_types()
         self.assertEqual(len(test_picking_types), 3)
 
