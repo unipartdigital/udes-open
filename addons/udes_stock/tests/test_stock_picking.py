@@ -293,7 +293,7 @@ class TestStockPickingBackordering(TestStockPickingCommon):
         )
 
     def test_check_backorder_allowed_raises_error_when_moving_done_work_and_leaving_incomplete_work(
-        self
+        self,
     ):
         """Test that an eror is raised when scanned moves are moved into a new backorder,
         and the current picking has incomplete work.
@@ -323,7 +323,9 @@ class TestStockPickingBackordering(TestStockPickingCommon):
             "You cannot create a backorder for done move lines whilst retaining incomplete ones",
         )
 
-    def test_backorder_move_lines_raises_exception_when_qty_done_in_ml_partially_complete(self,):
+    def test_backorder_move_lines_raises_exception_when_qty_done_in_ml_partially_complete(
+        self,
+    ):
         """
         When trying to create a backorder with a move line of qty_done < product_uom_qty an
         error is raised.
@@ -351,7 +353,7 @@ class TestStockPickingBackordering(TestStockPickingCommon):
                 )
 
     def test_backorder_move_lines_returns_empty_record_when_mls_cover_moves_and_everything_done(
-        self
+        self,
     ):
         """
         Test when we try to backorder all the mls, with qty_done that covers the move, an
@@ -466,7 +468,8 @@ class TestStockPickingBackordering(TestStockPickingCommon):
         # Check backorder pick
         self.assertEqual(pick, bk_picking.backorder_id)
         self.assertEqual(bk_picking.state, "confirmed")
-        self.assertFalse(bk_picking.move_line_ids)  # No Move lines as nothing available yet
+        # No Move lines as nothing available yet
+        self.assertFalse(bk_picking.move_line_ids)
         bk_move = bk_picking.move_lines
         self.assertEqual(bk_move.state, "confirmed")
         self.assertEqual(bk_move.quantity_done, 0)
@@ -1670,7 +1673,7 @@ class TestStockPickingValidatePicking(common.BaseUDES):
         )
 
     def move_line_done(self, move_line, quantity, user=False):
-        """ Update quantity done of a move line, if user is provided update the context"""
+        """Update quantity done of a move line, if user is provided update the context"""
         if user:
             # Temporary change the user of the object
             original_user = self.env.user
@@ -1683,8 +1686,7 @@ class TestStockPickingValidatePicking(common.BaseUDES):
         return new_ml
 
     def test_assert_valid_state(self):
-        """ Validating a picking in state done raises an error.
-        """
+        """Validating a picking in state done raises an error."""
         pick = self.picking
         pick.state = "done"
         with self.assertRaises(ValidationError) as e:
@@ -1693,7 +1695,7 @@ class TestStockPickingValidatePicking(common.BaseUDES):
         self.assertEqual(e.exception.args[0], msg)
 
     def test_force_validate(self):
-        """ Force validating a picking will mark as done all its move lines and then
+        """Force validating a picking will mark as done all its move lines and then
         validate the picking.
         """
         pick = self.picking
@@ -1706,7 +1708,7 @@ class TestStockPickingValidatePicking(common.BaseUDES):
         self.assertEqual(pick.state, "done")
 
     def test_create_backorder(self):
-        """ Validating a picking with a move partially done raise validation error unless
+        """Validating a picking with a move partially done raise validation error unless
         create_backorer=True is provided.
         """
         pick = self.picking
@@ -1716,8 +1718,10 @@ class TestStockPickingValidatePicking(common.BaseUDES):
         # Validate without parameter raises error
         with self.assertRaises(ValidationError) as e:
             backorder = pick.validate_picking()
-        msg = f"Cannot validate {pick.log_name()} because there are move lines todo and " \
-              f"backorder not allowed"
+        msg = (
+            f"Cannot validate {pick.log_name()} because there are move lines todo and "
+            f"backorder not allowed"
+        )
         self.assertEqual(e.exception.args[0], msg)
         # Validate with parameter works fine
         backorder = pick.validate_picking(create_backorder=True)
@@ -1729,7 +1733,7 @@ class TestStockPickingValidatePicking(common.BaseUDES):
         self.assertEqual(pick.state, "done")
 
     def test_multi_users_enabled(self):
-        """ Validating a picking with multi users enabled will create a backorder for all the lines
+        """Validating a picking with multi users enabled will create a backorder for all the lines
         not done or done by other users
         """
         other_user = self.create_user(name="Other user", login="Other Dude")
