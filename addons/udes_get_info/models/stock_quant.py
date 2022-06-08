@@ -18,6 +18,7 @@ class StockQuant(models.Model):
         "location_id",
         "package_id",
         "product_id",
+        "lot_id",
         "quantity",
         "reserved_quantity",
     }

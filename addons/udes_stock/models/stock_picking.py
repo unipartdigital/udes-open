@@ -536,13 +536,15 @@ class StockPicking(models.Model):
         """Create and return a picking for the given picking_type
         For multiple pickings a list of lists of dicts of product_info should be passed,
         and pickings with the same picking_type and other kwargs are the same.
-        The kwargs are applied to pickings, not moves. If needed, the moves can be created outside of create_pickings with _create_moves
+        The kwargs are applied to pickings, not moves. If needed, the moves can be created outside
+        of create_pickings with _create_moves
 
 
         :args:
             - picking_type: picking type of the picking
         :kwargs:
-            - products_info: list of dicts (or list(list(dicts)) for multiple picks) with product information
+            - products_info: list of dicts (or list(list(dicts)) for multiple picks)
+            with product information
             - confirm: boolean flag to trigger action_confirm
             - assign: boolean flag to trigger action_assign
             - create_batch: boolean flag if a batch should be created

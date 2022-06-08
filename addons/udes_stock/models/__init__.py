@@ -13,3 +13,4 @@ from . import res_users
 from . import stock_picking_type
 from . import stock_location_category
 from . import stock_warehouse_orderpoint
+from . import stock_production_lot
