@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<odoo>
+  <data>
+
+    <!-- Setting max tries on concurrence failure as a parameter -->
+    <record id="max_tries_on_concurrency_failure" model="ir.config_parameter">
+      <field name="key">udes_sale_stock.max_tries_on_concurrency_failure</field>
+      <field name="value" eval="5"/>
+    </record>
+
+  </data>
+</odoo>

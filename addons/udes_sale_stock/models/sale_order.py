@@ -4,10 +4,22 @@ from collections import defaultdict
 from odoo import api, fields, models, tools, _
 import logging
 from datetime import timedelta, date
+import time
+import traceback
+from odoo.addons.udes_common import exceptions
+
+from psycopg2 import OperationalError, errorcodes
+
+PG_CONCURRENCY_ERRORS_TO_RETRY = (
+    errorcodes.LOCK_NOT_AVAILABLE,
+    errorcodes.SERIALIZATION_FAILURE,
+    errorcodes.DEADLOCK_DETECTED,
+)
 
 _logger = logging.getLogger(__name__)
 
 PRIORITIES = [('0', 'Normal'), ('1', 'Urgent')]
+
 
 class SaleOrder(models.Model):
     _inherit = "sale.order"
@@ -284,6 +296,137 @@ class SaleOrder(models.Model):
         """ Override to disable tracking by default """
         return super(SaleOrder, self.with_context(tracking_disable=True)).action_confirm()
 
+    def confirm_orders(self, size=1000):
+        """Attempt to confirm sale orders.
+
+        If self is empty, find orders to confirm via _get_confirmation_domain.
+        Otherwise, attempt to confirm orders in self.
+
+        This is done in batches to reduce the chance of concurrency errors
+        when confirming large numbers of orders at once. If one batch fails
+        the other batches may still be confirmed, attempting to maximise the number of
+        orders that may be confirmed.
+        """
+
+        def extract_exception_data(err):
+            """Extract information from an exception for later reporting."""
+            tbe = traceback.TracebackException.from_exception(err)
+            trace = "".join(tbe.format())
+            data = "{}\n{}".format(str(err), trace)
+            return data
+
+        exception_data = []
+        # Getting value of MAX_TRIES_ON_CONCURRENCY_FAILURE from system parameters,
+        # will allow us to be flexible to change on fly if needed and not hard coded
+        MAX_TRIES_ON_CONCURRENCY_FAILURE = int(self.env["ir.config_parameter"].sudo().get_param(
+            "udes_sale_stock.max_tries_on_concurrency_failure", 5))
+
+        if self:
+            to_confirm = self
+        else:
+            to_confirm = self.search(self._get_confirmation_domain())
+
+        for _, batch in to_confirm.batched(size=size):
+            tries = 0
+            while True:
+                try:
+                    with self.env.cr.savepoint():
+                        batch.with_context(recompute=False).action_confirm()
+                        batch.recompute()
+                        break
+                except OperationalError as e:
+                    self.invalidate_cache()
+                    if e.pgcode not in PG_CONCURRENCY_ERRORS_TO_RETRY:
+                        raise
+                    if tries >= MAX_TRIES_ON_CONCURRENCY_FAILURE:
+                        _logger.info(
+                            "%s, maximum number of tries reached" % errorcodes.lookup(e.pgcode)
+                        )
+                        break
+                    tries += 1
+                    wait_time = 1
+                    _logger.info(
+                        "%s, retry %d/%d in %.04f sec..."
+                        % (
+                            errorcodes.lookup(e.pgcode),
+                            tries,
+                            MAX_TRIES_ON_CONCURRENCY_FAILURE,
+                            wait_time,
+                        )
+                    )
+                    time.sleep(wait_time)
+                except Exception as e:
+                    _logger.exception("Error confirming orders.")
+                    self.invalidate_cache()
+                    exception_data.append(extract_exception_data(e))
+                    break
+            if tries >= MAX_TRIES_ON_CONCURRENCY_FAILURE:
+                break
+
+            # Incrementally commit to confirm orders as soon as possible and
+            # allow serialisation error to propagate.
+            self.env.cr.commit()
+            self.invalidate_cache()
+        if exception_data:
+            # Raise an exception that includes details of the exceptions that
+            # have been suppressed, in case we want to expose this information
+            # somewhere else.
+            collected_exceptions = "\n\n".join(exception_data)
+            _logger.error(collected_exceptions)
+            raise exceptions.CombinedException(
+                "At least one error occurred while confirming orders.",
+                collected_exceptions=collected_exceptions
+            ) from None
+
+        return True
+
+    def merge_confirm_orders_reserve_stock(
+        self,
+        confirm_orders_batch_size=1000,
+        confirm_orders_commit_size=1000,
+        finish=False,
+    ):
+        """Confirm Orders and Reserve Stock in a single cron job so the two processes can be
+        run simultaneously.
+        The process is described below:
+        1. Reserve stock if there are no orders to confirm.
+        2. Split all orders to confirm in sizes with confirm_orders_batch_size.
+        3. For every orders_to_confirm batch, confirm and commit
+            orders within confirm_orders_commit_size.
+        4. After confirming orders_to_confirm batch, reserve stock.
+        5. If needed to confirm only 1 confirm_orders_batch_size finish variable
+        will get out and finish the cron job.
+        6. Not confirmed orders and not reserved stock will be picked in the
+        next cron job if finish is set to true.
+        :param int confirm_orders_batch_size:
+            Number of orders to be confirmed before reserving stock.
+        :param int confirm_orders_commit_size:
+            Number of orders to be confirmed before committing.
+        :param boolean finish:
+            Flag if True will finish the cron job after the first iteration and pick the
+            remaining orders to confirm on the next cron run.
+        """
+        SaleOrder = self.env["sale.order"]
+        StockPicking = self.env["stock.picking"]
+
+        orders_to_confirm = SaleOrder.get_orders_to_confirm()
+        # If there aren't any orders to confirm just run the reserve stock cron
+        if not orders_to_confirm:
+            StockPicking.reserve_stock()
+        for _, batch in orders_to_confirm.batched(size=confirm_orders_batch_size):
+            # Confirm orders cron and reserve stock after for every confirm_orders_batch_size
+            batch.confirm_orders(size=confirm_orders_commit_size)
+            StockPicking.reserve_stock()
+            # Break the for loop in case we want to finish the cron job after the first iteration
+            if finish:
+                break
+
+        return True
+
     def _get_confirmation_domain(self):
         """Returns the domain for sale orders to attempt confirmation."""
         return [("state", "=", "draft")]
+
+    def get_orders_to_confirm(self):
+        """ Getting orders to confirm. Placing into a method in order to be easier to override"""
+        return self.search(self._get_confirmation_domain())
