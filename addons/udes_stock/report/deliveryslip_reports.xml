@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data>
+
+    <record model="ir.actions.report" id="stock.action_report_delivery">
+      <field name="name">Delivery Slip</field>
+      <field name="report_name">stock.report_deliveryslip</field>
+      <field name="model">stock.picking</field>
+      <field name="report_file">stock.deliveryslip_templates</field>
+      <field name="report_type">qweb-pdf</field>
+    </record>
+
+  </data>
+</odoo>
