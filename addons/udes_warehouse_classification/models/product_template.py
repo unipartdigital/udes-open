@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
-from odoo import fields, models
+from odoo import fields, models, api
 
 _logger = logging.getLogger(__name__)
 
@@ -13,6 +13,22 @@ class ProductTemplate(models.Model):
         string="product_warehouse_classification_ids",
         help="Classifications on products used for messaging purposes.",
     )
+    u_has_warehouse_classifications = fields.Boolean(
+        "Has Warehouse Classifications?",
+        compute="_compute_has_warehouse_classifications",
+        store=True,
+    )
+
+    @api.depends("u_product_warehouse_classification_ids")
+    def _compute_has_warehouse_classifications(self):
+        """
+        For each product in self, set True if the product contains warehouse classifications,
+        otherwise False
+        """
+        for product in self:
+            product.u_has_warehouse_classifications = bool(
+                product.u_product_warehouse_classification_ids
+            )
 
     def get_classification_messages_for_report(self, report_name):
         """Find product classification messages needed for a given report"""
