@@ -20,6 +20,16 @@
                 <field name="u_location_category_id" />
             </xpath>
 
+            <!-- Add button to show all child locations -->
+            <xpath expr="//button[@name='%(stock.location_open_quants)d']" position="after">
+                <button string="Child Locations"
+                        class="oe_stat_button"
+                        icon="fa-level-down"
+                        type="object"
+                        name="button_view_child_locations"
+                />
+            </xpath>
+
             <group name="additional_info" position="after">
                 <group string="Localization" name="localization">
                     <field name="posx"/>

@@ -1,5 +1,5 @@
 import os.path
-from odoo import fields, models, api
+from odoo import fields, models, api, _
 from .stock_picking_type import TARGET_STORAGE_FORMAT_OPTIONS
 
 
@@ -141,3 +141,16 @@ class StockLocation(models.Model):
         self.ensure_one()
         limited = self.search([("u_limit_orderpoints", "=", True)])
         return bool(self.search_count([("id", "child_of", limited.ids), ("id", "=", self.id)]))
+
+    def button_view_child_locations(self):
+        """Return a tree view of all descendants of the location in self"""
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("%s - Child Locations") % self.name,
+            "res_model": "stock.location",
+            "view_type": "form",
+            "view_mode": "tree,form",
+            "domain": [("id", "!=", self.id), ("id", "child_of", self.id)],
+            "context": {"default_location_id": self.id},
+        }
