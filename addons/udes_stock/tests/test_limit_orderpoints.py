@@ -40,7 +40,7 @@ class LimitOrderpointsTestCase(common.BaseUDES):
         ex = cm.exception
         self.assertEqual(
             f"An order point for location {self.op_test_output_location_01.name} "
-            f"already exists on {self.apple.name}",
+            f"already exists on {self.apple.name}.",
             ex.args[0],
         )
 
@@ -54,7 +54,7 @@ class LimitOrderpointsTestCase(common.BaseUDES):
         ex = cm.exception
         self.assertEqual(
             f"An order point for location {self.op_test_output_location_01.name} "
-            f"already exists on {self.apple.name}",
+            f"already exists on {self.apple.name}.",
             ex.args[0],
         )
 
@@ -68,6 +68,6 @@ class LimitOrderpointsTestCase(common.BaseUDES):
         ex = cm.exception
         self.assertEqual(
             f"An order point for location {self.op_test_output_location_01.name} "
-            f"already exists on {self.apple.name}",
+            f"already exists on {self.apple.name}.",
             ex.args[0],
         )
