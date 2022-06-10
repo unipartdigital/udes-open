@@ -6,7 +6,7 @@
     "website": "http://github/unipartdigital/udes-open",
     "category": "UDES",
     "version": "0.1",
-    "depends": ["base", "stock", "stock_picking_batch", "udes_common"],
+    "depends": ["base", "stock", "stock_picking_batch", "udes_common", "package_hierarchy"],
     "data": [
         "security/ir.model.access.csv",
         "data/stock_data.xml",
