@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+        <!-- Hide widget with debug options for non trusted users -->
+        <record id="res_config_settings_view_form" model="ir.ui.view">
+            <field name="name">res.config.settings.view.form.inherit.udes_security</field>
+            <field name="model">res.config.settings</field>
+            <field name="inherit_id" ref="base_setup.res_config_settings_view_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//widget[@name='res_config_dev_tool']" position="attributes">
+                    <attribute name="groups">udes_security.group_trusted_user</attribute>
+                </xpath>
+            </field>
+        </record>
+</odoo>

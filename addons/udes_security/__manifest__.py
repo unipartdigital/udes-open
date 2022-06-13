@@ -7,7 +7,7 @@
     "license": "LGPL-3",
     "application": True,
     "version": "14.0.0.0.0",
-    "depends": ["base", "web", "portal", "udes_common"],
+    "depends": ["base", "base_setup", "web", "portal", "udes_common"],
     "data": [
         "data/ir_module_category_data.xml",
         "data/res_groups.xml",
@@ -20,6 +20,7 @@
         "views/webclient_templates.xml",
         "views/no_desktop_access_template_views.xml",
         "data/allowed_file_type_data.xml",
+        "views/res_config_settings_view.xml",
     ],
     "demo": [],
 }
