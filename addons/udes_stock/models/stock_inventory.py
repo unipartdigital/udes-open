@@ -53,7 +53,11 @@ class StockInventory(models.Model):
         "res.users",
         string="Checked Owner",
         readonly=True,
-        states={"draft": [("readonly", False)], "waiting": [("readonly", False)]},
+        states={
+            "draft": [("readonly", False)],
+            "waiting": [("readonly", False)],
+            "confirm": [("readonly", False)],
+        },
         help="Specify Owner to focus your stock check on a particular user.",
         domain=_get_stock_check_users,
     )
