@@ -12,6 +12,7 @@
                 <field name="u_limit_orderpoints" />
                 <field name="u_storage_format"/>
                 <field name="u_location_storage_format" groups="stock.group_stock_manager"/>
+                <field name="u_location_is_countable"/>
             </xpath>
 
             <xpath expr="//field[@name='removal_strategy_id']" position="after">
