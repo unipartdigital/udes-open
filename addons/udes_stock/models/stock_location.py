@@ -13,7 +13,7 @@ class StockLocation(models.Model):
         "u_location_storage_format",
         "location_id",
         "location_id.u_storage_format",
-        "location_id.u_location_storage_format"
+        "location_id.u_location_storage_format",
     )
     def _compute_storage_format(self):
         """Determine the storage format of the location.
@@ -70,9 +70,7 @@ class StockLocation(models.Model):
         help="Product category speed to match with location speed.",
     )
     u_size = fields.Float(
-        string="Location size",
-        help="""The size of the location in square feet.""",
-        digits=(16, 2),
+        string="Location size", help="The size of the location in square feet.", digits=(16, 2)
     )
     u_location_category_id = fields.Many2one(
         comodel_name="stock.location.category",
@@ -106,8 +104,83 @@ class StockLocation(models.Model):
 
                 If not set then the location will use the format
                 of the nearest ancestor that has a format specified.
-                """
+                """,
     )
+    u_location_is_countable = fields.Selection(
+        selection=[("yes", "Yes"), ("no", "No")],
+        string="Location Is Countable",
+        help="""
+    Specifies whether the location is countable. If blank, the value of the parent
+    location is used, if applicable.
+    """,
+    )
+    u_is_countable = fields.Boolean(
+        compute="_compute_is_countable",
+        store=True,
+        string="Is Countable",
+        help="""
+    Computed countable setting to use for this location.
+    The 'Location Is Countable' value set directly on the location will be used if applicable.
+    Otherwise the computed value set on the parent location will be used, if applicable.
+    """,
+    )
+    u_countable_state = fields.Selection(
+        selection=[("empty", "Empty"), ("has_stock", "Has Stock"), ("archived", "Archived")],
+        compute="_compute_countable_state",
+        store=True,
+        string="State",
+        help="""
+        Computed field describing the state of a stockable location that is countable, 
+        see u_countable field.""",
+    )
+
+    @api.depends("u_location_is_countable", "location_id", "location_id.u_is_countable")
+    def _compute_is_countable(self):
+        """Determine whether stock locations are countable"""
+        for location in self:
+            is_countable = False
+            if location.u_location_is_countable in ("yes", "no"):
+                is_countable = location.u_location_is_countable == "yes"
+            else:
+                parent = location.location_id
+                if parent.u_is_countable:
+                    is_countable = True
+            location.u_is_countable = is_countable
+
+    @api.depends("quant_ids", "usage", "active", "u_is_countable")
+    def _compute_countable_state(self):
+        """
+        Determine the state of the stock location via _set_countable_state if the location
+        is a valid one to be counted.
+        The computed value is only set properly once a location has been created or saved.
+        This is because for on the fly changes the location in self will only have access
+        to fields in the location form, which doesn't include quant_ids. This can lead to the
+        computed value temporarily displaying empty before being set to has_stock once the record
+        is saved.
+        """
+
+        for location in self:
+            state = False
+
+            if location.id and location.usage == "internal" and location.u_is_countable:
+                state = location._set_countable_state()
+
+            location.u_countable_state = state
+
+    def _set_countable_state(self):
+        """
+        Method to set the countable state of a location called by the _compute state
+        method incase it needs to be overridden elsewhere. It assumes the location is indeed countable.
+        Returns a string value
+        """
+        Quant = self.env["stock.quant"]
+        self.ensure_one()
+        if not self.active:
+            return "archived"
+        elif not Quant.search_count([("location_id", "=", self.id)]):
+            return "empty"
+        else:
+            return "has_stock"
 
     def get_common_ancestor(self):
         """
