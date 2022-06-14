@@ -2821,7 +2821,7 @@ class StockPicking(models.Model):
             self._prepare_new_picking_info(**kwargs)
         )
 
-    def _get_classification_messages_for_product_picking(self):
+    def _get_classification_messages_for_product_picking(self, all_products=False):
         """Method to be override on specific functionalities"""
         return {}
 
