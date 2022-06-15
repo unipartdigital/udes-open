@@ -5,6 +5,7 @@ from odoo.exceptions import ValidationError
 class StockLocation(models.Model):
     _inherit = "stock.location"
 
+    u_countable_state = fields.Selection(selection_add=[("blocked", "Blocked")])
     u_blocked = fields.Boolean(
         string="Is Blocked?",
         help=_("Check this box to prevent stock picks from this location"),
@@ -65,10 +66,7 @@ class StockLocation(models.Model):
         for record in self:
             if record.u_blocked:
                 n_quants = Quant.search_count(
-                    [
-                        ("reserved_quantity", ">", 0),
-                        ("location_id", "=", record.id),
-                    ]
+                    [("reserved_quantity", ">", 0), ("location_id", "=", record.id)]
                 )
                 if n_quants > 0:
                     raise ValidationError(
@@ -76,5 +74,29 @@ class StockLocation(models.Model):
                     )
                 if not record.u_blocked_reason:
                     raise ValidationError(
-                        _("A reason for blocking the locations is required when attempting to block a location.")
+                        _(
+                            "A reason for blocking the locations is required when attempting to block a location."
+                        )
                     )
+
+    @api.depends("quant_ids", "usage", "active", "u_is_countable", "u_blocked")
+    def _compute_countable_state(self):
+        """Add an additional depends field to accomadate blocking"""
+        super()._compute_countable_state()
+
+    def _set_countable_state(self):
+        """
+        Override the default state setting sequence in udes_stock to accomodate for blocking.
+        The logic now checks it in this order:
+            * Active
+            * Blocked
+            * Stocked
+            * Empty
+        """
+        res = super()._set_countable_state()
+        if not self.active:
+            return res
+        elif self.u_blocked:
+            return "blocked"
+        else:
+            return res
