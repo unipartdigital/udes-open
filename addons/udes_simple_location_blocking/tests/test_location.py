@@ -3,6 +3,12 @@ from .common import BaseBlocked
 
 
 class TestStockLocation(BaseBlocked):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        # Set the stock location to countable
+        cls.stock_location.u_location_is_countable = "yes"
+
     def test_check_blocked_wrong_prefix_type(self):
         """Call check blocked with wrong prefix type will
         raise a ValidationError.
@@ -116,3 +122,16 @@ class TestStockLocation(BaseBlocked):
             e.exception.args[0],
             "A reason for blocking the locations is required when attempting to block a location.",
         )
+
+    def test_countable_state_is_blocked_when_location_is_active_and_blocked(self):
+        """Test that when an active location is blocked it has u_countable_state blocked"""
+        self.assertEqual(self.test_location_01.u_countable_state, "empty")
+        self.test_location_01.write({"u_blocked_reason": "Stock Damaged", "u_blocked": True})
+        self.assertEqual(self.test_location_01.u_countable_state, "blocked")
+
+    def test_countable_state_is_archived_when_inactive_location_blocked(self):
+        """Test that when an active location is blocked it has u_countable_state blocked"""
+        self.test_location_01.active = False
+        self.assertEqual(self.test_location_01.u_countable_state, "archived")
+        self.test_location_01.write({"u_blocked_reason": "Stock Damaged", "u_blocked": True})
+        self.assertEqual(self.test_location_01.u_countable_state, "archived")
