@@ -820,6 +820,15 @@ class StockPicking(models.Model):
         """
         raise ValidationError(_("Cannot handle over receiving!"))
 
+    def action_cancel(self):
+        """Extend to set date_done field when cancelling transfers"""
+        res = super().action_cancel()
+
+        # To be reviewed later, as our priority approach is different. Having here just to remember
+        # that when we made changes we need to change _action_done method as well on stock module
+        self.write({"date_done": fields.Datetime.now(), "priority": "0"})
+        return res
+
     def validate_picking(self, create_backorder=False, force_validate=False):
         """ Validates a picking and returns its backorder if any has been created.
             Will raise an error if create_backorder is False and there are incomplete lines.
