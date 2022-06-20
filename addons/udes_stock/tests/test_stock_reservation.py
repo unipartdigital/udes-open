@@ -8,7 +8,7 @@ from .common import BaseUDES
 
 
 class FindUnreservableMovesTestCase(BaseUDES):
-    """Test cases for StockPicking._find_unfulfillable_moves."""
+    """Test cases for StockPicking._find_unreservable_moves."""
 
     @classmethod
     def setUpClass(cls):
@@ -21,7 +21,7 @@ class FindUnreservableMovesTestCase(BaseUDES):
         products_info = [{"product": self.apple, "qty": 10}]
         picking = self.create_picking(self.picking_type_pick, products_info, confirm=True)
 
-        unreservable_moves = picking._find_unfulfillable_moves()
+        unreservable_moves = picking._find_unreservable_moves()
 
         self.assertFalse(unreservable_moves)
 
@@ -31,7 +31,7 @@ class FindUnreservableMovesTestCase(BaseUDES):
         products_info = [{"product": self.banana, "qty": 10}]
         picking = self.create_picking(self.picking_type_pick, products_info, confirm=True)
 
-        unreservable_moves = picking._find_unfulfillable_moves()
+        unreservable_moves = picking._find_unreservable_moves()
 
         self.assertEqual(unreservable_moves, picking.move_lines)
 
@@ -44,7 +44,7 @@ class FindUnreservableMovesTestCase(BaseUDES):
         move = picking.move_lines.filtered(lambda m: m.product_id == self.banana)
         move._action_cancel()
 
-        unreservable_moves = picking._find_unfulfillable_moves()
+        unreservable_moves = picking._find_unreservable_moves()
 
         self.assertFalse(unreservable_moves)
 
@@ -54,7 +54,7 @@ class FindUnreservableMovesTestCase(BaseUDES):
         products_info = [{"product": self.apple, "qty": 15}]
         picking = self.create_picking(self.picking_type_pick, products_info, confirm=True)
 
-        unreservable_moves = picking._find_unfulfillable_moves()
+        unreservable_moves = picking._find_unreservable_moves()
 
         self.assertFalse(unreservable_moves)
 
@@ -64,6 +64,6 @@ class FindUnreservableMovesTestCase(BaseUDES):
         products_info = [{"product": self.apple, "qty": 15}]
         picking = self.create_picking(self.picking_type_pick, products_info, confirm=True)
 
-        unreservable_moves = picking._find_unfulfillable_moves()
+        unreservable_moves = picking._find_unreservable_moves()
 
         self.assertEqual(unreservable_moves, picking.move_lines)
