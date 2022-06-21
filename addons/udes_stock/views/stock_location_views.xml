@@ -43,6 +43,28 @@
         </field>
     </record>
 
+    <!-- Replace 'Odoo' with 'UDES' in the tree view help text. -->
+    <record id="stock.action_location_form" model="ir.actions.act_window">
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+              Add a new location
+            </p><p>
+              Define your locations to reflect your warehouse structure and
+              organization. UDES is able to manage physical locations
+              (warehouses, shelves, bin, etc), partner locations (customers,
+              vendors) and virtual locations which are the counterpart of
+              the stock operations like the manufacturing orders
+              consumptions, inventories, etc.
+            </p><p>
+              Every stock operation in UDES moves the products from one
+              location to another one.  For instance, if you receive products
+              from a vendor, UDES will move products from the Vendor
+              location to the Stock location. Each report can be performed on
+              physical, partner or virtual locations.
+            </p>
+          </field>
+    </record>
+
     <!-- Move Locations menu item outside of config menu -->
     <menuitem id="stock.menu_action_location_form" parent="stock.menu_stock_root" sequence="5" name="Locations"/>
 </odoo>

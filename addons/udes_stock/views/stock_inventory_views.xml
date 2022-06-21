@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Remove the barcode ad from the tree view help text. -->
+    <record id="stock.action_inventory_form" model="ir.actions.act_window">
+        <field name="help" type="html">
+            <p class="oe_view_nocontent_create">
+            Click to start an Inventory Adjustment.
+        </p>
+            <p>
+            Periodical Inventory Adjustments are used to count the number of products
+            available per location. You can use it once a year when you do
+            the general inventory or whenever you need it, to adapt the
+            current inventory level of a product.
+        </p>
+        </field>
+    </record>
+</odoo>
