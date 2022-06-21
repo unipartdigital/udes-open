@@ -852,3 +852,10 @@ class StockLocation(models.Model):
         """Method to be override in other modules"""
         self.ensure_one()
         return None
+
+    @api.model
+    def get_available_stock_locations(self):
+        """Method returns stock locations that are considered (along with
+         their children) stock available for fulfilling orders. Should be
+        overridden where necessary"""
+        return self.env.ref("stock.stock_location_stock")
