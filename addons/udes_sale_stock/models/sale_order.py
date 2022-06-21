@@ -92,21 +92,16 @@ class SaleOrder(models.Model):
 
     @api.model
     def get_available_stock_locations(self):
-        """ Method returns stock locations that are considered (along with
+        """Method returns stock locations that are considered (along with
          their children) stock available for fulfilling orders. Should be
-        overridden where necessary """
+        overridden where necessary"""
         return self.env.ref("stock.stock_location_stock")
 
     @api.model
     def get_available_quantity(self, product, locations):
-        """ Get available quantity of product_id within locations """
-        Stock = self.env["stock.quant"]
-        domain = [("product_id", "=", product.id), ("location_id", "child_of", locations.ids)]
-        quants = Stock.search(domain)
-        available_quantity = sum(quants.mapped("quantity")) - sum(
-            quants.mapped("reserved_quantity")
-        )
-        return available_quantity
+        """Get available quantity of product_id within locations"""
+        Quant = self.env["stock.quant"]
+        return Quant.get_available_quantity(product, locations)
 
     @api.model
     def cancel_orders_without_availability(self, aux_domain=None):
