@@ -210,3 +210,13 @@ class StockQuant(models.Model):
             }
         )
         return new_quant
+
+    @api.model
+    def get_available_quantity(self, product, locations):
+        """Get available quantity of product_id within locations."""
+        domain = [("product_id", "=", product.id), ("location_id", "child_of", locations.ids)]
+        quants = self.search(domain)
+        available_quantity = sum(quants.mapped("quantity")) - sum(
+            quants.mapped("reserved_quantity")
+        )
+        return available_quantity
