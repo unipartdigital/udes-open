@@ -95,7 +95,8 @@ class SaleOrder(models.Model):
         """Method returns stock locations that are considered (along with
          their children) stock available for fulfilling orders. Should be
         overridden where necessary"""
-        return self.env.ref("stock.stock_location_stock")
+        Location = self.env["stock.location"]
+        return Location.get_available_stock_locations()
 
     @api.model
     def get_available_quantity(self, product, locations):
