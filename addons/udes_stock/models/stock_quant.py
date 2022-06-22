@@ -101,3 +101,17 @@ class StockQuant(models.Model):
         return Picking.with_context(quant_ids=self.ids).create_picking(
             picking_type, products_info, **kwargs
         )
+
+    @api.model
+    def get_available_quantity(self, product, locations):
+        """Get available quantity of product_id within locations."""
+        Quant = self.env["stock.quant"]
+
+        product.ensure_one()
+        domain = [("product_id", "=", product.id), ("location_id", "child_of", locations.ids)]
+        quants = Quant.search(domain).with_context(prefetch_fields=False)
+        quants.read(["quantity", "reserved_quantity"], load="_classic_write")
+        available_quantity = sum(quants.mapped("quantity")) - sum(
+            quants.mapped("reserved_quantity")
+        )
+        return available_quantity
