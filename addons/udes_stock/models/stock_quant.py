@@ -216,7 +216,8 @@ class StockQuant(models.Model):
         """Get available quantity of product_id within locations."""
         product.ensure_one()
         domain = [("product_id", "=", product.id), ("location_id", "child_of", locations.ids)]
-        quants = self.search(domain)
+        quants = self.search(domain).with_context(prefetch_fields=False)
+        quants.read(["quantity", "reserved_quantity"], load="_classic_write")
         available_quantity = sum(quants.mapped("quantity")) - sum(
             quants.mapped("reserved_quantity")
         )
