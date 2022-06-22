@@ -130,7 +130,7 @@ class StockLocation(models.Model):
         store=True,
         string="State",
         help="""
-        Computed field describing the state of a stockable location that is countable, 
+        Computed field describing the state of a stockable location that is countable,
         see u_countable field.""",
     )
 
@@ -227,3 +227,10 @@ class StockLocation(models.Model):
             "domain": [("id", "!=", self.id), ("id", "child_of", self.id)],
             "context": {"default_location_id": self.id},
         }
+
+    @api.model
+    def get_available_stock_locations(self):
+        """Method returns stock locations that are considered (along with
+         their children) stock available for fulfilling orders. Should be
+        overridden where necessary"""
+        return self.env.ref("stock.stock_location_stock")
