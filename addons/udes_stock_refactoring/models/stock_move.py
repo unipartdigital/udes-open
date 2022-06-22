@@ -47,20 +47,22 @@ class StockMove(models.Model):
 
         # The environment must include {'compute_key': True}
         # to allow the keys to be computed.
-        if not self._context.get("compute_key", False):
-            return
+        compute_key = self.env.context.get("compute_key")
+
         for move in self:
-            format_str = move.picking_id.picking_type_id.u_move_key_format
-            if not format_str:
-                move.u_grouping_key = None
-            else:
-                # Generating a list of fields that are in u_move_key_format.
-                move_fields = StockPickingType.get_fields_from_key_format(format_str)
-                move_vals = {
-                    field_name: move[field_name]
-                    for field_name in move_fields
-                }
-                move.u_grouping_key = format_str.format(**move_vals)
+            grouping_key = None
+            if compute_key:
+                format_str = move.picking_id.picking_type_id.u_move_key_format
+                if format_str:
+                    # Generating a list of fields that are in u_move_key_format.
+                    move_fields = StockPickingType.get_fields_from_key_format(format_str)
+                    move_vals = {
+                        field_name: move[field_name]
+                        for field_name in move_fields
+                    }
+                    grouping_key = format_str.format(**move_vals)
+
+            move.u_grouping_key = grouping_key
 
     u_grouping_key = fields.Char("Key", compute="_compute_grouping_key")
 
