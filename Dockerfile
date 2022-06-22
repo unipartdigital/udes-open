@@ -18,10 +18,10 @@ ADD addons /opt/odoo-addons
 
 # Module installation (without tests)
 RUN odoo-wrapper --without-demo=all -i \
-    udes_common,udes_get_info,udes_simple_location_blocking,udes_stock,udes_stock_packaging,udes_stock_refactoring,udes_stock_routing,udes_suggest_location
+    udes_common,udes_get_info,udes_security,udes_simple_location_blocking,udes_stock,udes_stock_packaging,udes_stock_refactoring,udes_stock_routing,udes_suggest_location
 
 # Module tests
-CMD ["--test-enable", "-i", "udes_common,udes_get_info,udes_simple_location_blocking,udes_stock,udes_stock_packaging,udes_stock_refactoring,udes_stock_routing,udes_suggest_location"]
+CMD ["--test-enable", "-i", "udes_common,udes_get_info,udes_security,udes_simple_location_blocking,udes_stock,udes_stock_packaging,udes_stock_refactoring,udes_stock_routing,udes_suggest_location"]
 
 # Skip modules that depend on external modules
 # - udes_stock_picking_batch
