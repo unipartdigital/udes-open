@@ -70,6 +70,12 @@ class StockPickingType(models.Model):
         help="When True, operations are automatically validated in real time.",
     )
 
+    u_handle_partials = fields.Boolean(
+        string="Process Partial Transfers",
+        default=True,
+        help="Allow processing a transfer when the preceding transfers are not all completed.",
+    )
+
     def get_action_picking_tree_draft(self):
         return self._get_action("udes_stock.action_picking_tree_draft")
 

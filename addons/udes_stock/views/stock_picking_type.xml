@@ -19,6 +19,7 @@
                     <field name="u_auto_unlink_empty" />
                     <field name="u_enable_unpickable_items" />
                     <field name="u_validate_real_time" />
+                    <field name="u_handle_partials" />
                 </group>
             </xpath>
 
