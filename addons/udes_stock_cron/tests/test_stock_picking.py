@@ -1,3 +1,6 @@
+"""Unit tests for stock reservation."""
+from unittest import mock
+
 from odoo.addons.udes_stock.tests.common import BaseUDES
 from odoo.exceptions import UserError
 from odoo.tests import get_db_name
@@ -17,6 +20,9 @@ class TestStockPicking(BaseUDES):
         cls.registry.enter_test_mode(cls.cr)
         super(TestStockPicking, cls).setUpClass()
 
+        cls.Move = cls.env["stock.move"]
+        cls.Picking = cls.env["stock.picking"]
+
         products_info = [{"product": cls.apple, "uom_qty": 10.0}]
 
         cls.picking_type_pick.u_num_reservable_pickings = -1
@@ -35,6 +41,14 @@ class TestStockPicking(BaseUDES):
             product_id=cls.apple.id,
             location_id=cls.picking_type_pick.default_location_src_id.id,
             qty=10.0,
+        )
+
+        # Mock the find unreservable moves method to simulate allocation
+        # failure.
+        cls.mock_find_unreservable_moves = mock.patch.object(
+            cls.Picking.__class__,
+            "_find_unreservable_moves",
+            return_value=cls.Move.browse(),
         )
 
     @classmethod
@@ -81,16 +95,78 @@ class TestStockPicking(BaseUDES):
         self.assertEqual(move.reserved_availability, 0.0)
         self.assertEqual(move.state, "confirmed")
 
-        with self.assertRaises(UserError) as e:
-            self.test_picking_pick.reserve_stock()
+        with self.mock_find_unreservable_moves:
+            with self.assertRaises(UserError) as e:
+                self.test_picking_pick.reserve_stock()
 
-        products = move.product_id.name_get()
-        picks = move.picking_id.name
-        msg = (
-            f"Unable to reserve stock for products {products} for pickings {picks}."
-        )
+        products = move.mapped("product_id").name_get()
+        products = products[0][1]
+        picks = move.mapped("picking_id.name")
+        msg = f"Unable to reserve stock for products {products} for pickings {picks}."
         self.assertEqual(e.exception.args[0], msg)
 
         self.assertEqual(move.reserved_availability, 0.0)
         self.assertEqual(move.state, "confirmed")
         self.assertEqual(self.test_picking_pick.state, "confirmed")
+
+
+class FindUnreservableMovesTestCase(BaseUDES):
+    """Test cases for StockPicking._find_unreservable_moves."""
+
+    @classmethod
+    def setUpClass(cls):  # noqa: D102
+        super().setUpClass()
+        cls.create_quant(cls.apple.id, cls.test_stock_location_01.id, 10)
+
+    def test_does_not_report_moves_if_stock_is_available(self):
+        """The system will not report moves if there is enough stock to reserve."""
+        self.picking_type_pick.u_handle_partials = False
+        products_info = [{"product": self.apple, "qty": 10}]
+        picking = self.create_picking(self.picking_type_pick, products_info, confirm=True)
+
+        unreservable_moves = picking._find_unreservable_moves()
+
+        self.assertFalse(unreservable_moves)
+
+    def test_reports_moves_if_stock_is_not_available(self):
+        """The system will report moves for which there is insufficient stock."""
+        self.picking_type_pick.u_handle_partials = False
+        products_info = [{"product": self.banana, "qty": 10}]
+        picking = self.create_picking(self.picking_type_pick, products_info, confirm=True)
+
+        unreservable_moves = picking._find_unreservable_moves()
+
+        self.assertEqual(unreservable_moves, picking.move_lines)
+
+    def test_ignores_cancelled_moves(self):
+        """The system will disregard moves which are cancelled when reporting."""
+        # The same logic applies to assigned and done states.
+        self.picking_type_pick.u_handle_partials = False
+        products_info = [{"product": self.apple, "qty": 10}, {"product": self.banana, "qty": 10}]
+        picking = self.create_picking(self.picking_type_pick, products_info, confirm=True)
+        move = picking.move_lines.filtered(lambda m: m.product_id == self.banana)
+        move._action_cancel()
+
+        unreservable_moves = picking._find_unreservable_moves()
+
+        self.assertFalse(unreservable_moves)
+
+    def test_allows_partially_fulfilled_lines_if_handle_partials_is_on(self):
+        """The system will not report partially reserved moves if u_handle_partials is True."""
+        self.picking_type_pick.u_handle_partials = True
+        products_info = [{"product": self.apple, "qty": 15}]
+        picking = self.create_picking(self.picking_type_pick, products_info, confirm=True)
+
+        unreservable_moves = picking._find_unreservable_moves()
+
+        self.assertFalse(unreservable_moves)
+
+    def test_prohibits_partially_fulfilled_lines_if_handle_partials_is_off(self):
+        """The system will report partially reservable moves if u_handle_partials is False."""
+        self.picking_type_pick.u_handle_partials = False
+        products_info = [{"product": self.apple, "qty": 15}]
+        picking = self.create_picking(self.picking_type_pick, products_info, confirm=True)
+
+        unreservable_moves = picking._find_unreservable_moves()
+
+        self.assertEqual(unreservable_moves, picking.move_lines)
