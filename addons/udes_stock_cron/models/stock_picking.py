@@ -21,6 +21,74 @@ MAX_TRIES_ON_CONCURRENCY_FAILURE = 5
 class StockPicking(models.Model):
     _inherit = "stock.picking"
 
+    def _find_unreservable_moves(self, batch_size=1000, return_fast=False):
+        """
+        Find moves for which there is insufficient stock.
+
+        The u_handle_partials flag on the picking type is respected: if it is
+        True, partially reservable lines will not be reported.
+        """
+        # This method is patterned on SaleOrder._find_unfulfillable_order_lines
+        # in udes_sale_stock.  Changes applied there should be considered for
+        # this method too.
+        Location = self.env["stock.location"]
+        Move = self.env["stock.move"]
+        Quant = self.env["stock.quant"]
+
+        # Create empty record sets for moves.
+        unreservable_moves = Move.browse()
+
+        # Get unreserved stock for each product in locations
+        locations = Location.get_available_stock_locations()
+        stock_for_products = defaultdict(int)
+        skip_states = ("assigned", "done", "cancel")
+
+        _logger.info(_("Checking reservability for %d pickings."), len(self))
+        for r, batch in self.batched(size=batch_size):
+            _logger.info("Checking pickings %d-%d", r[0], r[-1])
+            # Cache the needed fields and only the needed fields
+            # Caching too much is expensive here because of the sheer number of
+            # records processed: Odoo's field loading becomes a bottleneck and
+            # memory usage skyrockets.
+            # Caching too little is also expensive since:
+            #  * cache misses cause unused fields to be loaded in due to
+            #    prefetching, which leads to overcaching, described above
+            #  * cache misses for stock move fields result in hundreds of small
+            #    loads per batch, which is inefficient due to overheads
+            # For non-relational fields, read() is used instead of mapped()
+            # because it allows for loading of specific fields, whereas
+            # mapped() will load in as many fields as it can due to prefetching.
+            # with_context(prefetch_fields=False) could be used with mapped()
+            # but is limited to a single column at a time.
+            batched_pickings = batch.with_context(prefetch_fields=False)
+            batched_pickings.move_lines.read(
+                ["product_id", "product_uom_qty", "state"], load="_classic_write"
+            )
+
+            for picking in batched_pickings:
+                # Loop moves and deduct from stock_for_products dict
+                # If this code is modified, the caching above needs to be
+                # kept up to date to ensure good performance
+                for move in picking.move_lines.filtered(lambda m: m.state not in skip_states):
+
+                    product = move.product_id
+
+                    if product not in stock_for_products.keys():
+                        stock_for_products[product] = Quant.get_available_quantity(
+                            product, locations
+                        )
+                    qty_ordered = move.product_uom_qty
+                    if stock_for_products[product] <= 0 or (
+                        stock_for_products[product] < qty_ordered
+                        and not picking.picking_type_id.u_handle_partials
+                    ):
+                        unreservable_moves |= move
+                        if return_fast:
+                            return unreservable_moves
+                    stock_for_products[product] -= qty_ordered
+
+        return unreservable_moves
+
     def _reserve_stock_assign(self):
         """Perform assign of the pickings at the move level because refactoring
         may change the pickings.
@@ -50,6 +118,16 @@ class StockPicking(models.Model):
 
         Picking = self.env["stock.picking"]
         PickingType = self.env["stock.picking.type"]
+
+        def raise_insufficiency_error(moves):
+            """Helper function to raise error for insufficent stock."""
+            products = moves.product_id.name_get()
+            picks = moves.mapped("picking_id.name")
+            product_names = ", ".join(sorted({p[1] for p in products}))
+            raise UserError(
+                _("Unable to reserve stock for products %s for pickings %s.")
+                % (product_names, picks)
+            )
 
         if self:
             picking_types = self.picking_type_id
@@ -87,9 +165,7 @@ class StockPicking(models.Model):
             while reserve_all or to_reserve > 0:
 
                 if self:
-                    pickings = self.filtered(
-                        lambda p: p.picking_type_id == picking_type
-                    )
+                    pickings = self.filtered(lambda p: p.picking_type_id == picking_type)
                     # Removed processed pickings from self
                     pickings -= processed
                 else:
@@ -116,6 +192,29 @@ class StockPicking(models.Model):
                 if batch and picking_type.u_reserve_batches:
                     pickings = batch.picking_ids
 
+                # Check for available stock and add pickings which we cannot
+                # fulfill to the processed recordset. The logic here
+                # should mirror that within the savepoint below, expect here we
+                # do not have the move lines.
+                unreservable_moves = pickings._find_unreservable_moves(return_fast=bool(self))
+                if unreservable_moves:
+                    moves = pickings.move_lines
+                    moves_todo = (
+                        moves.filtered(lambda m: m.state in ["confirmed", "draft"])
+                        - unreservable_moves
+                    )
+                    if not picking_type.u_handle_partials:
+                        # Add to processed to skip reservation.
+                        processed |= pickings
+
+                        if self:
+                            raise_insufficiency_error(unreservable_moves)
+                        continue
+                    elif not moves_todo:
+                        # Add to processed to skip reservation.
+                        processed |= pickings
+                        continue
+
                 # MPS: mimic Odoo's retry behaviour
                 tries = 0
                 while True:
@@ -133,19 +232,11 @@ class StockPicking(models.Model):
                             if unsatisfied:
                                 # Unreserve if the picking type cannot handle partials or it
                                 # can but there is nothing allocated (no stock.move.lines)
-                                if not mls:
+                                if not picking_type.u_handle_partials or not mls:
                                     # construct error message, report only products
                                     # that are unreservable.
-                                    moves = unsatisfied.move_lines.filtered(
-                                        unsatisfied_state
-                                    )
-                                    products = moves.product_id.name_get()
-                                    picks = moves.picking_id.name
-                                    msg = (
-                                        f"Unable to reserve stock for products {products} "
-                                        f"for pickings {picks}."
-                                    )
-                                    raise UserError(msg)
+                                    moves = unsatisfied.move_lines.filtered(unsatisfied_state)
+                                    raise_insufficiency_error(moves)
                             break
                     except UserError as e:
                         self.invalidate_cache()
@@ -161,8 +252,7 @@ class StockPicking(models.Model):
                             raise
                         if tries >= MAX_TRIES_ON_CONCURRENCY_FAILURE:
                             _logger.info(
-                                "%s, maximum number of tries reached"
-                                % errorcodes.lookup(e.pgcode)
+                                "%s, maximum number of tries reached" % errorcodes.lookup(e.pgcode)
                             )
                             break
                         tries += 1
