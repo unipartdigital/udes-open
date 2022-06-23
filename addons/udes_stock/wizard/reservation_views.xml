@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+  <record id="stock_reserve_stock_form" model="ir.ui.view">
+    <field name="name">stock.reserve.stock.form</field>
+    <field name="model">stock.reserve.stock.wizard</field>
+    <field name="arch" type="xml">
+      <form string="Reserve Stock">
+        <separator string="Are you sure?"/>
+        <footer>
+          <button name="do_reserve" type="object" string="Reserve" class="btn-primary"/>
+          <button string="Cancel" class="btn-default" special="cancel"/>
+        </footer>
+      </form>
+    </field>
+  </record>
+
+  <record id="stock_reserve_stock_action" model="ir.actions.act_window">
+    <field name="name">Reserve Stock</field>
+    <field name="res_model">stock.reserve.stock.wizard</field>
+    <field name="view_mode">form</field>
+    <field name="view_id" ref="stock_reserve_stock_form"/>
+    <field name="target">new</field>
+  </record>
+
+  <record id="stock_reserve_stock_action_stock_picking" model="ir.actions.act_window">
+    <field name="name">Reserve Stock</field>
+    <field name="res_model">stock.reserve.stock.wizard</field>
+    <field name="view_mode">form</field>
+    <field name="target">new</field>
+    <field name="binding_model_id" ref="model_stock_picking"/>
+    <field name="binding_view_types">form,list</field>
+  </record>
+
+  <record id="stock_unreserve_stock_form" model="ir.ui.view">
+    <field name="name">stock.reserve.stock.form</field>
+    <field name="model">stock.reserve.stock.wizard</field>
+    <field name="arch" type="xml">
+      <form string="Unreserve Stock">
+        <separator string="Are you sure?"/>
+        <footer>
+          <button name="do_unreserve" type="object" string="Unreserve" class="btn-primary"/>
+          <button string="Cancel" class="btn-default" special="cancel"/>
+        </footer>
+      </form>
+    </field>
+  </record>
+
+  <record id="stock_unreserve_stock_action_stock_picking" model="ir.actions.act_window">
+    <field name="name">Unreserve Stock</field>
+    <field name="res_model">stock.reserve.stock.wizard</field>
+    <field name="view_mode">form</field>
+    <field name="target">new</field>
+    <field name="binding_model_id" ref="model_stock_picking"/>
+    <field name="binding_view_types">form,list</field>
+    <field name="view_id" ref="stock_unreserve_stock_form"/>
+  </record>
+
+</odoo>

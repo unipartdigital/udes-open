@@ -6,7 +6,15 @@
     "website": "http://github/unipartdigital/udes-open",
     "category": "UDES",
     "version": "0.1",
-    "depends": ["base", "stock", "stock_sms", "stock_picking_batch", "udes_common", "package_hierarchy"],
+    "depends": [
+        "base",
+        "stock",
+        "stock_sms",
+        "stock_picking_batch",
+        "udes_common",
+        "package_hierarchy",
+        "udes_security",
+    ],
     "data": [
         "security/ir.model.access.csv",
         "data/stock_data.xml",
@@ -40,5 +48,6 @@
         "views/stock_inventory_views.xml",
         "views/stock_scheduler_compute_views.xml",
         "views/res_users_view.xml",
+        "wizard/reservation_views.xml",
     ],
 }
