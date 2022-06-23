@@ -76,24 +76,6 @@ class SaleOrder(models.Model):
             order.mapped("order_line.move_ids").write({"priority": order.priority})
 
     @api.model
-    def get_available_stock_locations(self):
-        """ Method returns stock locations that are considered (along with
-         their children) stock available for fulfilling orders. Should be
-        overridden where necessary """
-        return self.env.ref("stock.stock_location_stock")
-
-    @api.model
-    def get_available_quantity(self, product, locations):
-        """ Get available quantity of product_id within locations """
-        Stock = self.env["stock.quant"]
-        domain = [("product_id", "=", product.id), ("location_id", "child_of", locations.ids)]
-        quants = Stock.search(domain)
-        available_quantity = sum(quants.mapped("quantity")) - sum(
-            quants.mapped("reserved_quantity")
-        )
-        return available_quantity
-
-    @api.model
     def cancel_orders_without_availability(self, aux_domain=None):
         """From the current list of unconfirmed SO lines, cancel lines that
         cannot be fulfilled with current stock holding and returns them"""
@@ -132,14 +114,16 @@ class SaleOrder(models.Model):
 
     def _find_unfulfillable_order_lines(self, batch_size=1000):
         """Find unfullfilable order lines due to lack of stock."""
+        Location = self.env['stock.location']
         OrderLine = self.env["sale.order.line"]
+        Quant = self.env['stock.quant']
 
         # Create empty record sets for SO lines
         unfulfillable_lines = OrderLine.browse()
 
         _logger.info("Checking orders to cancel due to stock shortage")
         # Get unreserved stock for each product in locations
-        locations = self.get_available_stock_locations()
+        locations = Location.get_available_stock_locations()
         stock = defaultdict(int)
 
         for r, batch in self.batched(size=batch_size):
@@ -187,7 +171,7 @@ class SaleOrder(models.Model):
                     product = line.product_id
 
                     if product not in stock.keys():
-                        stock[product] = self.get_available_quantity(product, locations)
+                        stock[product] = Quant.get_available_quantity(product, locations)
                     qty_ordered = line.product_uom_qty
                     if stock[product] >= qty_ordered:
                         stock[product] = stock[product] - qty_ordered
