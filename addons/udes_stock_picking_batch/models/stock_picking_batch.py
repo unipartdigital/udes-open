@@ -278,6 +278,8 @@ class StockPickingBatch(models.Model):
             Location identifier can be the ID, name or the barcode.
             If limit = -1 means unbounded
         """
+        # Note: Overpassing access rights with sudo
+        self = self.sudo()
         Picking = self.env["stock.picking"]
 
         if not self.u_ephemeral:
@@ -870,6 +872,8 @@ class StockPickingBatch(models.Model):
         is raised in case of pickings that need to be completed,
         otherwise such batches will be marked as done.
         """
+        # Note: Overpassing access rights with sudo
+        self = self.sudo()
         user_id = self._check_user_id(user_id)
         self._check_user_batch_in_progress(user_id)
 

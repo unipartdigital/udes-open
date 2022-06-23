@@ -98,7 +98,7 @@
 
     <record id="picking_type_replen" model="stock.picking.type">
       <field name="name">Replen</field>
-      <field name="sequence" eval="19"/>
+      <field name="sequence" eval="12"/>
       <field name="code">internal</field>
       <field name="sequence_id" ref="sequence_replen"/>
       <field name="use_existing_lots" eval="1"/>
