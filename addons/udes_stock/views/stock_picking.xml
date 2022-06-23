@@ -158,6 +158,31 @@
                 <attribute name="attrs">{'readonly': [('state', '!=', 'draft')],  'required': [('picking_type_code', '=', 'incoming')]}</attribute>
             </xpath>
 
+            <xpath expr="//field[@name='date_done']" position="attributes">
+                <attribute name="attrs">{'invisible': [('state', 'not in', ('done', 'cancel'))]}</attribute>
+                <attribute name="string"/>
+            </xpath>
+
+        </field>
+    </record>
+
+
+    <!-- Adding Date of Transfer in tree view, and overriding scheduled_date to be shown always without remaining_days widget -->
+    <record id="vpicktree" model="ir.ui.view">
+        <field name="name">stock.picking.tree.udes</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.vpicktree"/>
+        <field name="arch" type="xml">
+
+            <xpath expr="//field[@name='scheduled_date']" position="attributes">
+                <attribute name="widget"></attribute>
+                <attribute name="attrs"></attribute>
+            </xpath>
+
+            <xpath expr="//field[@name='scheduled_date']" position="after">
+                <field name="date_done" optional="show"/>
+            </xpath>
+
         </field>
     </record>
 
