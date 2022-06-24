@@ -4,7 +4,7 @@
     <!-- Add a new route for Replen -->
     <record id="route_warehouse0_replen" model='stock.location.route'>
       <field name="name">Replen</field>
-      <field name="company_id"></field>
+      <field name="company_id" ref="base.main_company"/>
       <field name="sequence">10</field>
     </record>    
 
