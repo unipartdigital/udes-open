@@ -38,3 +38,13 @@ class StockMove(models.Model):
                 lines_to_cancel.action_cancel()
 
         return result
+
+    def _prepare_procurement_values(self):
+        """
+        The sale_line_id is not passed to the next move created by a procurement rule in
+        default Odoo 14. This method extends _prepare_procurement_values to allow for that.
+        Return: dictionary
+        """
+        values = super()._prepare_procurement_values()
+        values["sale_line_id"] = self.sale_line_id.id
+        return values
