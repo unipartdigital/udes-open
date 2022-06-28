@@ -1,6 +1,7 @@
 import os.path
 from odoo import fields, models, api, _
 from .stock_picking_type import TARGET_STORAGE_FORMAT_OPTIONS
+from odoo.addons.udes_common.models.fields import PreciseDatetime
 
 
 class StockLocation(models.Model):
@@ -133,6 +134,51 @@ class StockLocation(models.Model):
         Computed field describing the state of a stockable location that is countable,
         see u_countable field.""",
     )
+
+    u_heatmap_data_updated = PreciseDatetime(
+        string="Heatmap Data Updated",
+        help="The date when the location name, co-ordinates or size was last changed.",
+        default=lambda _: PreciseDatetime.now(),
+    )
+
+    def set_u_heatmap_data_updated(self, vals):
+        """
+        Iterate over locations in `self`, checking if any heatmap fields
+        have been written to with updated values, and if so - dispatch to write()
+        with a bypass in context (to avoid recursion) to update `u_heatmap_data_updated`
+        with the current date & time.
+
+        :param: vals: dict() of vals from `write()`
+        """
+        StockLocation = self.env["stock.location"]
+        locations_to_update = StockLocation.browse()
+        heatmap_fields = ["u_size", "name", "posx", "posy", "posz"]
+        # Don't need to check old/new values of these fields if they aren't in vals
+        if not any([x in vals.keys() for x in heatmap_fields]):
+            return
+        for location in self:
+            for fieldname in heatmap_fields:
+                old_value = getattr(location, fieldname)
+                new_value = vals.get(fieldname)
+                if new_value is not None and new_value != old_value:
+                    locations_to_update |= location
+                    # There's no need to continue checking the other fields now.
+                    break
+
+        # If .write() is called on multiple locations
+        # but only a subset of those locations values have changed, we
+        # only want to update the subsets `u_heatmap_data_updated` datetime.
+        locations_to_update.with_context(
+            bypass_heatmap_check=True
+        ).u_heatmap_data_updated = PreciseDatetime.now()
+
+
+    def write(self, vals):
+        """Extend write to add a hook which updates u_heatmap_data_updated"""
+        if not self.env.context.get("bypass_heatmap_check"):
+            self.set_u_heatmap_data_updated(vals)
+        return super().write(vals)
+
 
     @api.depends("u_location_is_countable", "location_id", "location_id.u_is_countable")
     def _compute_is_countable(self):
