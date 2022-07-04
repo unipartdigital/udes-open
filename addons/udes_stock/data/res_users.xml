@@ -1,7 +1,13 @@
 <odoo>
   <data noupdate="0">
     <record id="base.user_root" model="res.users">
-      <field name="groups_id" eval="[(4, ref('udes_stock.group_manage_reserved_packages'))]"/>
+      <field name="groups_id" eval=
+      "[
+        (4, ref('udes_stock.group_manage_reserved_packages')),
+        (4, ref('udes_stock.group_inbound_user')),
+        (4, ref('udes_stock.group_outbound_user')),
+        (4, ref('udes_stock.group_stock_manager')),
+      ]"/>
     </record>
   </data>
 </odoo>
