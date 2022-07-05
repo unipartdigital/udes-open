@@ -166,21 +166,26 @@
         </field>
     </record>
 
-
-    <!-- Adding Date of Transfer in tree view, and overriding scheduled_date to be shown always without remaining_days widget -->
     <record id="vpicktree" model="ir.ui.view">
         <field name="name">stock.picking.tree.udes</field>
         <field name="model">stock.picking</field>
         <field name="inherit_id" ref="stock.vpicktree"/>
         <field name="arch" type="xml">
 
+            <!-- Remove remaining_days widget from Scheduled Date -->
             <xpath expr="//field[@name='scheduled_date']" position="attributes">
                 <attribute name="widget"></attribute>
                 <attribute name="attrs"></attribute>
             </xpath>
 
+            <!-- Show Date of Transfer -->
             <xpath expr="//field[@name='scheduled_date']" position="after">
                 <field name="date_done" optional="show"/>
+            </xpath>
+
+            <!-- Hide "Unreserve" button -->
+            <xpath expr="//button[@name='do_unreserve']" position="attributes">
+                <attribute name="invisible">1</attribute>
             </xpath>
 
         </field>
@@ -230,7 +235,7 @@
         </field>
     </record>
 
-     <!-- Customisations for stock.picking tree -->
+    <!-- Customisations for stock.picking tree -->
     <record id="view_tree_stock_picking" model="ir.ui.view">
         <field name="name">udes_picking_tree</field>
         <field name="model">stock.picking</field>
@@ -242,6 +247,11 @@
             </xpath>
 
         </field>
+    </record>
+
+    <!-- Hide Odoo unreserve picking action, as we have a UDES wizard for this -->
+    <record id="stock.action_unreserve_picking" model="ir.actions.server">
+        <field name="binding_model_id" eval="False"/>
     </record>
 
 </odoo>
