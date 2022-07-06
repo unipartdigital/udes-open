@@ -41,7 +41,8 @@
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
                 Create a new transfer
-            </p><p>
+            </p>
+            <p>
                 You can either do it immediately or mark it as Todo for future processing
             </p>
         </field>
@@ -78,6 +79,28 @@
                     <field name="u_next_picking_ids" widget="one2many_list" mode="kanban"/>
                     <field name="u_created_backorder_ids" widget="one2many_list" mode="kanban"/>
                 </group>
+
+                <group string="Moves in Picking Chain">
+                    <field name="u_chain_move_ids" nolabel="1" context="{'active_picking_for_chain_moves': id}">
+                        <tree decoration-success="state == 'done'" decoration-danger="state in ('assigned', 'waiting')" decoration-muted="state == 'cancel'" decoration-bf="u_is_from_active_picking" default_order="date, picking_id, sequence" string="Moves">
+                            <field name="date" invisible="1"/>
+                            <field name="date_deadline" optional="hide"/>
+                            <field name="picking_id"/>
+                            <field name="sequence" invisible="1"/>
+                            <field name="origin" optional="show"/>
+                            <field name="product_id"/>
+                            <field name="product_uom_qty"/>
+                            <field name="quantity_done"/>
+                            <field name="product_uom" options="{'no_open': True, 'no_create': True}" string="Unit of Measure" groups="uom.group_uom"/>
+                            <field name="location_id" options="{'no_create': True}" invisible="1"/>
+                            <field name="location_dest_id" invisible="1"/>
+                            <field name="create_date" invisible="1"/>
+                            <field name="state" optional="show"/>
+                            <field name="company_id" invisible="1"/>
+                            <field name="u_is_from_active_picking" invisible="1"/>
+                        </tree>
+                    </field>
+                </group>
             </xpath>
 
             <!-- Add in u_uom_initial_demand field -->
@@ -111,35 +134,23 @@
                 <attribute name="string">Cancel Pick</attribute>
                 <attribute name="attrs">{'invisible': [('state', 'in', ('draft', 'done', 'cancel'))]}</attribute>
             </xpath>
-            
+
             <!-- Add button to show all fields, by default hidden fields will not be shown -->
             <xpath expr="//page[@name='extra']" position="inside">
                 <button name="action_detailed_view" string="Show Related Pickings" type="object"/>
             </xpath>
 
             <xpath expr="//div[@name='button_box']" position="inside">
-                <button class="oe_stat_button"
-                        name="open_first_pickings"
-                        icon="fa-exchange"
-                        type="object" invisible="not context.get('view_all_fields', False)">
+                <button class="oe_stat_button" name="open_first_pickings" icon="fa-exchange" type="object" invisible="not context.get('view_all_fields', False)">
                     <field name="u_first_pickings_qty" widget="statinfo" string="First Pickings"/>
                 </button>
-                <button class="oe_stat_button"
-                        name="open_prev_pickings"
-                        icon="fa-exchange"
-                        type="object" invisible="not context.get('view_all_fields', False)">
+                <button class="oe_stat_button" name="open_prev_pickings" icon="fa-exchange" type="object" invisible="not context.get('view_all_fields', False)">
                     <field name="u_prev_pickings_qty" widget="statinfo" string="Previous Pickings"/>
                 </button>
-                <button class="oe_stat_button"
-                        name="open_next_pickings"
-                        icon="fa-exchange"
-                        type="object" invisible="not context.get('view_all_fields', False)">
+                <button class="oe_stat_button" name="open_next_pickings" icon="fa-exchange" type="object" invisible="not context.get('view_all_fields', False)">
                     <field name="u_next_pickings_qty" widget="statinfo" string="Next Pickings"/>
                 </button>
-                <button class="oe_stat_button"
-                        name="open_back_orders"
-                        icon="fa-exchange"
-                        type="object" invisible="not context.get('view_all_fields', False)">
+                <button class="oe_stat_button" name="open_back_orders" icon="fa-exchange" type="object" invisible="not context.get('view_all_fields', False)">
                     <field name="u_back_orders_qty" widget="statinfo" string="Created Back Orders"/>
                 </button>
 
@@ -193,16 +204,16 @@
 
     <!-- Stock Picking Type View -->
     <record id="view_picking_type_form_udes_stock" model="ir.ui.view">
-      <field name="name">stock.picking.type.form.udes_stock</field>
-      <field name="model">stock.picking.type</field>
-      <field name="inherit_id" ref="stock.view_picking_type_form"/>
-      <field name="arch" type="xml">
-        <xpath expr="//form/sheet/group[last()]" position="after">
-          <group string="Pickings" groups="base.group_no_one">
-            <field name="u_auto_unlink_empty" />
-          </group>
-        </xpath>
-      </field>
+        <field name="name">stock.picking.type.form.udes_stock</field>
+        <field name="model">stock.picking.type</field>
+        <field name="inherit_id" ref="stock.view_picking_type_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form/sheet/group[last()]" position="after">
+                <group string="Pickings" groups="base.group_no_one">
+                    <field name="u_auto_unlink_empty" />
+                </group>
+            </xpath>
+        </field>
     </record>
 
     <!-- Customisations for stock.stock_picking_type_kanban -->

@@ -20,6 +20,21 @@ class StockMove(models.Model):
     # how we are now tracking initial demand in u_uom_initial_demand.
     product_uom_qty = fields.Float(string="Quantity")
 
+    u_is_from_active_picking = fields.Boolean(
+        "Move from Active Picking?", compute="_compute_is_from_active_picking"
+    )
+
+    def _compute_is_from_active_picking(self):
+        """TBC"""
+        active_picking_id = self.env.context.get("active_picking_for_chain_moves")
+        for move in self:
+            is_from_active_picking = False
+
+            if active_picking_id:
+                is_from_active_picking = move.picking_id.id == active_picking_id
+
+            move.u_is_from_active_picking = is_from_active_picking
+
     @api.model
     def create(self, vals):
         """Extend create to set the initial demand to product_uom_qty if no value set"""
@@ -190,15 +205,15 @@ class StockMove(models.Model):
         and move all other work into the new move.
             * mls is not None: Retain mls_to_keep in self, and remove all other work,
         into the new move.
-        
+
         :kwargs:
             - mls_to_keep: The move lines to keep in self, if None use all mls with
             qty_done == product_uom_qty.
-        :returns: 
+        :returns:
             - If a move has nothing complete, return self, detached from the pickng
             - If a move has everything complete, return an empty record set
             - If the move is partially complete, return the new move with the incomplete
-            work. 
+            work.
         :raises: An error if any move lines attached to self are partially complete.
         :raises: An error if any move lines being moved are done, and any move line reatined
             is incomplete.
@@ -310,7 +325,7 @@ class StockMove(models.Model):
         This can be overridden in other modules if desired.
         If no matching is made, it defaults to a matching on the dest location
         and product id. This is not very robust and can lead to over-matching.
-        
+
         The saving grace of the default behaviour is that it is not very common.
         Normally, if not lot tracked, there are packages/pallets, and if not there
         are procurement groups which block the merging of moves/pickings.
@@ -338,7 +353,7 @@ class StockMove(models.Model):
         )
 
     def update_orig_ids(self, origin_ids):
-        """ 
+        """
         Updates the move_orig_ids for all moves in self.
         All incomplete original moves in self are retained since they should
         still point to self. For all move lines in each move, match the move line
@@ -346,7 +361,7 @@ class StockMove(models.Model):
 
         Using _make_mls_comparison_lambda does cause over matching if they are not identifable
         this is left because of the issue of intraceability should be avoided.
-        
+
         Examples can be found in test_stock_move.py
 
         NOTE: If there are performance issues with mapped and computing the over matching

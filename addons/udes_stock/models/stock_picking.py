@@ -149,6 +149,37 @@ class StockPicking(models.Model):
         help="The assigned users to the picking",
     )
 
+    # PC Poc
+    u_chain_move_ids = fields.One2many(
+        comodel_name="stock.move",
+        string="Picking Chain Operations",
+        compute="_compute_chain_move_ids",
+        help="Moves within the chain of pickings (original picking and subsequent backorders)",
+    )
+
+    def _compute_chain_move_ids(self):
+        "TBC"
+        Picking = self.env["stock.picking"]
+
+        for picking in self:
+            pickings_in_chain = picking
+
+            original_picking = picking.backorder_id
+
+            while original_picking:
+                pickings_in_chain |= original_picking
+                original_picking = original_picking.backorder_id
+
+            backorder_picking = Picking.search([("backorder_id", "=", picking.id)], limit=1)
+
+            while backorder_picking:
+                pickings_in_chain |= backorder_picking
+                backorder_picking = Picking.search(
+                    [("backorder_id", "=", backorder_picking.id)], limit=1
+                )
+
+            picking.u_chain_move_ids = pickings_in_chain.move_lines
+
     def get_next_picking_name(self, vals, picking_type=None):
         """
         Override the method in core stock to customise the name generation.
@@ -330,7 +361,7 @@ class StockPicking(models.Model):
             * All moves being moved cannot be cancelled or done
             * All mls to retain must either be done or cancelled if any mls are being moved
             that have qty_done > 0.
-        
+
         The latter condition is to ensure we do not place work done into
         a backorder and validate it whilst leaving the remaining work incomplete in the
         original picking. It does not restrict a user from essentially splitting a picking up,
@@ -455,7 +486,7 @@ class StockPicking(models.Model):
             # Determine mls to keep in the original picking and backorder the rest
             mls_to_keep = ...
             backorders |= picking.backorder_move_lines(mls_to_keep)
-            
+
         original_pickings._action_done()
         ```
         """
@@ -490,9 +521,9 @@ class StockPicking(models.Model):
             - Checks if all move lines have the qty_done = total move qty (excluding cancelled)
         * If mls is not None:
             - Checks the move lines cover all moves within a picking. All moves are covered
-            by the mls iff: The total of the move lines == total of the move 
+            by the mls iff: The total of the move lines == total of the move
             (minus any cancelled or done).
-        
+
         Cannot be consolidated with _check_backorder in Odoo core, because it
         does not take into account any move lines parameter.
 
@@ -815,8 +846,8 @@ class StockPicking(models.Model):
             raise ValidationError(_("Wrong state %s for %s") % (self.state, self.log_name()))
 
     def add_unexpected_parts(self, product_quantities):
-        """ TODO not needed for now, add to readme when implemented
-            return new mls?
+        """TODO not needed for now, add to readme when implemented
+        return new mls?
         """
         raise ValidationError(_("Cannot handle over receiving!"))
 
@@ -830,9 +861,9 @@ class StockPicking(models.Model):
         return res
 
     def validate_picking(self, create_backorder=False, force_validate=False):
-        """ Validates a picking and returns its backorder if any has been created.
-            Will raise an error if create_backorder is False and there are incomplete lines.
-            Optionally will mark as done all lines of the picking if force_validate is set to True.
+        """Validates a picking and returns its backorder if any has been created.
+        Will raise an error if create_backorder is False and there are incomplete lines.
+        Optionally will mark as done all lines of the picking if force_validate is set to True.
         """
         Picking = self.env["stock.picking"]
 
@@ -931,27 +962,19 @@ class StockPicking(models.Model):
 
     def open_first_pickings(self):
         """Open first pickings button will redirect to first pickings"""
-        return self.open_related_pickings(
-            self.u_first_picking_ids.ids, "First Pickings"
-        )
+        return self.open_related_pickings(self.u_first_picking_ids.ids, "First Pickings")
 
     def open_prev_pickings(self):
         """Open prev pickings button will redirect to previous pickings"""
-        return self.open_related_pickings(
-            self.u_prev_picking_ids.ids, "Previous Pickings"
-        )
+        return self.open_related_pickings(self.u_prev_picking_ids.ids, "Previous Pickings")
 
     def open_next_pickings(self):
         """Open next pickings button will redirect to next pickings"""
-        return self.open_related_pickings(
-            self.u_next_picking_ids.ids, "Next Pickings"
-        )
+        return self.open_related_pickings(self.u_next_picking_ids.ids, "Next Pickings")
 
     def open_back_orders(self):
         """Open back orders button will redirect to created back orders"""
-        return self.open_related_pickings(
-            self.u_created_backorder_ids.ids, "Created Back Orders"
-        )
+        return self.open_related_pickings(self.u_created_backorder_ids.ids, "Created Back Orders")
 
     @staticmethod
     def _get_package_search_domain(package):
