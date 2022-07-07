@@ -1,4 +1,5 @@
-from odoo import fields, models
+from odoo import fields, models, _
+from odoo.exceptions import ValidationError
 
 
 class ProductTemplate(models.Model):
@@ -44,3 +45,7 @@ class ProductTemplate(models.Model):
     u_height = fields.Float(string="Height (m)", help="Product height in metres", default=0.0)
     u_length = fields.Float(string="Length (m)", help="Product length in metres", default=0.0)
     u_width = fields.Float(string="Width (m)", help="Product width in metres", default=0.0)
+
+    def unlink(self):
+        """Override superclass to prevent deletion."""
+        raise ValidationError(_("Products may not be deleted. Please archive them instead."))
