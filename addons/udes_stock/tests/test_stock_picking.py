@@ -1627,7 +1627,7 @@ class TestBatchUserName(common.BaseUDES):
             picking_type=cls.picking_type_pick, products_info=cls._pick_info, confirm=True
         )
 
-        cls.stock_manager = cls.create_user(name="Stock Manager", login="Stock Manager Dude")
+        cls.stock_manager = cls.create_user(name="Stock Manager", login="Stock Manager Dude", groups_id = [(6, 0, [cls.env.ref("stock.group_stock_manager").id])])
 
     def test_correct_batch_user_on_picking_tree_view(self):
         self.picking.write({"batch_id": self.batch.id})
