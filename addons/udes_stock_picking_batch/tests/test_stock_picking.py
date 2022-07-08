@@ -13,7 +13,11 @@ class TestBatchToUser(common.BaseUDES):
     def setUpClass(cls):
         super(TestBatchToUser, cls).setUpClass()
 
-        cls.stock_user = cls.create_user("stock user", "stock user", groups_id = [(6, 0, [cls.env.ref("stock.group_stock_user").id])])
+        cls.stock_user = cls.create_user(
+            "stock user",
+            "stock user",
+            groups_id=[(6, 0, [cls.env.ref("stock.group_stock_user").id])],
+        )
 
     def test_picking_has_batch_and_batch_already_assigned_to_desired_user(self):
         batch = self.create_batch(self.stock_user)
