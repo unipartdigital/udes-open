@@ -27,8 +27,11 @@ class TestBatchState(common.BaseUDES):
             cls.picking_type_pick, products_info=cls.pack_4apples_info, confirm=True
         )
 
-        cls.stock_user = cls.create_user("stock user", "stock user", groups_id = [(6, 0, [cls.env.ref("stock.group_stock_user").id])])
-
+        cls.stock_user = cls.create_user(
+            "stock user",
+            "stock user",
+            groups_id=[(6, 0, [cls.env.ref("stock.group_stock_user").id])],
+        )
 
     @classmethod
     def draft_to_ready(cls):
@@ -93,7 +96,7 @@ class TestBatchState(common.BaseUDES):
         self.assertEqual(self.batch01.state, "ready")
 
     def test_waiting_to_in_progess(self):
-        """ Assign user to check we get in_progress, then move back"""
+        """Assign user to check we get in_progress, then move back"""
         self.draft_to_ready()
         self.assign_user()
         self.assertEqual(self.batch01.state, "in_progress")
@@ -102,7 +105,7 @@ class TestBatchState(common.BaseUDES):
         self.assertEqual(self.batch01.state, "ready")
 
     def test_cancel_pick_to_done(self):
-        """ Cancel pick and confirm state 'done'"""
+        """Cancel pick and confirm state 'done'"""
         self.draft_to_ready()
         self.assign_user()
         # Cancel the pick and confirm we reach state done
@@ -110,14 +113,14 @@ class TestBatchState(common.BaseUDES):
         self.assertEqual(self.batch01.state, "done")
 
     def test_potential_assignment(self):
-        """ Add picking which is not ready leads to removal from batch"""
+        """Add picking which is not ready leads to removal from batch"""
         self.draft_to_ready()
         self.assign_user()
         self.picking02.batch_id = self.batch01
         self.assertNotIn(self.picking02, self.batch01.picking_ids)
 
     def test_remove_batch_id(self):
-        """ Remove batch_id from picking and confirm state 'done'"""
+        """Remove batch_id from picking and confirm state 'done'"""
         self.draft_to_ready()
         self.assign_user()
         self.picking01.batch_id = False
@@ -184,7 +187,7 @@ class TestBatchState(common.BaseUDES):
         self.assertEqual(self.batch01.state, "done")
 
     def test_check_computing_cancel(self):
-        """ Test done with cancel to check computation"""
+        """Test done with cancel to check computation"""
         self.draft_to_ready()
         self.assign_user()
 
@@ -193,7 +196,7 @@ class TestBatchState(common.BaseUDES):
         self.assertEqual(self.batch01.state, "done")
 
     def test_check_computing_cancel(self):
-        """ Test done with cancel to check computation"""
+        """Test done with cancel to check computation"""
         self.draft_to_ready()
         self.assign_user()
 
@@ -202,7 +205,7 @@ class TestBatchState(common.BaseUDES):
         self.assertEqual(self.batch01.state, "done")
 
     def test_computing_ready_picking_to_batch(self):
-        """ Test done with ready picking to check computation"""
+        """Test done with ready picking to check computation"""
         self.create_quant(
             self.apple.id, self.test_stock_location_01.id, 4, package_id=self.package_one.id
         )
@@ -216,7 +219,7 @@ class TestBatchState(common.BaseUDES):
         self.assertEqual(self.batch01.state, "ready")
 
     def test_computing_partial_assignment(self):
-        """ Test done with partially complete pickings to check computation"""
+        """Test done with partially complete pickings to check computation"""
         self.draft_to_ready()
         self.assign_user()
 
@@ -244,12 +247,13 @@ class TestBatchMultiDropOff(common.BaseUDES):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.pack_2prods_info = [
-            {"product": cls.apple, "qty": 4},
-            {"product": cls.banana, "qty": 4}
-        ]
+        cls.pack_2prods_info = [{"product": cls.apple, "qty": 4}, {"product": cls.banana, "qty": 4}]
 
-        cls.stock_user = cls.create_user("stock user", "stock user", groups_id = [(6, 0, [cls.env.ref("stock.group_stock_user").id])])
+        cls.stock_user = cls.create_user(
+            "stock user",
+            "stock user",
+            groups_id=[(6, 0, [cls.env.ref("stock.group_stock_user").id])],
+        )
 
     @classmethod
     def product_str(cls, product, qty):
@@ -401,7 +405,7 @@ class TestBatchMultiDropOff(common.BaseUDES):
         self.assertEqual(backorder.batch_id, batch)
 
     def test_next_drop_off_by_products(self):
-        """ Test next drop off criterion by products """
+        """Test next drop off criterion by products"""
         MoveLine = self.env["stock.move.line"]
 
         self.picking_type_pick.u_drop_criterion = "by_products"
@@ -487,7 +491,7 @@ class TestBatchMultiDropOff(common.BaseUDES):
         self.assertEqual(batch.state, "done")
 
     def test_next_drop_off_by_orders(self):
-        """ Test next drop off criterion by orders """
+        """Test next drop off criterion by orders"""
         MoveLine = self.env["stock.move.line"]
         Batch = self.env["stock.picking.batch"]
         Batch = Batch.with_user(self.stock_user)
@@ -587,7 +591,7 @@ class TestBatchMultiDropOff(common.BaseUDES):
         self.assertEqual(batch.state, "done")
 
     def test_next_drop_off_nothing_to_drop(self):
-        """ Test next drop off criterion by products but nothing to drop """
+        """Test next drop off criterion by products but nothing to drop"""
         MoveLine = self.env["stock.move.line"]
         self.picking_type_pick.u_drop_criterion = "by_products"
 
@@ -611,7 +615,11 @@ class TestPalletReservation(common.BaseUDES):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.stock_user = cls.create_user("stock user", "stock user", groups_id = [(6, 0, [cls.env.ref("stock.group_stock_user").id])])
+        cls.stock_user = cls.create_user(
+            "stock user",
+            "stock user",
+            groups_id=[(6, 0, [cls.env.ref("stock.group_stock_user").id])],
+        )
 
     def test_conflicting_reservation(self):
         batch1 = self.create_batch()
@@ -662,7 +670,11 @@ class TestBatchGetNextTask(common.BaseUDES):
         Package = cls.env["stock.quant.package"]
 
         quant_quantity = 4
-        cls.stock_user = cls.create_user("stock user", "stock user", groups_id = [(6, 0, [cls.env.ref("stock.group_stock_user").id])])
+        cls.stock_user = cls.create_user(
+            "stock user",
+            "stock user",
+            groups_id=[(6, 0, [cls.env.ref("stock.group_stock_user").id])],
+        )
         cls.package_a = Package.get_or_create("00001", create=True)
         cls.package_b = Package.get_or_create("00002", create=True)
         cls.apple_quant = cls.create_quant(
@@ -688,7 +700,7 @@ class TestBatchGetNextTask(common.BaseUDES):
         cls.picking_type_pick.u_return_to_skipped = False
 
     def test_picking_ordering_is_persisted_in_task(self):
-        """ Ensure that get_next_task respects the ordering criteria """
+        """Ensure that get_next_task respects the ordering criteria"""
         criteria = lambda ml: (int(ml.package_id.name))
         task = self.batch.get_next_task(task_grouping_criteria=criteria)
 
@@ -792,7 +804,11 @@ class TestBatchAddRemoveWork(common.BaseUDES):
     def setUpClass(cls):
         super().setUpClass()
 
-        cls.stock_user = cls.create_user("stock user", "stock user", groups_id = [(6, 0, [cls.env.ref("stock.group_stock_user").id])])
+        cls.stock_user = cls.create_user(
+            "stock user",
+            "stock user",
+            groups_id=[(6, 0, [cls.env.ref("stock.group_stock_user").id])],
+        )
 
         Batch = cls.env["stock.picking.batch"]
         Batch = Batch.with_user(cls.stock_user)
@@ -851,7 +867,7 @@ class TestBatchAddRemoveWork(common.BaseUDES):
             )
 
     def test_add_extra_pickings(self):
-        """ Ensure that add extra picking adds pickings correctly"""
+        """Ensure that add extra picking adds pickings correctly"""
 
         batch = self.batch
 
@@ -925,7 +941,11 @@ class TestContinuationBatchProcessing(common.BaseUDES):
     def setUpClass(cls):
         super().setUpClass()
         cls.pack_4apples_info = [{"product": cls.apple, "qty": 4}]
-        cls.stock_user = cls.create_user("stock user", "stock user", groups_id = [(6, 0, [cls.env.ref("stock.group_stock_user").id])])
+        cls.stock_user = cls.create_user(
+            "stock user",
+            "stock user",
+            groups_id=[(6, 0, [cls.env.ref("stock.group_stock_user").id])],
+        )
 
     def test_preserves_user_id_on_closed_batch(self):
         batch = self.create_batch(user=self.stock_user, u_ephemeral=False)
@@ -1001,12 +1021,20 @@ class TestStockPickingBatch(common.BaseUDES):
     @classmethod
     def setUpClass(cls):
         super(TestStockPickingBatch, cls).setUpClass()
-        cls.picking_type_investigation_ids = [cls.picking_type_internal.id,
-                                          cls.warehouse.u_stock_investigation_picking_type.id]
-        cls.picking_type_investigation_expression = [('picking_type_id', 'in', cls.picking_type_investigation_ids)]
+        cls.picking_type_investigation_ids = [
+            cls.picking_type_internal.id,
+            cls.warehouse.u_stock_investigation_picking_type.id,
+        ]
+        cls.picking_type_investigation_expression = [
+            ("picking_type_id", "in", cls.picking_type_investigation_ids)
+        ]
         cls.pack_4apples_info = [{"product": cls.apple, "qty": 4}]
 
-        cls.stock_user = cls.create_user("stock user", "stock user", groups_id = [(6, 0, [cls.env.ref("stock.group_stock_user").id])])
+        cls.stock_user = cls.create_user(
+            "stock user",
+            "stock user",
+            groups_id=[(6, 0, [cls.env.ref("stock.group_stock_user").id])],
+        )
 
     def setUp(self):
         super(TestStockPickingBatch, self).setUp()
@@ -1209,7 +1237,9 @@ class TestStockPickingBatch(common.BaseUDES):
         putaway_batch.action_confirm()
         pick_batch.action_confirm()
 
-        putaway_batch_assigned = putaway_batch.assign_batch(picking_type_id=self.picking_type_putaway.id)
+        putaway_batch_assigned = putaway_batch.assign_batch(
+            picking_type_id=self.picking_type_putaway.id
+        )
         self.assertEqual(putaway_batch_assigned.user_id.id, self.env.user.id)
         self.assertEqual(pick_batch.user_id.id, False)
 
@@ -1367,12 +1397,11 @@ class TestStockPickingBatch(common.BaseUDES):
 
 
 class TestUnpickableItems(TestStockPickingBatch):
-
     @classmethod
     def setUpClass(cls):
         super(TestUnpickableItems, cls).setUpClass()
         IrModel = cls.env["ir.model"]
-        cls.Package = cls.env['stock.quant.package']
+        cls.Package = cls.env["stock.quant.package"]
         cls.Package_name = IrModel.search([("model", "=", cls.Package._name)]).name
         # enable unpickable items by default
         cls.picking_type_pick.u_enable_unpickable_items = True
@@ -1398,15 +1427,14 @@ class TestUnpickableItems(TestStockPickingBatch):
         """
         picking, batch = self._create_valid_batch()
         move_line = picking.move_line_ids[0]
-        reason = 'missing item'
-        batch.unpickable_item(package_name=move_line.package_id.name,
-                              reason=reason)
+        reason = "missing item"
+        batch.unpickable_item(package_name=move_line.package_id.name, reason=reason)
         unpickable_picking = self.package_one.find_move_lines().picking_id
 
-        self.assertEqual(picking.state, 'confirmed')
-        self.assertEqual(batch.state, 'done')
+        self.assertEqual(picking.state, "confirmed")
+        self.assertEqual(batch.state, "done")
         self.assertIn(unpickable_picking.picking_type_id.id, self.picking_type_investigation_ids)
-        self.assertEqual(unpickable_picking.state, 'assigned')
+        self.assertEqual(unpickable_picking.state, "assigned")
 
     def test_unpickable_item_single_move_line_pallet_of_packages(self):
         """
@@ -1418,15 +1446,14 @@ class TestUnpickableItems(TestStockPickingBatch):
         self.package_one.parent_id = pallet.id
         picking, batch = self._create_valid_batch()
         move_line = picking.move_line_ids[0]
-        reason = 'missing item'
-        batch.unpickable_item(package_name=pallet.name,
-                              reason=reason)
+        reason = "missing item"
+        batch.unpickable_item(package_name=pallet.name, reason=reason)
         unpickable_picking = self.package_one.find_move_lines().picking_id
 
-        self.assertEqual(picking.state, 'confirmed')
-        self.assertEqual(batch.state, 'done')
+        self.assertEqual(picking.state, "confirmed")
+        self.assertEqual(batch.state, "done")
         self.assertIn(unpickable_picking.picking_type_id.id, self.picking_type_investigation_ids)
-        self.assertEqual(unpickable_picking.state, 'assigned')
+        self.assertEqual(unpickable_picking.state, "assigned")
 
     def test_unpickable_item_package_not_found(self):
         """
@@ -1435,17 +1462,17 @@ class TestUnpickableItems(TestStockPickingBatch):
         """
         picking, batch = self._create_valid_batch()
 
-        reason = 'missing item'
+        reason = "missing item"
         package_name = "NOTAPACKAGENAME666"
 
-        self.assertFalse(self.Package.search([('name', '=', package_name)]),
-                         'Package %s already exists' % package_name)
+        self.assertFalse(
+            self.Package.search([("name", "=", package_name)]),
+            "Package %s already exists" % package_name,
+        )
 
-        expected_error = '%s not found for identifier %s' % (self.Package_name, package_name)
-        with self.assertRaisesRegex(ValidationError, expected_error,
-                                    msg='Incorrect error thrown'):
-            batch.unpickable_item(package_name=package_name,
-                                  reason=reason)
+        expected_error = "%s not found for identifier %s" % (self.Package_name, package_name)
+        with self.assertRaisesRegex(ValidationError, expected_error, msg="Incorrect error thrown"):
+            batch.unpickable_item(package_name=package_name, reason=reason)
 
     def test_unpickable_item_wrong_batch(self):
         """
@@ -1454,22 +1481,18 @@ class TestUnpickableItems(TestStockPickingBatch):
         """
         picking, batch = self._create_valid_batch()
         # Create a quant and picking for a different package
-        self.create_quant(self.apple.id, self.test_stock_location_01.id, 4,
-                          package_id=self.package_two.id)
+        self.create_quant(
+            self.apple.id, self.test_stock_location_01.id, 4, package_id=self.package_two.id
+        )
         different_picking = self.create_picking(
-            self.picking_type_pick,
-            products_info=self.pack_4apples_info,
-            confirm=True,
-            assign=True)
+            self.picking_type_pick, products_info=self.pack_4apples_info, confirm=True, assign=True
+        )
         move_line = different_picking.move_line_ids[0]
-        reason = 'missing item'
+        reason = "missing item"
 
-        expected_error = 'Cannot find move lines todo for unpickable item ' \
-                         'in this batch'
-        with self.assertRaisesRegex(ValidationError, expected_error,
-                                    msg='Incorrect error thrown'):
-            batch.unpickable_item(package_name=move_line.package_id.name,
-                                  reason=reason)
+        expected_error = "Cannot find move lines todo for unpickable item " "in this batch"
+        with self.assertRaisesRegex(ValidationError, expected_error, msg="Incorrect error thrown"):
+            batch.unpickable_item(package_name=move_line.package_id.name, reason=reason)
 
     def test_unpickable_item_invalid_state_cancel(self):
         """
@@ -1481,16 +1504,13 @@ class TestUnpickableItems(TestStockPickingBatch):
         # Not ideal but it allows the test to pass.  If we did:
         # picking.action_cancel() it would delete the move_lines which would
         # cause this test to fail incorrectly.
-        picking.state = 'cancel'
+        picking.state = "cancel"
         move_line = picking.move_line_ids[0]
-        reason = 'missing item'
+        reason = "missing item"
 
-        expected_error = 'Cannot find move lines todo for unpickable item ' \
-                         'in this batch'
-        with self.assertRaisesRegex(ValidationError, expected_error,
-                                    msg='Incorrect error thrown'):
-            batch.unpickable_item(package_name=move_line.package_id.name,
-                                  reason=reason)
+        expected_error = "Cannot find move lines todo for unpickable item " "in this batch"
+        with self.assertRaisesRegex(ValidationError, expected_error, msg="Incorrect error thrown"):
+            batch.unpickable_item(package_name=move_line.package_id.name, reason=reason)
 
     def test_unpickable_item_invalid_state_done(self):
         """
@@ -1513,14 +1533,11 @@ class TestUnpickableItems(TestStockPickingBatch):
         self.assertEqual(picking.state, "done")
 
         move_line = picking.move_line_ids[0]
-        reason = 'missing item'
+        reason = "missing item"
 
-        expected_error = 'Cannot find move lines todo for unpickable item ' \
-                         'in this batch'
-        with self.assertRaisesRegex(ValidationError, expected_error,
-                                    msg='Incorrect error thrown'):
-            batch.unpickable_item(package_name=move_line.package_id.name,
-                                  reason=reason)
+        expected_error = "Cannot find move lines todo for unpickable item " "in this batch"
+        with self.assertRaisesRegex(ValidationError, expected_error, msg="Incorrect error thrown"):
+            batch.unpickable_item(package_name=move_line.package_id.name, reason=reason)
 
     def test_unpickable_item_multiple_move_lines_different_packages(self):
         """
@@ -1528,49 +1545,49 @@ class TestUnpickableItems(TestStockPickingBatch):
         move lines on the picking. The original picking should continue to
         have the still pickable product on it.
         """
-        Batch = self.env['stock.picking.batch']
+        Batch = self.env["stock.picking.batch"]
         Batch = Batch.with_user(self.stock_user)
 
-        self.create_quant(self.apple.id, self.test_stock_location_01.id, 4,
-                          package_id=self.package_one.id)
-        self.create_quant(self.banana.id, self.test_stock_location_01.id, 4,
-                          package_id=self.package_two.id)
-        products_info = [{'product': self.apple,
-                          'qty': 4},
-                         {'product': self.banana,
-                          'qty': 4}]
-        picking = self.create_picking(self.picking_type_pick,
-                                      products_info=products_info,
-                                      confirm=True,
-                                      assign=True)
+        self.create_quant(
+            self.apple.id, self.test_stock_location_01.id, 4, package_id=self.package_one.id
+        )
+        self.create_quant(
+            self.banana.id, self.test_stock_location_01.id, 4, package_id=self.package_two.id
+        )
+        products_info = [{"product": self.apple, "qty": 4}, {"product": self.banana, "qty": 4}]
+        picking = self.create_picking(
+            self.picking_type_pick, products_info=products_info, confirm=True, assign=True
+        )
         batch = Batch.create_batch(self.picking_type_pick.id, None)
 
         self.assertTrue(len(picking.move_line_ids) > 1)
         unpickable_move_line = picking.move_line_ids[0]
         unpickable_package = unpickable_move_line.package_id
 
-        reason = 'missing item'
+        reason = "missing item"
 
-        batch.unpickable_item(package_name=unpickable_package.name,
-                              reason=reason)
+        batch.unpickable_item(package_name=unpickable_package.name, reason=reason)
 
         new_picking = unpickable_package.find_move_lines().picking_id
 
         # Because there are other move_line_ids that are still pickable we
         # need to ensure that the original picking is still assigned
-        self.assertEqual(picking.state, 'assigned')
+        self.assertEqual(picking.state, "assigned")
 
         # Check backorder has been created
         self.assertEqual(len(picking.u_created_backorder_ids), 1)
         # Check backorder state
-        self.assertEqual(picking.u_created_backorder_ids.state, 'confirmed')
+        self.assertEqual(picking.u_created_backorder_ids.state, "confirmed")
 
         # Ensure that our unpickable move_line is not in the picking
-        self.assertNotIn(unpickable_move_line, picking.move_line_ids,
-                         'unpickable_move_line has not been removed from picking')
+        self.assertNotIn(
+            unpickable_move_line,
+            picking.move_line_ids,
+            "unpickable_move_line has not been removed from picking",
+        )
 
         # Ensure investigation picking is assigned and with the reason
-        self.assertEqual(new_picking.state, 'assigned')
+        self.assertEqual(new_picking.state, "assigned")
         self.assertEqual(new_picking.group_id.name, reason)
 
         # Check one backorder has been created
@@ -1581,40 +1598,38 @@ class TestUnpickableItems(TestStockPickingBatch):
         Tests that when the unpickable item is available, a new move line
         is added to the picking.
         """
-        Batch = self.env['stock.picking.batch']
+        Batch = self.env["stock.picking.batch"]
         Batch = Batch.with_user(self.stock_user)
 
-        self.create_quant(self.apple.id, self.test_stock_location_01.id, 4,
-                          package_id=self.package_one.id)
-        self.create_quant(self.banana.id, self.test_stock_location_01.id, 4,
-                          package_id=self.package_two.id)
-        self.create_quant(self.apple.id, self.test_stock_location_02.id, 6,
-                          package_id=self.package_three.id)
-        self.create_quant(self.banana.id, self.test_stock_location_02.id, 7,
-                          package_id=self.package_four.id)
+        self.create_quant(
+            self.apple.id, self.test_stock_location_01.id, 4, package_id=self.package_one.id
+        )
+        self.create_quant(
+            self.banana.id, self.test_stock_location_01.id, 4, package_id=self.package_two.id
+        )
+        self.create_quant(
+            self.apple.id, self.test_stock_location_02.id, 6, package_id=self.package_three.id
+        )
+        self.create_quant(
+            self.banana.id, self.test_stock_location_02.id, 7, package_id=self.package_four.id
+        )
 
-        products_info = [{'product': self.apple,
-                          'qty': 4},
-                         {'product': self.banana,
-                          'qty': 4}]
-        picking = self.create_picking(self.picking_type_pick,
-                                      products_info=products_info,
-                                      confirm=True,
-                                      assign=True)
+        products_info = [{"product": self.apple, "qty": 4}, {"product": self.banana, "qty": 4}]
+        picking = self.create_picking(
+            self.picking_type_pick, products_info=products_info, confirm=True, assign=True
+        )
         batch = Batch.create_batch(self.picking_type_pick.id, None)
         num_move_lines = len(picking.move_line_ids)
 
         self.assertTrue(num_move_lines > 1)
         unpickable_move_line = picking.move_line_ids[0]
         unpickable_package = unpickable_move_line.package_id
-        reason = 'missing item'
+        reason = "missing item"
 
-        batch.unpickable_item(package_name=unpickable_package.name,
-                              reason=reason)
+        batch.unpickable_item(package_name=unpickable_package.name, reason=reason)
 
-        self.assertEqual(num_move_lines, len(picking.move_line_ids),
-                         'Number of move lines changed')
-        self.assertEqual(picking.state, 'assigned')
+        self.assertEqual(num_move_lines, len(picking.move_line_ids), "Number of move lines changed")
+        self.assertEqual(picking.state, "assigned")
 
         # Check no backorder has been created
         self.assertEqual(len(picking.u_created_backorder_ids), 0)
@@ -1625,19 +1640,17 @@ class TestUnpickableItems(TestStockPickingBatch):
         that the picking remains in state confirmed and a new picking
         is created of type picking_types
         """
-        self.create_quant(self.apple.id, self.test_stock_location_01.id, 4,
-                          package_id=self.package_one.id)
-        self.create_quant(self.banana.id, self.test_stock_location_01.id, 4,
-                          package_id=self.package_one.id)
-        products_info = [{'product': self.apple,
-                          'qty': 4},
-                         {'product': self.banana,
-                          'qty': 4}]
-        picking = self.create_picking(self.picking_type_pick,
-                                      products_info=products_info,
-                                      confirm=True,
-                                      assign=True)
-        Batch = self.env['stock.picking.batch']
+        self.create_quant(
+            self.apple.id, self.test_stock_location_01.id, 4, package_id=self.package_one.id
+        )
+        self.create_quant(
+            self.banana.id, self.test_stock_location_01.id, 4, package_id=self.package_one.id
+        )
+        products_info = [{"product": self.apple, "qty": 4}, {"product": self.banana, "qty": 4}]
+        picking = self.create_picking(
+            self.picking_type_pick, products_info=products_info, confirm=True, assign=True
+        )
+        Batch = self.env["stock.picking.batch"]
         Batch = Batch.with_user(self.stock_user)
         batch = Batch.create_batch(self.picking_type_pick.id, None)
 
@@ -1645,17 +1658,19 @@ class TestUnpickableItems(TestStockPickingBatch):
         unpickable_move_line = picking.move_line_ids[0]
         unpickable_package = unpickable_move_line.package_id
 
-        reason = 'missing item'
+        reason = "missing item"
 
-        batch.unpickable_item(package_name=unpickable_package.name,
-                              reason=reason)
+        batch.unpickable_item(package_name=unpickable_package.name, reason=reason)
 
-        new_picking = unpickable_package.find_move_lines().mapped('picking_id')
-        self.assertEqual(picking.state, 'confirmed',)
+        new_picking = unpickable_package.find_move_lines().mapped("picking_id")
+        self.assertEqual(
+            picking.state,
+            "confirmed",
+        )
         # Check no backorder has been created
         self.assertEqual(len(picking.u_created_backorder_ids), 0)
 
-        self.assertEqual(new_picking.state, 'assigned')
+        self.assertEqual(new_picking.state, "assigned")
         self.assertEqual(new_picking.group_id.name, reason)
 
     def test_unpickable_item_product_validation_error_missing_location(self):
@@ -1665,29 +1680,27 @@ class TestUnpickableItems(TestStockPickingBatch):
         """
         quant = self.create_quant(self.apple.id, self.test_stock_location_01.id, 4)
 
-        products_info = [{'product': self.apple, 'qty': 1}]
-        picking = self.create_picking(self.picking_type_pick,
-                                      products_info=products_info,
-                                      confirm=True,
-                                      assign=True)
+        products_info = [{"product": self.apple, "qty": 1}]
+        picking = self.create_picking(
+            self.picking_type_pick, products_info=products_info, confirm=True, assign=True
+        )
         # check that only 1 unit of the quant is reserved
         self.assertEqual(quant.reserved_quantity, 1)
 
-        Batch = self.env['stock.picking.batch']
+        Batch = self.env["stock.picking.batch"]
         Batch = Batch.with_user(self.stock_user)
         batch = Batch.create_batch(self.picking_type_pick.id, None)
 
         self.assertIn(picking, batch.picking_ids)
 
-        reason = 'missing item'
+        reason = "missing item"
         move_line = picking.move_line_ids[0]
 
-        expected_error = 'Missing location parameter for unpickable' \
-                         ' product %s' % move_line.product_id.name
-        with self.assertRaisesRegex(ValidationError, expected_error,
-                                    msg='Incorrect error thrown'):
-            batch.unpickable_item(product_id=move_line.product_id.id,
-                                  reason=reason)
+        expected_error = (
+            "Missing location parameter for unpickable" " product %s" % move_line.product_id.name
+        )
+        with self.assertRaisesRegex(ValidationError, expected_error, msg="Incorrect error thrown"):
+            batch.unpickable_item(product_id=move_line.product_id.id, reason=reason)
 
     def test_unpickable_item_product_ok(self):
         """
@@ -1698,30 +1711,29 @@ class TestUnpickableItems(TestStockPickingBatch):
         """
         quant = self.create_quant(self.apple.id, self.test_stock_location_01.id, 4)
 
-        products_info = [{'product': self.apple, 'qty': 1}]
-        picking = self.create_picking(self.picking_type_pick,
-                                      products_info=products_info,
-                                      confirm=True,
-                                      assign=True)
+        products_info = [{"product": self.apple, "qty": 1}]
+        picking = self.create_picking(
+            self.picking_type_pick, products_info=products_info, confirm=True, assign=True
+        )
         # check that only 1 unit of the quant is reserved
         self.assertEqual(quant.reserved_quantity, 1)
 
-        Batch = self.env['stock.picking.batch']
+        Batch = self.env["stock.picking.batch"]
         Batch = Batch.with_user(self.stock_user)
         batch = Batch.create_batch(self.picking_type_pick.id, None)
 
         self.assertIn(picking, batch.picking_ids)
 
-        reason = 'missing item'
+        reason = "missing item"
         move_line = picking.move_line_ids[0]
 
-        batch.unpickable_item(product_id=move_line.product_id.id,
-                              location_id=move_line.location_id.id,
-                              reason=reason)
+        batch.unpickable_item(
+            product_id=move_line.product_id.id, location_id=move_line.location_id.id, reason=reason
+        )
         # after unickable all the quant should be reserved
         self.assertEqual(quant.reserved_quantity, 4)
         # picking state should be confirmed
-        self.assertEqual(picking.state, 'confirmed')
+        self.assertEqual(picking.state, "confirmed")
         # Check no backorder has been created
         self.assertEqual(len(picking.u_created_backorder_ids), 0)
 
@@ -1736,37 +1748,35 @@ class TestUnpickableItems(TestStockPickingBatch):
         quant_apple = self.create_quant(self.apple.id, self.test_stock_location_01.id, 4)
         quant_banana = self.create_quant(self.banana.id, self.test_stock_location_01.id, 3)
 
-        products_info = [{'product': self.apple, 'qty': 1},
-                         {'product': self.banana, 'qty': 2}]
-        picking = self.create_picking(self.picking_type_pick,
-                                      products_info=products_info,
-                                      confirm=True,
-                                      assign=True)
+        products_info = [{"product": self.apple, "qty": 1}, {"product": self.banana, "qty": 2}]
+        picking = self.create_picking(
+            self.picking_type_pick, products_info=products_info, confirm=True, assign=True
+        )
         # check that only 1 unit of the quant is reserved
         self.assertEqual(quant_apple.reserved_quantity, 1)
         self.assertEqual(quant_banana.reserved_quantity, 2)
 
-        Batch = self.env['stock.picking.batch']
+        Batch = self.env["stock.picking.batch"]
         Batch = Batch.with_user(self.stock_user)
         batch = Batch.create_batch(self.picking_type_pick.id, None)
 
         self.assertIn(picking, batch.picking_ids)
 
-        reason = 'missing item'
+        reason = "missing item"
         move_line = picking.move_line_ids[0]
 
-        batch.unpickable_item(product_id=move_line.product_id.id,
-                              location_id=move_line.location_id.id,
-                              reason=reason)
+        batch.unpickable_item(
+            product_id=move_line.product_id.id, location_id=move_line.location_id.id, reason=reason
+        )
         # after unickable all the quant should be reserved
         self.assertEqual(quant_apple.reserved_quantity, 4)
         # picking state should be assigned
-        self.assertEqual(picking.state, 'assigned')
+        self.assertEqual(picking.state, "assigned")
 
         # Check one backorder has been created
         self.assertEqual(len(picking.u_created_backorder_ids), 1)
         # Check backorder state
-        self.assertEqual(picking.u_created_backorder_ids.state, 'confirmed')
+        self.assertEqual(picking.u_created_backorder_ids.state, "confirmed")
 
     def test_unpickable_item_product_ok_multiple_lines(self):
         """
@@ -1780,12 +1790,10 @@ class TestUnpickableItems(TestStockPickingBatch):
         quant_apple_2 = self.create_quant(self.apple.id, self.test_stock_location_02.id, 4)
         quant_banana_2 = self.create_quant(self.banana.id, self.test_stock_location_02.id, 3)
 
-        products_info = [{'product': self.apple, 'qty': 1},
-                         {'product': self.banana, 'qty': 2}]
-        picking = self.create_picking(self.picking_type_pick,
-                                      products_info=products_info,
-                                      confirm=True,
-                                      assign=True)
+        products_info = [{"product": self.apple, "qty": 1}, {"product": self.banana, "qty": 2}]
+        picking = self.create_picking(
+            self.picking_type_pick, products_info=products_info, confirm=True, assign=True
+        )
 
         # determine what was the quant the system did reserve
         reserved_quant_apple = None
@@ -1796,55 +1804,57 @@ class TestUnpickableItems(TestStockPickingBatch):
         if quant_apple_1.reserved_quantity == 1:
             reserved_quant_apple = quant_apple_1
             unreserved_quant_apple = quant_apple_2
-            self.assertTrue(quant_apple_2.reserved_quantity == 0,
-                            'Both apple quants reserved')
+            self.assertTrue(quant_apple_2.reserved_quantity == 0, "Both apple quants reserved")
         elif quant_apple_2.reserved_quantity == 1:
             reserved_quant_apple = quant_apple_2
             unreserved_quant_apple = quant_apple_1
-            self.assertTrue(quant_apple_1.reserved_quantity == 0,
-                            'Both apple quants reserved')
+            self.assertTrue(quant_apple_1.reserved_quantity == 0, "Both apple quants reserved")
         else:
-            self.assertTrue(False, 'No apple quant reserved')
+            self.assertTrue(False, "No apple quant reserved")
 
         if quant_banana_1.reserved_quantity == 2:
             reserved_quant_banana = quant_banana_1
             unreserved_quant_banana = quant_banana_2
-            self.assertTrue(quant_banana_2.reserved_quantity == 0,
-                            'Both banana quants reserved')
+            self.assertTrue(quant_banana_2.reserved_quantity == 0, "Both banana quants reserved")
         elif quant_banana_2.reserved_quantity == 2:
             reserved_quant_banana = quant_banana_2
             unreserved_quant_banana = quant_banana_1
-            self.assertTrue(quant_banana_1.reserved_quantity == 0,
-                            'Both banana quants reserved')
+            self.assertTrue(quant_banana_1.reserved_quantity == 0, "Both banana quants reserved")
         else:
-            self.assertTrue(False, 'No banana quant reserved')
+            self.assertTrue(False, "No banana quant reserved")
 
-        Batch = self.env['stock.picking.batch']
+        Batch = self.env["stock.picking.batch"]
         Batch = Batch.with_user(self.stock_user)
         batch = Batch.create_batch(self.picking_type_pick.id, None)
 
         self.assertIn(picking, batch.picking_ids)
 
-        reason = 'missing item'
+        reason = "missing item"
         move_line = picking.move_line_ids[0]
 
-        batch.unpickable_item(product_id=move_line.product_id.id,
-                              location_id=move_line.location_id.id,
-                              reason=reason)
+        batch.unpickable_item(
+            product_id=move_line.product_id.id, location_id=move_line.location_id.id, reason=reason
+        )
 
         # after unpickable all the unpickable apple quant should be reserved
-        self.assertTrue(reserved_quant_apple.reserved_quantity == 4,
-                        'Not all the apple has been reserved for investigation')
+        self.assertTrue(
+            reserved_quant_apple.reserved_quantity == 4,
+            "Not all the apple has been reserved for investigation",
+        )
         # and the other apple quant will be used for the picking
-        self.assertTrue(unreserved_quant_apple.reserved_quantity == 1,
-                        'Not all the apple has been reserved for investigation')
+        self.assertTrue(
+            unreserved_quant_apple.reserved_quantity == 1,
+            "Not all the apple has been reserved for investigation",
+        )
         # whilt the banana quants shouldn't change
-        self.assertTrue(reserved_quant_banana.reserved_quantity == 2,
-                        'The banana quant unexpectedly changed')
-        self.assertTrue(unreserved_quant_banana.reserved_quantity == 0,
-                        'The banana quant unexpectedly changed')
+        self.assertTrue(
+            reserved_quant_banana.reserved_quantity == 2, "The banana quant unexpectedly changed"
+        )
+        self.assertTrue(
+            unreserved_quant_banana.reserved_quantity == 0, "The banana quant unexpectedly changed"
+        )
         # picking state should be assigned
-        self.assertEqual(picking.state, 'assigned')
+        self.assertEqual(picking.state, "assigned")
         # no backorder has been created
         self.assertEqual(len(picking.u_created_backorder_ids), 0)
 
@@ -1860,42 +1870,40 @@ class TestUnpickableItems(TestStockPickingBatch):
                  an available quantity of 2, so when unpickable of one
                  of the pickings will create an investigation of 3.
         """
-        Picking = self.env['stock.picking']
-        Batch = self.env['stock.picking.batch']
+        Picking = self.env["stock.picking"]
+        Batch = self.env["stock.picking.batch"]
         Batch = Batch.with_user(self.stock_user)
 
         quant = self.create_quant(self.apple.id, self.test_stock_location_01.id, 4)
 
-        products_info = [{'product': self.apple, 'qty': 1}]
-        picking = self.create_picking(self.picking_type_pick,
-                                      products_info=products_info,
-                                      confirm=True,
-                                      assign=True)
+        products_info = [{"product": self.apple, "qty": 1}]
+        picking = self.create_picking(
+            self.picking_type_pick, products_info=products_info, confirm=True, assign=True
+        )
         # check that only 1 unit of the quant is reserved
         self.assertEqual(quant.reserved_quantity, 1)
 
         # Create batch now to avoid picking 2 being pulled in
         batch = Batch.create_batch(self.picking_type_pick.id, None)
 
-        self.create_picking(self.picking_type_pick,
-                            products_info=products_info,
-                            confirm=True,
-                            assign=True)
+        self.create_picking(
+            self.picking_type_pick, products_info=products_info, confirm=True, assign=True
+        )
         # check that now 2 units of the quant are reserved
         self.assertEqual(quant.reserved_quantity, 2)
 
         self.assertIn(picking, batch.picking_ids)
 
-        reason = 'missing item'
+        reason = "missing item"
         move_line = picking.move_line_ids[0]
 
-        batch.unpickable_item(product_id=move_line.product_id.id,
-                              location_id=move_line.location_id.id,
-                              reason=reason)
+        batch.unpickable_item(
+            product_id=move_line.product_id.id, location_id=move_line.location_id.id, reason=reason
+        )
         # after unpickable all the quant should be reserved
         self.assertEqual(quant.reserved_quantity, 4)
         # picking state should be confirmed
-        self.assertEqual(picking.state, 'confirmed')
+        self.assertEqual(picking.state, "confirmed")
         # Check no backorder has been created
         self.assertEqual(len(picking.u_created_backorder_ids), 0)
         # check that the investigation has reserved 3 only
@@ -1916,22 +1924,20 @@ class TestUnpickableItems(TestStockPickingBatch):
                  in the batch, leaves an available quantity of 2, so when
                  unpickable of one of the pickings will create an investigation of 4.
         """
-        Picking = self.env['stock.picking']
-        Batch = self.env['stock.picking.batch']
+        Picking = self.env["stock.picking"]
+        Batch = self.env["stock.picking.batch"]
         Batch = Batch.with_user(self.stock_user)
 
         quant = self.create_quant(self.apple.id, self.test_stock_location_01.id, 4)
 
-        products_info = [{'product': self.apple, 'qty': 1}]
-        picking = self.create_picking(self.picking_type_pick,
-                                      products_info=products_info,
-                                      confirm=True,
-                                      assign=True)
+        products_info = [{"product": self.apple, "qty": 1}]
+        picking = self.create_picking(
+            self.picking_type_pick, products_info=products_info, confirm=True, assign=True
+        )
 
-        picking_2 = self.create_picking(self.picking_type_pick,
-                                        products_info=products_info,
-                                        confirm=True,
-                                        assign=True)
+        picking_2 = self.create_picking(
+            self.picking_type_pick, products_info=products_info, confirm=True, assign=True
+        )
         pickings = picking | picking_2
         # check that now 2 units of the quant are reserved
         self.assertEqual(quant.reserved_quantity, 2)
@@ -1941,18 +1947,18 @@ class TestUnpickableItems(TestStockPickingBatch):
         batch.add_extra_pickings(self.picking_type_pick.id)
         self.assertEqual(pickings, batch.picking_ids)
 
-        reason = 'missing item'
+        reason = "missing item"
         move_line = picking.move_line_ids[0]
 
-        batch.unpickable_item(product_id=move_line.product_id.id,
-                              location_id=move_line.location_id.id,
-                              reason=reason)
+        batch.unpickable_item(
+            product_id=move_line.product_id.id, location_id=move_line.location_id.id, reason=reason
+        )
         # after unpickable all the quant should be reserved
         self.assertEqual(quant.reserved_quantity, 4)
         # picking state should be confirmed
-        self.assertEqual(pickings.mapped('state'), ['confirmed', 'confirmed'])
+        self.assertEqual(pickings.mapped("state"), ["confirmed", "confirmed"])
         # Check no backorder has been created
-        self.assertEqual(len(pickings.filtered('u_created_backorder_ids')), 0)
+        self.assertEqual(len(pickings.filtered("u_created_backorder_ids")), 0)
         # check that the investigation has reserved 4
         inv_picking = Picking.search(self.picking_type_investigation_expression)
         self.assertEqual(len(inv_picking), 1)
@@ -1972,46 +1978,43 @@ class TestUnpickableItems(TestStockPickingBatch):
                  when unpickable of one of the pickings will create an
                  investigation of 3.
         """
-        Picking = self.env['stock.picking']
-        Batch = self.env['stock.picking.batch']
+        Picking = self.env["stock.picking"]
+        Batch = self.env["stock.picking.batch"]
         Batch = Batch.with_user(self.stock_user)
 
         quant = self.create_quant(self.apple.id, self.test_stock_location_01.id, 4)
 
-        products_info = [{'product': self.apple, 'qty': 1}]
-        picking = self.create_picking(self.picking_type_pick,
-                                      products_info=products_info,
-                                      confirm=True,
-                                      assign=True)
+        products_info = [{"product": self.apple, "qty": 1}]
+        picking = self.create_picking(
+            self.picking_type_pick, products_info=products_info, confirm=True, assign=True
+        )
 
-        picking_2 = self.create_picking(self.picking_type_pick,
-                                        products_info=products_info,
-                                        confirm=True,
-                                        assign=True)
+        picking_2 = self.create_picking(
+            self.picking_type_pick, products_info=products_info, confirm=True, assign=True
+        )
         pickings = picking | picking_2
         batch = Batch.create_batch(self.picking_type_pick.id, None)
         batch.add_extra_pickings(self.picking_type_pick.id)
         self.assertEqual(pickings, batch.picking_ids)
 
-        self.create_picking(self.picking_type_pick,
-                            products_info=products_info,
-                            confirm=True,
-                            assign=True)
+        self.create_picking(
+            self.picking_type_pick, products_info=products_info, confirm=True, assign=True
+        )
         # check that now 3 units of the quant are reserved
         self.assertEqual(quant.reserved_quantity, 3)
 
-        reason = 'missing item'
+        reason = "missing item"
         move_line = picking.move_line_ids[0]
 
-        batch.unpickable_item(product_id=move_line.product_id.id,
-                              location_id=move_line.location_id.id,
-                              reason=reason)
+        batch.unpickable_item(
+            product_id=move_line.product_id.id, location_id=move_line.location_id.id, reason=reason
+        )
         # after unpickable all the quant should be reserved
         self.assertEqual(quant.reserved_quantity, 4)
         # picking state should be confirmed
-        self.assertEqual(pickings.mapped('state'), ['confirmed', 'confirmed'])
+        self.assertEqual(pickings.mapped("state"), ["confirmed", "confirmed"])
         # Check no backorder has been created
-        self.assertEqual(len(pickings.filtered('u_created_backorder_ids')), 0)
+        self.assertEqual(len(pickings.filtered("u_created_backorder_ids")), 0)
         # check that the investigation has reserved 3 only
         inv_picking = Picking.search(self.picking_type_investigation_expression)
         self.assertEqual(len(inv_picking), 1)
@@ -2024,25 +2027,25 @@ class TestUnpickableItems(TestStockPickingBatch):
         of which also includes a line for another product, preserves the move
         for the pickable product.
         """
-        Picking = self.env['stock.picking']
-        Batch = self.env['stock.picking.batch']
+        Picking = self.env["stock.picking"]
+        Batch = self.env["stock.picking.batch"]
         Batch = Batch.with_user(self.stock_user)
 
         quant = self.create_quant(self.apple.id, self.test_stock_location_01.id, 4)
         mixed_quant = self.create_quant(self.banana.id, self.test_stock_location_01.id, 4)
 
-        products_info = [{'product': self.apple, 'qty': 1}]
-        picking = self.create_picking(self.picking_type_pick,
-                                      products_info=products_info,
-                                      confirm=True,
-                                      assign=True)
+        products_info = [{"product": self.apple, "qty": 1}]
+        picking = self.create_picking(
+            self.picking_type_pick, products_info=products_info, confirm=True, assign=True
+        )
 
-        mixed_products_info = [{'product': self.apple, 'qty': 1},
-                               {'product': self.banana, 'qty': 1}]
-        mixed_picking = self.create_picking(self.picking_type_pick,
-                                            products_info=mixed_products_info,
-                                            confirm=True,
-                                            assign=True)
+        mixed_products_info = [
+            {"product": self.apple, "qty": 1},
+            {"product": self.banana, "qty": 1},
+        ]
+        mixed_picking = self.create_picking(
+            self.picking_type_pick, products_info=mixed_products_info, confirm=True, assign=True
+        )
         pickings = picking | mixed_picking
         # check that now 2 units of the quant are reserved
         self.assertEqual(quant.reserved_quantity, 2)
@@ -2054,23 +2057,23 @@ class TestUnpickableItems(TestStockPickingBatch):
         batch.add_extra_pickings(self.picking_type_pick.id)
         self.assertEqual(pickings, batch.picking_ids)
 
-        reason = 'missing item'
+        reason = "missing item"
         move_line = picking.move_line_ids[0]
 
-        batch.unpickable_item(product_id=move_line.product_id.id,
-                              location_id=move_line.location_id.id,
-                              reason=reason)
+        batch.unpickable_item(
+            product_id=move_line.product_id.id, location_id=move_line.location_id.id, reason=reason
+        )
         # after unpickable all the quant should be reserved
         self.assertEqual(quant.reserved_quantity, 4)
         # Check batch contains banana picking
         self.assertEqual(len(batch.picking_ids), 1)
-        self.assertEqual(batch.picking_ids.mapped('product_id'), self.banana)
+        self.assertEqual(batch.picking_ids.mapped("product_id"), self.banana)
         # Check original picking states
-        self.assertEqual(pickings.mapped('state'), ['confirmed', 'assigned'])
+        self.assertEqual(pickings.mapped("state"), ["confirmed", "assigned"])
         # Check banana picking is assigned
-        self.assertEqual(batch.picking_ids.mapped('state'), ['assigned'])
+        self.assertEqual(batch.picking_ids.mapped("state"), ["assigned"])
         # Check backorder has been created
-        self.assertEqual(len(pickings.filtered('u_created_backorder_ids')), 1)
+        self.assertEqual(len(pickings.filtered("u_created_backorder_ids")), 1)
         # check that the investigation has reserved 4
         inv_picking = Picking.search(self.picking_type_investigation_expression)
         self.assertEqual(len(inv_picking), 1)
@@ -2078,7 +2081,7 @@ class TestUnpickableItems(TestStockPickingBatch):
         self.assertEqual(inv_picking.move_line_ids.product_qty, 4)
 
     def _assert_apple_banana_pickings(
-            self, pickings, num_pickings, state, move_list_qty, package_list=None
+        self, pickings, num_pickings, state, move_list_qty, package_list=None
     ):
         """
         Helper to avoid repeated asserts
@@ -2126,7 +2129,7 @@ class TestUnpickableItems(TestStockPickingBatch):
         apple_packages = [self.create_package() for i in range(4)]
         banana_packages = [self.create_package() for i in range(4)]
         for qty, (apple_package, banana_package) in enumerate(
-                zip(apple_packages, banana_packages), start=1
+            zip(apple_packages, banana_packages), start=1
         ):
             self.create_quant(
                 self.apple.id, self.test_stock_location_01.id, qty, package_id=apple_package.id
@@ -2168,8 +2171,8 @@ class TestUnpickableItems(TestStockPickingBatch):
         self.assertEqual(banana_picking.batch_id, batch)
         self.assertTrue(batch.state, "in progress")
         for reason, package in zip(
-                2 * ["damaged", "missing item", "missing item"],
-                apple_packages[:-1] + banana_packages[:-1],
+            2 * ["damaged", "missing item", "missing item"],
+            apple_packages[:-1] + banana_packages[:-1],
         ):
             batch.unpickable_item(
                 reason=reason, package_name=package.name, raise_stock_investigation=True
@@ -2234,231 +2237,234 @@ class TestUnpickableItems(TestStockPickingBatch):
 
 
 class TestPickingBatchDisabledUnpickableItems(common.BaseUDES):
-
     @classmethod
     def setUpClass(cls):
         super(TestPickingBatchDisabledUnpickableItems, cls).setUpClass()
-        cls.pack_4apples_info = [{'product': cls.apple, 'qty': 4}]
+        cls.pack_4apples_info = [{"product": cls.apple, "qty": 4}]
         # disable unpickable items by default
         cls.picking_type_pick.u_enable_unpickable_items = False
-        cls.stock_user = cls.create_user("stock user", "stock user", groups_id = [(6, 0, [cls.env.ref("stock.group_stock_user").id])])
+        cls.stock_user = cls.create_user(
+            "stock user",
+            "stock user",
+            groups_id=[(6, 0, [cls.env.ref("stock.group_stock_user").id])],
+        )
 
     def setUp(self):
         super(TestPickingBatchDisabledUnpickableItems, self).setUp()
         self.package_one = self.create_package(name="00001")
 
     def _create_valid_batch(self):
-        Batch = self.env['stock.picking.batch']
+        Batch = self.env["stock.picking.batch"]
         Batch = Batch.with_user(self.stock_user)
 
-        self.create_quant(self.apple.id, self.test_stock_location_01.id, 4,
-                          package_id=self.package_one.id)
-        picking = self.create_picking(self.picking_type_pick,
-                                      products_info=self.pack_4apples_info,
-                                      confirm=True,
-                                      assign=True)
+        self.create_quant(
+            self.apple.id, self.test_stock_location_01.id, 4, package_id=self.package_one.id
+        )
+        picking = self.create_picking(
+            self.picking_type_pick, products_info=self.pack_4apples_info, confirm=True, assign=True
+        )
         return picking, Batch.create_batch(self.picking_type_pick.id, None)
 
     def test_disabled_unpickable_item_single_move_line_success_default_type(self):
-        """ Raise an error when unpickable items is not enabled, and
-            everything remains the same.
+        """Raise an error when unpickable items is not enabled, and
+        everything remains the same.
         """
         picking, batch = self._create_valid_batch()
         move_line = picking.move_line_ids[0]
-        reason = 'missing item'
-        expected_error = 'This type of operation cannot handle unpickable ' \
-                         'items. Please, contact your team leader to resolve ' \
-                         'the issue. Press back when resolved.'
-        with self.assertRaisesRegex(ValidationError, expected_error,
-                                    msg='Incorrect error thrown'):
-            batch.unpickable_item(package_name=move_line.package_id.name,
-                                  reason=reason)
+        reason = "missing item"
+        expected_error = (
+            "This type of operation cannot handle unpickable "
+            "items. Please, contact your team leader to resolve "
+            "the issue. Press back when resolved."
+        )
+        with self.assertRaisesRegex(ValidationError, expected_error, msg="Incorrect error thrown"):
+            batch.unpickable_item(package_name=move_line.package_id.name, reason=reason)
         package_picking = self.package_one.find_move_lines().picking_id
         self.assertEqual(package_picking, picking)
 
 
 class TestMultipleOrders(common.BaseUDES):
-
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.pack_4apples_info = [{'product': cls.apple,
-                                  'qty': 4}]
-        cls.pack_4bananas_info = [{'product': cls.banana,
-                                   'qty': 4}]
+        cls.pack_4apples_info = [{"product": cls.apple, "qty": 4}]
+        cls.pack_4bananas_info = [{"product": cls.banana, "qty": 4}]
 
-        cls.create_quant(cls.apple.id,
-                         cls.test_stock_location_01.id,
-                         300,
-                         package_id=cls.create_package().id)
-        cls.create_quant(cls.banana.id,
-                         cls.test_stock_location_02.id,
-                         300,
-                         package_id=cls.create_package().id)
+        cls.create_quant(
+            cls.apple.id, cls.test_stock_location_01.id, 300, package_id=cls.create_package().id
+        )
+        cls.create_quant(
+            cls.banana.id, cls.test_stock_location_02.id, 300, package_id=cls.create_package().id
+        )
 
         cls.picking_type_pick.u_reserve_pallet_per_picking = True
 
-        cls.stock_user = cls.create_user("stock user", "stock user", groups_id = [(6, 0, [cls.env.ref("stock.group_stock_user").id])])
+        cls.stock_user = cls.create_user(
+            "stock user",
+            "stock user",
+            groups_id=[(6, 0, [cls.env.ref("stock.group_stock_user").id])],
+        )
 
     def create_batch(self, user=None, **kwargs):
         return super().create_batch(user=user, u_ephemeral=True, **kwargs)
 
     def create_batch_with_picking(self):
         batch = self.create_batch(user=self.stock_user)
-        self.create_picking(self.picking_type_pick,
-                            products_info=self.pack_4apples_info,
-                            confirm=True,
-                            assign=True,
-                            batch_id=batch.id)
+        self.create_picking(
+            self.picking_type_pick,
+            products_info=self.pack_4apples_info,
+            confirm=True,
+            assign=True,
+            batch_id=batch.id,
+        )
         batch.mark_as_todo()
         return batch
 
     def complete_pick(self, picking):
         for move in picking.move_lines:
-            move.write({
-                'quantity_done': move.product_uom_qty,
-                'location_dest_id': self.test_goodsout_location_01.id,
-            })
+            move.write(
+                {
+                    "quantity_done": move.product_uom_qty,
+                    "location_dest_id": self.test_goodsout_location_01.id,
+                }
+            )
 
     def test_associates_pallet_with_initial_batch_picking(self):
         batch = self.create_batch_with_picking()
         picking = batch.picking_ids
-        batch.reserve_pallet('UDES11111', picking=picking)
+        batch.reserve_pallet("UDES11111", picking=picking)
 
-        self.assertEqual(picking.u_reserved_pallet, 'UDES11111')
+        self.assertEqual(picking.u_reserved_pallet, "UDES11111")
 
     def test_associates_pallets_with_respective_pickings(self):
         batch = self.create_batch_with_picking()
         picking1 = batch.picking_ids
-        batch.reserve_pallet('UDES11111', picking=picking1)
-        picking2 = self.create_picking(self.picking_type_pick,
-                                       products_info=self.pack_4bananas_info,
-                                       confirm=True,
-                                       assign=True)
+        batch.reserve_pallet("UDES11111", picking=picking1)
+        picking2 = self.create_picking(
+            self.picking_type_pick, products_info=self.pack_4bananas_info, confirm=True, assign=True
+        )
         batch.add_extra_pickings(self.picking_type_pick.id)
-        batch.reserve_pallet('UDES11112', picking=picking2)
+        batch.reserve_pallet("UDES11112", picking=picking2)
 
-        self.assertEqual(sorted(batch.mapped('picking_ids.u_reserved_pallet')), ['UDES11111', 'UDES11112'])
+        self.assertEqual(
+            sorted(batch.mapped("picking_ids.u_reserved_pallet")), ["UDES11111", "UDES11112"]
+        )
 
     def test_raises_error_on_reservation_conflict_different_batch(self):
         batch1 = self.create_batch_with_picking()
         picking1 = batch1.picking_ids
-        batch1.reserve_pallet('UDES11111', picking=picking1)
-        picking2 = self.create_picking(self.picking_type_pick,
-                                       products_info=self.pack_4bananas_info,
-                                       confirm=True,
-                                       assign=True)
+        batch1.reserve_pallet("UDES11111", picking=picking1)
+        picking2 = self.create_picking(
+            self.picking_type_pick, products_info=self.pack_4bananas_info, confirm=True, assign=True
+        )
         batch1.add_extra_pickings(self.picking_type_pick.id)
-        batch1.reserve_pallet('UDES11112', picking=picking2)
+        batch1.reserve_pallet("UDES11112", picking=picking2)
         batch2 = self.create_batch_with_picking()
         picking3 = batch2.picking_ids
 
-        expected_error = 'This pallet is already being used for picking %s.' % \
-                         picking1.name
+        expected_error = "This pallet is already being used for picking %s." % picking1.name
 
-        with self.assertRaisesRegex(ValidationError, expected_error,
-                                    msg='Incorrect error thrown'):
-            batch2.reserve_pallet('UDES11111', picking=picking3)
+        with self.assertRaisesRegex(ValidationError, expected_error, msg="Incorrect error thrown"):
+            batch2.reserve_pallet("UDES11111", picking=picking3)
 
     def test_raises_error_on_reservation_conflict_same_batch(self):
         batch = self.create_batch_with_picking()
         picking1 = batch.picking_ids
-        batch.reserve_pallet('UDES11111', picking=picking1)
+        batch.reserve_pallet("UDES11111", picking=picking1)
 
-        picking2 = self.create_picking(self.picking_type_pick,
-                                       products_info=self.pack_4bananas_info,
-                                       confirm=True,
-                                       assign=True)
+        picking2 = self.create_picking(
+            self.picking_type_pick, products_info=self.pack_4bananas_info, confirm=True, assign=True
+        )
         batch.add_extra_pickings(self.picking_type_pick.id)
-        expected_error = 'This pallet is already being used for picking %s.' % \
-                         picking1.name
+        expected_error = "This pallet is already being used for picking %s." % picking1.name
 
-        with self.assertRaisesRegex(ValidationError, expected_error,
-                                    msg='Incorrect error thrown'):
-            batch.reserve_pallet('UDES11111', picking=picking2)
+        with self.assertRaisesRegex(ValidationError, expected_error, msg="Incorrect error thrown"):
+            batch.reserve_pallet("UDES11111", picking=picking2)
 
     def test_raises_exception_if_picking_is_not_in_batch(self):
         batch = self.create_batch_with_picking()
         picking1 = batch.picking_ids
-        batch.reserve_pallet('UDES11111', picking=picking1)
-        picking2 = self.create_picking(self.picking_type_pick,
-                                       products_info=self.pack_4bananas_info,
-                                       confirm=True,
-                                       assign=True)
-        expected_error = 'Picking %s is not in batch %s.' % \
-                         (picking2.name, batch.name)
+        batch.reserve_pallet("UDES11111", picking=picking1)
+        picking2 = self.create_picking(
+            self.picking_type_pick, products_info=self.pack_4bananas_info, confirm=True, assign=True
+        )
+        expected_error = "Picking %s is not in batch %s." % (picking2.name, batch.name)
 
-        with self.assertRaisesRegex(ValidationError, expected_error,
-                                    msg='Incorrect error thrown'):
-            batch.reserve_pallet('UDES11112', picking=picking2)
+        with self.assertRaisesRegex(ValidationError, expected_error, msg="Incorrect error thrown"):
+            batch.reserve_pallet("UDES11112", picking=picking2)
 
     def test_raises_exception_if_no_picking_provided(self):
         batch = self.create_batch_with_picking()
-        expected_error = 'A picking must be specified if pallets are reserved per picking.'
+        expected_error = "A picking must be specified if pallets are reserved per picking."
 
-        with self.assertRaisesRegex(ValidationError, expected_error,
-                                    msg='Incorrect error thrown'):
-            batch.reserve_pallet('UDES11111')
+        with self.assertRaisesRegex(ValidationError, expected_error, msg="Incorrect error thrown"):
+            batch.reserve_pallet("UDES11111")
 
     def test_clears_reserved_pallet_on_dropoff(self):
-        Batch = self.env['stock.picking.batch']
+        Batch = self.env["stock.picking.batch"]
         Batch = Batch.with_user(self.stock_user)
 
         batch = self.create_batch_with_picking()
         picking = batch.picking_ids
-        batch.reserve_pallet('UDES11111', picking=picking)
+        batch.reserve_pallet("UDES11111", picking=picking)
         self.complete_pick(picking)
 
-        self.assertEqual(sorted(batch.mapped('picking_ids.u_reserved_pallet')), ['UDES11111'])
-        batch.drop_off_picked(continue_batch=False,
-                              move_line_ids=picking.move_line_ids.ids,
-                              location_barcode=self.test_goodsout_location_01.name, result_package_name=None)
+        self.assertEqual(sorted(batch.mapped("picking_ids.u_reserved_pallet")), ["UDES11111"])
+        batch.drop_off_picked(
+            continue_batch=False,
+            move_line_ids=picking.move_line_ids.ids,
+            location_barcode=self.test_goodsout_location_01.name,
+            result_package_name=None,
+        )
 
-        self.assertEqual(sorted(batch.mapped('picking_ids.u_reserved_pallet')), [False])
+        self.assertEqual(sorted(batch.mapped("picking_ids.u_reserved_pallet")), [False])
 
     def test_raises_exception_if_maximum_reservable_pallets_exceeded(self):
         self.picking_type_pick.u_max_reservable_pallets = 1
 
         batch = self.create_batch_with_picking()
         picking = batch.picking_ids
-        batch.reserve_pallet('UDES11111', picking=picking)
+        batch.reserve_pallet("UDES11111", picking=picking)
 
-        self.create_picking(self.picking_type_pick,
-                            products_info=self.pack_4bananas_info,
-                            confirm=True,
-                            assign=True)
-        expected_error = 'Only %d pallets may be reserved at a time.' % self.picking_type_pick.u_max_reservable_pallets
+        self.create_picking(
+            self.picking_type_pick, products_info=self.pack_4bananas_info, confirm=True, assign=True
+        )
+        expected_error = (
+            "Only %d pallets may be reserved at a time."
+            % self.picking_type_pick.u_max_reservable_pallets
+        )
 
-        with self.assertRaisesRegex(ValidationError, expected_error,
-                                    msg='Incorrect error thrown'):
+        with self.assertRaisesRegex(ValidationError, expected_error, msg="Incorrect error thrown"):
             batch.add_extra_pickings(self.picking_type_pick.id)
 
     def test_raises_exception_if_batch_created_with_more_than_max_reservable_pallets(self):
-        Batch = self.env['stock.picking.batch']
+        Batch = self.env["stock.picking.batch"]
 
         self.picking_type_pick.u_max_reservable_pallets = 1
 
-        pickings = self.create_picking(self.picking_type_pick,
-                                       products_info=self.pack_4apples_info,
-                                       confirm=True,
-                                       assign=True)
-        pickings |= self.create_picking(self.picking_type_pick,
-                                        products_info=self.pack_4bananas_info,
-                                        confirm=True,
-                                        assign=True)
-        expected_error = 'Only %d pallets may be reserved at a time.' % self.picking_type_pick.u_max_reservable_pallets
+        pickings = self.create_picking(
+            self.picking_type_pick, products_info=self.pack_4apples_info, confirm=True, assign=True
+        )
+        pickings |= self.create_picking(
+            self.picking_type_pick, products_info=self.pack_4bananas_info, confirm=True, assign=True
+        )
+        expected_error = (
+            "Only %d pallets may be reserved at a time."
+            % self.picking_type_pick.u_max_reservable_pallets
+        )
 
-        with self.assertRaisesRegex(ValidationError, expected_error,
-                                    msg='Incorrect error thrown'):
-            Batch.create_batch(picking_type_id=None,
-                               picking_priorities=[],
-                               user_id=self.stock_user.id,
-                               picking_id=pickings.ids)
+        with self.assertRaisesRegex(ValidationError, expected_error, msg="Incorrect error thrown"):
+            Batch.create_batch(
+                picking_type_id=None,
+                picking_priorities=[],
+                user_id=self.stock_user.id,
+                picking_id=pickings.ids,
+            )
 
     def test_resets_reserved_pallet_when_closing_batch(self):
         batch = self.create_batch_with_picking()
         picking = batch.picking_ids
-        batch.reserve_pallet('UDES11111', picking=picking)
+        batch.reserve_pallet("UDES11111", picking=picking)
 
         batch.close()
 
@@ -2467,7 +2473,7 @@ class TestMultipleOrders(common.BaseUDES):
     def test_resets_reserved_pallet_when_removing_unfinished_work(self):
         batch = self.create_batch_with_picking()
         picking = batch.picking_ids
-        batch.reserve_pallet('UDES11111', picking=picking)
+        batch.reserve_pallet("UDES11111", picking=picking)
 
         batch.remove_unfinished_work()
 
@@ -2478,11 +2484,10 @@ class TestMultipleOrders(common.BaseUDES):
 
         batch = self.create_batch_with_picking()
         picking = batch.picking_ids
-        batch.reserve_pallet('UDES11111', picking=picking)
+        batch.reserve_pallet("UDES11111", picking=picking)
         move_line = picking.move_line_ids[0]
-        reason = 'missing item'
+        reason = "missing item"
 
-        batch.unpickable_item(package_name=move_line.package_id.name,
-                              reason=reason)
+        batch.unpickable_item(package_name=move_line.package_id.name, reason=reason)
 
         self.assertFalse(picking.u_reserved_pallet)
