@@ -6,7 +6,11 @@ class TestUserAssignments(common.BaseUDES):
     def setUpClass(cls):
         super().setUpClass()
 
-        cls.stock_user = cls.create_user("stock user", "stock user", groups_id = [(6, 0, [cls.env.ref("stock.group_stock_user").id])])
+        cls.stock_user = cls.create_user(
+            "stock user",
+            "stock user",
+            groups_id=[(6, 0, [cls.env.ref("stock.group_stock_user").id])],
+        )
         cls.stock_user_2 = cls.stock_user.copy(
             {"name": "Stock User 2", "login": "stock_user_2_login"}
         )
