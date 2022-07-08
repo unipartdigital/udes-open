@@ -27,8 +27,8 @@ class TestBatchState(common.BaseUDES):
             cls.picking_type_pick, products_info=cls.pack_4apples_info, confirm=True
         )
 
-        # TODO - Fix to be outbound user when users are implemented
-        cls.outbound_user = cls.env.user
+        cls.stock_user = cls.create_user("stock user", "stock user", groups_id = [(6, 0, [cls.env.ref("stock.group_stock_user").id])])
+
 
     @classmethod
     def draft_to_ready(cls):
@@ -44,8 +44,8 @@ class TestBatchState(common.BaseUDES):
 
     @classmethod
     def assign_user(cls):
-        """Method to attach outbound user to batch"""
-        cls.batch01.user_id = cls.outbound_user.id
+        """Method to attach stock user to batch"""
+        cls.batch01.user_id = cls.stock_user.id
 
     @classmethod
     def complete_pick(cls, picking, call_done=True):
@@ -248,8 +248,8 @@ class TestBatchMultiDropOff(common.BaseUDES):
             {"product": cls.apple, "qty": 4},
             {"product": cls.banana, "qty": 4}
         ]
-        # TODO - Fix to be outbound user when users are implemented
-        cls.outbound_user = cls.env.user
+
+        cls.stock_user = cls.create_user("stock user", "stock user", groups_id = [(6, 0, [cls.env.ref("stock.group_stock_user").id])])
 
     @classmethod
     def product_str(cls, product, qty):
@@ -263,7 +263,7 @@ class TestBatchMultiDropOff(common.BaseUDES):
     def _create_bacthed_picking(self, products_info=None):
         """Create a picking in a batch"""
         Batch = self.env["stock.picking.batch"]
-        Batch = Batch.with_user(self.outbound_user)
+        Batch = Batch.with_user(self.stock_user)
 
         if products_info is None:
             products_info = self.pack_2prods_info
@@ -277,7 +277,7 @@ class TestBatchMultiDropOff(common.BaseUDES):
             self.picking_type_pick, products_info=products_info, assign=True
         )
 
-        # Create batch for outbound user
+        # Create batch for stock user
         priority = picking.priority
         return Batch.create_batch(self.picking_type_pick.id, [priority])
 
@@ -342,7 +342,7 @@ class TestBatchMultiDropOff(common.BaseUDES):
         """
         MoveLine = self.env["stock.move.line"]
         Batch = self.env["stock.picking.batch"]
-        Batch = Batch.with_user(self.outbound_user)
+        Batch = Batch.with_user(self.stock_user)
 
         self.picking_type_pick.u_drop_criterion = "by_packages"
 
@@ -356,7 +356,7 @@ class TestBatchMultiDropOff(common.BaseUDES):
             assign=True,
         )
 
-        # Create batch for outbound user
+        # Create batch for stock user
         priority = picking.priority
         batch = Batch.create_batch(self.picking_type_pick.id, [priority])
 
@@ -490,7 +490,7 @@ class TestBatchMultiDropOff(common.BaseUDES):
         """ Test next drop off criterion by orders """
         MoveLine = self.env["stock.move.line"]
         Batch = self.env["stock.picking.batch"]
-        Batch = Batch.with_user(self.outbound_user)
+        Batch = Batch.with_user(self.stock_user)
 
         self.picking_type_pick.u_drop_criterion = "by_orders"
 
@@ -507,7 +507,7 @@ class TestBatchMultiDropOff(common.BaseUDES):
             assign=True,
             origin="test_order_01",
         )
-        # Create batch for outbound user
+        # Create batch for stock user
         priority = picking1.priority
         batch = Batch.create_batch(self.picking_type_pick.id, [priority])
 
@@ -611,37 +611,36 @@ class TestPalletReservation(common.BaseUDES):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        # TODO - Fix to be outbound user when users are implemented
-        cls.outbound_user = cls.env.user
+        cls.stock_user = cls.create_user("stock user", "stock user", groups_id = [(6, 0, [cls.env.ref("stock.group_stock_user").id])])
 
     def test_conflicting_reservation(self):
         batch1 = self.create_batch()
         batch1.state = "in_progress"
         batch1.reserve_pallet("UDES11111")
 
-        batch2 = self.create_batch(user=self.outbound_user)
+        batch2 = self.create_batch(user=self.stock_user)
         batch2.state = "in_progress"
         expected_error = "This pallet is already being used for batch %s." % batch1.name
         with self.assertRaisesRegex(ValidationError, expected_error, msg="Incorrect error thrown"):
             batch2.reserve_pallet("UDES11111")
 
     def test_reservation_expiry_when_done(self):
-        batch1 = self.create_batch(user=self.outbound_user)
+        batch1 = self.create_batch(user=self.stock_user)
         batch1.state = "in_progress"
         batch1.reserve_pallet("UDES11111")
         batch1.state = "done"
 
-        batch2 = self.create_batch(user=self.outbound_user)
+        batch2 = self.create_batch(user=self.stock_user)
         batch2.state = "in_progress"
         batch2.reserve_pallet("UDES11111")
 
     def test_reservation_switch(self):
-        batch1 = self.create_batch(user=self.outbound_user)
+        batch1 = self.create_batch(user=self.stock_user)
         batch1.state = "in_progress"
         batch1.reserve_pallet("UDES11111")
         batch1.reserve_pallet("UDES11112")
 
-        batch2 = self.create_batch(user=self.outbound_user)
+        batch2 = self.create_batch(user=self.stock_user)
         batch2.state = "in_progress"
         batch2.reserve_pallet("UDES11111")
         expected_error = "This pallet is already being used for batch %s." % batch1.name
@@ -649,7 +648,7 @@ class TestPalletReservation(common.BaseUDES):
             batch2.reserve_pallet("UDES11112")
 
     def test_rereservation_for_same_batch(self):
-        batch = self.create_batch(user=self.outbound_user)
+        batch = self.create_batch(user=self.stock_user)
         batch.state = "in_progress"
 
         batch.reserve_pallet("UDES11111")
@@ -663,8 +662,7 @@ class TestBatchGetNextTask(common.BaseUDES):
         Package = cls.env["stock.quant.package"]
 
         quant_quantity = 4
-        # TODO - Fix to be outbound user when users are implemented
-        cls.outbound_user = cls.env.user
+        cls.stock_user = cls.create_user("stock user", "stock user", groups_id = [(6, 0, [cls.env.ref("stock.group_stock_user").id])])
         cls.package_a = Package.get_or_create("00001", create=True)
         cls.package_b = Package.get_or_create("00002", create=True)
         cls.apple_quant = cls.create_quant(
@@ -683,7 +681,7 @@ class TestBatchGetNextTask(common.BaseUDES):
         cls.picking = cls.create_picking(
             cls.picking_type_pick, products_info=pack_2prods_info, confirm=True, assign=True
         )
-        cls.batch = cls.create_batch(user=cls.outbound_user)
+        cls.batch = cls.create_batch(user=cls.stock_user)
         cls.picking.batch_id = cls.batch.id
         # Test expected configs
         cls.picking_type_pick.u_user_scans = "package"
@@ -794,11 +792,10 @@ class TestBatchAddRemoveWork(common.BaseUDES):
     def setUpClass(cls):
         super().setUpClass()
 
-        User = cls.env["res.users"]
-        cls.outbound_user = cls.env.user
+        cls.stock_user = cls.create_user("stock user", "stock user", groups_id = [(6, 0, [cls.env.ref("stock.group_stock_user").id])])
 
         Batch = cls.env["stock.picking.batch"]
-        Batch = Batch.with_user(cls.outbound_user)
+        Batch = Batch.with_user(cls.stock_user)
 
         cls.package_one = cls.create_package(name="00001")
         cls.package_two = cls.create_package(name="00002")
@@ -928,19 +925,18 @@ class TestContinuationBatchProcessing(common.BaseUDES):
     def setUpClass(cls):
         super().setUpClass()
         cls.pack_4apples_info = [{"product": cls.apple, "qty": 4}]
-        User = cls.env["res.users"]
-        cls.outbound_user = User.create({"name": "Outbound User", "login": "out_log"})
+        cls.stock_user = cls.create_user("stock user", "stock user", groups_id = [(6, 0, [cls.env.ref("stock.group_stock_user").id])])
 
     def test_preserves_user_id_on_closed_batch(self):
-        batch = self.create_batch(user=self.outbound_user, u_ephemeral=False)
-        batch = batch.with_user(self.outbound_user)
+        batch = self.create_batch(user=self.stock_user, u_ephemeral=False)
+        batch = batch.with_user(self.stock_user)
         batch.close()
-        self.assertEqual(batch.user_id, self.outbound_user)
+        self.assertEqual(batch.user_id, self.stock_user)
 
     def test_moves_outstanding_pickings_to_continuation_batch(self):
         self.create_quant(self.apple.id, self.test_stock_location_01.id, 4)
 
-        batch = self.create_batch(user=self.outbound_user)
+        batch = self.create_batch(user=self.stock_user)
         picking = self.create_picking(
             self.picking_type_pick,
             products_info=self.pack_4apples_info,
@@ -955,7 +951,7 @@ class TestContinuationBatchProcessing(common.BaseUDES):
     def test_adds_sequence_to_original_batch_name(self):
         self.create_quant(self.apple.id, self.test_stock_location_01.id, 4)
 
-        batch = self.create_batch(user=self.outbound_user)
+        batch = self.create_batch(user=self.stock_user)
         picking = self.create_picking(
             self.picking_type_pick,
             products_info=self.pack_4apples_info,
@@ -970,7 +966,7 @@ class TestContinuationBatchProcessing(common.BaseUDES):
     def test_increments_sequence_for_continuation_batch(self):
         self.create_quant(self.apple.id, self.test_stock_location_01.id, 4)
 
-        batch01 = self.create_batch(user=self.outbound_user)
+        batch01 = self.create_batch(user=self.stock_user)
         picking = self.create_picking(
             self.picking_type_pick,
             products_info=self.pack_4apples_info,
@@ -987,7 +983,7 @@ class TestContinuationBatchProcessing(common.BaseUDES):
     def test_sets_original_name(self):
         self.create_quant(self.apple.id, self.test_stock_location_01.id, 4)
 
-        batch = self.create_batch(user=self.outbound_user)
+        batch = self.create_batch(user=self.stock_user)
         picking = self.create_picking(
             self.picking_type_pick,
             products_info=self.pack_4apples_info,
@@ -1010,8 +1006,7 @@ class TestStockPickingBatch(common.BaseUDES):
         cls.picking_type_investigation_expression = [('picking_type_id', 'in', cls.picking_type_investigation_ids)]
         cls.pack_4apples_info = [{"product": cls.apple, "qty": 4}]
 
-        # TODO - Fix to be outbound user when users are implemented
-        cls.outbound_user = cls.env.user
+        cls.stock_user = cls.create_user("stock user", "stock user", groups_id = [(6, 0, [cls.env.ref("stock.group_stock_user").id])])
 
     def setUp(self):
         super(TestStockPickingBatch, self).setUp()
@@ -1024,7 +1019,7 @@ class TestStockPickingBatch(common.BaseUDES):
     def test_get_single_batch_no_batch_no_picking(self):
         """Should not create anything if no picking exists"""
         Batch = self.env["stock.picking.batch"]
-        Batch = Batch.with_user(self.outbound_user)
+        Batch = Batch.with_user(self.stock_user)
 
         batch = Batch.get_single_batch()
 
@@ -1036,7 +1031,7 @@ class TestStockPickingBatch(common.BaseUDES):
         created for the current user.
         """
         Batch = self.env["stock.picking.batch"]
-        Batch = Batch.with_user(self.outbound_user)
+        Batch = Batch.with_user(self.stock_user)
 
         self.create_quant(
             self.apple.id, self.test_stock_location_01.id, 4, package_id=self.package_one.id
@@ -1055,7 +1050,7 @@ class TestStockPickingBatch(common.BaseUDES):
         'in_progress' state associated with the user.
         """
         Batch = self.env["stock.picking.batch"]
-        Batch = Batch.with_user(self.outbound_user)
+        Batch = Batch.with_user(self.stock_user)
 
         self.create_quant(
             self.apple.id, self.test_stock_location_01.id, 4, package_id=self.package_one.id
@@ -1064,7 +1059,7 @@ class TestStockPickingBatch(common.BaseUDES):
             self.apple.id, self.test_stock_location_01.id, 4, package_id=self.package_two.id
         )
 
-        batch01 = self.create_batch(user=self.outbound_user)
+        batch01 = self.create_batch(user=self.stock_user)
         self.create_picking(
             self.picking_type_pick,
             products_info=self.pack_4apples_info,
@@ -1074,7 +1069,7 @@ class TestStockPickingBatch(common.BaseUDES):
         )
         batch01.state = "in_progress"
 
-        batch02 = self.create_batch(user=self.outbound_user)
+        batch02 = self.create_batch(user=self.stock_user)
         self.create_picking(
             self.picking_type_pick,
             products_info=self.pack_4apples_info,
@@ -1085,7 +1080,7 @@ class TestStockPickingBatch(common.BaseUDES):
         batch02.state = "in_progress"
 
         batches = Batch.search(
-            [("user_id", "=", self.outbound_user.id), ("state", "=", "in_progress")]
+            [("user_id", "=", self.stock_user.id), ("state", "=", "in_progress")]
         )
 
         # check pre-conditions
@@ -1106,7 +1101,7 @@ class TestStockPickingBatch(common.BaseUDES):
         """
         Batch = self.env["stock.picking.batch"]
         Package = self.env["stock.quant.package"]
-        Batch = Batch.with_user(self.outbound_user)
+        Batch = Batch.with_user(self.stock_user)
 
         for idx in range(3):
             pack = Package.get_or_create("0000%d" % idx, create=True)
@@ -1120,8 +1115,8 @@ class TestStockPickingBatch(common.BaseUDES):
 
     def test_check_user_id_raise_with_empty_id_string(self):
         """Should error if passed an empty id"""
-        batch = self.create_batch(user=self.outbound_user)
-        batch = batch.with_user(self.outbound_user)
+        batch = self.create_batch(user=self.stock_user)
+        batch = batch.with_user(self.stock_user)
 
         with self.assertRaises(ValidationError) as err:
             batch._check_user_id("")
@@ -1130,8 +1125,8 @@ class TestStockPickingBatch(common.BaseUDES):
 
     def test_check_user_id_valid_id(self):
         """Should return a non empty string"""
-        batch = self.create_batch(user=self.outbound_user)
-        batch = batch.with_user(self.outbound_user)
+        batch = self.create_batch(user=self.stock_user)
+        batch = batch.with_user(self.stock_user)
 
         checked_user_id = batch._check_user_id("42")
 
@@ -1139,16 +1134,16 @@ class TestStockPickingBatch(common.BaseUDES):
 
     def test_check_user_id_default_id(self):
         """Should return the current user id if passed None"""
-        batch = self.create_batch(user=self.outbound_user)
-        batch = batch.with_user(self.outbound_user)
+        batch = self.create_batch(user=self.stock_user)
+        batch = batch.with_user(self.stock_user)
 
         user_id = batch._check_user_id(None)
 
-        self.assertEqual(user_id, self.outbound_user.id)
+        self.assertEqual(user_id, self.stock_user.id)
 
     def test_get_batches_assigned_to_a_user(self):
-        batch = self.create_batch(user=self.outbound_user)
-        batch = batch.with_user(self.outbound_user)
+        batch = self.create_batch(user=self.stock_user)
+        batch = batch.with_user(self.stock_user)
 
         picking_putaway = self.create_picking(
             self.picking_type_putaway,
@@ -1160,7 +1155,7 @@ class TestStockPickingBatch(common.BaseUDES):
 
         batch.write({"state": "in_progress"})
 
-        searched_batch = batch.get_user_batches(user_id=self.outbound_user.id)
+        searched_batch = batch.get_user_batches(user_id=self.stock_user.id)
 
         self.assertEqual(batch, searched_batch)
 
@@ -1228,7 +1223,7 @@ class TestStockPickingBatch(common.BaseUDES):
         """
         Batch = self.env["stock.picking.batch"]
         Package = self.env["stock.quant.package"]
-        Batch = Batch.with_user(self.outbound_user)
+        Batch = Batch.with_user(self.stock_user)
 
         for idx in range(2):
             pack = Package.get_or_create("0000%d" % idx, create=True)
@@ -1259,7 +1254,7 @@ class TestStockPickingBatch(common.BaseUDES):
         """
         Batch = self.env["stock.picking.batch"]
         Package = self.env["stock.quant.package"]
-        Batch = Batch.with_user(self.outbound_user)
+        Batch = Batch.with_user(self.stock_user)
 
         # set a batch with a complete picking
         self.create_quant(
@@ -1316,7 +1311,7 @@ class TestStockPickingBatch(common.BaseUDES):
         """
         Batch = self.env["stock.picking.batch"]
         Package = self.env["stock.quant.package"]
-        Batch = Batch.with_user(self.outbound_user)
+        Batch = Batch.with_user(self.stock_user)
 
         # set a batch with a complete picking
         self.create_quant(
@@ -1350,7 +1345,7 @@ class TestStockPickingBatch(common.BaseUDES):
     def test_automatic_batch_done(self):
         """Verifies the batch is done if the picking is complete"""
         Batch = self.env["stock.picking.batch"]
-        Batch = Batch.with_user(self.outbound_user)
+        Batch = Batch.with_user(self.stock_user)
 
         self.create_quant(
             self.apple.id, self.test_stock_location_01.id, 4, package_id=self.package_one.id
@@ -1384,7 +1379,7 @@ class TestUnpickableItems(TestStockPickingBatch):
 
     def _create_valid_batch(self):
         Batch = self.env["stock.picking.batch"]
-        Batch = Batch.with_user(self.outbound_user)
+        Batch = Batch.with_user(self.stock_user)
 
         self.create_quant(
             self.apple.id, self.test_stock_location_01.id, 4, package_id=self.package_one.id
@@ -1534,7 +1529,7 @@ class TestUnpickableItems(TestStockPickingBatch):
         have the still pickable product on it.
         """
         Batch = self.env['stock.picking.batch']
-        Batch = Batch.with_user(self.outbound_user)
+        Batch = Batch.with_user(self.stock_user)
 
         self.create_quant(self.apple.id, self.test_stock_location_01.id, 4,
                           package_id=self.package_one.id)
@@ -1587,7 +1582,7 @@ class TestUnpickableItems(TestStockPickingBatch):
         is added to the picking.
         """
         Batch = self.env['stock.picking.batch']
-        Batch = Batch.with_user(self.outbound_user)
+        Batch = Batch.with_user(self.stock_user)
 
         self.create_quant(self.apple.id, self.test_stock_location_01.id, 4,
                           package_id=self.package_one.id)
@@ -1643,7 +1638,7 @@ class TestUnpickableItems(TestStockPickingBatch):
                                       confirm=True,
                                       assign=True)
         Batch = self.env['stock.picking.batch']
-        Batch = Batch.with_user(self.outbound_user)
+        Batch = Batch.with_user(self.stock_user)
         batch = Batch.create_batch(self.picking_type_pick.id, None)
 
         self.assertTrue(len(picking.move_line_ids) > 1)
@@ -1679,7 +1674,7 @@ class TestUnpickableItems(TestStockPickingBatch):
         self.assertEqual(quant.reserved_quantity, 1)
 
         Batch = self.env['stock.picking.batch']
-        Batch = Batch.with_user(self.outbound_user)
+        Batch = Batch.with_user(self.stock_user)
         batch = Batch.create_batch(self.picking_type_pick.id, None)
 
         self.assertIn(picking, batch.picking_ids)
@@ -1712,7 +1707,7 @@ class TestUnpickableItems(TestStockPickingBatch):
         self.assertEqual(quant.reserved_quantity, 1)
 
         Batch = self.env['stock.picking.batch']
-        Batch = Batch.with_user(self.outbound_user)
+        Batch = Batch.with_user(self.stock_user)
         batch = Batch.create_batch(self.picking_type_pick.id, None)
 
         self.assertIn(picking, batch.picking_ids)
@@ -1752,7 +1747,7 @@ class TestUnpickableItems(TestStockPickingBatch):
         self.assertEqual(quant_banana.reserved_quantity, 2)
 
         Batch = self.env['stock.picking.batch']
-        Batch = Batch.with_user(self.outbound_user)
+        Batch = Batch.with_user(self.stock_user)
         batch = Batch.create_batch(self.picking_type_pick.id, None)
 
         self.assertIn(picking, batch.picking_ids)
@@ -1825,7 +1820,7 @@ class TestUnpickableItems(TestStockPickingBatch):
             self.assertTrue(False, 'No banana quant reserved')
 
         Batch = self.env['stock.picking.batch']
-        Batch = Batch.with_user(self.outbound_user)
+        Batch = Batch.with_user(self.stock_user)
         batch = Batch.create_batch(self.picking_type_pick.id, None)
 
         self.assertIn(picking, batch.picking_ids)
@@ -1867,7 +1862,7 @@ class TestUnpickableItems(TestStockPickingBatch):
         """
         Picking = self.env['stock.picking']
         Batch = self.env['stock.picking.batch']
-        Batch = Batch.with_user(self.outbound_user)
+        Batch = Batch.with_user(self.stock_user)
 
         quant = self.create_quant(self.apple.id, self.test_stock_location_01.id, 4)
 
@@ -1923,7 +1918,7 @@ class TestUnpickableItems(TestStockPickingBatch):
         """
         Picking = self.env['stock.picking']
         Batch = self.env['stock.picking.batch']
-        Batch = Batch.with_user(self.outbound_user)
+        Batch = Batch.with_user(self.stock_user)
 
         quant = self.create_quant(self.apple.id, self.test_stock_location_01.id, 4)
 
@@ -1979,7 +1974,7 @@ class TestUnpickableItems(TestStockPickingBatch):
         """
         Picking = self.env['stock.picking']
         Batch = self.env['stock.picking.batch']
-        Batch = Batch.with_user(self.outbound_user)
+        Batch = Batch.with_user(self.stock_user)
 
         quant = self.create_quant(self.apple.id, self.test_stock_location_01.id, 4)
 
@@ -2031,7 +2026,7 @@ class TestUnpickableItems(TestStockPickingBatch):
         """
         Picking = self.env['stock.picking']
         Batch = self.env['stock.picking.batch']
-        Batch = Batch.with_user(self.outbound_user)
+        Batch = Batch.with_user(self.stock_user)
 
         quant = self.create_quant(self.apple.id, self.test_stock_location_01.id, 4)
         mixed_quant = self.create_quant(self.banana.id, self.test_stock_location_01.id, 4)
@@ -2166,7 +2161,7 @@ class TestUnpickableItems(TestStockPickingBatch):
         # Create a batch for both pickings, flag three of the four items from
         # each line as unpickable for different reasons and raise stock investigations
         batch = Batch._create_batch(
-            self.outbound_user.id, self.picking_type_pick, picking_id=apple_picking.id
+            self.stock_user.id, self.picking_type_pick, picking_id=apple_picking.id
         )
         batch.add_extra_pickings(self.picking_type_pick.id)
         self.assertEqual(apple_picking.batch_id, batch)
@@ -2246,8 +2241,7 @@ class TestPickingBatchDisabledUnpickableItems(common.BaseUDES):
         cls.pack_4apples_info = [{'product': cls.apple, 'qty': 4}]
         # disable unpickable items by default
         cls.picking_type_pick.u_enable_unpickable_items = False
-        # TODO - Fix to be outbound user when users are implemented
-        cls.outbound_user = cls.env.user
+        cls.stock_user = cls.create_user("stock user", "stock user", groups_id = [(6, 0, [cls.env.ref("stock.group_stock_user").id])])
 
     def setUp(self):
         super(TestPickingBatchDisabledUnpickableItems, self).setUp()
@@ -2255,7 +2249,7 @@ class TestPickingBatchDisabledUnpickableItems(common.BaseUDES):
 
     def _create_valid_batch(self):
         Batch = self.env['stock.picking.batch']
-        Batch = Batch.with_user(self.outbound_user)
+        Batch = Batch.with_user(self.stock_user)
 
         self.create_quant(self.apple.id, self.test_stock_location_01.id, 4,
                           package_id=self.package_one.id)
@@ -2304,14 +2298,13 @@ class TestMultipleOrders(common.BaseUDES):
 
         cls.picking_type_pick.u_reserve_pallet_per_picking = True
 
-        # TODO - Fix when outbound user is implemented
-        cls.outbound_user = cls.env.user
+        cls.stock_user = cls.create_user("stock user", "stock user", groups_id = [(6, 0, [cls.env.ref("stock.group_stock_user").id])])
 
     def create_batch(self, user=None, **kwargs):
         return super().create_batch(user=user, u_ephemeral=True, **kwargs)
 
     def create_batch_with_picking(self):
-        batch = self.create_batch(user=self.outbound_user)
+        batch = self.create_batch(user=self.stock_user)
         self.create_picking(self.picking_type_pick,
                             products_info=self.pack_4apples_info,
                             confirm=True,
@@ -2409,7 +2402,7 @@ class TestMultipleOrders(common.BaseUDES):
 
     def test_clears_reserved_pallet_on_dropoff(self):
         Batch = self.env['stock.picking.batch']
-        Batch = Batch.with_user(self.outbound_user)
+        Batch = Batch.with_user(self.stock_user)
 
         batch = self.create_batch_with_picking()
         picking = batch.picking_ids
@@ -2459,7 +2452,7 @@ class TestMultipleOrders(common.BaseUDES):
                                     msg='Incorrect error thrown'):
             Batch.create_batch(picking_type_id=None,
                                picking_priorities=[],
-                               user_id=self.outbound_user.id,
+                               user_id=self.stock_user.id,
                                picking_id=pickings.ids)
 
     def test_resets_reserved_pallet_when_closing_batch(self):
