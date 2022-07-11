@@ -38,13 +38,6 @@
         <field name="domain"></field>
         <field name="context">{'contact_display': 'partner_address', 'search_default_draft': 1}</field>
         <field name="search_view_id" ref="stock.view_picking_internal_search"/>
-        <field name="help" type="html">
-            <p class="o_view_nocontent_smiling_face">
-                Create a new transfer
-            </p><p>
-                You can either do it immediately or mark it as Todo for future processing
-            </p>
-        </field>
     </record>
 
     <record id="view_picking_form" model="ir.ui.view">

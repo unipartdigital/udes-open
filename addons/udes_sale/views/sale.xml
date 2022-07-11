@@ -1,22 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Replace 'Odoo' with 'UDES' in the tree view help text. -->
-    <record id="sale.action_orders_upselling" model="ir.actions.act_window">
-        <field name="help" type="html">
-            <p class="o_view_nocontent_smiling_face">
-            No orders to upsell found.
-          </p>
-            <p>
-            An order is to upsell when delivered quantities are above initially
-            ordered quantities, and the invoicing policy is based on ordered quantities.
-          </p>
-            <p>
-            As an example, if you sell pre-paid hours of services, UDES recommends you
-            to sell extra hours when all ordered hours have been consumed.
-          </p>
-        </field>
-    </record>
-
     <!-- Remove default context on action -->
     <record id="sale.action_quotations_with_onboarding" model="ir.actions.act_window">
           <field name="context"></field>
