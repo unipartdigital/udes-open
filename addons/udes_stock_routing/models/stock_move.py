@@ -1,5 +1,6 @@
 from odoo import models, api
 
+
 class StockMove(models.Model):
     _inherit = "stock.move"
 
@@ -50,7 +51,7 @@ class StockMove(models.Model):
             "product_uom_qty": sum(move_lines.mapped("qty_done")),
             "move_orig_ids": [(6, 0, self.ids)],
         }
-        return move_vals   
+        return move_vals
 
     @api.model
     def _create_moves_for_push(self, push, move_lines):
@@ -71,10 +72,10 @@ class StockMove(models.Model):
             move_vals.update(move._get_push_move_vals(mls))
             created_moves |= move.copy(move_vals)
         return created_moves
-    
+
     def _action_done(self, cancel_backorder=False):
         """
-        Extend _action_done to push from drop. 
+        Extend _action_done to push from drop.
         """
         done_moves = super()._action_done(cancel_backorder=cancel_backorder)
         done_moves.push_from_drop()
