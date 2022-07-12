@@ -5,6 +5,7 @@
     <!-- Update "Warehouse/Stock" view location -->
     <record id="stock.stock_location_stock" model="stock.location">
       <field name="usage">view</field>
+      <field name="u_location_is_countable">yes</field>
     </record>
 
 
