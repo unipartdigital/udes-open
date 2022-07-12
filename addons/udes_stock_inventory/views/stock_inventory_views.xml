@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Remove the barcode ad from the tree view help text. -->
+    <record id="stock.action_inventory_form" model="ir.actions.act_window">
+        <field name="help" type="html">
+            <p class="oe_view_nocontent_create">
+            Click to start an Inventory Adjustment.
+        </p>
+            <p>
+            Periodical Inventory Adjustments are used to count the number of products
+            available per location. You can use it once a year when you do
+            the general inventory or whenever you need it, to adapt the
+            current inventory level of a product.
+        </p>
+        </field>
+    </record>
+
+    <record id="view_inventory_form" model="ir.ui.view">
+        <field name="name">stock.inventory.form.udes_stock_inventory</field>
+        <field name="model">stock.inventory</field>
+        <field name="inherit_id" ref="stock.view_inventory_form"/>
+        <field name="arch" type="xml">
+            <!-- Hide Continue Inventory button -->
+            <xpath expr="//button[@name='action_open_inventory_lines']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <!-- Hide Print Count Sheet button -->
+            <xpath expr="//button[@name='action_print']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <!-- Remove hidden line_ids -->
+            <xpath expr="//field[@name='line_ids']" position="replace"/>
+
+            <!-- Hide prefilled quantity option, in UDES we only want to use the theoretical quantity (default setting) -->
+            <xpath expr="//field[@name='prefill_counted_quantity']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <!-- Hide option to include exhausted products -->
+            <xpath expr="//field[@name='exhausted']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <!-- Show inventory lines in form view -->
+            <xpath expr="//sheet" position="inside">
+                <notebook>
+                    <page name="details" string="Details" attrs="{'invisible': [('state', 'in', ['draft', 'cancel'])]}">
+                        <field name="line_ids"
+                            context="{'default_is_editable': True, 'default_company_id': company_id, 'default_location_id': u_line_default_location_id, 'default_product_id': u_line_default_product_id}">
+                            <tree string="Inventory Details"
+                                editable="bottom"
+                                default_order="location_id,product_id"
+                                decoration-danger="product_qty != theoretical_qty"
+                                decoration-muted="product_qty == theoretical_qty"
+                                decoration-bf="is_editable">
+                                <field name="state" invisible="1"/>
+                                <field name="company_id" invisible="1"/>
+                                <field name="product_tracking" invisible="1"/>
+                                <field name="is_editable" invisible="1"/>
+                                <field name="outdated" invisible="1"/>
+                                <field name="product_id"
+                                    context="{'default_type': 'product', 'search_restrict_inv_product_ids': parent.product_ids}"
+                                    options="{'no_create': True}"
+                                    attrs="{'readonly': ['|', '|', ('is_editable', '=', False), ('state', '!=', 'confirm'), ('parent.u_line_readonly_product_id', '=', True)]}"
+                                    required="0"
+                                    force_save="1"/>
+                                <field name="location_id"
+                                    groups="stock.group_stock_multi_locations"
+                                    options="{'no_create': True}"
+                                    attrs="{'readonly': ['|', '|', ('is_editable', '=', False), ('state', '!=', 'confirm'), ('parent.u_line_readonly_location_id', '=', True)]}"
+                                    domain="[('id', 'child_of', parent.location_ids)]"
+                                    required="0"
+                                    force_save="1"/>
+                                <field name="prod_lot_id"
+                                    groups="stock.group_production_lot"
+                                    attrs="{'readonly': ['|', '|', ('product_tracking', '=', 'none'), ('is_editable', '=', False), ('state', '!=', 'confirm')]}"
+                                    context="{'default_product_id': product_id, 'default_company_id': company_id}"
+                                    optional="show"/>
+                                <field name="package_id"
+                                    groups="stock.group_tracking_lot"
+                                    attrs="{'readonly': ['|', ('is_editable', '=', False), ('state', '!=', 'confirm')]}"
+                                    string="Package"
+                                    optional="show"/>
+                                <field name="partner_id"
+                                    groups="stock.group_tracking_owner"
+                                    attrs="{'readonly': ['|', ('is_editable', '=', False), ('state', '!=', 'confirm')]}"/>
+                                <field name="theoretical_qty" string="On Hand" force_save="1" readonly="1" optional="show"/>
+                                <button name="action_refresh_quantity" title="Refresh quantity" icon="fa-refresh" type="object" attrs="{'invisible': [('outdated', '=', False)]}" width="0.1"/>
+                                <field name="product_qty" string="Counted"/>
+                                <field name="difference_qty" optional="show"/>
+                                <field name="product_uom_id" string="UoM" groups="uom.group_uom" force_save="1"/>
+                            </tree>
+                        </field>
+                    </page>
+                </notebook>
+                <!-- Technical fields hidden from user -->
+                <field name="u_line_default_location_id" invisible="1"/>
+                <field name="u_line_readonly_location_id" invisible="1"/>
+                <field name="u_line_default_product_id" invisible="1"/>
+                <field name="u_line_readonly_product_id" invisible="1"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="stock_inventory_line_tree" model="ir.ui.view">
+        <field name="name">stock.inventory.line.tree.udes_stock_inventory</field>
+        <field name="model">stock.inventory.line</field>
+        <field name="inherit_id" ref="stock.stock_inventory_line_tree" />
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='product_id']" position="attributes">
+                <attribute name="readonly"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
