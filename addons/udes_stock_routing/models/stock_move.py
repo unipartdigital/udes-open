@@ -1,5 +1,7 @@
 from odoo import models, api
 
+from odoo.addons.udes_common.tools import RelFieldOps
+
 
 class StockMove(models.Model):
     _inherit = "stock.move"
@@ -47,9 +49,11 @@ class StockMove(models.Model):
         """
         self.ensure_one()
 
+        quantity = sum(move_lines.mapped("qty_done"))
         move_vals = {
-            "product_uom_qty": sum(move_lines.mapped("qty_done")),
-            "move_orig_ids": [(6, 0, self.ids)],
+            "product_uom_qty": quantity,
+            'u_uom_initial_demand': quantity,
+            "move_orig_ids": [(RelFieldOps.Replace, 0, self.ids)],
         }
         return move_vals
 

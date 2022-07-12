@@ -252,3 +252,40 @@ class TestPushFromDrop(PushFromDropBase):
             ml.write({"location_dest_id": self.received_damaged_location.id})
         self.goods_in._action_done()
         return self.goods_in.u_next_picking_ids
+
+
+class InitialDemandTestCase(PushFromDropBase):
+    """Unit tests for initial demand behaviour."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        products_info = [{"product": cls.apple, "uom_qty": 20}]
+        cls.goods_in_picking = cls.create_picking(
+            picking_type=cls.picking_type_goods_in,
+            products_info=products_info,
+            confirm=True,
+            assign=True,
+        )
+
+    def test_sets_initial_demand_on_push_move_to_quantity_done_of_previous_move(self):
+        """Set the initial demand of a push move to the quantity done of the preceding move."""
+        for ml in self.goods_in_picking.move_line_ids:
+            ml.write(
+                {"qty_done": ml.product_uom_qty, "location_dest_id": self.received_location.id}
+            )
+        self.goods_in_picking._action_done()
+        putaway_move = self.goods_in_picking.u_next_picking_ids.move_lines
+
+        self.assertEqual(putaway_move.u_uom_initial_demand, 20.0)
+
+    def test_sets_initial_demand_on_push_move_to_quantity_done_of_previous_partially_completed_move(
+        self,
+    ):
+        """Set the initial demand of a push move to the quantity done of the partially completed preceding move."""
+        for ml in self.goods_in_picking.move_line_ids:
+            ml.write({"qty_done": 10.0, "location_dest_id": self.received_location.id})
+        self.goods_in_picking._action_done()
+        putaway_move = self.goods_in_picking.u_next_picking_ids.move_lines
+
+        self.assertEqual(putaway_move.u_uom_initial_demand, 10.0)
