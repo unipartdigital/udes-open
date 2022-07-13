@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Disable ONBOARDING PANEL-->
+    <template id="sale.sale_quotation_onboarding_panel" name="sale.quotation.onboarding.panel">
+        <!-- Nice and clean -->
+    </template>
+
+</odoo>
