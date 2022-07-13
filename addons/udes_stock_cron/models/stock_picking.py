@@ -31,15 +31,13 @@ class StockPicking(models.Model):
         # This method is patterned on SaleOrder._find_unfulfillable_order_lines
         # in udes_sale_stock.  Changes applied there should be considered for
         # this method too.
-        Location = self.env["stock.location"]
         Move = self.env["stock.move"]
         Quant = self.env["stock.quant"]
 
         # Create empty record sets for moves.
         unreservable_moves = Move.browse()
 
-        # Get unreserved stock for each product in locations
-        locations = Location.get_available_stock_locations()
+        location = self.picking_type_id.default_location_src_id
         stock_for_products = defaultdict(int)
         skip_states = ("assigned", "done", "cancel")
 
@@ -75,7 +73,8 @@ class StockPicking(models.Model):
 
                     if product not in stock_for_products.keys():
                         stock_for_products[product] = Quant.get_available_quantity(
-                            product, locations
+                            product,
+                            location,
                         )
                     qty_ordered = move.product_uom_qty
                     if stock_for_products[product] <= 0 or (

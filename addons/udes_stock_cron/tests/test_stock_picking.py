@@ -20,8 +20,27 @@ class TestStockPicking(BaseUDES):
         cls.registry.enter_test_mode(cls.cr)
         super(TestStockPicking, cls).setUpClass()
 
+        Location = cls.env["stock.location"]
         cls.Move = cls.env["stock.move"]
         cls.Picking = cls.env["stock.picking"]
+
+        picking_zone = Location.create(
+            {
+                "name": "Picking Zone",
+                "barcode": "LPICKINGZONE",
+                "usage": "view",
+                "location_id": cls.warehouse.id,
+            }
+        )
+        pick_location = Location.create(
+            {
+                "name": "Pick Location 01",
+                "barcode": "LPICKLOCATION01",
+                "usage": "internal",
+                "location_id": picking_zone.id,
+            }
+        )
+        cls.picking_type_pick.default_location_src_id = picking_zone
 
         products_info = [{"product": cls.apple, "uom_qty": 10.0}]
 
@@ -39,7 +58,7 @@ class TestStockPicking(BaseUDES):
         # Create an available quantity of apples
         cls.test_quant_apple = cls.create_quant(
             product_id=cls.apple.id,
-            location_id=cls.picking_type_pick.default_location_src_id.id,
+            location_id=pick_location.id,
             qty=10.0,
         )
 
