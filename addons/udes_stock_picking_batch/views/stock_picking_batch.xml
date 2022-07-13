@@ -35,6 +35,11 @@
         <xpath expr="//button[@name='action_done']" position="attributes">
           <attribute name="invisible">1</attribute>
         </xpath>
+
+        <!-- Save changes to picking_ids even when it has been set to readonly via state change -->
+        <xpath expr="//field[@name='picking_ids']" position="attributes">
+          <attribute name="force_save">1</attribute>
+        </xpath>
       </field>
     </record>
 
