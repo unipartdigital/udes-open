@@ -30,6 +30,7 @@ class StockQuantGetInfoTestCase(common.BaseTestCase, common.GetInfoTestMixin):
                 "package_id",
                 "product_id",
                 "quantity",
+                "lot_id",
                 "reserved_quantity",
             ]
         )

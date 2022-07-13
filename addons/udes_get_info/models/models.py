@@ -65,8 +65,10 @@ def _get_info(self, level, info_fields, extra_fields):
         result = self[field_name]
         if isinstance(self[field_name], models.BaseModel):
             # Stop recursing once we reach level zero or if the field is empty.
-            if (level == 0) or (not result):
+            if level == 0:
                 continue
+            if not result:
+                _info = False
             # If field is Many2one return dict, otherwise list of dicts.
             # Passing extra fields means that it will look for extra fields on every level.
             # Example if needed default_barcode from product and the field is not
@@ -74,7 +76,7 @@ def _get_info(self, level, info_fields, extra_fields):
             # from quants we can call it like: quants.get_info(extra_fields={"default_barcode"})
             # Note: default_barcode will be picked from every model that field exist and will
             # log a messsage for every model where it is not found.
-            if isinstance(self._fields.get(field_name), fields.Many2one):
+            elif isinstance(self._fields.get(field_name), fields.Many2one):
                 _info = result._get_info(
                     level=level - 1, info_fields=info_fields, extra_fields=extra_fields
                 )
