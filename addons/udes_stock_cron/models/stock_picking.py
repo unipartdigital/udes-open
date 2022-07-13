@@ -2,8 +2,8 @@ import time
 from psycopg2 import OperationalError, errorcodes
 from collections import defaultdict
 
-from odoo import fields, models, _, api
-from odoo.exceptions import UserError, ValidationError
+from odoo import models, _
+from odoo.exceptions import UserError
 
 import logging
 
