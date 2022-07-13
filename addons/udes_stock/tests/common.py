@@ -30,6 +30,7 @@ class UnconfiguredBaseUDES(common.SavepointCase):
 
         ## Serial/Lot tracking
         cls.strawberry = cls.create_product('Strawberry', tracking='serial')
+        cls.ugli = cls.create_product('Ugli', tracking='serial')
         cls.tangerine = cls.create_product('Tangerine', tracking='lot')
 
     @classmethod
