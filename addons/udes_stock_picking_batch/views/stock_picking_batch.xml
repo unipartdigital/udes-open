@@ -40,6 +40,11 @@
         <xpath expr="//field[@name='picking_ids']" position="attributes">
           <attribute name="force_save">1</attribute>
         </xpath>
+
+        <!-- Show transfers page first -->
+        <xpath expr="//field[@name='move_line_ids']/parent::page" position="before">
+          <xpath expr="//field[@name='picking_ids']/parent::page" position="move"/>
+        </xpath>
       </field>
     </record>
 
