@@ -76,8 +76,8 @@
       <field name="code">internal</field>
       <field name="sequence_id" ref="sequence_internal"/>
       <field name="use_existing_lots" eval="1"/>
-      <field name="default_location_src_id" ref="stock.stock_location_stock"/>
-      <field name="default_location_dest_id" ref="stock.stock_location_stock"/>
+      <field name="default_location_src_id" ref="stock.warehouse0_view_location"/>
+      <field name="default_location_dest_id" ref="stock.warehouse0_view_location"/>
       <field name="show_operations" eval="1"/>
       <field name="active">True</field>
     </record>
