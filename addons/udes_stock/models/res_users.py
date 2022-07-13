@@ -81,3 +81,11 @@ class ResUser(models.Model):
     def unassign_user_on_logout(self):
         """Unassign a user from a picking on user logout"""
         return
+    
+    def get_current_user_id(self):
+        """
+        Override function to use `real_uid` instead of `self.env.user.id`,
+        as the original function is defined in a module which can not
+        necessarily depend on UDES odoo customisations
+        """
+        return self.env.real_uid
