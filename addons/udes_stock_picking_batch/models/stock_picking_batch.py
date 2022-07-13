@@ -33,9 +33,8 @@ class StockPickingBatch(models.Model):
             "ready": lambda spb: spb.write({"state": "draft"}),
         },
     )
+    # Allow pickings to be editable in waiting and ready states
     picking_ids = fields.One2many(
-        "stock.picking",
-        "batch_id",
         states={
             "draft": [("readonly", False)],
             "waiting": [("readonly", False)],
@@ -43,6 +42,8 @@ class StockPickingBatch(models.Model):
             "in_progress": [("readonly", False)],
         },
     )
+    # Don't allow picking move lines to be edited via batch
+    move_line_ids = fields.One2many(inverse=None, states=None)
     u_last_reserved_pallet_name = fields.Char(
         string="Last Pallet Used",
         index=True,
