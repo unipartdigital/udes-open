@@ -253,19 +253,17 @@ class StockMoveLine(models.Model):
             domain += aux_domain
         return StockMoveLine.search(domain, order=order)
 
-    def _find_move_lines(self, uom_qty, product=None, package=None, lot_name=None, location=None):
+    def _find_move_lines(self, uom_qty, product, package=None, lot_name=None, location=None):
         """ Find a subset of move lines from self matching the subset of the key:
             product, package, lot and location.
         """
-        funcs = []
-        if product:
-            funcs.append(lambda ml: ml.product_id == product)
+        funcs = [lambda ml: ml.product_id == product]
         if package:
             funcs.append(lambda ml: ml.package_id == package)
         if location:
             funcs.append(lambda ml: ml.location_id == location)
         if lot_name:
-            funcs.append(lambda ml: (lot_name == lot_name or ml.lot_id.name == lot_name))
+            funcs.append(lambda ml: (ml.lot_name == lot_name or ml.lot_id.name == lot_name))
         func = lambda ml: all(f(ml) for f in funcs)
 
         # Find move lines
@@ -312,6 +310,7 @@ class StockMoveLine(models.Model):
                 res[mls] = vals
             # Set to empty list to bypass the for
             product_ids = []
+
         for prod in product_ids:
             product_barcode = prod["barcode"]
             product = Product.get_or_create(product_barcode)
