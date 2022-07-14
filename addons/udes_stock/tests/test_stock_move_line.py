@@ -397,7 +397,7 @@ class TestStockMoveLine(common.BaseUDES):
 class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
     @classmethod
     def setUpClass(cls):
-        super(TestStockMoveLinePrepareAndMarkMoveLines, cls).setUpClass()
+        super().setUpClass()
         # Order the banana first to allow for sorting checks later on
         cls._pick_info = [
             {"product": cls.banana, "uom_qty": 5},
@@ -534,6 +534,157 @@ class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
         prod_name = self.banana.name
         with self.assertRaises(ValidationError) as e:
             marked = self.banana_move_line.mark_as_done({"qty_done": 100})
-        msg = f"Move line {banana_ml.id} for product {prod_name} does not have enough " \
-              f"quantity: 100 vs 5"
+        msg = (
+            f"Move line {banana_ml.id} for product {prod_name} does not have enough "
+            f"quantity: 100 vs 5"
+        )
         self.assertEqual(e.exception.args[0], msg)
+
+
+class TestFindMoveLines(common.BaseUDES):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        pick_info = [
+            {"product": cls.banana, "uom_qty": 5},
+            {"product": cls.apple, "uom_qty": 4},
+            {"product": cls.strawberry, "uom_qty": 3},
+            {"product": cls.tangerine, "uom_qty": 10},
+        ]
+        cls.package = cls.create_package()
+        cls.create_quant(cls.banana.id, cls.test_stock_location_01.id, 5)
+        cls.create_quant(cls.apple.id, cls.test_stock_location_01.id, 4)
+        cls.create_quant(cls.strawberry.id, cls.test_stock_location_01.id, 1, lot_name="sn01")
+        cls.create_quant(cls.strawberry.id, cls.test_stock_location_01.id, 1, lot_name="sn02")
+        cls.create_quant(cls.strawberry.id, cls.test_stock_location_02.id, 1, lot_name="sn03")
+        cls.create_quant(cls.tangerine.id, cls.test_stock_location_01.id, 5, lot_name="lot01")
+        cls.create_quant(
+            cls.tangerine.id,
+            cls.test_stock_location_01.id,
+            5,
+            lot_name="lot02",
+            package_id=cls.package.id,
+        )
+        cls.picking = cls.create_picking(
+            cls.picking_type_pick, products_info=pick_info, confirm=True, assign=True
+        )
+
+    def test_find_by_product(self):
+        """ Find move lines only by product key """
+        mls = self.picking.move_line_ids
+        apple_ml = mls.filtered(lambda ml: ml.product_id == self.apple)
+        banana_ml = mls.filtered(lambda ml: ml.product_id == self.banana)
+        strawberry_mls = mls.filtered(lambda ml: ml.product_id == self.strawberry)
+        tangerine_mls = mls.filtered(lambda ml: ml.product_id == self.tangerine)
+
+        # Find ml for all apples: same as apple_ml
+        mls_fulfill, new_ml = mls._find_move_lines(4, self.apple)
+        self.assertEqual(mls_fulfill, apple_ml)
+        self.assertFalse(new_ml)
+        # Find ml for 3 apples: apple_ml gets split
+        mls_fulfill, new_ml = mls._find_move_lines(3, self.apple)
+        self.assertEqual(mls_fulfill, apple_ml)
+        self.assertEqual(mls_fulfill.product_uom_qty, 3)
+        self.assertTrue(new_ml)
+        self.assertEqual(new_ml.product_uom_qty, 1)
+
+        # Find ml for all bananas: same as banana_ml
+        mls_fulfill, new_ml = mls._find_move_lines(5, self.banana)
+        self.assertEqual(mls_fulfill, banana_ml)
+        self.assertFalse(new_ml)
+        # Find ml for 2 bananas: banana_ml gets split
+        mls_fulfill, new_ml = mls._find_move_lines(2, self.banana)
+        self.assertEqual(mls_fulfill, banana_ml)
+        self.assertEqual(mls_fulfill.product_uom_qty, 2)
+        self.assertTrue(new_ml)
+        self.assertEqual(new_ml.product_uom_qty, 3)
+
+        # Find all strawberry: same as strawberry_mls
+        mls_fulfill, new_ml = mls._find_move_lines(3, self.strawberry)
+        self.assertEqual(mls_fulfill, strawberry_mls)
+        self.assertFalse(new_ml)
+        # Find ml for 1 strawberry: one of the strawberry_mls without split since their qty is 1
+        mls_fulfill, new_ml = mls._find_move_lines(1, self.strawberry)
+        self.assertEqual(len(mls_fulfill), 1)
+        self.assertEqual(mls_fulfill.product_uom_qty, 1)
+        self.assertIn(mls_fulfill, strawberry_mls)
+        self.assertFalse(new_ml)
+
+        # Find all tangerines: same as tangerine_mls
+        mls_fulfill, new_ml = mls._find_move_lines(10, self.tangerine)
+        self.assertEqual(mls_fulfill, tangerine_mls)
+        self.assertFalse(new_ml)
+        # Find ml for 7 tangerines: same as tangerine_mls but one gets split
+        mls_fulfill, new_ml = mls._find_move_lines(7, self.tangerine)
+        self.assertEqual(mls_fulfill, tangerine_mls)
+        self.assertTrue(new_ml)
+        self.assertEqual(new_ml.product_uom_qty, 3)
+
+    def test_find_by_package(self):
+        """ Find move lines by product and package """
+        mls = self.picking.move_line_ids
+        package_mls = mls.filtered(lambda ml: ml.package_id == self.package)
+
+        # Find all tangerines in the package
+        mls_fulfill, new_ml = mls._find_move_lines(5, self.tangerine, package=self.package)
+        self.assertEqual(mls_fulfill, package_mls)
+        self.assertFalse(new_ml)
+
+    def test_find_by_lot_name(self):
+        """ Find move lines by product and lot_name """
+        mls = self.picking.move_line_ids
+        lot01_ml = mls.filtered(lambda ml: ml.lot_id.name == "lot01")
+        lot02_ml = mls.filtered(lambda ml: ml.lot_id.name == "lot02")
+        sn01_ml = mls.filtered(lambda ml: ml.lot_id.name == "sn01")
+        sn02_ml = mls.filtered(lambda ml: ml.lot_id.name == "sn02")
+        sn03_ml = mls.filtered(lambda ml: ml.lot_id.name == "sn03")
+
+        # Find all tangerines for lot01: same as lot01_ml
+        mls_fulfill, new_ml = mls._find_move_lines(5, self.tangerine, lot_name="lot01")
+        self.assertEqual(mls_fulfill, lot01_ml)
+        self.assertFalse(new_ml)
+        # Find ml for 3 tangerines of lot02: same as lot02_ml but gets split
+        mls_fulfill, new_ml = mls._find_move_lines(3, self.tangerine, lot_name="lot02")
+        self.assertEqual(mls_fulfill, lot02_ml)
+        self.assertTrue(new_ml)
+        self.assertEqual(new_ml.product_uom_qty, 2)
+
+        # Find all strawberries for sn01: same as sn01_ml
+        mls_fulfill, new_ml = mls._find_move_lines(1, self.strawberry, lot_name="sn01")
+        self.assertEqual(mls_fulfill, sn01_ml)
+        self.assertFalse(new_ml)
+        # Find all strawberries for sn02: same as sn02_ml
+        mls_fulfill, new_ml = mls._find_move_lines(1, self.strawberry, lot_name="sn02")
+        self.assertEqual(mls_fulfill, sn02_ml)
+        self.assertFalse(new_ml)
+        # Find all strawberries for sn03: same as sn03_ml
+        mls_fulfill, new_ml = mls._find_move_lines(1, self.strawberry, lot_name="sn03")
+        self.assertEqual(mls_fulfill, sn03_ml)
+        self.assertFalse(new_ml)
+
+    def test_find_by_location(self):
+        """ Find move lines by product and location """
+        mls = self.picking.move_line_ids
+        location01_mls = mls.filtered(
+            lambda ml: ml.location_id == self.test_stock_location_01
+            and ml.product_id == self.strawberry
+        )
+        location02_mls = mls.filtered(
+            lambda ml: ml.location_id == self.test_stock_location_02
+            and ml.product_id == self.strawberry
+        )
+
+        # Find all strawberries in test_stock_location_01
+        mls_fulfill, new_ml = mls._find_move_lines(
+            2, self.strawberry, location=self.test_stock_location_01
+        )
+        self.assertEqual(mls_fulfill, location01_mls)
+        self.assertEqual(len(mls_fulfill), 2)
+        self.assertFalse(new_ml)
+        # Find all strawberries in test_stock_location_02
+        mls_fulfill, new_ml = mls._find_move_lines(
+            1, self.strawberry, location=self.test_stock_location_02
+        )
+        self.assertEqual(mls_fulfill, location02_mls)
+        self.assertEqual(len(mls_fulfill), 1)
+        self.assertFalse(new_ml)
