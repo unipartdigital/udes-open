@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Disable ONBOARDING PANELS -->
+    <template id="account.account_invoice_onboarding_panel" name="account.invoice.onboarding.panel">
+        <!-- Nice and clean -->
+    </template>
+
+    <template id="account.account_dashboard_onboarding_panel" name="account.dashboard.onboarding.panel">
+        <!-- Nice and clean -->
+    </template>
+
+</odoo>

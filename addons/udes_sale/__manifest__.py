@@ -13,6 +13,7 @@
     "data": [
         "views/sale.xml",
         "views/sale_onboarding_views.xml",
+        "views/account_onboarding_templates.xml",
     ],
     "qweb": [],
     "test": [],
