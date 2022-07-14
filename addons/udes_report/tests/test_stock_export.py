@@ -140,15 +140,18 @@ class TestStockExport(BaseUDES):
         """"Check that the data for the stock file correctly displays
         tracking numbers if required.
         """
+        Product = self.env["product.product"]
+
         self.stock_export.included_locations = self.stock_location
         # Assert tracking column is present even when not in stock.
         data = self.stock_export._generate_stock_file_data()
         self.assertTrue("Lot/Serial Number" in data[0]["column_titles"])
         self.assertFalse(any(row["Lot/Serial Number"] for row in data[0]["rows"]))
 
-        # Test that tracking info is not displayed if no products are lot tracked
-        self.tangerine.tracking = "none"
-        self.strawberry.tracking = "none"
+        # Test that tracking info is not displayed if no products are lot/serial tracked
+        tracked_products = Product.search([("tracking", "!=", "none")])
+        for product in tracked_products:
+            product.tracking = "none"
         data = self.stock_export._generate_stock_file_data()
         self.assertFalse("Lot/Serial Number" in data[0]["column_titles"])
 
