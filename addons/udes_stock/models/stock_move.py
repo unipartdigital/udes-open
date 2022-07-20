@@ -373,3 +373,16 @@ class StockMove(models.Model):
                     updated_origin_ids.ids,
                 )
             move.move_orig_ids = updated_origin_ids
+
+    def _action_done(self, cancel_backorder=False):
+        """
+        Extend _action_done to trigger merge quants and to delete empty quants action.
+
+        After _action_done is finished calling the _quant_tasks method which is defined in base core
+        module and is merging and after deleting empty quants
+        """
+        Quant = self.env["stock.quant"]
+        result = super()._action_done(cancel_backorder=cancel_backorder)
+
+        Quant._quant_tasks()
+        return result
