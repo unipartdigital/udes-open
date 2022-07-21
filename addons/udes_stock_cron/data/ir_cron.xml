@@ -27,6 +27,19 @@
       <field name="state">code</field>
       <field name="code">model.unlink_empty()</field>
     </record>
+
+    <record id="unlink_empty_quants_action" model="ir.cron">
+      <field name="name">Unlink Empty Quants</field>
+      <field name="active" eval="True" />
+      <field name="user_id" ref="base.user_root" />
+      <field name="interval_number">5</field>
+      <field name="interval_type">minutes</field>
+      <field name="numbercall">-1</field>
+      <field name="doall">0</field>
+      <field name="model_id" ref="stock.model_stock_quant" />
+      <field name="state">code</field>
+      <field name="code">model._quant_tasks()</field>
+    </record>
         
     </data>
 </odoo>

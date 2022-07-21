@@ -117,6 +117,7 @@ class StockPicking(models.Model):
 
         Picking = self.env["stock.picking"]
         PickingType = self.env["stock.picking.type"]
+        Quant = self.env["stock.quant"]
 
         def raise_insufficiency_error(moves):
             """Helper function to raise error for insufficent stock."""
@@ -127,6 +128,10 @@ class StockPicking(models.Model):
                 _("Unable to reserve stock for products %s for pickings %s.")
                 % (product_names, picks)
             )
+        # Making sure that quants are merged and deleted the empty ones before starting the reserve
+        # stock. No need to run with sudo as the methods inside _quant_tasks have already sudo
+        # where needed.
+        Quant._quant_tasks()
 
         if self:
             picking_types = self.picking_type_id
