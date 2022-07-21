@@ -3,7 +3,7 @@ import json
 import pathlib
 import sys
 
-from contextlib import contextmanager
+from .common import UDESHttpCase
 
 from odoo.exceptions import UserError
 from odoo.modules.module import get_resource_from_path, get_resource_path
@@ -12,29 +12,15 @@ from odoo.tests import common
 
 @common.at_install(False)
 @common.post_install(True)
-class TestFileControllers(common.HttpCase):
+class TestFileControllers(UDESHttpCase):
     """Check that blocked file types cannot be uploaded or downloaded by non-admin users"""
 
     def setUp(self):
         """
-        Use test cursor for environment
         Create allowed file types and blocked/unblocked attachments
         Create user for testing controllers as non-admin
         """
         super().setUp()
-
-        # Use default test cursor for default environment
-        def restore(cr=self.cr, env=self.env):
-            """
-            Based on workaround from print module
-            Restore original cursor and environment once changes made with test cursor
-            """
-            self.env = env
-            self.cr = cr
-
-        self.cr = self.registry.cursor()
-        self.env = self.env(self.cr)
-        self.addCleanup(restore)
 
         ResUsers = self.env["res.users"]
 
@@ -56,29 +42,6 @@ class TestFileControllers(common.HttpCase):
 
         # Run tests as the test user
         self.authenticate(self.test_user_login, self.test_user_pwd)
-
-    @contextmanager
-    def release(self):
-        """
-        Workaround from print module to temporarily release test cursor
-        """
-
-        # Commit so that any changes are visible to external threads
-        self.cr.commit()
-
-        # Release thread's cursor lock
-        self.cr.release()
-
-        try:
-            # Allow external threads to use the cursor
-            yield
-
-        finally:
-            # Reacquire thread's cursor lock
-            self.cr.acquire()
-
-            # Flush cache so that external changes are picked up
-            self.env.clear()
 
     def url_open(self, *args, **kwargs):
         with self.release():
