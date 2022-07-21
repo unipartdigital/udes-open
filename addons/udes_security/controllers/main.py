@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import json
 import logging
 
@@ -15,7 +13,7 @@ _logger = logging.getLogger(__name__)
 class BinaryExtension(Binary):
     def _get_file_type(self, filename):
         """Extract the file type from the filename by returning value
-           after the last '.' character"""
+        after the last '.' character"""
         return filename.split(".")[-1].lower()
 
     def _get_file_type_allowed(self, file_type):
@@ -98,7 +96,9 @@ class BinaryExtension(Binary):
 
                     download_error = {
                         "message": "Unable to download file: File type blocked",
-                        "data": {"debug": self._get_file_type_blocked_error_message(file_type),},
+                        "data": {
+                            "debug": self._get_file_type_blocked_error_message(file_type),
+                        },
                     }
 
                     return request.make_response((json.dumps(download_error)))
