@@ -10,7 +10,12 @@ class TestSaleNotifier(EdiSaleCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        cls.sale_request_tutorial_record_type = cls.env.ref("edi_sale.sale_request_tutorial_record_type")
+        cls.sale_line_request_tutorial_record_type = cls.env.ref("edi_sale.sale_line_request_tutorial_record_type")
         cls.doc_type_tutorial = cls.env.ref("edi_sale.sale_request_tutorial_document_type")
+        cls.doc_type_tutorial.active = True
+        cls.sale_request_tutorial_record_type.active = True
+        cls.sale_line_request_tutorial_record_type.active = True
 
     @classmethod
     def create_tutorial(cls, *filenames, fail_fast=True):
@@ -24,15 +29,17 @@ class TestSaleNotifier(EdiSaleCase):
 
         res = doc.action_prepare()
         # Find related records and fill in client_order_ref and requested_date
-        # (These are fields that are made required in other addons that are not in the manifest
-        # so these need to be populated when running tests with both addons installed)
-        records = SaleRequestTutorialRecord.search([("doc_id", "=", doc.id)])
-        records.write(
-            {
-                "client_order_ref": "test_reference",
-                "requested_date": fields.Datetime.now()
-            }
-        )
+        # (These are fields that are made required in other addons like udes_sale_stock
+        # that are not in the manifest so these need to be populated when running tests
+        # with both addons installed)
+        #
+        # records = SaleRequestTutorialRecord.search([("doc_id", "=", doc.id)])
+        # records.write(
+        #     {
+        #         "client_order_ref": "test_reference",
+        #         "requested_date": fields.Datetime.now()
+        #     }
+        # )
         return res
 
     def mock_invalid_partner_updates(self):
