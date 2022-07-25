@@ -1759,3 +1759,58 @@ class TestStockPickingValidatePicking(common.BaseUDES):
         self.assertEqual(res_pick.move_line_ids, expected_backorder_mls)
         # Original picking in state done
         self.assertEqual(pick.state, "done")
+
+
+class TestStockPickingPriorities(common.BaseUDES):
+    @classmethod
+    def setUpClass(cls):
+        super(TestStockPickingPriorities, cls).setUpClass()
+        cls.create_quant(cls.fig.id, cls.test_stock_location_02.id, 100)
+
+        # first pick
+        cls.pick = cls.create_picking(
+            picking_type=cls.picking_type_pick,
+            products_info=[{"product": cls.fig, "uom_qty": 10}],
+            location_id=cls.test_stock_location_02.id,
+            confirm=True,
+            assign=True,
+            priority="0",
+        )
+
+        # second pick
+        cls.pick2 = cls.create_picking(
+            picking_type=cls.picking_type_pick,
+            products_info=[{"product": cls.fig, "uom_qty": 10}],
+            location_id=cls.test_stock_location_02.id,
+            confirm=True,
+            assign=True,
+            priority="1",
+        )
+
+    def test_priority_zero_remains_on_done_picking(self):
+        """
+        Test that priority 0 is not overwritten on done pickings.
+        """
+        self.complete_picking(self.pick)
+        self.assertEqual(self.pick.priority, "0")
+
+    def test_priority_zero_remains_on_cancelled_picking(self):
+        """
+        Test that priority 0 is not overwritten on cancelled pickings.
+        """
+        self.complete_picking(self.pick)
+        self.assertEqual(self.pick.priority, "0")
+
+    def test_priority_one_remains_on_done_picking(self):
+        """
+        Test that priority 1 is not overwritten on done pickings.
+        """
+        self.complete_picking(self.pick2)
+        self.assertEqual(self.pick2.priority, "1")
+
+    def test_priority_one_remains_on_cancelled_picking(self):
+        """
+        Test that priority 1 is not overwritten on cancelled pickings.
+        """
+        self.complete_picking(self.pick2)
+        self.assertEqual(self.pick2.priority, "1")

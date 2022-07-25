@@ -823,10 +823,7 @@ class StockPicking(models.Model):
     def action_cancel(self):
         """Extend to set date_done field when cancelling transfers"""
         res = super().action_cancel()
-
-        # To be reviewed later, as our priority approach is different. Having here just to remember
-        # that when we made changes we need to change _action_done method as well on stock module
-        self.write({"date_done": fields.Datetime.now(), "priority": "0"})
+        self.write({"date_done": fields.Datetime.now()})
         return res
 
     def validate_picking(self, create_backorder=False, force_validate=False):
