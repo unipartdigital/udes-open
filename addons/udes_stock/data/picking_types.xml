@@ -105,7 +105,7 @@
       <field name="default_location_src_id" ref="stock.stock_location_stock"/>
       <field name="default_location_dest_id" ref="stock.stock_location_output"/>
       <field name="show_operations" eval="1"/>
-      <field name="active">True</field>
+      <field name="active">False</field>
     </record>
 
   </data>

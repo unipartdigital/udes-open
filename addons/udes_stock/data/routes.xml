@@ -6,7 +6,8 @@
       <field name="name">Replen</field>
       <field name="company_id" ref="base.main_company"/>
       <field name="sequence">10</field>
-    </record>    
+       <field name="active">False</field>
+    </record>
 
     <!-- Create new pull rule with stock as procurement location -->
     <record id="procurement_replen" model="stock.rule">
@@ -18,6 +19,7 @@
       <field name="action">pull</field>
       <field name="picking_type_id" ref="udes_stock.picking_type_replen"/>
       <field name="warehouse_id" ref="stock.warehouse0"/>
+       <field name="active">False</field>
     </record>
   </data>
 </odoo>
