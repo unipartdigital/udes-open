@@ -1798,7 +1798,7 @@ class TestStockPickingPriorities(common.BaseUDES):
         """
         Test that priority 0 is not overwritten on cancelled pickings.
         """
-        self.complete_picking(self.pick)
+        self.pick.action_cancel()
         self.assertEqual(self.pick.priority, "0")
 
     def test_priority_one_remains_on_done_picking(self):
@@ -1812,5 +1812,5 @@ class TestStockPickingPriorities(common.BaseUDES):
         """
         Test that priority 1 is not overwritten on cancelled pickings.
         """
-        self.complete_picking(self.pick2)
+        self.pick2.action_cancel()
         self.assertEqual(self.pick2.priority, "1")
