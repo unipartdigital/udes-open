@@ -20,6 +20,7 @@
                     <field name="u_enable_unpickable_items" />
                     <field name="u_validate_real_time" />
                     <field name="u_handle_partials" />
+                    <field name="u_group_related_pickings_by" />
                 </group>
             </xpath>
 

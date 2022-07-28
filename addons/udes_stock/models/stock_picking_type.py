@@ -11,6 +11,12 @@ TARGET_STORAGE_FORMAT_OPTIONS = [
     ("product", "Products"),
 ]
 
+GROUP_RELATED_PICKINGS_CRITERIA = [
+    ("original_picking", "Original Picking"),
+    ("origin", "Origin"),
+    ("nothing", "Nothing"),
+]
+
 
 class StockPickingType(models.Model):
     _inherit = "stock.picking.type"
@@ -74,6 +80,18 @@ class StockPickingType(models.Model):
         string="Process Partial Transfers",
         default=True,
         help="Allow processing a transfer when the preceding transfers are not all completed.",
+    )
+
+    u_group_related_pickings_by = fields.Selection(
+        selection=GROUP_RELATED_PICKINGS_CRITERIA,
+        default="original_picking",
+        string="Group Related Pickings By",
+        copy=True,
+        help="The criteria in which to group related pickings for kafka pick events \n"
+        " * Batch: All pickings of the same picking type, which were a part of this pickings batch if it has one \n"
+        " * Original Picking: All pickings of the same picking type, which stemmed from the first picking in the chain \n"
+        " * Origin: All pickings of the same picking type, which share a source document \n"
+        " * Nothing: No grouping is applied and each picking will be considered separately \n",
     )
 
     def get_action_picking_tree_draft(self):

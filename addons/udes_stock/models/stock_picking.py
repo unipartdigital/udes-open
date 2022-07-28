@@ -149,6 +149,13 @@ class StockPicking(models.Model):
         help="The assigned users to the picking",
     )
 
+    u_original_picking_id = fields.Many2one(
+        "stock.picking",
+        string="Original Picking",
+        help="The original picking of the refactored/backordered picking",
+        copy=True,
+    )
+
     def get_next_picking_name(self, vals, picking_type=None):
         """
         Override the method in core stock to customise the name generation.
@@ -964,3 +971,17 @@ class StockPicking(models.Model):
             ("move_line_ids.package_id", "=", package.id),
             ("move_line_ids.result_package_id", "=", package.id),
         ]
+    
+    @api.model
+    def create(self, vals):
+        """
+        Add the original picking id on creation because of race conditions
+        of computed fields.
+        For example, when creating a backorder,
+        the backorder gets related but u_prev_picking_ids gets done after.
+        So instead, we just write to a new field which we copy across backordered pickings
+        """
+        picking = super().create(vals)
+        if not picking.backorder_id:
+            picking.write({"u_original_picking_id": picking.id})
+        return picking

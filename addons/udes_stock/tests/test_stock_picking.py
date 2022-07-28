@@ -878,6 +878,26 @@ class TestStockPickingBackordering(TestStockPickingCommon):
         self.assertEqual(sum(bk_moves.mapped("product_uom_qty")), 20)
         self.assertEqual(sum(bk_mls.mapped("qty_done")), 4)
         self.assertEqual(sum(bk_mls.mapped("product_uom_qty")), 10)
+    
+    def test_u_original_picking_id_gets_set_on_picking(self):
+        """
+        Test that u_original_picking_id gets set to the original picking on a chain of backorders
+        """
+        self.create_quant(self.fig.id, self.test_stock_location_02.id, 50)
+        pick = self.create_picking(
+            picking_type=self.picking_type_pick,
+            products_info=[{"product": self.fig, "uom_qty": 100}],
+            assign=True,
+        )
+        move = pick.move_lines
+        ml = pick.move_line_ids
+        bk_picking = pick._backorder_move_lines(ml)
+        bk_ml = bk_picking.move_line_ids
+        bk_2_picking = bk_picking._backorder_move_lines(bk_ml)
+
+        self.assertEqual(pick.u_original_picking_id, pick)
+        self.assertEqual(bk_picking.u_original_picking_id, pick)
+        self.assertEqual(bk_2_picking.u_original_picking_id, pick)
 
 
 class TestStockPicking(TestStockPickingCommon):
