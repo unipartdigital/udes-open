@@ -37,8 +37,11 @@ class StockMove(models.Model):
         unreserving a package.
         """
         res = super()._do_unreserve()
-        for move in self:
-            move.write({"product_uom_qty": move.u_uom_initial_demand})
+        # Don't want partially picked backorders which then raise
+        # a stock investigation to have their qty re-set
+        if not self.env.context.get("bypass_set_qty_to_initial_demand"):
+            for move in self:
+                move.write({"product_uom_qty": move.u_uom_initial_demand})
         return res
 
     def _prepare_move_line(self, move, uom_qty, uom_id=None, **kwargs):
