@@ -1089,7 +1089,6 @@ class StockPickingBatch(models.Model):
                     "Press back when resolved."
                 )
             )
-
         product = Product.get_or_create(product_id) if product_id else None
         location = Location.get_or_create(location_id) if location_id else None
         package = Package.get_or_create(package_name) if package_name else None
@@ -1189,7 +1188,7 @@ class StockPickingBatch(models.Model):
             # NOTE: Added sudo() - Uses sudo() here as a user might not have the full access rights to stock.picking.batch
             # but still needs more access rights for the flow
             to_investigate.with_context(
-                lock_batch_state=True, allow_partial=allow_partial
+                lock_batch_state=True, allow_partial=allow_partial, bypass_set_qty_to_initial_demand=True
             ).raise_stock_investigation(reason=reason, quants=quants.sudo(), location=location)
             # Trigger refactor here to allow grouping of pickings by move key on confirm. Need to loop
             # over the pickings from the refactored moves as they might be  in a different picking.
