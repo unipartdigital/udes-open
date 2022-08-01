@@ -1222,7 +1222,7 @@ class StockPickingBatch(models.Model):
                         # directly processed
                         picking.move_line_ids.write({"picking_id": original_picking_id})
                         picking.move_lines.write({"picking_id": original_picking_id})
-                        picking.unlink()
+                        picking.sudo().unlink()
                     else:
                         # Moves may be part of a new picking after refactor, this should
                         # be added back to the batch
@@ -1230,9 +1230,11 @@ class StockPickingBatch(models.Model):
                         if other_picking:
                             # Need to check as we cannot directly write on empty recordset as original Odoo14
                             # stock batch picking model will raise an error even if recordset is empty
-                            other_picking.write({"batch_id": self.id})
+                            # NOTE: Added sudo() as user might not have the full access rights to stock.picking.batch
+                            # and we want to be able to assign a batch
+                            other_picking.sudo().write({"batch_id": self.id})
             self._remove_unready_picks()
-            # NOTE: Added sudo() - Uses sudo() here as a user might not have the full access rights to stock.picking.batch
-            # but still needs more access rights for the flow
+            # NOTE: Added sudo() as a user might not have the full access rights to stock.picking.batch as we want
+            # to be able to recompute the state of the batch
             self.sudo()._compute_state()
         return True
