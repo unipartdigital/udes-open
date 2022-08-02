@@ -876,7 +876,8 @@ class StockPicking(models.Model):
 
             # NOTE: Added sudo() - Uses sudo() here as a user might not have the full access rights to stock.picking
             # but still needs more access rights for the flow
-            self.sudo()._action_done()
+            # We don't want odoo stock module to create backorders. That is handed in UDES layer.
+            self.sudo().with_context({"cancel_backorder": True})._action_done()
         _logger.info(
             "%s udes_stock::validate_picking in %.2fs, %d queries",
             self.log_name(),
