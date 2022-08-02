@@ -29,7 +29,10 @@ class StockMove(models.Model):
 
     def _action_cancel(self):
         self.move_line_ids.write({"qty_done": 0})
-        return super()._action_cancel()
+
+        return super(
+            StockMove, self.with_context({"bypass_set_qty_to_initial_demand": True})
+        )._action_cancel()
 
     def _do_unreserve(self):
         """
@@ -37,8 +40,7 @@ class StockMove(models.Model):
         unreserving a package.
         """
         res = super()._do_unreserve()
-        # Don't want partially picked backorders which then raise
-        # a stock investigation to have their qty re-set
+        # Allow bypassing the qty reset with context
         if not self.env.context.get("bypass_set_qty_to_initial_demand"):
             for move in self:
                 move.write({"product_uom_qty": move.u_uom_initial_demand})
