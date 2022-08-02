@@ -32,11 +32,12 @@ class TestSaleNotifier(EdiSaleCase):
         SaleRequestTutorialRecord = self.env["edi.sale.request.tutorial.record"]
 
         res = doc.action_prepare()
-        # Find related records and fill in client_order_ref and requested_date
-        # (These are fields that are made required in other addons like udes_sale_stock
-        # that are not in the manifest so these need to be populated when running tests
-        # with both addons installed)
+        # TODO: enable code below once udes_open CI pulls EDI repo
+        # The fields below are required in other addons like udes_sale_stock
+        # that are not in the manifest so these need to be populated when running
+        # tests with both addons installed
         #
+        # Find related records and fill in client_order_ref and requested_date
         # records = SaleRequestTutorialRecord.search([("doc_id", "=", doc.id)])
         # records.write(
         #     {
