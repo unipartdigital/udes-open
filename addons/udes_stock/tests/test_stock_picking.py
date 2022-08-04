@@ -878,7 +878,7 @@ class TestStockPickingBackordering(TestStockPickingCommon):
         self.assertEqual(sum(bk_moves.mapped("product_uom_qty")), 20)
         self.assertEqual(sum(bk_mls.mapped("qty_done")), 4)
         self.assertEqual(sum(bk_mls.mapped("product_uom_qty")), 10)
-    
+
     def test_u_original_picking_id_gets_set_on_picking(self):
         """
         Test that u_original_picking_id gets set to the original picking on a chain of backorders
@@ -898,6 +898,52 @@ class TestStockPickingBackordering(TestStockPickingCommon):
         self.assertEqual(pick.u_original_picking_id, pick)
         self.assertEqual(bk_picking.u_original_picking_id, pick)
         self.assertEqual(bk_2_picking.u_original_picking_id, pick)
+
+    def test_quantity_does_not_revert_on_cancelled_backorder(self):
+        """
+        Test that product_qty does not revert to u_uom_initial_demand when cancelling a picking
+        """
+        self.create_quant(self.fig.id, self.test_stock_location_02.id, 50)
+        pick = self.create_picking(
+            picking_type=self.picking_type_pick,
+            products_info=[{"product": self.fig, "uom_qty": 100}],
+            assign=True,
+        )
+        ml = pick.move_line_ids
+        bk_picking = pick._backorder_move_lines(ml)
+        bk_move = bk_picking.move_lines
+        self.assertEqual(bk_move.u_uom_initial_demand, 100)
+        self.assertEqual(bk_move.product_qty, 50)
+        bk_picking.action_cancel()
+        self.assertEqual(bk_move.u_uom_initial_demand, 100)
+        self.assertEqual(bk_move.product_qty, 50)
+
+    def test_backorder_does_not_dangle_with_split_package(self):
+        """If we start with a Pick for 50x figs, and pick it onto 2 separate packages
+        ensure that no spurious backorder gets created"""
+        StockPicking = self.env["stock.picking"]
+        pack1 = self.create_package(name="UDES01")
+        pack2 = self.create_package(name="UDES02")
+        self.create_quant(self.fig.id, self.test_stock_location_02.id, 30, package_id=pack1.id)
+        self.create_quant(self.fig.id, self.test_stock_location_02.id, 20, package_id=pack2.id)
+        pick = self.create_picking(
+            picking_type=self.picking_type_pick,
+            products_info=[{"product": self.fig, "uom_qty": 50}],
+            assign=True,
+        )
+        starting_picks = StockPicking.search([])
+        for line in pick.move_line_ids:
+            line.location_dest_id = self.test_goodsout_location_01
+            line.qty_done = line.product_uom_qty
+        pick.validate_picking()
+        goods_out = pick.u_next_picking_ids
+        for line in goods_out.move_line_ids:
+            line.qty_done = line.product_uom_qty
+            line.location_dest_id = self.test_trailer_location_01
+        goods_out.validate_picking()
+        ending_picks = StockPicking.search([])
+        new_pick = ending_picks - starting_picks
+        self.assertEqual(len(new_pick), 0)
 
 
 class TestStockPicking(TestStockPickingCommon):
