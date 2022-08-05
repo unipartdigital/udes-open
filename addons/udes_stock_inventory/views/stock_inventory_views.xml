@@ -36,7 +36,7 @@
                             context="{'default_is_editable': True, 'default_company_id': company_id, 'default_location_id': u_line_default_location_id, 'default_product_id': u_line_default_product_id}">
                             <tree string="Inventory Details"
                                 editable="bottom"
-                                default_order="location_id,product_id"
+                                default_order="location_id,product_id,is_editable"
                                 decoration-danger="product_qty != theoretical_qty"
                                 decoration-muted="product_qty == theoretical_qty"
                                 decoration-bf="is_editable">
