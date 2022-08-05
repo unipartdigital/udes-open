@@ -3,6 +3,7 @@ from odoo import models, fields
 
 class Inventory(models.Model):
     _inherit = "stock.inventory"
+    _description = "Inventory Adjustment"
 
     # Make locations field mandatory
     location_ids = fields.Many2many(required=True)
