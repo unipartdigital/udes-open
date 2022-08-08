@@ -80,7 +80,10 @@ class SecureAction(Action):
         parent_path_ids = []
 
         if not isinstance(action_id, int):
-            raise ValidationError("Invalid action ID specified.")
+            try:
+                action_id = int(action_id)
+            except ValueError:
+                raise ValidationError("Invalid action ID specified.")
         query = """
             SELECT
                 menu.id AS menu_id,
