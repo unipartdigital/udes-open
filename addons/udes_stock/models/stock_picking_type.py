@@ -93,6 +93,20 @@ class StockPickingType(models.Model):
         " * Origin: All pickings of the same picking type, which share a source document \n"
         " * Nothing: No grouping is applied and each picking will be considered separately \n",
     )
+    u_propagate_cancel = fields.Boolean(
+        default=False,
+        string="Propagate Move Cancellations",
+        help="Whether or not to propagate move cancellations to the next picks moves. \n"
+        "Odoo has a built in `propagate_cancel` field on the `stock.rule` which is only \n"
+        "available on pull rules, and does not work for partial cancellations \n"
+        "i.e if move grouping exists on pick type A but not pick type B, then \n"
+        "pick type B's moves will be merged, and if a pick type A move is cancelled \n"
+        "then the qty of the merged moves in pick type B will not be reduced. \n\n"
+        "This toggle however, does support partial cancellations, and will propagate forward \n"
+        "until it reaches a pick type with this setting turned off (or the move can not be found).\n\n"
+        "For this reason, it is suggested to not use this feature on pick types whose rules are \n"
+        "configured to propagate cancellations, to avoid any conflicting functionality.",
+    )
 
     def get_action_picking_tree_draft(self):
         return self._get_action("udes_stock.action_picking_tree_draft")
