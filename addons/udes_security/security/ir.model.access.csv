@@ -2,3 +2,5 @@ id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 ,,,,,,,,
 access_udes_allowed_file_type,udes_allowed_file_type,model_udes_allowed_file_type,base.group_user,1,0,0,0
 access_udes_allowed_file_type_config,udes_allowed_file_type,model_udes_allowed_file_type,udes_security.group_edit_allowed_file_types,1,1,1,1
+access_udes_security_domain_allowlist,access_udes_security_domain_allowlist_user,model_udes_security_domain_allowlist,,1,0,0,0
+access_udes_security_domain_allowlist_tech,access_udes_security_domain_allowlist_tech,model_udes_security_domain_allowlist,udes_security.group_edit_allowlist_redirect_domains,1,1,1,1

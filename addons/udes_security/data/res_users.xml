@@ -5,6 +5,7 @@
                 (4, ref('udes_security.group_can_add_trusted_user')),
                 (4, ref('udes_security.group_trusted_user')),
                 (4, ref('udes_security.group_edit_allowed_file_types')),
+                (4, ref('udes_security.group_edit_allowlist_redirect_domains')),
             ]"/>
         </record>
 
@@ -13,6 +14,7 @@
                 (4, ref('udes_security.group_can_add_trusted_user')),
                 (4, ref('udes_security.group_trusted_user')),
                 (4, ref('udes_security.group_edit_allowed_file_types')),
+                (4, ref('udes_security.group_edit_allowlist_redirect_domains')),
             ]"/>
         </record>
 

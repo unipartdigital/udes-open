@@ -21,6 +21,8 @@
         "views/no_desktop_access_template_views.xml",
         "data/allowed_file_type_data.xml",
         "views/res_config_settings_view.xml",
+        "data/setup_default_domains.xml",
+        "views/domain_allowlist_view.xml",
     ],
     "demo": [],
 }
