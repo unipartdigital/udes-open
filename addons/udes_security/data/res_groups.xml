@@ -41,4 +41,13 @@
         <field name="u_required_group_id_to_change" ref="base.group_system" />
     </record>
 
+    <record id="group_edit_allowlist_redirect_domains" model="res.groups">
+        <field name="name">Manage Allowed Redirect Domains</field>
+        <field name="category_id" ref="base.module_category_extra" />
+    </record>
+    <!-- Cannot self reference, so we extend the record after we create it -->
+    <record id="udes_security.group_edit_allowlist_redirect_domains" model="res.groups">
+        <field name="u_required_group_id_to_change" ref="udes_security.group_edit_allowlist_redirect_domains" />
+    </record>
+
 </odoo>
