@@ -28,11 +28,24 @@ class StockMove(models.Model):
         return super().create(vals)
 
     def _action_cancel(self):
+        """
+        Extend _action_cancel to;
+        - Set move_line_ids to have a qty_done of 0
+        - Include a context bypass in the super call to prevent initial demand re-setting
+        - Include a hook to propagate cancellations when the picking
+          type is configured with u_propagate_cancel set to True
+        """
         self.move_line_ids.write({"qty_done": 0})
-
-        return super(
+        # Pull out old move_dest_ids as these _can_ be removed upon cancellation
+        old_dest_ids = {m.id: m.move_dest_ids for m in self}
+        res = super(
             StockMove, self.with_context({"bypass_set_qty_to_initial_demand": True})
         )._action_cancel()
+        for move in self:
+            if move.picking_type_id.u_propagate_cancel:
+                move.propagate_cancellation_to_next_picks(old_dest_ids.get(move.id))
+
+        return res
 
     def _do_unreserve(self):
         """
@@ -118,6 +131,42 @@ class StockMove(models.Model):
             {"move_id": new_move.id, "product_uom_qty": 0}
         )
 
+    def propagate_cancellation_to_next_picks(self, old_dest_ids):
+        """
+        Propagate cancelled qtys to move_dest_ids.
+        If a full qty match is found, cancel that move - calling this function for that move
+        If a part qty match is found, decrement the qty from the move, and continue down the chain
+
+        `propagate_cancel` on `stock.rule` could be used, however it is not visible on `Push` rules
+        and does not appear to propagate partial cancellations.
+
+        :param: old_dest_ids: stock.move(x) recordset(s), fallback if no move_dest_ids in self.
+                              Can be emptyset
+        """
+        StockMove = self.env["stock.move"].browse()
+        next_moves = self.move_dest_ids
+        if not next_moves:
+            # NB: This handles a symptom of Issue #2771
+            next_moves = old_dest_ids
+        qty = self.product_uom_qty
+        while next_moves:
+            fully_matched_move = next_moves.filtered(lambda m: m.product_uom_qty == qty)
+            for move in fully_matched_move:
+                move._action_cancel()
+                # Recurse via action_cancel, we don't need to continue through the chain here.
+                next_moves = StockMove
+            else:
+                next_moves_todo = next_moves
+                next_moves = StockMove  # Clear this as we potentially rebuild inside the loop
+                for move in next_moves_todo:  # Iterate on the non-cleared set
+                    if move.product_uom_qty > qty:
+                        move.product_uom_qty -= qty
+                        # Recursing inside here is only necessary for part cancellations
+                        if move.picking_type_id.u_propagate_cancel:
+                            next_moves |= move.move_dest_ids
+                    else:  # move qty is less, as there was no fully_matched_move
+                        move._action_cancel()
+
     def split_out_move_lines(self, move_lines, **kwargs):
         """Split sufficient quantity from self to cover move_lines, and
         attach move_lines to the new move. Return the move that now holds all
@@ -195,15 +244,15 @@ class StockMove(models.Model):
         and move all other work into the new move.
             * mls is not None: Retain mls_to_keep in self, and remove all other work,
         into the new move.
-        
+
         :kwargs:
             - mls_to_keep: The move lines to keep in self, if None use all mls with
             qty_done == product_uom_qty.
-        :returns: 
+        :returns:
             - If a move has nothing complete, return self, detached from the pickng
             - If a move has everything complete, return an empty record set
             - If the move is partially complete, return the new move with the incomplete
-            work. 
+            work.
         :raises: An error if any move lines attached to self are partially complete.
         :raises: An error if any move lines being moved are done, and any move line reatined
             is incomplete.
@@ -315,7 +364,7 @@ class StockMove(models.Model):
         This can be overridden in other modules if desired.
         If no matching is made, it defaults to a matching on the dest location
         and product id. This is not very robust and can lead to over-matching.
-        
+
         The saving grace of the default behaviour is that it is not very common.
         Normally, if not lot tracked, there are packages/pallets, and if not there
         are procurement groups which block the merging of moves/pickings.
@@ -343,7 +392,7 @@ class StockMove(models.Model):
         )
 
     def update_orig_ids(self, origin_ids):
-        """ 
+        """
         Updates the move_orig_ids for all moves in self.
         All incomplete original moves in self are retained since they should
         still point to self. For all move lines in each move, match the move line
@@ -351,7 +400,7 @@ class StockMove(models.Model):
 
         Using _make_mls_comparison_lambda does cause over matching if they are not identifable
         this is left because of the issue of intraceability should be avoided.
-        
+
         Examples can be found in test_stock_move.py
 
         NOTE: If there are performance issues with mapped and computing the over matching

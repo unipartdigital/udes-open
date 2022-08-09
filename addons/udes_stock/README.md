@@ -187,8 +187,8 @@ The type of stock.picking can is defined by this type. It can represent a goods 
 | u_scan_parent_package_end | Boolean | If the system should ask the user to scan a parent package on drop off                                                                   |
 | u_multi_users_enabled     | Boolean | Flag to enable multi users processing same picking simultaneously.                                                                       |
 | u_enable_unpickable_items | Boolean | Flag to indicate if the current picking type should support handling of unpickable items                                                 |
-| u_handle_partials | Boolean | If the picking type is allowed to handle
-partially available pickings. |
+| u_handle_partials | Boolean | If the picking type is allowed to handle partially available pickings. |
+| u_propagate_cancel | Boolean | If the picking type should propagate move cancellations to the next moves |
 
 | Helpers                       | Description                                          |
 |-------------------------------|------------------------------------------------------|

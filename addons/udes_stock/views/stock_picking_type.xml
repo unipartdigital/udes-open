@@ -4,7 +4,7 @@
     <record id="view_picking_type_form_inherit" model="ir.ui.view">
         <field name="name">stock.picking.type.form.inherit</field>
         <field name="model">stock.picking.type</field>
-        <field name="inherit_id" ref="stock.view_picking_type_form"/>
+        <field name="inherit_id" ref="stock.view_picking_type_form" />
         <field name="arch" type="xml">
 
             <!-- Add UDES fields -->
@@ -13,7 +13,7 @@
                     <field name="u_target_storage_format" />
                     <field name="u_user_scans" />
                     <field name="u_scan_parent_package_end" />
-                    <field name="u_under_receive"/>
+                    <field name="u_under_receive" />
                     <field name="u_over_receive" />
                     <field name="u_multi_users_enabled" />
                     <field name="u_auto_unlink_empty" />
@@ -21,11 +21,12 @@
                     <field name="u_validate_real_time" />
                     <field name="u_handle_partials" />
                     <field name="u_group_related_pickings_by" />
+                    <field name="u_propagate_cancel" />
                 </group>
             </xpath>
 
             <!-- Not needed for UDES as in only applicable to Odoo style prefix -->
-            <xpath expr="//field[@name='sequence_code']" position="replace"/>
+            <xpath expr="//field[@name='sequence_code']" position="replace" />
 
         </field>
     </record>
