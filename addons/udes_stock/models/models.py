@@ -2,6 +2,9 @@
 
 from odoo import models, api, _
 from lxml import etree
+from odoo.tools import DEFAULT_SERVER_DATE_FORMAT as DATE_FORMAT
+from datetime import datetime
+from odoo.exceptions import UserError
 
 
 class Base(models.AbstractModel):
@@ -45,3 +48,51 @@ class Base(models.AbstractModel):
             "res_id": self.id,
             "context": {"view_all_fields": True},
         }
+
+    @api.model
+    def _create(self, vals):
+        """Inheriting low level _create method to check if there is any date or datetime field less
+        than a static year 1000. In that case raise an error to show the users that the date entered
+         is not correct
+
+         On Core _create method vals are expected to be a dict
+         """
+        if isinstance(vals, dict):
+            self.validate_values_of_date_fields(vals)
+        res = super()._create(vals)
+        return res
+
+    @api.multi
+    def _write(self, vals):
+        """Inheriting low level _write method to check if there is any date or datetime field less
+        than a static year 1000. In that case raise an error to show the users that the date entered
+         is not correct"""
+        if isinstance(vals, dict):
+            self.validate_values_of_date_fields(vals)
+        res = super()._write(vals)
+        return res
+
+    @api.model
+    def validate_values_of_date_fields(self, values):
+        """
+        Checking if date or datetime fields that are formatted as string
+        can be converted to a date field and the year is greater than 1000.
+        Raising error in case year is less than 1000
+        """
+        date_fields = {
+            key: value for key, value in self._fields.items() if
+            value.type in ("date", "datetime") and key not in ("write_date", "create_date")
+        }
+        date_values = {k: v for k, v in values.items() if
+                       k in date_fields and isinstance(v, str) and len(v) >= 10}
+        for date_value in date_values.values():
+            try:
+                date_field = datetime.strptime(date_value[:10], DATE_FORMAT)
+            except:
+                raise UserError(
+                    _("Date '%s' is not valid.") % date_value
+                )
+            if date_field.year < 1000:
+                raise UserError(
+                    _("Date '%s' is not valid.") % date_value
+                )
