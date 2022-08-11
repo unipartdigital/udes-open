@@ -1,6 +1,6 @@
 from unittest.mock import patch
 
-from odoo.exceptions import ValidationError, UserError
+from odoo.exceptions import ValidationError
 from odoo.tools import mute_logger
 
 from . import common
@@ -54,8 +54,8 @@ class TestStockMove(common.BaseUDES):
 
     def complete_picking(self, picking, dest_location, dest_package_id=None, **picking_kwargs):
         """
-         Complete a picking, assumes no backorder is required and everything can be fulfilled
-         in the moves via the move lines.
+        Complete a picking, assumes no backorder is required and everything can be fulfilled
+        in the moves via the move lines.
         """
         mls = picking.move_line_ids
         for ml in mls:
@@ -91,7 +91,7 @@ class TestStockMove(common.BaseUDES):
             * apple: qty=2, reserved=2, qty_done=2, mls=1
             * banana: qty=6, reserved=6, qty_done=6, mls=2
             * cherry: qty=4, reserved=0, qty_done=0, mls=0
-        
+
         :return:
             - picking, moves, mls
         """
@@ -188,7 +188,9 @@ class TestStockMove(common.BaseUDES):
             sum(Quant.search([]).mapped("reserved_quantity")),
         )
 
-    def test_split_out_move_raises_exception_when_qty_done_in_ml_less_than_product_uom_qty(self,):
+    def test_split_out_move_raises_exception_when_qty_done_in_ml_less_than_product_uom_qty(
+        self,
+    ):
         """
         When trying to split a move, raise an execption if the move line qty > 0 and
         is != product_uom_qty.
@@ -493,6 +495,179 @@ class TestStockMove(common.BaseUDES):
         self.assertEqual(moves.get_uncovered_moves(banana_5ml), moves)
 
 
+class TestUdesPropagateCancel(common.BaseUDES):
+    @classmethod
+    def setUpClass(cls):
+        """
+        Test u_propagate_cancel field is working on at least a 3 pick chain
+        """
+        super().setUpClass()
+        cls.Picking = cls.env["stock.picking"]
+        cls.Move = cls.env["stock.move"]
+        cls.package1 = cls.create_package()
+        cls.package2 = cls.create_package()
+        cls.create_trailer_route()
+        # Create a picking
+        cls._pick_info = [{"product": cls.banana, "uom_qty": 6}]
+        cls.quant1 = cls.create_quant(cls.banana.id, cls.test_stock_location_01.id, 5)
+        cls.quant2 = cls.create_quant(cls.banana.id, cls.test_stock_location_02.id, 3)
+        cls.pick = cls.create_picking(
+            cls.picking_type_pick, products_info=cls._pick_info, assign=True
+        )
+        cls.pick_ml1 = cls.pick.move_line_ids.filtered(lambda ml: ml.product_qty == 5)
+        cls.pick_ml2 = cls.pick.move_line_ids.filtered(lambda ml: ml.product_qty == 1)
+
+    @classmethod
+    def create_trailer_route(cls):
+        """
+        Sets up push rule for trailer dispatch to ensure a trailer pick
+        gets created after goods out
+        """
+        Route = cls.env["stock.location.route"]
+        Sequence = cls.env["ir.sequence"]
+        Rule = cls.env["stock.rule"]
+
+        route_vals = {
+            "name": "TestTrailerDispatch",
+            "sequence": 15,
+            "product_selectable": False,
+            "warehouse_selectable": True,
+            "warehouse_ids": [(6, 0, [cls.warehouse.id])],
+        }
+        cls.route_trailer = Route.create(route_vals)
+
+        sequence_vals = {
+            "name": "TestTrailerDispatch",
+            "prefix": "TESTTRAILERDISPATCH",
+            "padding": 5,
+        }
+        sequence_trailer = Sequence.create(sequence_vals)
+        trailer_vals = {"sequence_id": sequence_trailer.id, "sequence": 18}
+        cls.picking_type_trailer_dispatch.write(trailer_vals)
+
+        location_path_vals = {
+            "name": "TestTrailerDispatch",
+            "route_id": cls.route_trailer.id,
+            "sequence": 25,
+            "location_src_id": cls.picking_type_goods_out.default_location_dest_id.id,
+            "location_id": cls.picking_type_trailer_dispatch.default_location_dest_id.id,
+            "picking_type_id": cls.picking_type_trailer_dispatch.id,
+            "action": "pull_push",
+        }
+        Rule.create(location_path_vals)
+
+    def toggle_u_propagate_cancel(self, toggle_value):
+        """Helper function to enable/disable u_propagate_cancel on all picking types"""
+        picking_types_to_configure = [
+            self.picking_type_pick,
+            self.picking_type_goods_out,
+            self.picking_type_trailer_dispatch,
+        ]
+        for picking_type in picking_types_to_configure:
+            picking_type.u_propagate_cancel = toggle_value
+
+    def get_next_pick_chain(self, picking):
+        StockPicking = self.env["stock.picking"]
+        next_pick_chain = StockPicking.browse()
+        while picking:
+            next_picks = picking.mapped("u_next_picking_ids")
+            next_pick_chain |= next_picks
+            picking = next_picks
+        return next_pick_chain
+
+    def test_cancel_picking_does_not_propagate_to_next_pickings(self):
+        """
+        If u_propagate_cancel is disabled on all picking types,
+        ensure that when a Pick is cancelled, no propagation occurs
+        """
+        self.toggle_u_propagate_cancel(False)
+
+        self.pick_ml1.result_package_id = self.package1
+        self.pick_ml1.qty_done = 5
+        self.pick._action_done()
+        bk_pick = self.pick.u_created_backorder_ids
+        self.assertEqual(bk_pick.move_lines.product_qty, 1)
+        next_pickings = self.get_next_pick_chain(bk_pick)
+        self.assertTrue(len(next_pickings) == 2)
+        for next_picking in next_pickings:
+            with self.subTest():
+                self.assertEqual(next_picking.move_lines.product_qty, 6)
+        bk_pick.action_cancel()
+        self.assertEqual(bk_pick.state, "cancel")
+        for next_picking in next_pickings:
+            with self.subTest():
+                self.assertEqual(next_picking.move_lines.product_qty, 6)
+
+    def test_cancel_picking_propagates_to_some_next_pickings(self):
+        """
+        If u_propagate_cancel is enabled on Pick only,
+        ensure that when a Pick is cancelled, propagation only occurs to Goods Out
+        """
+        self.toggle_u_propagate_cancel(False)
+        self.picking_type_pick.u_propagate_cancel = True
+        self.pick_ml1.result_package_id = self.package1
+        self.pick_ml1.qty_done = 5
+        self.pick._action_done()
+        bk_pick = self.pick.u_created_backorder_ids
+        self.assertEqual(bk_pick.move_lines.product_qty, 1)
+        next_pickings = self.get_next_pick_chain(bk_pick)
+        self.assertTrue(len(next_pickings) == 2)
+        for next_picking in next_pickings:
+            with self.subTest():
+                self.assertEqual(next_picking.move_lines.product_qty, 6)
+        bk_pick.action_cancel()
+        self.assertEqual(bk_pick.state, "cancel")
+        for next_picking in next_pickings:
+            with self.subTest():
+                if next_picking.picking_type_id == self.picking_type_trailer_dispatch:
+                    self.assertEqual(next_picking.move_lines.product_qty, 6)
+                else:
+                    self.assertEqual(next_picking.move_lines.product_qty, 5)
+
+    def test_cancel_picking_propagates_to_next_pickings(self):
+        """
+        If u_propagate_cancel is enabled on all picking types,
+        ensure that when a Pick is cancelled, the moves (and pickings)
+        down the chain are all cancelled.
+        """
+        self.toggle_u_propagate_cancel(True)
+
+        next_pickings = self.get_next_pick_chain(self.pick)
+        self.assertTrue(len(next_pickings) == 2)
+        for next_picking in next_pickings:
+            with self.subTest():
+                self.assertEqual(next_picking.move_lines.product_qty, 6)
+        self.pick.action_cancel()
+        self.assertEqual(self.pick.state, "cancel")
+        for next_picking in next_pickings:
+            with self.subTest():
+                self.assertEqual(next_picking.state, "cancel")
+
+    def test_cancel_picking_backorder_propagates_to_next_pickings(self):
+        """
+        If u_propagate_cancel is enabled on all picking types,
+        ensure that when a Pick is partially processed (and a backorder is created),
+        the moves on the backorder propagate their cancellation (by means of deducting qty)
+        all the way down the chain
+        """
+        self.toggle_u_propagate_cancel(True)
+        self.pick_ml1.result_package_id = self.package1
+        self.pick_ml1.qty_done = 5
+        self.pick._action_done()
+        bk_pick = self.pick.u_created_backorder_ids
+        self.assertEqual(bk_pick.move_lines.product_qty, 1)
+        next_pickings = self.get_next_pick_chain(bk_pick)
+        self.assertTrue(len(next_pickings) == 2)
+        for next_picking in next_pickings:
+            with self.subTest():
+                self.assertEqual(next_picking.move_lines.product_qty, 6)
+        bk_pick.action_cancel()
+        self.assertEqual(bk_pick.state, "cancel")
+        for next_picking in next_pickings:
+            with self.subTest():
+                self.assertEqual(next_picking.move_lines.product_qty, 5)
+
+
 class TestUpdateOrigIds(TestStockMove):
     """
     This test class is used to check that the orig_move_ids are correctly
@@ -567,7 +742,7 @@ class TestUpdateOrigIds(TestStockMove):
         always point to the relevant original moves.
 
         Setup:
-            * Begin with one picking: 
+            * Begin with one picking:
                 Banana 1 moves, 2ml, no tracking
                 Apple 1 moves, 3ml, tracking
             * Complete partial amount of picking one onto one package, banana ml of qty 1
