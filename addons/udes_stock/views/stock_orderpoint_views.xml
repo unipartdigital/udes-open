@@ -1,0 +1,39 @@
+<odoo>
+
+    <!-- Odoo14 comes with two menus for the orderpoint model.
+         1: Replenishments: lives under the Operations menu. Displays orderpoints with manual tigger .
+         2: Reordering Rules: lives under the Configuration menu. Displays orderpoints with auto trigger.
+
+        Currently, we want to have one menu for auto rules only. To achieve this, Reordering Rules menu
+        is renamed and restricted to display only auto rules.
+     -->
+
+    <!-- Remove trigger field from tree view -->
+    <record id="view_warehouse_orderpoint_tree_editable_config" model="ir.ui.view">
+        <field name="name">stock.stock_warehouse_orderpoint_tree_editable_config</field>
+        <field name="model">stock.warehouse.orderpoint</field>
+        <field name="inherit_id" ref="stock.view_warehouse_orderpoint_tree_editable_config"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='trigger']" position="replace">
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Hide Replenishment Menu -->
+    <record id="stock.menu_reordering_rules_replenish" model="ir.ui.menu">
+        <field name="active">0</field>
+    </record>
+
+    <!-- Move Reordering Rules menu to Operations and rename-->
+    <menuitem
+            id="stock.menu_reordering_rules_config"
+            name="Replenishments" parent="stock.menu_stock_warehouse_mgmt"/>
+
+    <!-- Rename Reorder Rules view and add domain to hide manual trigger -->
+    <record id="stock.action_orderpoint" model="ir.actions.act_window">
+        <field name="name">Replenishments</field>
+        <field name="context">{}</field>
+        <field name="domain">[('trigger', '=', 'auto')]</field>
+    </record>
+
+</odoo>
