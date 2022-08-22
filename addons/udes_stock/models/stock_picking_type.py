@@ -114,6 +114,18 @@ class StockPickingType(models.Model):
         "confirmation of the picking if one does not already exist.",
     )
 
+    u_count_packages = fields.Boolean(
+        default=False,
+        string="Report Package Counts",
+        help="Report package counts",
+    )
+
+    u_count_pallets = fields.Boolean(
+        default=False,
+        string="Report Pallet Counts",
+        help="Report pallet counts",
+    )
+
     def get_action_picking_tree_draft(self):
         return self._get_action("udes_stock.action_picking_tree_draft")
 
@@ -141,7 +153,7 @@ class StockPickingType(models.Model):
             del vals["sequence_code"]
         return super(StockPickingType, self).write(vals)
 
-        
+
     @api.model
     def create(self, vals):
         """
@@ -149,11 +161,11 @@ class StockPickingType(models.Model):
         If the picking type is to be a direct copy then a search will be done for the original record and the sequence will be attached to the
         new record. If it isn't going to be a direct copy i.e. have a different name, then the sequence code should be set. This can happen when
         calling .copy(vals) on a record, where vals contains an updated name field. In this case the copied record will have the old Odoo style
-        prefix.  
+        prefix.
         """
         Stockpickingtype = self.env["stock.picking.type"]
         stock_picking_type_record = Stockpickingtype.search([("name","=",vals["name"]), ("company_id", "=", vals.get("company_id"))])
-        if len(stock_picking_type_record) != 0 and not vals.get("sequence_id"): 
+        if len(stock_picking_type_record) != 0 and not vals.get("sequence_id"):
             vals["sequence_id"] = stock_picking_type_record[0].sequence_id.id
         else:
             vals["sequence_code"] = vals["name"].upper().replace(" ", "_")
