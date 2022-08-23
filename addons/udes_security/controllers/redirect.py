@@ -2,7 +2,8 @@ import logging
 from odoo import http, _
 from odoo.addons.web.controllers import main
 from odoo.http import request
-from werkzeug import urls, url_unquote
+from werkzeug import urls
+from werkzeug.urls import url_unquote
 from werkzeug.exceptions import BadRequest
 from fnmatch import fnmatch
 
