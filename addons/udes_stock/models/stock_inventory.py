@@ -58,6 +58,11 @@ class StockInventory(models.Model):
         domain=_get_stock_check_users,
     )
 
+    @api.onchange("filter")
+    def onchange_filter(self):
+        self.exhausted = False
+        super().onchange_filter()
+
     @api.multi
     def action_done(self):
         """
