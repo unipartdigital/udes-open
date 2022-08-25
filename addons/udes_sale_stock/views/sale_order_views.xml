@@ -38,7 +38,7 @@
       <field name="model">sale.order</field>
       <field name="inherit_id" ref="sale.view_order_form"/>
       <field name="arch" type="xml">
-        <xpath expr="//field[@name='commitment_date']" position="after">
+        <xpath expr="//field[@name='payment_term_id']" position="before">
           <field name="requested_date"/>
         </xpath>
       </field>
