@@ -9,6 +9,8 @@ class MixinStockModel(models.AbstractModel):
 
     # Whether the model is allowed to create a record when using get_or_create
     MSM_CREATE = False
+    # Whether the model is allowed to create as sudo when using get_or_create
+    MSM_CREATE_SUDO = False
     # Default fields to search with a str on get_or_create
     MSM_STR_DOMAIN = ("name",)
 
@@ -30,7 +32,9 @@ class MixinStockModel(models.AbstractModel):
 
         return domain
 
-    def get_or_create(self, identifier, create=False, aux_domain=None, return_empty=False):
+    def get_or_create(
+        self, identifier, create=False, create_sudo=False, aux_domain=None, return_empty=False
+    ):
         """Gets an object of the model from the identifier. In case that no results
             are found, creates a new object of the model depending on the create
             parameter and the MSM_CREATE setting.
@@ -40,6 +44,9 @@ class MixinStockModel(models.AbstractModel):
         :kwargs:
             - create: Boolean
                 If true, and MSM_CREATE is true, a new object is created if needed
+            - create_sudo: Boolean
+                If true, and MSM_CREATE_SUDO is true, if a new object is created it will be
+                created with sudo to avoid potential permissions exception
             - aux_domain: list
                 An additional domain to add to the search
             - return_empty: Boolean
@@ -63,7 +70,10 @@ class MixinStockModel(models.AbstractModel):
 
         if not results:
             if self.MSM_CREATE and create and isinstance(identifier, str):
-                results = self.create({"name": identifier})
+                model_instance = self
+                if self.MSM_CREATE_SUDO and create_sudo:
+                    model_instance = model_instance.sudo()
+                results = model_instance.create({"name": identifier})
             elif self.MSM_CREATE and create:
                 raise ValidationError(
                     _(f"Cannot create a new {model_name} for %s with identifier of type %s")
@@ -73,7 +83,9 @@ class MixinStockModel(models.AbstractModel):
                 raise ValidationError(_(f"Cannot create a new {model_name} for %s") % model)
             else:
                 if not return_empty:
-                    raise ValidationError(_(f"{model_name} not found for identifier %s") % identifier)
+                    raise ValidationError(
+                        _(f"{model_name} not found for identifier %s") % identifier
+                    )
         elif len(results) > 1:
             raise ValidationError(
                 _(f"Too many {model_name}s found for identifier %s in %s") % (identifier, model)
