@@ -215,8 +215,11 @@ class Base(models.AbstractModel):
             key: value for key, value in self._fields.items() if
             value.type in ("date", "datetime") and key not in ("write_date", "create_date")
         }
-        date_values = {k: v for k, v in values.items() if
-                       k in date_fields and isinstance(v, str) and len(v) >= 10}
+        date_values = {
+            k: v
+            for k, v in values.items()
+            if k in date_fields and isinstance(v, str) and v
+        }
         for date_value in date_values.values():
             try:
                 date_field = datetime.strptime(date_value[:10], DATE_FORMAT)
