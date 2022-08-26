@@ -64,6 +64,20 @@ class UnconfiguredBaseUDES(common.SavepointCase):
         setattr(cls.warehouse, f"{ptype}_type_id", new_pt)
 
     @classmethod
+    def create_location(cls, name, **kwargs):
+        """Create and return a location"""
+        Location = cls.env["stock.location"]
+
+        vals = {"name": name}
+        vals.update(kwargs)
+
+        usage = vals.get("usage")
+        if not usage or usage == "internal":
+            vals["barcode"] = f"{name.upper()}"
+
+        return Location.create(vals)
+
+    @classmethod
     def create_product(cls, name, **kwargs):
         """Create and return a product"""
         Product = cls.env["product.product"]
