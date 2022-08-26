@@ -186,7 +186,7 @@ class UnconfiguredBaseUDES(common.SavepointCase):
             cls.test_stock_locations
         )
 
-        cls.warehouse_location = Location.create({"name": "Warehouse"})
+        cls.warehouse_location = Location.create({"name": "Warehouse", "usage": "view"})
 
         cls.out_location = cls.stock_location.copy({"name": "TEST_GOODS_OUT"})
         cls.test_goodsout_locations = Location.create(
@@ -511,11 +511,25 @@ class UnconfiguredBaseUDES(common.SavepointCase):
         return Partner.create(vals)
 
     @classmethod
-    def complete_picking(cls, picking, validate=True):
-        """Marks a picking and all its moves as done"""
+    def complete_picking(cls, picking, validate=True, set_dest_location=True):
+        """
+        Marks a picking and all its moves as done.
+
+        Validates the picking unless `validate` is set to False.
+
+        If the destination location on the move line isn't an internal location,
+        then it will be set to the first internal child of that location if possible
+        unless `set_dest_location` is set to False.
+        """
         for move_line in picking.move_line_ids:
             if move_line.state == "assigned":
                 move_line.qty_done = move_line.product_uom_qty
+                if move_line.location_dest_id.usage != "internal":
+                    internal_child_ids = move_line.location_dest_id.child_ids.filtered(
+                        lambda l: l.usage == "internal"
+                    )
+                    if internal_child_ids:
+                        move_line.location_dest_id = internal_child_ids[0]
         if validate:
             picking._action_done()
 
