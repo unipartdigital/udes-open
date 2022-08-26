@@ -89,9 +89,13 @@ class TestStockPickingBackordering(TestStockPickingCommon):
             location_id=self.test_stock_location_02.id,
         )
         pick.move_lines[0].quantity_done = 10
+        pick.move_line_ids.location_id = self.test_stock_location_01
+        pick.move_line_ids.location_dest_id = self.test_goodsout_location_01
         pick._action_done()
         bk_picking_1 = pick.u_created_backorder_ids
         bk_picking_1.move_lines[0].quantity_done = 10
+        bk_picking_1.move_line_ids.location_id = self.test_stock_location_01
+        bk_picking_1.move_line_ids.location_dest_id = self.test_goodsout_location_01
         bk_picking_1._action_done()
         bk_picking_2 = bk_picking_1.u_created_backorder_ids
 
@@ -119,6 +123,7 @@ class TestStockPickingBackordering(TestStockPickingCommon):
         picking = pick
         for i in range(9):
             picking.move_lines[0].quantity_done = 1
+            picking.move_line_ids.location_dest_id = self.test_goodsout_location_01
             picking._action_done()
             # Store the previous picking for later checks
             prev_picking = picking
@@ -136,6 +141,7 @@ class TestStockPickingBackordering(TestStockPickingCommon):
 
         # Check completing this picking raises an error due to the maximum number of backorders is exceeded
         picking.move_lines[0].quantity_done = 1
+        picking.move_line_ids.location_dest_id = self.test_goodsout_location_01
         with self.assertRaises(UserError) as e, mute_logger("odoo.sql_db"):
             picking._action_done()
 
@@ -251,6 +257,8 @@ class TestStockPickingBackordering(TestStockPickingCommon):
         fig_ml = pick.move_lines.filtered(lambda ml: ml.product_id == self.fig)
         banana_ml.quantity_done = 10
         fig_ml.quantity_done = 10
+        pick.move_line_ids.location_id = self.test_stock_location_01
+        pick.move_line_ids.location_dest_id = self.test_goodsout_location_01
         pick._action_done()
         moves = pick.move_lines
 
@@ -959,8 +967,10 @@ class TestStockPicking(TestStockPickingCommon):
         # Create location 'A' in zone 'Z'
         # When sorted by location name directly 'A' will appear first,
         # but in default location ordering it will be last
-        zone_z = self.Location.create({"name": "Zone Z", "location_id": self.received_location.id})
-        loc_a = self.Location.create({"name": "A", "barcode": "LRTESTA", "location_id": zone_z.id})
+        zone_z = self.create_location(
+            name="Zone Z", location_id=self.received_location.id, usage="view"
+        )
+        loc_a = self.create_location(name="A", barcode="LRTESTA", location_id=zone_z.id)
 
         # Set destination location of the test Goods In picking to the received zone
         self.test_picking_in.location_dest_id = self.received_location
@@ -984,8 +994,7 @@ class TestStockPicking(TestStockPickingCommon):
 
     def test_get_child_locations_simple_success(self):
         """Get child locations"""
-        locations = self.test_goodsout_locations | self.out_location
-        self.assertEqual(self.test_picking_pick._get_child_dest_locations(), locations)
+        self.assertEqual(self.test_picking_pick._get_child_dest_locations(), self.test_goodsout_locations)
 
     def test_get_child_locations_simple_success_with_extra_domain(self):
         """Get child locations - with extra domain"""
@@ -1248,6 +1257,7 @@ class TestStockPicking(TestStockPickingCommon):
         # Complete the apple move
         apple_mv = moves.filtered(lambda ml: ml.product_id == self.apple)
         apple_mv.move_line_ids.qty_done = apple_mv.move_line_ids.product_uom_qty
+        apple_mv.move_line_ids.location_dest_id = self.test_goodsout_location_01
         apple_mv._action_done()
         self.assertEqual(apple_mv.state, "done")
 
@@ -1560,6 +1570,7 @@ class TestDifferentUoMinPickings(TestStockPickingCommon):
 
         # Complete the picking
         pick.move_line_ids.qty_done = 6
+        pick.move_line_ids.location_dest_id = self.test_goodsout_location_01
         pick._action_done()
         self.assertEqual(pick.state, "done")
         # Check the total quantity in the picking, relative to the UoM of the products
@@ -1606,6 +1617,7 @@ class TestDifferentUoMinPickings(TestStockPickingCommon):
 
         # Pick things in terms of the move UoM
         pick.move_line_ids.qty_done = 6
+        pick.move_line_ids.location_dest_id = self.test_goodsout_location_01
         pick._action_done()
         self.assertEqual(pick.state, "done")
 
@@ -1772,6 +1784,7 @@ class TestStockPickingValidatePicking(common.BaseUDES):
         pick = self.picking
         mls = pick.move_line_ids
         self.assertEqual(mls.qty_done, 0)
+        pick.move_line_ids.location_dest_id = self.test_goodsout_location_01
         backorder = pick.validate_picking(force_validate=True)
         # No backorder
         self.assertFalse(backorder)
@@ -1795,6 +1808,7 @@ class TestStockPickingValidatePicking(common.BaseUDES):
         )
         self.assertEqual(e.exception.args[0], msg)
         # Validate with parameter works fine
+        pick.move_line_ids.location_dest_id = self.test_goodsout_location_01
         backorder = pick.validate_picking(create_backorder=True)
         # Backorder created with the uncompleted move line
         self.assertNotEqual(backorder, pick)
@@ -1819,6 +1833,7 @@ class TestStockPickingValidatePicking(common.BaseUDES):
         # Enable multiple users
         pick.picking_type_id.u_multi_users_enabled = True
         # Validate picking
+        pick.move_line_ids.location_dest_id = self.test_goodsout_location_01
         res_pick = self.picking.validate_picking()
         # Backorder created with the uncompleted move line and move line done by other_user
         self.assertNotEqual(res_pick, pick)

@@ -10,21 +10,17 @@ class LimitOrderpointsTestCase(common.BaseUDES):
         super(LimitOrderpointsTestCase, cls).setUpClass()
 
         # Setup an output location, parent and grandparent
-        Location = cls.env["stock.location"]
-        cls.op_warehouse_location = Location.create({"name": "UPL"})
+        cls.op_warehouse_location = cls.create_location("UPL", usage="view")
         cls.op_out_location = cls.picking_type_pick.default_location_dest_id.copy(
             {
                 "name": "TEST_OUT",
                 "active": True,
                 "location_id": cls.op_warehouse_location.id,
+                "usage": "view",
             }
         )
-        cls.op_test_output_location_01 = Location.create(
-            {
-                "name": "Test output location 01",
-                "barcode": "LTESTOUT01",
-                "location_id": cls.op_out_location.id,
-            }
+        cls.op_test_output_location_01 = cls.create_location(
+            "Test output location 01", barcode="LTESTOUT01", location_id=cls.op_out_location.id
         )
 
         # Create an orderpoint with values

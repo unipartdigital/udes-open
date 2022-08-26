@@ -1,4 +1,5 @@
 from . import common
+from odoo.tools import mute_logger
 
 
 class TestUserAssignments(common.BaseUDES):
@@ -28,10 +29,13 @@ class TestUserAssignments(common.BaseUDES):
             products_info=[{"product": cls.banana, "qty": 10}],
             assign=True,
         )
+        cls.goods_in_picking.move_line_ids.location_dest_id = cls.test_received_location_01
         product_info = {"product": cls.apple, "qty": 10}
 
         # Create quants
-        cls.create_quant(product_info["product"].id, cls.received_location.id, product_info["qty"])
+        cls.create_quant(
+            product_info["product"].id, cls.test_received_location_01.id, product_info["qty"]
+        )
         cls.create_quant(
             product_info["product"].id, cls.test_stock_location_01.id, product_info["qty"]
         )
@@ -54,7 +58,8 @@ class TestUserAssignments(common.BaseUDES):
 
         self.create_move(self.goods_in_picking, banana_products_info)
         self.assertEqual(self.goods_in_picking.state, "draft")
-        user.assign_picking_to_users(self.goods_in_picking)
+        with mute_logger("odoo.addons.udes_stock.models.res_users"):
+            user.assign_picking_to_users(self.goods_in_picking)
         # Assert not assigned
         self.assertFalse(user.u_picking_assigned_time)
         self.assertFalse(user.u_picking_id)
@@ -78,7 +83,8 @@ class TestUserAssignments(common.BaseUDES):
         # Try to assign to another user
         new_user = self.stock_user_2
         self.assertFalse(new_user.u_picking_id)
-        new_user.assign_picking_to_users(self.goods_in_picking)
+        with mute_logger("odoo.addons.udes_stock.models.res_users"):
+            new_user.assign_picking_to_users(self.goods_in_picking)
         # Assert not assigned
         self.assertFalse(new_user.u_picking_assigned_time)
         self.assertFalse(new_user.u_picking_id)
@@ -91,7 +97,8 @@ class TestUserAssignments(common.BaseUDES):
         self.assertFalse(self.stock_user.u_picking_id)
         self.goods_in_picking.action_cancel()
         self.assertEqual(self.goods_in_picking.state, "cancel")
-        self.stock_user.assign_picking_to_users(self.goods_in_picking)
+        with mute_logger("odoo.addons.udes_stock.models.res_users"):
+            self.stock_user.assign_picking_to_users(self.goods_in_picking)
         # Assert not assigned
         self.assertFalse(self.stock_user.u_picking_assigned_time)
         self.assertFalse(self.stock_user.u_picking_id)
@@ -116,11 +123,12 @@ class TestUserAssignments(common.BaseUDES):
             with self.subTest(user=user.name):
                 self.assertFalse(user.u_picking_id)
 
-        # Manually assign a user to the picking
-        users.assign_picking_to_users(self.goods_in_picking)
-        for user in users:
-            with self.subTest(user=user.name):
-                self.assertFalse(user.u_picking_id)
+        with mute_logger("odoo.addons.udes_stock.models.res_users"):
+            # Manually assign a user to the picking
+            users.assign_picking_to_users(self.goods_in_picking)
+            for user in users:
+                with self.subTest(user=user.name):
+                    self.assertFalse(user.u_picking_id)
 
     def test_multiple_user_assignment_on_same_picking_success(self):
         """

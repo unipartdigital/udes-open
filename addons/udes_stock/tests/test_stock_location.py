@@ -1,4 +1,3 @@
-import unittest
 from .common import BaseUDES
 from odoo.exceptions import ValidationError
 
@@ -17,8 +16,8 @@ class TestStockLocation(BaseUDES):
         # Stock > Zone 02 > Loc 02-02
         cls.zone_01, cls.zone_02 = Location.create(
             [
-                {"name": "Zone 01", "location_id": cls.stock_location.id},
-                {"name": "Zone 02", "location_id": cls.stock_location.id},
+                {"name": "Zone 01", "location_id": cls.stock_location.id, "usage": "view"},
+                {"name": "Zone 02", "location_id": cls.stock_location.id, "usage": "view"},
             ]
         )
         cls.loc_01_01, cls.loc_01_02, cls.loc_02_01, cls.loc_02_02 = Location.create(
@@ -30,19 +29,19 @@ class TestStockLocation(BaseUDES):
             ]
         )
 
-    def test01_get_common_ancestor_none(self):
+    def test_get_common_ancestor_none(self):
         """Test get_common_ancestor with no locations"""
         Location = self.env["stock.location"]
 
         location = Location.browse()
         self.assertEqual(location, location.get_common_ancestor())
 
-    def test02_get_common_ancestor_single(self):
+    def test_get_common_ancestor_single(self):
         """Test get_common_ancestor with a single location"""
         location = self.stock_location
         self.assertEqual(location, location.get_common_ancestor())
 
-    def test03_get_common_ancestor_multiple_common_parent(self):
+    def test_get_common_ancestor_multiple_common_parent(self):
         """
         Test get_common_ancestor with multiple locations sharing a common
         parent
@@ -50,7 +49,7 @@ class TestStockLocation(BaseUDES):
         locations = self.loc_01_01 | self.loc_01_02
         self.assertEqual(self.zone_01, locations.get_common_ancestor())
 
-    def test04_get_common_ancestor_multiple_including_common_parent(self):
+    def test_get_common_ancestor_multiple_including_common_parent(self):
         """
         Test get_common_ancestor with multiple locations sharing a common
         parent, including their common parent in the set
@@ -58,7 +57,7 @@ class TestStockLocation(BaseUDES):
         locations = self.loc_01_01 | self.loc_01_02 | self.zone_01
         self.assertEqual(self.zone_01, locations.get_common_ancestor())
 
-    def test05_get_common_ancestor_multiple_common_grandparent(self):
+    def test_get_common_ancestor_multiple_common_grandparent(self):
         """
         Test get_common_ancestor with multiple locations sharing a common
         grandparent
@@ -66,15 +65,14 @@ class TestStockLocation(BaseUDES):
         locations = self.loc_01_01 | self.loc_02_02
         self.assertEqual(self.stock_location, locations.get_common_ancestor())
 
-    def test06_get_common_ancestor_multiple_no_common_ancestor(self):
+    def test_get_common_ancestor_multiple_no_common_ancestor(self):
         """
         Test get_common_ancestor with multiple locations with no shared ancestry
         """
         Location = self.env["stock.location"]
 
         physical_locations = self.env.ref("stock.stock_location_locations")
-        virtual_locations = self.env.ref(
-            "stock.stock_location_locations_virtual")
+        virtual_locations = self.env.ref("stock.stock_location_locations_virtual")
         locations = physical_locations | virtual_locations
         self.assertEqual(Location.browse(), locations.get_common_ancestor())
 
@@ -98,18 +96,15 @@ class TestLocationState(BaseUDES):
 
         cls.stock_location.u_location_is_countable = "yes"
         cls.empty_location = Location.create(
-            {"name": "EMPTY", "barcode": "LEMPTY",
-                "location_id": cls.stock_location.id}
+            {"name": "EMPTY", "barcode": "LEMPTY", "location_id": cls.stock_location.id}
         )
         cls.stocked_location = Location.create(
-            {"name": "STOCKED", "barcode": "LSTOCKED",
-                "location_id": cls.stock_location.id}
+            {"name": "STOCKED", "barcode": "LSTOCKED", "location_id": cls.stock_location.id}
         )
         cls.create_quant(cls.apple.id, cls.stocked_location.id, 10)
 
         cls.storage_location = Location.create(
-            {"name": "STORAGE", "barcode": "LSTORAGE",
-                "location_id": cls.stock_location.id}
+            {"name": "STORAGE", "barcode": "LSTORAGE", "location_id": cls.stock_location.id}
         )
 
     def remove_stock_from_location(self, location):
@@ -176,27 +171,48 @@ class TestLocationCountable(BaseUDES):
     @classmethod
     def setUpClass(cls):
         super(TestLocationCountable, cls).setUpClass()
-        cls.Location = cls.env["stock.location"]
+        cls._setup_countable_locations()
 
-        cls.investigation_location = cls.env.ref(
-            "udes_stock.location_stock_investigation")
-        cls.investigation_1 = cls.Location.create(
-            {
-                "name": "INVESTIGATION_1",
-                "barcode": "LTESTINVEST1",
-                "location_id": cls.investigation_location.id,
-            }
+    @classmethod
+    def _setup_countable_locations(cls):
+        """Create a chain of countable and uncountable locations"""
+        # Countable locations
+        cls.countable_zone = cls.create_location(
+            "Countable Zone", usage="view", u_location_is_countable="yes"
+        )
+        cls.countable_zone_a = cls.create_location(
+            "Zone A", usage="view", location_id=cls.countable_zone.id
+        )
+        cls.countable_location_a1 = cls.create_location(
+            "COUNTA1", location_id=cls.countable_zone_a.id
         )
 
-        # Make stock countable but investaigation not
-        cls.stock_location.u_location_is_countable = "yes"
-        cls.investigation_location.u_location_is_countable = "no"
-        # Make the stock locations into a parent chain
-        cls.test_stock_location_02.location_id = cls.test_stock_location_01.id
-        cls.test_stock_location_03.location_id = cls.test_stock_location_02.id
-        cls.test_stock_location_04.location_id = cls.test_stock_location_03.id
+        # Uncountable locations
+        cls.uncountable_zone = cls.create_location(
+            "Uncountable Zone", usage="view", u_location_is_countable="no"
+        )
+        cls.uncountable_zone_a = cls.create_location(
+            "Zone A", usage="view", location_id=cls.uncountable_zone.id
+        )
+        cls.uncountable_location_a1 = cls.create_location(
+            "UNCOUNTA1", location_id=cls.uncountable_zone_a.id
+        )
+
+    def get_location_with_children(self, locations):
+        """Returns the supplied location(s) along with all of their child locations"""
+        Location = self.env["stock.location"]
+        return Location.search([("id", "child_of", locations.ids)])
+
+    def get_countable_locations(self):
+        """Returns all locations in the countable zone"""
+        return self.get_location_with_children(self.countable_zone)
+
+    def get_uncountable_locations(self):
+        """Returns all locations in the uncountable zone"""
+        return self.get_location_with_children(self.uncountable_zone)
 
     def assert_locations_countable(self, locations):
+        """Asserts whether each location supplied is countable"""
         for location in locations:
             with self.subTest(location=location):
                 self.assertTrue(
@@ -204,46 +220,35 @@ class TestLocationCountable(BaseUDES):
                 )
 
     def assert_locations_not_countable(self, locations):
+        """Asserts whether each location supplied is not countable"""
         for location in locations:
             with self.subTest(location=location):
                 self.assertFalse(
                     location.u_is_countable, f"{location.name} is countable when it shouldn't be"
                 )
 
-    def test_stock_locations_countable(self):
-        """Assert that all locations under stock are countable by default"""
-        stock_locations = self.Location.search(
-            [("id", "child_of", self.stock_location.id)])
-        self.assert_locations_countable(stock_locations)
+    def test_countable_locations_marked_countable(self):
+        """Assert that all locations under countable zone are countable by default"""
+        self.assert_locations_countable(self.get_countable_locations())
 
-    def test_stock_investigation_locations_not_countable(self):
-        """Test to see if investigation locations are not countable."""
-        stock_investigation_locations = self.Location.search(
-            [("id", "child_of", self.investigation_location.id)]
-        )
-        self.assert_locations_not_countable(stock_investigation_locations)
+    def test_uncountable_locations_marked_not_countable(self):
+        """Assert that all locations under non-countable zone are not countable by default"""
+        self.assert_locations_not_countable(self.get_uncountable_locations())
 
     def test_updating_parent_updates_children(self):
-        """Updating parents, testing if it affects the children"""
-        # Move test location 1 underneath investigation which is not countable
-        self.test_stock_location_01.location_id = self.investigation_location.id
-        self.assert_locations_not_countable(self.test_stock_locations)
-
-    def test_countable_default_false(self):
-        """Check if u_is_countable defaults to false"""
-        self.stock_location.u_location_is_countable = False
-        self.assert_locations_not_countable(
-            self.stock_location | self.test_stock_locations)
+        """Move a countable zone to the uncountable zone, should no longer be countable"""
+        self.countable_zone_a.location_id = self.uncountable_zone
+        self.assert_locations_not_countable(self.get_location_with_children(self.countable_zone_a))
 
     def test_middle_location_updated(self):
         """Check updating middle location in a chain properly updates its children"""
-        self.test_stock_location_01.u_location_is_countable = "no"
+        self.countable_zone_a.u_location_is_countable = "no"
 
         # Assert the parent is still countable
-        self.assert_locations_countable(self.stock_location)
+        self.assert_locations_countable(self.countable_zone)
 
-        # Assert itself and its children are not
-        self.assert_locations_not_countable(self.test_stock_locations)
+        # Assert itself and its children are not countable
+        self.assert_locations_not_countable(self.get_location_with_children(self.countable_zone_a))
 
 
 class TestInternalLocationChildrenConstraint(BaseUDES):

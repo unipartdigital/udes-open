@@ -1,5 +1,3 @@
-from unittest.mock import patch
-
 from odoo.exceptions import ValidationError
 from odoo.tools import mute_logger
 
@@ -103,6 +101,7 @@ class TestStockMove(common.BaseUDES):
         # Check the state of the picking
         moves = self.pick.move_lines
         mls = self.pick.move_line_ids
+        mls.location_dest_id = self.test_goodsout_location_01
         self.assertEqual(len(moves), 3)
         self.assertEqual(len(mls), 3)
         return self.pick, moves, mls
@@ -234,51 +233,6 @@ class TestStockMove(common.BaseUDES):
         self.assertEqual(mv.quantity_done, mv.product_uom_qty)
         new_move = mv.split_out_move()
         self.assertFalse(new_move)
-
-    def test_split_out_move_with_subset_of_completed_mls(self):
-        """
-        Test that when a move line is done, but not the set of move lines
-        to complete the move, the move is correctly split, with the done
-        mls in the original move and picking.
-        """
-        # Get move lines and moves respectively
-        mls = self.pick.move_line_ids
-        mv = self.pick.move_lines
-        self.assertEqual(len(mv), 1)
-        self.assertEqual(len(mls), 2)
-        self.assertEqual(self.pick, mv.picking_id)
-        # Update the ml with the min quantity. Do no hard code in case
-        # quant selection changes.
-        ml_qt_min = mls.sorted(lambda ml: ml.product_uom_qty)[0]
-        min_qty = ml_qt_min.product_uom_qty
-        ml_qt_min.qty_done = min_qty
-        other_ml = mls - ml_qt_min
-
-        # Do the split
-        self.assertEqual(mv.quantity_done, min_qty)
-        new_move = mv.split_out_move()
-
-        # Check we have two moves
-        self.assertTrue(self.pick.move_lines)
-        self.assertTrue(new_move)
-
-        # Check the original picking move
-        self.assertEqual(self.pick.move_lines, mv)
-        self.assertEqual(self.pick.move_line_ids, ml_qt_min)
-        # Ge the move lines from the pick again to refresh it
-        ml = self.pick.move_line_ids
-        mv = self.pick.move_lines
-        # Check the quants
-        self.assertEqual(mv.quantity_done, min_qty)
-        self.assertEqual(mv.product_uom_qty, min_qty)
-        self.assertEqual(ml.qty_done, min_qty)
-        self.assertEqual(ml.product_uom_qty, min_qty)
-
-        # Check the new move
-        # Check the quants
-        self.assertEqual(new_move.quantity_done, 6 - min_qty)
-        self.assertEqual(new_move.product_uom_qty, 6 - min_qty)
-        self.assertEqual(new_move.move_line_ids, other_ml)
 
     def test_split_out_move_with_subset_of_completed_mls(self):
         """
@@ -516,6 +470,9 @@ class TestUdesPropagateCancel(common.BaseUDES):
         )
         cls.pick_ml1 = cls.pick.move_line_ids.filtered(lambda ml: ml.product_qty == 5)
         cls.pick_ml2 = cls.pick.move_line_ids.filtered(lambda ml: ml.product_qty == 1)
+
+        cls.pick_ml1.location_dest_id = cls.test_goodsout_location_01
+        cls.pick_ml2.location_dest_id = cls.test_goodsout_location_01
 
     @classmethod
     def create_trailer_route(cls):
