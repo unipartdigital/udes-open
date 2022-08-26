@@ -1,4 +1,5 @@
 from . import common
+from odoo.tools import mute_logger
 
 
 class TestStockMove(common.SuggestedLocations):
@@ -6,8 +7,8 @@ class TestStockMove(common.SuggestedLocations):
     def setUpClass(cls):
         super(TestStockMove, cls).setUpClass()
         # Create picking
-        cls.create_quant(cls.apple.id, cls.stock_location.id, 100)
         cls.create_quant(cls.apple.id, cls.test_stock_location_01.id, 100)
+        cls.create_quant(cls.apple.id, cls.test_stock_location_02.id, 100)
         cls._pick_info = [{"product": cls.banana, "qty": 5}, {"product": cls.apple, "qty": 4}]
         cls.picking = cls.create_picking(
             cls.picking_type_pick, products_info=cls._pick_info, confirm=True
@@ -16,17 +17,18 @@ class TestStockMove(common.SuggestedLocations):
         # Get apple move
         cls.apple_mv = cls.moves.filtered(lambda mv: mv.product_id == cls.apple)
 
-    def test01_prepare_move_line_vals_no_policy(self):
+    def test_prepare_move_line_vals_no_policy(self):
         """Check that the default location is returned in the dict when no policy is chosen"""
         # Set suggested locations policy
         self.picking_type_pick.u_suggest_locations_policy = None
         # Check first the default location is used in the returned dict
-        self.assertEqual(
-            self.apple_mv._prepare_move_line_vals().get("location_dest_id"),
-            self.out_location.id,
-        )
+        with mute_logger("odoo.addons.udes_suggest_location.models.stock_move"):
+            self.assertEqual(
+                self.apple_mv._prepare_move_line_vals().get("location_dest_id"),
+                self.out_location.id,
+            )
 
-    def test02_prepare_move_line_vals(self):
+    def test_prepare_move_line_vals(self):
         """Check the location_dest_id is a suggested location"""
         # Set suggested locations policy
         self.picking_type_pick.u_suggest_locations_policy = "by_product"
