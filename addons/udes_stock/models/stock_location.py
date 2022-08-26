@@ -2,6 +2,7 @@ import os.path
 from odoo import fields, models, api, _
 from .stock_picking_type import TARGET_STORAGE_FORMAT_OPTIONS
 from odoo.addons.udes_common.models.fields import PreciseDatetime
+from odoo.exceptions import ValidationError
 
 
 class StockLocation(models.Model):
@@ -172,13 +173,44 @@ class StockLocation(models.Model):
             bypass_heatmap_check=True
         ).u_heatmap_data_updated = PreciseDatetime.now()
 
+    @api.constrains("usage", "location_id", "child_ids")
+    def _restrict_internal_location_children(self):
+        """
+        Raises a ValidationError if any of the following conditions are met:
+            1. Location is a child of an internal location
+            2. Location is an internal location and has child locations
+        """
+        Location = self.env["stock.location"]
+        for location in self.with_context(prefetch_fields=False):
+            raise_error = False
+
+            if location.location_id.usage == "internal":
+                # Parent is an internal location
+                raise_error = True
+            elif location.usage == "internal":
+                # Don't use recordsets to avoid potential performance issues
+                # with locations that have many children
+                location_has_children = Location.search_read(
+                    [("location_id", "=", location.id)], ["id"], limit=1, order="id"
+                )
+                if location_has_children:
+                    # Internal location has children
+                    raise_error = True
+
+            if raise_error:
+                raise ValidationError(
+                    _(
+                        "Unable to save location '%s'."
+                        " Internal Locations cannot have child locations."
+                    )
+                    % location.complete_name
+                )
 
     def write(self, vals):
         """Extend write to add a hook which updates u_heatmap_data_updated"""
         if not self.env.context.get("bypass_heatmap_check"):
             self.set_u_heatmap_data_updated(vals)
         return super().write(vals)
-
 
     @api.depends("u_location_is_countable", "location_id", "location_id.u_is_countable")
     def _compute_is_countable(self):

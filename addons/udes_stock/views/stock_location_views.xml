@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <record id="view_location_form" model="ir.ui.view">
-        <field name="name">Changes to location form</field>
+        <field name="name">stock.location.form.udes_stock</field>
         <field name="model">stock.location</field>
         <field name="inherit_id" ref="stock.view_location_form"/>
         <field name="arch" type="xml">
@@ -29,6 +29,7 @@
                         icon="fa-level-down"
                         type="object"
                         name="button_view_child_locations"
+                        attrs="{'invisible': [('usage', '=', 'internal')]}"
                 />
             </xpath>
 
@@ -40,6 +41,11 @@
                     <field name="u_size"/>
                 </group>
             </group>
+
+            <!-- Prevent internal locations being set as parent location -->
+            <xpath expr="//field[@name='location_id']" position="attributes">
+                <attribute name="domain">[('usage', '!=', 'internal')]</attribute>
+            </xpath>
 
         </field>
     </record>
