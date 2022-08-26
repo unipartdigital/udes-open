@@ -1,5 +1,6 @@
 import unittest
 from .common import BaseUDES
+from odoo.exceptions import ValidationError
 
 
 class TestStockLocation(BaseUDES):
@@ -243,3 +244,64 @@ class TestLocationCountable(BaseUDES):
 
         # Assert itself and its children are not
         self.assert_locations_not_countable(self.test_stock_locations)
+
+
+class TestInternalLocationChildrenConstraint(BaseUDES):
+    @classmethod
+    def setUpClass(cls):
+        super(TestInternalLocationChildrenConstraint, cls).setUpClass()
+        cls._setup_valid_location_structure()
+
+    @classmethod
+    def _setup_valid_location_structure(cls):
+        """
+        Create a chain of locations with only the bottom level of locations being set as internal
+        """
+        cls.location_zone = cls.create_location("Location Zone", usage="view")
+        cls.location_zone_a = cls.create_location(
+            "Zone A", usage="view", location_id=cls.location_zone.id
+        )
+        cls.location_zone_a1 = cls.create_location(
+            "Zone A1", usage="view", location_id=cls.location_zone_a.id
+        )
+
+        cls.location_1 = cls.create_location("Loc 1", location_id=cls.location_zone_a1.id)
+        cls.location_2 = cls.create_location("Loc 2", location_id=cls.location_zone_a1.id)
+        cls.location_3 = cls.create_location("Loc 3", location_id=cls.location_zone_a1.id)
+
+    def test_new_location_cannot_have_internal_parent(self):
+        """
+        Create a new child location under an internal location,
+        ValidationError will be raised to prevent this
+        """
+        new_location_parent = self.location_1
+        new_location_name = "Child of Internal"
+        new_location_full_name = f"{new_location_parent.complete_name}/{new_location_name}"
+
+        with self.assertRaises(ValidationError) as e:
+            self.create_location("Child of Internal", location_id=new_location_parent.id)
+        self.assertEqual(
+            e.exception.args[0],
+            f"Unable to save location '{new_location_full_name}'."
+            " Internal Locations cannot have child locations.",
+        )
+
+    def test_location_parent_cannot_be_set_to_internal(self):
+        """
+        Update an existing location that has children to be internal,
+        ValidationError will be raised to prevent this
+        """
+        location = self.location_zone_a1
+        self.assertTrue(
+            location.child_ids, f"Location '{location.name}' should have child locations"
+        )
+
+        with self.assertRaises(ValidationError) as e:
+            location.usage = "internal"
+        # Location name will have been recomputed but then reverted when the exception is raised
+        location_constraint_name = f"{location.location_id.name}/{location.name}"
+        self.assertEqual(
+            e.exception.args[0],
+            f"Unable to save location '{location_constraint_name}'."
+            " Internal Locations cannot have child locations.",
+        )
