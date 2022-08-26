@@ -6,9 +6,7 @@ class TestStockQuantPackageModel(BaseUDES):
     def setUpClass(cls):
         super(TestStockQuantPackageModel, cls).setUpClass()
         cls.Package = cls.env["stock.quant.package"]
-        User = cls.env["res.users"]
 
-        warehouse = User.get_user_warehouse()
         # package
         cls.test_package = cls.Package.get_or_create("1001", create=True)
         cls.apple_quant = cls.create_quant(
@@ -19,20 +17,20 @@ class TestStockQuantPackageModel(BaseUDES):
         )
         cls.test_user = cls.create_user("test_user", "test_user_login")
 
-    def test01_get_quantities_by_default_key(self):
+    def test_get_quantities_by_default_key(self):
         """Get the product quantities of the package grouped by the default key - product_id"""
         self.assertEqual(
             self.test_package.get_quantities_by_key(), {self.apple: 10, self.banana: 5}
         )
 
-    def test02_get_product_quantities_by_custom_key(self):
+    def test_get_product_quantities_by_custom_key(self):
         """Get the product quantities by product_id.name"""
         self.assertEqual(
             self.test_package.get_quantities_by_key(get_key=lambda q: q.product_id.name),
             {self.apple.name: 10, self.banana.name: 5},
         )
 
-    def test03_has_same_content(self):
+    def test_has_same_content(self):
         """Test has same content of three packages, two are the same and one is not"""
         # Create two new packages with same content but different content than default package
         test_package_2 = self.Package.get_or_create("1002", create=True)
@@ -46,7 +44,7 @@ class TestStockQuantPackageModel(BaseUDES):
         self.assertFalse(self.test_package.has_same_content(test_package_2))
         self.assertTrue(test_package_2.has_same_content(test_package_3))
 
-    def test04_has_same_product_but_different_lots(self):
+    def test_has_same_product_but_different_lots(self):
         """Test the default key checks the same products and quantities in two
         different packages but different lots.
         """
@@ -73,7 +71,7 @@ class TestStockQuantPackageModel(BaseUDES):
         get_key = lambda p: (p.product_id, p.lot_id)
         self.assertFalse(test_package_1.has_same_content(test_package_2, get_key=get_key))
 
-    def test05_has_same_content_multiple_packages(self):
+    def test_has_same_content_multiple_packages(self):
         """Test the two groups of packages have the same content:
         Group 1: 15 apples (10 + 5)
         Group 2: 15 apples (5 + 5 + 5)
@@ -105,7 +103,7 @@ class TestStockQuantPackageModel(BaseUDES):
         # Check they should have the same content by product
         self.assertTrue(group_1.has_same_content(group_2))
 
-    def test06_get_reserved_quantity(self):
+    def test_get_reserved_quantity(self):
         """Get reserved quantity check"""
         self.assertEqual(self.test_package.get_reserved_quantity(), 0)
         self.apple_quant.reserved_quantity = 5
@@ -120,7 +118,7 @@ class TestStockQuantPackageModel(BaseUDES):
         )
         self.assertEqual(self.test_package.get_reserved_quantity(), 15)
 
-    def test07_find_move_lines_simple(self):
+    def test_find_move_lines_simple(self):
         """Find move lines of package"""
         # Create a picking from test package
         pick = self.create_picking(
@@ -136,7 +134,7 @@ class TestStockQuantPackageModel(BaseUDES):
         mls = self.test_package.find_move_lines()
         self.assertEqual(mls, pick.move_line_ids)
 
-    def test08_find_move_lines_additional_domain(self):
+    def test_find_move_lines_additional_domain(self):
         """Find move lines of package with additional domain"""
         # Create a picking from test package
         pick = self.create_picking(
@@ -153,7 +151,7 @@ class TestStockQuantPackageModel(BaseUDES):
         self.assertEqual(mls, pick.move_line_ids.filtered(lambda ml: ml.product_id == self.apple))
         self.assertEqual(mls.product_id, self.apple)
 
-    def test09_mls_can_fulfill_success_no_excess_multiple_move_lines(self):
+    def test_mls_can_fulfill_success_no_excess_multiple_move_lines(self):
         """Test to check if the move lines can be met by the package, then no excess given"""
         self.create_quant(self.apple.id, self.test_stock_location_02.id, 10)
         self.create_quant(self.banana.id, self.test_stock_location_02.id, 10)
@@ -177,7 +175,7 @@ class TestStockQuantPackageModel(BaseUDES):
         self.assertEqual(can_fulfil_mls.mapped("product_qty"), [10, 2])
         self.assertFalse(excess_mls, "Expected no excess move lines")
 
-    def test10_mls_can_fulfill_success_with_excess_simple(self):
+    def test_mls_can_fulfill_success_with_excess_simple(self):
         """Test to check that when a move line has quantity > package quantity, it returns which
         it can meet, and the excess move line.
         """
@@ -199,7 +197,7 @@ class TestStockQuantPackageModel(BaseUDES):
         self.assertEqual(can_fulfil_mls.product_qty, 10)
         self.assertEqual(excess_mls.product_qty, 8)
 
-    def test11_mls_can_fulfill_success_with_excess_multiple_move_lines(self):
+    def test_mls_can_fulfill_success_with_excess_multiple_move_lines(self):
         """Test to check that when multiple move lines passed, it correctly splits those when
         the move lines quantity > package quantity, and meets those it can
         """
@@ -257,7 +255,7 @@ class TestCreatePicking(BaseUDES):
         )
         cls.test_user = cls.create_user("test_user", "test_user_login")
 
-    def test01_single_package(self):
+    def test_single_package(self):
         """Create a picking from a single quant"""
         pick = self.test_package.create_picking(self.picking_type_goods_out)
         # Confirm made in state draft
@@ -274,7 +272,7 @@ class TestCreatePicking(BaseUDES):
         self.assertEqual(pick.move_lines.mapped("product_id"), (self.apple | self.banana))
         self.assertEqual(pick.move_lines.mapped("product_qty"), [10, 5])
 
-    def test02_single_package_extra_kwargs(self):
+    def test_single_package_extra_kwargs(self):
         """Create a picking from a single package
         - confirm
         - priority
@@ -306,7 +304,7 @@ class TestCreatePicking(BaseUDES):
         self.assertEqual(pick.move_lines.mapped("product_id"), (self.apple | self.banana))
         self.assertEqual(pick.move_lines.mapped("product_qty"), [10, 5])
 
-    def test03_single_package_correct_package(self):
+    def test_single_package_correct_package(self):
         """Test that create_picking uses the right package when assigning
         the picking
         """
