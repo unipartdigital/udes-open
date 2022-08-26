@@ -7,8 +7,9 @@ class StockQuantPackage(models.Model):
     _inherit = ["stock.quant.package", "mixin.stock.model"]
     _description = "Package"
 
-    # Enable create packages
+    # Enable create packages with sudo
     MSM_CREATE = True
+    MSM_CREATE_SUDO = True
 
     def _get_current_move_lines(self):
         """ Helper function to return current move lines for the package in self """
