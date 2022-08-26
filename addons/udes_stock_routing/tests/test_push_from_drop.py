@@ -272,7 +272,10 @@ class InitialDemandTestCase(PushFromDropBase):
         """Set the initial demand of a push move to the quantity done of the preceding move."""
         for ml in self.goods_in_picking.move_line_ids:
             ml.write(
-                {"qty_done": ml.product_uom_qty, "location_dest_id": self.received_location.id}
+                {
+                    "qty_done": ml.product_uom_qty,
+                    "location_dest_id": self.test_received_location_01.id,
+                }
             )
         self.goods_in_picking._action_done()
         putaway_move = self.goods_in_picking.u_next_picking_ids.move_lines
@@ -284,7 +287,12 @@ class InitialDemandTestCase(PushFromDropBase):
     ):
         """Set the initial demand of a push move to the quantity done of the partially completed preceding move."""
         for ml in self.goods_in_picking.move_line_ids:
-            ml.write({"qty_done": 10.0, "location_dest_id": self.received_location.id})
+            ml.write(
+                {
+                    "qty_done": 10.0,
+                    "location_dest_id": self.test_received_location_01.id,
+                }
+            )
         self.goods_in_picking._action_done()
         putaway_move = self.goods_in_picking.u_next_picking_ids.move_lines
 
