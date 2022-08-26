@@ -53,7 +53,7 @@ class TestStockMoveLine(common.SuggestedLocations):
             cls.MoveLine.__class__, "validate_location_dest", return_value=None
         )
 
-    def test01_get_policy_class(self):
+    def test_get_policy_class(self):
         """Check policy class returns the correct class"""
         # Fetch by product policy
         by_product = self.MoveLine._get_policy_class(self.picking_type_pick)
@@ -65,7 +65,7 @@ class TestStockMoveLine(common.SuggestedLocations):
             self.MoveLine._get_policy_class(self.picking_type_internal)
         self.assertEqual(str(e.exception), f"Policy with name=False could not be found")
 
-    def test02_suggest_locations_errors_with_not_enough_info(self):
+    def test_suggest_locations_errors_with_not_enough_info(self):
         """Suggest locations by picking type should throw error when not enough information is
         given
         """
@@ -95,7 +95,7 @@ class TestStockMoveLine(common.SuggestedLocations):
             + "lines or picking and values!",
         )
 
-    def test03_suggest_locations_errors_with_no_location_policy(self):
+    def test_suggest_locations_errors_with_no_location_policy(self):
         """Suggest locations by picking type should throw an error when the locations policy is
         not set
         """
@@ -106,7 +106,7 @@ class TestStockMoveLine(common.SuggestedLocations):
             self.apple_mls.suggest_locations()
         self.assertEqual(str(e.exception), "No policy set")
 
-    def test04_suggest_locations_via_self_by_product(self):
+    def test_suggest_locations_via_self_by_product(self):
         """Get the suggest locations via self for by product policy, looping through all
         drop location constraints for completeness
         """
@@ -121,7 +121,7 @@ class TestStockMoveLine(common.SuggestedLocations):
             locs = self.apple_mls.suggest_locations()
             self.assertEqual(locs, self.pick_all_locs)
 
-    def test05_suggest_locations_via_picking_and_values_by_product(self):
+    def test_suggest_locations_via_picking_and_values_by_product(self):
         """Get the suggest locations by picking and values, not self
         This is set up for 'by_product' policy and loop through all u_drop_location_constraint
         for completeness
@@ -138,7 +138,7 @@ class TestStockMoveLine(common.SuggestedLocations):
             locs = self.MoveLine.suggest_locations(picking=self.picking_pick, values=values)
             self.assertEqual(locs, self.pick_all_locs)
 
-    def test06_suggest_locations_limit_results(self):
+    def test_suggest_locations_limit_results(self):
         """Get the suggest locations via self and limit the results"""
         # Set u_drop_location_constraint
         self.picking_type_pick.u_drop_location_constraint = "suggest_with_empty"
@@ -148,7 +148,7 @@ class TestStockMoveLine(common.SuggestedLocations):
         self.assertEqual(len(locs), 1)
         self.assertIn(locs, self.pick_all_locs)
 
-    def test07_validate_location_dest_nothing_droppable(self):
+    def test_validate_location_dest_nothing_droppable(self):
         """Check that we just return when nothing is droppable"""
         # Create a pick but do not assign
         picking = self.create_picking(
@@ -164,6 +164,7 @@ class TestStockMoveLine(common.SuggestedLocations):
 
         # Complete the moves
         picking.move_lines.quantity_done = 5
+        picking.move_line_ids.location_id = self.test_stock_location_01
         picking._action_done()
 
         # Sanity check that suggest_locations is not called
@@ -172,7 +173,7 @@ class TestStockMoveLine(common.SuggestedLocations):
             apple_mls.validate_location_dest()
             mock_suggest_locs.assert_not_called()
 
-    def test08_validate_location_dest_view(self):
+    def test_validate_location_dest_view(self):
         """Check that we just return when the drop location is a view"""
         # Check location is a view
         self.assertEqual(self.out_location.usage, "view")
@@ -181,7 +182,7 @@ class TestStockMoveLine(common.SuggestedLocations):
             self.assertIsNone(self.mls.validate_location_dest(locations=self.out_location))
             mock_suggest_locs.assert_not_called()
 
-    def test09_validation_of_locations_no_policy(self):
+    def test_validation_of_locations_no_policy(self):
         """Check validate locations returns if not policy is set"""
         # Create an internal picking, which has no policy
         internal_picking = self.create_picking(
@@ -196,7 +197,7 @@ class TestStockMoveLine(common.SuggestedLocations):
             self.assertIsNone(apple_mls.validate_location_dest())
             mock_get_policy_class.assert_not_called()
 
-    def test10_validation_of_locations_by_product_non_enforced(self):
+    def test_validation_of_locations_by_product_non_enforced(self):
         """Check the validation policy for suggest constraints for by product policy"""
         # Check suggested locations for each product are correct
         self.assertEqual(
@@ -211,7 +212,7 @@ class TestStockMoveLine(common.SuggestedLocations):
             self.assertIsNone(self.mls.validate_location_dest())
             mock_suggest_locs.assert_not_called()
 
-    def test11_validation_of_locations_by_product_enforced(self):
+    def test_validation_of_locations_by_product_enforced(self):
         """Check the validation policy for enforced with product policy"""
         # Check suggested locations for each product are correct
         self.assertEqual(
@@ -235,7 +236,7 @@ class TestStockMoveLine(common.SuggestedLocations):
         # Check that the suggested locations are now correct, and no validation error
         self.assertIsNone(self.mls.validate_location_dest())
 
-    def test12_create_mls_when_no_policy_set(self):
+    def test_create_mls_when_no_policy_set(self):
         """Check that a pick can be created without a suggested locations policy"""
         # Create picking
         pick = self.create_picking(
@@ -247,7 +248,7 @@ class TestStockMoveLine(common.SuggestedLocations):
         # Check mls has correct product
         self.assertEqual(pick.move_line_ids.product_id, self.apple)
 
-    def test13_set_invalid_dest_location(self):
+    def test_set_invalid_dest_location(self):
         """Set an invalid destination location to begin with"""
         # Set constraint to enforce
         self.picking_type_pick.u_drop_location_constraint = "enforce"
