@@ -104,7 +104,6 @@ class UnconfiguredBaseUDES(common.SavepointCase):
     @classmethod
     def create_lot(cls, product_id, lot_name, **kwargs):
         Lot = cls.env["stock.production.lot"]
-
         vals = {"name": lot_name, "product_id": product_id}
         if "company_id" not in kwargs:
             vals["company_id"] = cls.company.id
@@ -121,14 +120,14 @@ class UnconfiguredBaseUDES(common.SavepointCase):
 
     @classmethod
     def create_orderpoint(cls, product, location, qty_min, qty_max, qty_multiple=1, **kwargs):
-        """ Create and return an orderpoint."""
-        Orderpoint = cls.env['stock.warehouse.orderpoint']
+        """Create and return an orderpoint."""
+        Orderpoint = cls.env["stock.warehouse.orderpoint"]
         vals = {
-            'location_id': location.id,
-            'product_id': product.id,
-            'product_min_qty': qty_min,
-            'product_max_qty': qty_max,
-            'qty_multiple': qty_multiple,
+            "location_id": location.id,
+            "product_id": product.id,
+            "product_min_qty": qty_min,
+            "product_max_qty": qty_max,
+            "qty_multiple": qty_multiple,
         }
         vals.update(kwargs)
         return Orderpoint.create(vals)
@@ -139,8 +138,6 @@ class UnconfiguredBaseUDES(common.SavepointCase):
         Location = cls.env["stock.location"]
 
         cls.stock_location = cls.env.ref("stock.stock_location_stock")
-        # Make it non-view to ease default routes
-        cls.stock_location.write({"usage": "internal"})
         cls.received_location = cls.stock_location.copy({"name": "TEST_INPUT"})
         cls.test_received_locations = Location.create(
             [
@@ -182,9 +179,12 @@ class UnconfiguredBaseUDES(common.SavepointCase):
                 },
             ]
         )
-        cls.test_stock_location_01, cls.test_stock_location_02, cls.test_stock_location_03, cls.test_stock_location_04 = (
-            cls.test_stock_locations
-        )
+        (
+            cls.test_stock_location_01,
+            cls.test_stock_location_02,
+            cls.test_stock_location_03,
+            cls.test_stock_location_04,
+        ) = cls.test_stock_locations
 
         cls.warehouse_location = Location.create({"name": "Warehouse", "usage": "view"})
 

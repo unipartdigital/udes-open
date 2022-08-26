@@ -7,6 +7,4 @@ class TestProductMethods(BaseUDES):
         self.starwberry_lot = self.create_lot(self.strawberry.id, "strawberry_lot")
 
         with self.assertRaises(ValidationError):
-            self.strawberry.assert_serial_numbers(
-                [self.starwberry_lot.name, "test_lot"]
-            )
+            self.strawberry.assert_serial_numbers([self.starwberry_lot.name, "test_lot"])
