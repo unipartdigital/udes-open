@@ -4,7 +4,7 @@ from odoo.exceptions import ValidationError
 from .common import BaseBlocked
 
 class TestStockMoveLine(BaseBlocked):
-    def test01_create_move_line_source_location_blocked(self):
+    def test_create_move_line_source_location_blocked(self):
         """ Creating a move line using as source location a blocked
             location raises an error.
         """
@@ -15,13 +15,13 @@ class TestStockMoveLine(BaseBlocked):
         with self.assertRaises(ValidationError) as e:
             move_line = self.create_move_line(move, 10,
                                     location_id=self.test_location_01.id)
-        self.assertEqual(e.exception.name,
+        self.assertEqual(e.exception.args[0],
                          'Wrong source location creating stock move line. Location %s '
                          'is blocked (reason: %s). Please speak'
                          ' to a team leader to resolve the issue.' % 
                          (self.test_location_01.name, self.test_location_01.u_blocked_reason))
 
-    def test02_create_move_line_destination_location_blocked(self):
+    def test_create_move_line_destination_location_blocked(self):
         """ Creating a move line using as destination location a blocked
             location raises an error.
         """
@@ -32,13 +32,13 @@ class TestStockMoveLine(BaseBlocked):
         with self.assertRaises(ValidationError) as e:
             move_line = self.create_move_line(move, 10,
                                     location_dest_id=self.test_location_01.id)
-        self.assertEqual(e.exception.name,
+        self.assertEqual(e.exception.args[0],
                          'Wrong destination location creating stock move line. Location %s '
                          'is blocked (reason: %s). Please speak'
                          ' to a team leader to resolve the issue.' % 
                          (self.test_location_01.name, self.test_location_01.u_blocked_reason))
 
-    def test03_update_move_line_source_location_blocked(self):
+    def test_update_move_line_source_location_blocked(self):
         """ Updating the source location of a move line using a blocked
             location raises an error.
         """
@@ -50,13 +50,13 @@ class TestStockMoveLine(BaseBlocked):
         self.test_location_01.u_blocked = True
         with self.assertRaises(ValidationError) as e:
             move_line.location_id=self.test_location_01
-        self.assertEqual(e.exception.name,
+        self.assertEqual(e.exception.args[0],
                          'Wrong source location creating stock move line. Location %s '
                          'is blocked (reason: %s). Please speak'
                          ' to a team leader to resolve the issue.' % 
                          (self.test_location_01.name, self.test_location_01.u_blocked_reason))
 
-    def test04_update_move_line_destination_location_blocked(self):
+    def test_update_move_line_destination_location_blocked(self):
         """ Updating the destination location of a move line using a blocked
             location raises an error.
         """
@@ -68,7 +68,7 @@ class TestStockMoveLine(BaseBlocked):
         self.test_location_01.u_blocked = True
         with self.assertRaises(ValidationError) as e:
             move_line.location_dest_id=self.test_location_01
-        self.assertEqual(e.exception.name,
+        self.assertEqual(e.exception.args[0],
                          'Wrong destination location creating stock move line. Location %s '
                          'is blocked (reason: %s). Please speak'
                          ' to a team leader to resolve the issue.' % 
