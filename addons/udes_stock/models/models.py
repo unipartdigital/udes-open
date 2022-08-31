@@ -15,7 +15,9 @@ class Base(models.AbstractModel):
     DetailedFormViewFields = []
 
     @api.model
-    def fields_view_get(self, view_id=None, view_type="form", toolbar=False, submenu=False):
+    def fields_view_get(
+        self, view_id=None, view_type="form", toolbar=False, submenu=False
+    ):
         """Override fields_view_get to remove/hide information that is specified in models"""
         res = super().fields_view_get(view_id, view_type, toolbar, submenu)
         doc = etree.XML(res["arch"])
@@ -56,7 +58,7 @@ class Base(models.AbstractModel):
          is not correct
 
          On Core _create method vals are expected to be a dict
-         """
+        """
         if isinstance(vals, dict):
             self.validate_values_of_date_fields(vals)
         res = super()._create(vals)
@@ -80,19 +82,20 @@ class Base(models.AbstractModel):
         Raising error in case year is less than 1000
         """
         date_fields = {
-            key: value for key, value in self._fields.items() if
-            value.type in ("date", "datetime") and key not in ("write_date", "create_date")
+            key: value
+            for key, value in self._fields.items()
+            if value.type in ("date", "datetime")
+            and key not in ("write_date", "create_date")
         }
-        date_values = {k: v for k, v in values.items() if
-                       k in date_fields and isinstance(v, str) and len(v) >= 10}
+        date_values = {
+            k: v
+            for k, v in values.items()
+            if k in date_fields and isinstance(v, str) and v
+        }
         for date_value in date_values.values():
             try:
                 date_field = datetime.strptime(date_value[:10], DATE_FORMAT)
             except:
-                raise UserError(
-                    _("Date '%s' is not valid.") % date_value
-                )
+                raise UserError(_("Date '%s' is not valid.") % date_value)
             if date_field.year < 1000:
-                raise UserError(
-                    _("Date '%s' is not valid.") % date_value
-                )
+                raise UserError(_("Date '%s' is not valid.") % date_value)
