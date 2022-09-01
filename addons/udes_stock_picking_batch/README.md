@@ -12,8 +12,6 @@ The batch functionality related to pickings and picking types lives here.
   Is specifically used for access right groups.
 - stock_picking_batch:
   Stock picking batch odoo core module where functionalities are developed.
-- udes_simple_location_blocking: 
-  Have code dependency for using u_blocked field which is added on this module
 - udes_get_info:
   Using get_info method on mixin model which is a generic method.
 

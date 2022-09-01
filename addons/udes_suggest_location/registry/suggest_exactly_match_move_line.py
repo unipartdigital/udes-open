@@ -37,24 +37,12 @@ class ExactlyMatchMoveLine(SuggestLocationPolicy):
     def get_locations(self, location, **kwargs):
         """
         Check the location is not of type view, and that there is only one location.
-        If the location is blocked, raise an error.
         """
+        StockLocation = self.env["stock.location"]
         location.ensure_one()
 
         if location.usage == "view":
-            location = self.env["stock.location"]
-            if location.u_blocked:
-                if location.u_blocked_reason:
-                    raise ValidationError(
-                        _("Location %s is blocked. Reason given: %s")
-                        % (location.name, location.u_blocked_reason)
-                    )
-                else:
-                    raise ValidationError(
-                        _("Location %s is blocked. No reason specified.")
-                        % location.name
-                    )
-
+            return StockLocation.browse()
         return location
 
     def iter_mls(self, mls):

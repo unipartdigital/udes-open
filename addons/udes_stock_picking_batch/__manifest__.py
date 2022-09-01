@@ -13,7 +13,6 @@
         "stock_picking_batch",
         "package_hierarchy",
         "udes_security",
-        "udes_simple_location_blocking",
         "udes_get_info",
         "udes_stock_refactoring",
         "udes_stock",

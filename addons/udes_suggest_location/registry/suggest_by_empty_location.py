@@ -38,14 +38,13 @@ class ByEmptyLocation(SuggestLocationPolicy):
         Search for locations which are children of the picking destination location
         """
         Location = self.env["stock.location"]
-        
+
         # Add order="id" for performance as we don't care about the order
         child_locations_of_picking_destination = Location.search(
             [
                 ("location_id", "child_of", location.id),
                 ("barcode", "!=", False),
                 ("quant_ids", "=", False),
-                ("u_blocked", "=", False),
             ],
             order="id",
         )
