@@ -11,7 +11,6 @@
         "udes_get_info",
         "udes_common",
         "udes_stock",
-        "udes_simple_location_blocking"
     ],
     "data": ["views/stock_picking_type.xml"],
 }
