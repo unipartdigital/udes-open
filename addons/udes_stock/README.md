@@ -177,18 +177,19 @@ This is essentially a collection of products that are to be moved from one locat
 
 The type of stock.picking can is defined by this type. It can represent a goods in, a putaway, an internal transfer, a pick, a goods out, or any other collection of stock moves the warehouse operators want to model within UDES.
 
-| Field Name                | Type    | Description                                                                                                                              |
-|---------------------------|---------|------------------------------------------------------------------------------------------------------------------------------------------|
-| u_auto_unlink_empty       | Boolean | Flag to indicate whether to unlink empty picking                                                                                         |
-| u_user_scans              | string  | This defines what the user will scan (enum: 'pallet', 'package', 'product').                                                             |
-| u_target_storage_format   | string  | This defines how the stock is stored at the end of the stock.picking (enum: 'pallet_products', 'pallet_packages', 'package', 'product'). |
-| u_under_receive           | Boolean | If the system is able to receive less than what is expected.                                                                             |
-| u_over_receive            | Boolean | If the system is able to receive more than what is expected.                                                                             |
-| u_scan_parent_package_end | Boolean | If the system should ask the user to scan a parent package on drop off                                                                   |
-| u_multi_users_enabled     | Boolean | Flag to enable multi users processing same picking simultaneously.                                                                       |
-| u_enable_unpickable_items | Boolean | Flag to indicate if the current picking type should support handling of unpickable items                                                 |
-| u_handle_partials | Boolean | If the picking type is allowed to handle partially available pickings. |
-| u_propagate_cancel | Boolean | If the picking type should propagate move cancellations to the next moves |
+| Field Name                 | Type    | Description                                                                                                                              |
+|----------------------------|---------|------------------------------------------------------------------------------------------------------------------------------------------|
+| u_auto_unlink_empty        | Boolean | Flag to indicate whether to unlink empty picking                                                                                         |
+| u_user_scans               | string  | This defines what the user will scan (enum: 'pallet', 'package', 'product').                                                             |
+| u_target_storage_format    | string  | This defines how the stock is stored at the end of the stock.picking (enum: 'pallet_products', 'pallet_packages', 'package', 'product'). |
+| u_under_receive            | Boolean | If the system is able to receive less than what is expected.                                                                             |
+| u_over_receive             | Boolean | If the system is able to receive more than what is expected.                                                                             |
+| u_scan_parent_package_end  | Boolean | If the system should ask the user to scan a parent package on drop off                                                                   |
+| u_multi_users_enabled      | Boolean | Flag to enable multi users processing same picking simultaneously.                                                                       |
+| u_enable_unpickable_items  | Boolean | Flag to indicate if the current picking type should support handling of unpickable items                                                 |
+| u_handle_partials          | Boolean | If the picking type is allowed to handle partially available pickings.                                                                   |
+| u_propagate_cancel         | Boolean | If the picking type should propagate move cancellations to the next moves                                                                |
+| u_create_procurement_group | Boolean | Indicate if a procurement group should be created on confirmation of the picking if one does not already exist.                          |
 
 | Helpers                       | Description                                          |
 |-------------------------------|------------------------------------------------------|

@@ -1897,3 +1897,28 @@ class TestStockPickingPriorities(common.BaseUDES):
         """
         self.pick2.action_cancel()
         self.assertEqual(self.pick2.priority, "1")
+
+
+class TestStockPickingProcurementGroup(TestStockPickingCommon):
+
+    def test_procurement_group_created(self):
+        """Procurement group created when u_create_procurement_group is enabled"""
+        # Goods-in and Pick pickings created at setup do not have a group
+        self.assertFalse(self.test_picking_in.group_id)
+        self.assertFalse(self.test_picking_pick.group_id)
+        # Change flag to True for newly created Goods-in and Pick pickings
+        self.picking_type_goods_in.u_create_procurement_group = True
+        self.picking_type_pick.u_create_procurement_group = True
+        products_info = [{"product": self.apple, "uom_qty": 10}]
+        new_test_picking_in = self.create_picking(
+            self.picking_type_goods_in,
+            products_info=products_info,
+            confirm=True,
+            location_dest_id=self.test_received_location_01.id,
+        )
+        new_test_picking_pick = self.create_picking(
+            self.picking_type_pick, products_info=products_info, confirm=True
+        )
+        # Newly created Goods-in and Pick pickings do have a group
+        self.assertEqual(new_test_picking_in.group_id.name, new_test_picking_in.name)
+        self.assertEqual(new_test_picking_pick.group_id.name, new_test_picking_pick.name)

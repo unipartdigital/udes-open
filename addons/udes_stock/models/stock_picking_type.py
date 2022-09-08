@@ -107,6 +107,12 @@ class StockPickingType(models.Model):
         "For this reason, it is suggested to not use this feature on pick types whose rules are \n"
         "configured to propagate cancellations, to avoid any conflicting functionality.",
     )
+    u_create_procurement_group = fields.Boolean(
+        string="Create Procurement Group",
+        default=False,
+        help="Flag to indicate that a procurement group should be created on "
+        "confirmation of the picking if one does not already exist.",
+    )
 
     def get_action_picking_tree_draft(self):
         return self._get_action("udes_stock.action_picking_tree_draft")
