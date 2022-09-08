@@ -262,6 +262,10 @@ class StockMoveLine(models.Model):
             funcs.append(lambda ml: ml.package_id == package)
         if location:
             funcs.append(lambda ml: ml.location_id == location)
+
+        # Same lot_name, same package, same location 
+        # look at these mls, how would you find one without lot_name as that is what has been scanned in 
+        # also this would only be on one move_line - maybe in prepare this should be changed
         if lot_name:
             funcs.append(lambda ml: (ml.lot_name == lot_name or ml.lot_id.name == lot_name))
         func = lambda ml: all(f(ml) for f in funcs)
@@ -332,6 +336,11 @@ class StockMoveLine(models.Model):
                 quantity_fulfilled = 0
                 if is_serial:
                     qty_done = 1
+                # If tracked_product_swap_enabled then: 
+                # find all move_lines for package, product, location
+                # look at their lot_names, and compare them to the ones scanned in
+                # if they are the same then eliminate those move_lines from the ones that need changing
+                # Now have a list of move_lines that need changing - can alter the res dict for these move_lines
                 for lot_name in lot_names:
                     lot_name_val = lot_name
                     # If it is incoming we don't need to match the lot
