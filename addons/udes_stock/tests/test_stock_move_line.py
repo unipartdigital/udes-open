@@ -539,6 +539,49 @@ class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
             f"quantity: 100 vs 5"
         )
         self.assertEqual(e.exception.args[0], msg)
+    
+    def test_swap_serial_lot_name_on_single_move_line(self):
+        """
+        When prepare is given a different lot_name for a single serial product move_line, and u_tracked_product_swap is turned on, then the resultant move_line values
+        will have swapped lot_names
+        """
+        # Strawberry is tracked by serial
+        # Tangerine is tracked by lot
+        product_info = list()
+        for lot_num in range(1, 6):
+            self.create_quant(self.strawberry.id, location_id = self.test_stock_location_01.id , qty = 1, lot_name = f"{lot_num}")
+    
+        product_info.append({"product": self.strawberry, "uom_qty": 5})
+        
+        picking = self.create_picking(
+            self.picking_type_pick, products_info=product_info, assign=True
+        )
+        self.assertEqual(len(picking.move_line_ids), 5)
+
+    
+    def test_swap_serial_lot_names_on_multiple_move_lines(self):
+        """
+        When prepare is given different lot_names for multiple serial product move_lines, and u_tracked_product_swap is turned on, then the resultant move_line values
+        will have swapped lot_names
+        """
+    
+    def test_swap_lot_lot_name_on_single_move_line(self):
+        """
+        When prepare is given a differrent lot name for a single lot product move_line, and u_tracked_product_swap is turned on, then the resultant move_line value will 
+        have swapped lot_names
+        """
+    
+    def test_swap_lot_lot_names_on_multiple_move_lines(self):
+        """
+        When prepare is given different lot_names for multiple lot product move_line, and u_tracked_product_swap is turned on, then the resultant move_line value will
+        have swapped lot_names
+        """
+    
+    def test_partially_picked_lot_product_with_swapped_lot_name_for_single_move_line(self):
+        """
+        When prepare is given a different lot_name for a single lot product, and u_tracked_product_swap is turned on, the the resultant move_line value will have
+        swapped lot_names and only picked a partial quantity
+        """
 
 
 class TestFindMoveLines(common.BaseUDES):
