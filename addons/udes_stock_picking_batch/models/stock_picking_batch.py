@@ -114,6 +114,10 @@ class StockPickingBatch(models.Model):
             else:
                 batch.state = "done"
 
+    def _sanity_check(self):
+        """ Override sanity check, since this module handles pickings in a batch different. """
+        return True
+
     def done_picks(self):
         """ Return done picks from picks or self.picking_ids """
         picks = self.picking_ids
