@@ -9,7 +9,7 @@
                         <div t-attf-class="col-12 col-md col-lg-12">
                             <h3>Access Denied</h3>
                             <p>You do not have access to the desktop, please contact your manager if you believe this is an error.</p>
-                            <p>
+                            <p t-if="reset_password_enabled">
                                 Click
                                 <a href="/my/security">here</a>
                                 if you need to update your password.
