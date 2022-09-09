@@ -291,7 +291,6 @@ class StockMoveLine(models.Model):
 
         """
         Product = self.env["product.product"]
-
         vals = {}
         if result_package:
             vals["result_package_id"] = result_package.id
@@ -336,8 +335,18 @@ class StockMoveLine(models.Model):
                 quantity_fulfilled = 0
                 if is_serial:
                     qty_done = 1
+                
+                if mls.u_picking_type_id.u_allow_swapping_tracked_products:
+                    # Find movelines in picking for location scanned in
+                    prod_mls, new_ml = mls._find_move_lines(qty_done, product, package, None, location)
+                    # Get the lot names on those move_lines
+                    lot_ids_on_movelines = set(prod_mls.lot_id.mapped("name"))
+                    lot_ids_scanned_in = set(lot_names)
+                    swapped_lot_ids = (lot_ids_scanned_in.difference(lot_ids_on_movelines)) # Create a generator that will move to next item
+                    lot_ids_that_need_changing = lot_ids_on_movelines.difference(lot_ids_scanned_in)
+
                 # If tracked_product_swap_enabled then: 
-                # find all move_lines for package, product, location
+                # find all move_lines for package, product, location on picking
                 # look at their lot_names, and compare them to the ones scanned in
                 # if they are the same then eliminate those move_lines from the ones that need changing
                 # Now have a list of move_lines that need changing - can alter the res dict for these move_lines
@@ -351,6 +360,12 @@ class StockMoveLine(models.Model):
                     prod_mls, new_ml = mls._find_move_lines(
                         qty_done, product, package, lot_name, location
                     )
+                    
+                    # If swapping is enabled update the lot_id on the move line
+                    if mls.u_picking_type_id.u_allow_swapping_tracked_products: 
+                        if lot_name_val in lot_ids_that_need_changing:
+                            lot_name_val = next(swapped_lot_ids)
+                    
                     prod_dict = {
                         "qty_done": qty_done,
                         "lot_name": lot_name_val
