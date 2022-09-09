@@ -1519,7 +1519,7 @@ class TestUnpickableItems(TestStockPickingBatch):
         done
         """
         picking, batch = self._create_valid_batch()
-        picking.unlink()
+        picking.with_context(bypass_state_check=True).unlink()
         picking = self.create_picking(
             self.picking_type_pick,
             products_info=self.pack_4apples_info,

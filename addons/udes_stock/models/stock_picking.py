@@ -706,7 +706,7 @@ class StockPicking(models.Model):
                 raise ValidationError(
                     _("Trying to unlink non empty pickings: %r") % non_empty_pickings.ids
                 )
-            to_unlink.unlink()
+            to_unlink.with_context(bypass_state_check=True).unlink()
 
         return self - records
 
@@ -1014,3 +1014,17 @@ class StockPicking(models.Model):
         res = super().button_validate()
         user_validating.unassign_pickings_from_users()
         return res
+
+    def unlink(self):
+        """
+        Override unlink to ensure that if bypass_state_check context isn't set and there are
+        transfers in state different from draft to raise  error with appropriate message.
+        """
+        if not self._context.get("bypass_state_check"):
+            non_draft_picks = self.filtered(lambda p: p.state != "draft")
+            if non_draft_picks:
+                raise UserError(
+                    _("Cannot delete picking(s) outside draft state: %s")
+                    % ", ".join(non_draft_picks.mapped("name"))
+                )
+        return super().unlink()
