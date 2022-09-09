@@ -38,6 +38,11 @@ class StockPickingType(models.Model):
         help="This setting is only applied when u_reserve_pallet_per_picking is True",
     )
     u_allow_swapping_packages = fields.Boolean(string="Allow Swapping Packages", default=False)
+    u_allow_swapping_tracked_products = fields.Boolean(
+        string="Allow Swapping Tracked Products",
+        default=False,
+        help="If enabled tracked products that are not in the picking, but are more easily available to the warehouse user, can be swapped into the picking during scanning",
+    )
     u_return_to_skipped = fields.Boolean(
         string="Return to Skipped Items",
         default=False,
