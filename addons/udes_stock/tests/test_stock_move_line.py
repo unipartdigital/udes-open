@@ -575,7 +575,6 @@ class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
         # res = {stock.move.line(692,): {'qty_done': 1, 'lot_name': '1', 'result_package_id': 173}}
         self.assertEqual(res[picking.move_line_ids]["lot_name"],"2")
 
-    
     def test_swap_serial_lot_names_on_multiple_move_lines(self):
         """
         When prepare is given different lot_names for multiple serial product move_lines, and u_tracked_product_swap is turned on, then the resultant move_line values
@@ -697,20 +696,51 @@ class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
         product_ids = [{
             "barcode":"productTangerine",
             "uom_qty": 5,
-            "lot_names":["2"]
+            "lot_names":["3"]
         }]
         location = self.test_stock_location_01
         pallet_to_pick_onto = self.create_package(name = "UDES1")
         res = first_picking.move_line_ids.prepare(product_ids = product_ids, location = location, result_package = pallet_to_pick_onto)
 
+        # Check that the move_line returned is for 5 of lot_name 2
+        self.assertEqual(len(first_picking.move_line_ids), 2)
 
+        # Previous new lot that was swapped in
+        self.assertEqual(res[first_picking.move_line_ids[0]]["lot_name"], "2")
+        self.assertEqual(res[first_picking.move_line_ids[0]]["qty_done"], "5")
+        # New lot that was scanned in 
+        self.assertEqual(res[first_picking.move_line_ids[1]]["lot_name"], "3")
+        self.assertEqual(res[first_picking.move_line_ids[1]]["qty_done"], "5")
 
-    
-    def test_partially_picked_lot_product_with_swapped_lot_name_for_single_move_line(self):
+    def test_expect_two_lots_be_scanned_in_but_only_receive_one_different_lot(self):
         """
-        When prepare is given a different lot_name for a single lot product, and u_tracked_product_swap is turned on, the the resultant move_line value will have
-        swapped lot_names and only picked a partial quantity
+        Expect two lots be scanned in, but only receive one different lot
         """
+        self.create_quant(self.tangerine.id, location_id = self.test_stock_location_01.id , qty = 5, lot_name = "1")
+        self.create_quant(self.tangerine.id, location_id = self.test_stock_location_01.id , qty = 5, lot_name = "2")
+        self.create_quant(self.tangerine.id, location_id = self.test_stock_location_01.id , qty = 10, lot_name = "3")
+
+        product_info = [{"product": self.tangerine, "uom_qty": 10}]
+        picking = self.create_picking(
+            self.picking_type_pick, products_info=product_info, assign=True
+        )
+
+        product_ids = [{
+            "barcode":"productTangerine",
+            "uom_qty": 10,
+            "lot_names":["3"]
+        }]
+        location = self.test_stock_location_01
+        pallet_to_pick_onto = self.create_package(name = "UDES1")
+        res = picking.move_line_ids.prepare(product_ids = product_ids, location = location, result_package = pallet_to_pick_onto)
+        self.assertEqual(res[picking.move_line_ids]["lot_name"],"2")
+
+# THIS ONE TIES INTO PREVIOUS TESTS
+# def test_partially_picked_lot_product_with_swapped_lot_name_for_single_move_line(self):
+#     """
+#     When prepare is given a different lot_name for a single lot product, and u_tracked_product_swap is turned on, the the resultant move_line value will have
+#     swapped lot_names and only picked a partial quantity
+#     """
     
  # WILL NOT HAVE THIS SCENARIO AS LOTS ARE SCANNED IN ONE BY ONE
 # def test_swap_lot_lot_names_on_multiple_move_lines(self):
