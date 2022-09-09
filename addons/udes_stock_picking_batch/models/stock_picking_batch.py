@@ -1225,7 +1225,7 @@ class StockPickingBatch(models.Model):
                         # directly processed
                         picking.move_line_ids.write({"picking_id": original_picking_id})
                         picking.move_lines.write({"picking_id": original_picking_id})
-                        picking.sudo().unlink()
+                        picking.sudo().with_context(bypass_state_check=True).unlink()
                     else:
                         # Moves may be part of a new picking after refactor, this should
                         # be added back to the batch

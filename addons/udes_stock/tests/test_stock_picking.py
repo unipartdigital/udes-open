@@ -1898,6 +1898,82 @@ class TestStockPickingPriorities(common.BaseUDES):
         self.pick2.action_cancel()
         self.assertEqual(self.pick2.priority, "1")
 
+    def test_picking_can_be_deleted_in_draft(self):
+        """
+        Test that a picking can be deleted in draft state
+        """
+        pick = self.create_picking(
+            picking_type=self.picking_type_pick,
+            products_info=[{"product": self.fig, "uom_qty": 10}],
+            location_id=self.test_stock_location_02.id,
+            confirm=False,
+            assign=False,
+            priority="0",
+        )
+        self.assertEqual(pick.state, "draft")
+        pick.unlink()
+        self.assertFalse(pick.exists())
+
+    def test_picking_cannot_be_deleted_outside_draft(self):
+        """
+        Test that a picking cannot be deleted in states: confirmed, waiting, assigned, done, cancel
+        """
+        pick = self.create_picking(
+            picking_type=self.picking_type_pick,
+            products_info=[{"product": self.fig, "uom_qty": 10}],
+            location_id=self.test_stock_location_02.id,
+            confirm=True,
+            assign=False,
+            priority="0",
+        )
+        self.assertEqual(pick.state, "confirmed")
+        with self.assertRaises(UserError):
+            pick.unlink()
+
+        next_picking_waiting = pick.u_next_picking_ids
+        self.assertEqual(next_picking_waiting.state, "waiting")
+        with self.assertRaises(UserError):
+            pick.unlink()
+
+        pick.action_assign()
+        self.assertEqual(pick.state, "assigned")
+        with self.assertRaises(UserError):
+            pick.unlink()
+        self.complete_picking(pick)
+        self.assertEqual(pick.state, "done")
+        with self.assertRaises(UserError):
+            pick.unlink()
+
+        pick = self.create_picking(
+            picking_type=self.picking_type_pick,
+            products_info=[{"product": self.fig, "uom_qty": 10}],
+            location_id=self.test_stock_location_02.id,
+            confirm=False,
+            assign=False,
+            priority="0",
+        )
+        pick.action_cancel()
+        self.assertEqual(pick.state, "cancel")
+        with self.assertRaises(UserError):
+            pick.unlink()
+
+    def test_picking_can_be_deleted_with_bypass_state_check(self):
+        """
+        Test that a picking can be deleted with context variable
+        """
+        pick = self.create_picking(
+            picking_type=self.picking_type_pick,
+            products_info=[{"product": self.fig, "uom_qty": 10}],
+            location_id=self.test_stock_location_02.id,
+            confirm=False,
+            assign=False,
+            priority="0",
+        )
+        pick.action_cancel()
+        self.assertEqual(pick.state, "cancel")
+        pick.with_context(bypass_state_check=True).unlink()
+        self.assertFalse(pick.exists())
+
 
 class TestStockPickingProcurementGroup(TestStockPickingCommon):
 
