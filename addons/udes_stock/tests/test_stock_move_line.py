@@ -547,7 +547,7 @@ class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
         """
         # DOUBLE CHECK WHAT IS GOING ON WITH THIS? - so only incoming tracked products have to be matched?
         # self.picking_type_pick.code = "incoming"
-        
+        self.picking_type_pick.u_allow_swapping_tracked_products = True
         # Set up a picking with some serialised products 
         for lot_num in range(1, 6):
             self.create_quant(self.strawberry.id, location_id = self.test_stock_location_01.id , qty = 1, lot_name = f"{lot_num}")
@@ -571,19 +571,21 @@ class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
         # result_package is the package it is moving on to e.g. UDES1
         # Don't need location_dest
         res = picking.move_line_ids.prepare(product_ids = product_ids, location = location, result_package = pallet_to_pick_onto)
-        
-        # res = {stock.move.line(692,): {'qty_done': 1, 'lot_name': '1', 'result_package_id': 173}}
         self.assertEqual(res[picking.move_line_ids]["lot_name"],"2")
+        self.assertEqual(res[picking.move_line_ids]["product_uom_qty"], 1)
+        self.assertEqual(res[picking.move_line_ids]["qty_done"], 1)
+        for mls, mls_values in res.items():
+            mls.mark_as_done(mls_values)
+        self.assertEqual(picking.move_line_ids.lot_id.mapped("name"), ["2"])
 
     def test_swap_serial_lot_names_on_multiple_move_lines(self):
         """
         When prepare is given different lot_names for multiple serial product move_lines, and u_tracked_product_swap is turned on, then the resultant move_line values
         will have swapped lot_names
         """
-        
         # DOUBLE CHECK WHAT IS GOING ON WITH THIS? - so only incoming tracked products have to be matched?
         # self.picking_type_pick.code = "incoming"
-
+        self.picking_type_pick.u_allow_swapping_tracked_products = True
         # Set up a picking with some serialised products 
         for lot_num in range(1, 6):
             self.create_quant(self.strawberry.id, location_id = self.test_stock_location_01.id , qty = 1, lot_name = f"{lot_num}")
@@ -596,22 +598,30 @@ class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
         product_ids = [{
             "barcode":"productStrawberry",
             "uom_qty": 3,
-            "lot_names":["1","2","3"]
+            "lot_names":["1","4","5"]
         }]
         location = self.test_stock_location_01
         pallet_to_pick_onto = self.create_package(name = "UDES1")
 
         res = picking.move_line_ids.prepare(product_ids = product_ids, location = location, result_package = pallet_to_pick_onto)
-        self.assertEqual(res[picking.move_line_ids[0]]["lot_name"],"1")
+        self.assertEqual(res[picking.move_line_ids[0]]["lot_name"], None)
+        self.assertEqual(res[picking.move_line_ids[0]]["qty_done"], 1)
         self.assertEqual(res[picking.move_line_ids[1]]["lot_name"],"4")
+        self.assertEqual(res[picking.move_line_ids[1]]["product_uom_qty"], 1)
+        self.assertEqual(res[picking.move_line_ids[1]]["qty_done"], 1)
         self.assertEqual(res[picking.move_line_ids[2]]["lot_name"],"5")
+        self.assertEqual(res[picking.move_line_ids[2]]["product_uom_qty"], 1)
+        self.assertEqual(res[picking.move_line_ids[2]]["qty_done"], 1)
+        for mls, mls_values in res.items():
+            mls.mark_as_done(mls_values)
+        self.assertEqual(picking.move_line_ids.lot_id.mapped("name"), ["1","4","5"])
     
     def test_swap_lot_lot_name_on_single_move_line(self):
         """
         When prepare is given a differrent lot name for a single lot product move_line, and u_tracked_product_swap is turned on, then the resultant move_line value will 
         have swapped lot_names
         """
-        # Set up a picking with some lot products 
+        self.picking_type_pick.u_allow_swapping_tracked_products = True 
         for lot_num in range(1, 6):
             self.create_quant(self.tangerine.id, location_id = self.test_stock_location_01.id , qty = 10, lot_name = f"{lot_num}")
         product_info = [{"product": self.tangerine, "uom_qty": 10}]
@@ -629,11 +639,17 @@ class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
 
         res = picking.move_line_ids.prepare(product_ids = product_ids, location = location, result_package = pallet_to_pick_onto)
         self.assertEqual(res[picking.move_line_ids]["lot_name"],"2")
+        self.assertEqual(res[picking.move_line_ids]["product_uom_qty"], 10)
+        self.assertEqual(res[picking.move_line_ids]["qty_done"], 10)
+        for mls, mls_values in res.items():
+            mls.mark_as_done(mls_values)
+        self.assertEqual(picking.move_line_ids.lot_id.mapped("name"), ["2"])
     
     def test_swapping_the_lots_on_two_move_lines(self):
         """
         Swap lot when new lot is actually reserved on the move_line of another picking
         """
+        self.picking_type_pick.u_allow_swapping_tracked_products = True
         for lot_num in range(1, 6):
             self.create_quant(self.tangerine.id, location_id = self.test_stock_location_01.id , qty = 10, lot_name = f"{lot_num}")
         product_info = [{"product": self.tangerine, "uom_qty": 10}]
@@ -654,16 +670,20 @@ class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
         pallet_to_pick_onto = self.create_package(name = "UDES1")
 
         res = first_picking.move_line_ids.prepare(product_ids = product_ids, location = location, result_package = pallet_to_pick_onto)
-        self.assertEqual(res[first_picking.move_line_ids]["lot_name"],"2")
+        for mls, mls_values in res.items():
+            mls.mark_as_done(mls_values)
+        self.assertEqual(first_picking.move_line_ids.lot_id.name, "2")
+        self.assertEqual(second_picking.move_line_ids.lot_id.name, "1")
     
     def test_expect_10_of_lot_a_but_get_5_of_lot_b_and_5_of_lot_c(self):
         """
         Expect ten of a lot, but get two other lots to make up the order of ten
         """
+        self.picking_type_pick.u_allow_swapping_tracked_products = True
+
         self.create_quant(self.tangerine.id, location_id = self.test_stock_location_01.id , qty = 10, lot_name = "1")
         self.create_quant(self.tangerine.id, location_id = self.test_stock_location_01.id , qty = 5, lot_name = "2")
         self.create_quant(self.tangerine.id, location_id = self.test_stock_location_01.id , qty = 5, lot_name = "3")
-
         # This will create a moveline for the first 10 of with lot_name 1
         product_info = [{"product": self.tangerine, "uom_qty": 10}]
         first_picking = self.create_picking(
@@ -716,6 +736,7 @@ class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
         """
         Expect two lots be scanned in, but only receive one different lot
         """
+        self.picking_type_pick.u_allow_swapping_tracked_products = True
         self.create_quant(self.tangerine.id, location_id = self.test_stock_location_01.id , qty = 5, lot_name = "1")
         self.create_quant(self.tangerine.id, location_id = self.test_stock_location_01.id , qty = 5, lot_name = "2")
         self.create_quant(self.tangerine.id, location_id = self.test_stock_location_01.id , qty = 10, lot_name = "3")

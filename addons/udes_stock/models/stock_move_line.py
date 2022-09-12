@@ -328,26 +328,25 @@ class StockMoveLine(models.Model):
                 )
             qty_done = quantity
             if product_tracking != "none":
+
                 quantity_fulfilled = 0
                 if is_serial:
                     qty_done = 1
-                
+
                 # Swap the tracked products
                 if mls.u_picking_type_id.u_allow_swapping_tracked_products:
                     # Find movelines in picking for location scanned in
-                    mls, new_ml = mls._find_move_lines(qty_done, product, package, None, location)
-                    mls = mls[:len(lot_names)]
+                    picking_mls, new_ml = mls._find_move_lines(quantity, product, package, None, location)
+                    picking_mls = picking_mls[:len(lot_names)]
                     # Find movelines that have lot_names that were not entered
-                    mls_need_changing = mls.filtered(lambda mls: mls.lot_id.name not in lot_names)
-                    # Workout the lot_names that were swapped out and lot_names that were swapped in
-                    lot_names_swapped_out = set(mls_need_changing.lot_id.mapped("name"))
-                    lot_names_swapped_in = list(set(lot_names) - lot_names_swapped_out)
+                    mls_need_changing = picking_mls.filtered(lambda mls: mls.lot_id.name not in lot_names)
+                    # Workout the lot_names that were swapped in
+                    lot_names_on_picking = self.lot_id.mapped("name")
+                    lot_names_swapped_in = list(set(lot_names) - set(lot_names_on_picking))
                     lot_ids_swapped_in = self.env["stock.production.lot"].search([("name", "in", lot_names_swapped_in)])
                     # Update the reserved_quantity on quants that have not been scanned in (unreserve that quantity)
                     # Reserve quantity on the quant and for each move_line attach the new lot_id 
-                    for mls, lot_id in zip(mls_need_changing, lot_ids_swapped_in):
-                        # self.env["stock.quant"]._update_reserved_quantity(product, location, -mls.product_uom_qty, mls.lot_id, strict=True)
-                        # self.env["stock.quant"]._update_reserved_quantity(product, location, qty_done, lot_id, strict=True)
+                    for picking_mls, lot_id in zip(mls_need_changing, lot_ids_swapped_in):
                         prod_dict = {
                         "product_uom_qty": qty_done,
                         "qty_done": qty_done,
@@ -355,8 +354,9 @@ class StockMoveLine(models.Model):
                         "lot_id": lot_id.id
                         }
                         prod_dict.update(vals)
-                        res[mls] = prod_dict
-                    # Remove lot names that have been processed
+                        res[picking_mls] = prod_dict
+                    # If any of the lot_ids_swapped_in belong to another move_line
+                    # Remove lot names that have been processed so they are not called below
                     lot_names = list(set(lot_names) - set(lot_names_swapped_in))
                 
                 # This won't find any move_lines for the swapped in products 
