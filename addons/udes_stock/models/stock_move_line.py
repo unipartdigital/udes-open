@@ -262,10 +262,6 @@ class StockMoveLine(models.Model):
             funcs.append(lambda ml: ml.package_id == package)
         if location:
             funcs.append(lambda ml: ml.location_id == location)
-
-        # Same lot_name, same package, same location 
-        # look at these mls, how would you find one without lot_name as that is what has been scanned in 
-        # also this would only be on one move_line - maybe in prepare this should be changed
         if lot_name:
             funcs.append(lambda ml: (ml.lot_name == lot_name or ml.lot_id.name == lot_name))
         func = lambda ml: all(f(ml) for f in funcs)
@@ -336,20 +332,34 @@ class StockMoveLine(models.Model):
                 if is_serial:
                     qty_done = 1
                 
+                # Swap the tracked products
                 if mls.u_picking_type_id.u_allow_swapping_tracked_products:
                     # Find movelines in picking for location scanned in
-                    prod_mls, new_ml = mls._find_move_lines(qty_done, product, package, None, location)
-                    # Get the lot names on those move_lines
-                    lot_ids_on_movelines = set(prod_mls.lot_id.mapped("name"))
-                    lot_ids_scanned_in = set(lot_names)
-                    swapped_lot_ids = (lot_ids_scanned_in.difference(lot_ids_on_movelines)) # Create a generator that will move to next item
-                    lot_ids_that_need_changing = lot_ids_on_movelines.difference(lot_ids_scanned_in)
-
-                # If tracked_product_swap_enabled then: 
-                # find all move_lines for package, product, location on picking
-                # look at their lot_names, and compare them to the ones scanned in
-                # if they are the same then eliminate those move_lines from the ones that need changing
-                # Now have a list of move_lines that need changing - can alter the res dict for these move_lines
+                    mls, new_ml = mls._find_move_lines(qty_done, product, package, None, location)
+                    mls = mls[:len(lot_names)]
+                    # Find movelines that have lot_names that were not entered
+                    mls_need_changing = mls.filtered(lambda mls: mls.lot_id.name not in lot_names)
+                    # Workout the lot_names that were swapped out and lot_names that were swapped in
+                    lot_names_swapped_out = set(mls_need_changing.lot_id.mapped("name"))
+                    lot_names_swapped_in = list(set(lot_names) - lot_names_swapped_out)
+                    lot_ids_swapped_in = self.env["stock.production.lot"].search([("name", "in", lot_names_swapped_in)])
+                    # Update the reserved_quantity on quants that have not been scanned in (unreserve that quantity)
+                    # Reserve quantity on the quant and for each move_line attach the new lot_id 
+                    for mls, lot_id in zip(mls_need_changing, lot_ids_swapped_in):
+                        # self.env["stock.quant"]._update_reserved_quantity(product, location, -mls.product_uom_qty, mls.lot_id, strict=True)
+                        # self.env["stock.quant"]._update_reserved_quantity(product, location, qty_done, lot_id, strict=True)
+                        prod_dict = {
+                        "product_uom_qty": qty_done,
+                        "qty_done": qty_done,
+                        "lot_name": lot_id.name,
+                        "lot_id": lot_id.id
+                        }
+                        prod_dict.update(vals)
+                        res[mls] = prod_dict
+                    # Remove lot names that have been processed
+                    lot_names = list(set(lot_names) - set(lot_names_swapped_in))
+                
+                # This won't find any move_lines for the swapped in products 
                 for lot_name in lot_names:
                     lot_name_val = lot_name
                     # If it is incoming we don't need to match the lot
@@ -360,12 +370,6 @@ class StockMoveLine(models.Model):
                     prod_mls, new_ml = mls._find_move_lines(
                         qty_done, product, package, lot_name, location
                     )
-                    
-                    # If swapping is enabled update the lot_id on the move line
-                    if mls.u_picking_type_id.u_allow_swapping_tracked_products: 
-                        if lot_name_val in lot_ids_that_need_changing:
-                            lot_name_val = next(swapped_lot_ids)
-                    
                     prod_dict = {
                         "qty_done": qty_done,
                         "lot_name": lot_name_val
