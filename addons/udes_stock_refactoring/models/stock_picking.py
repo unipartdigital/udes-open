@@ -1,6 +1,4 @@
-from odoo import api, fields, models, _
-from odoo.exceptions import ValidationError
-from collections import defaultdict
+from odoo import api, models
 import logging
 
 _logger = logging.getLogger(__name__)
@@ -13,7 +11,7 @@ class StockPicking(models.Model):
         self, group, picking_type, location, dest_location
     ):
         """
-        Return a dict of values for a new picking based on the supplied 
+        Return a dict of values for a new picking based on the supplied
         Procurement Group Picking Type, Location and Destination Location.
         """
         values = {
@@ -29,7 +27,7 @@ class StockPicking(models.Model):
         """
         If any of the fields in kwargs is set and its value is different
         than the new one, set the field value to False to avoid misleading values.
-        E.g. if picking.origin is 'ASN001' and kwargs contains origin with value 
+        E.g. if picking.origin is 'ASN001' and kwargs contains origin with value
         'ASN002', picking.origin is set to False.
         """
         self.ensure_one()
