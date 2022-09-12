@@ -41,6 +41,45 @@ class StockPicking(models.Model):
                 if current_value and current_value != value:
                     self[field] = False
 
+    def _setup_refactored_picking_package_levels(self, move_lines):
+        """
+        Identify any package levels set for the supplied move lines.
+
+        If the package levels exclusively contain the move lines, then simply move all
+        package links to the new refactored picking.
+
+        Otherwise create a new package level for each unique package within the move lines,
+        and set the relevant move lines to point to this package.
+
+        By setting the package levels as needed we avoid extra package levels potentially
+        being created later on via `_check_entire_pack`. This then also avoids the potential for
+        erroneous moves being created when `_generate_moves` is called on a newly generated
+        package level.
+        """
+        PackageLevel = self.env["stock.package_level"]
+
+        self.ensure_one()
+
+        move_lines_with_package_levels = move_lines.filtered("package_level_id")
+        package_levels = move_lines_with_package_levels.package_level_id
+
+        if move_lines_with_package_levels:
+            if package_levels.move_line_ids == move_lines:
+                # Move all package levels to the new picking
+                package_levels.write({"picking_id": self.id})
+            else:
+                # Move the move lines to new package level, one level created per package
+                for package, pack_move_lines in move_lines.groupby("package_id"):
+                    package_level = PackageLevel.create(
+                        {
+                            "package_id": package.id,
+                            "picking_id": self.id,
+                            "company_id": self.company_id.id,
+                        }
+                    )
+                    # Ensures that move lines will not point to a package level on another picking
+                    pack_move_lines.write({"package_level_id": package_level.id})
+
     @api.model
     def _new_picking_for_group(self, group_key, moves, **kwargs):
         """
@@ -99,6 +138,7 @@ class StockPicking(models.Model):
 
         move_lines = moves.move_line_ids
         if move_lines:
+            picking._setup_refactored_picking_package_levels(move_lines)
             move_lines.write({"picking_id": picking.id})
             # After moving move lines check entire packages again just in case
             # some of the move lines are completing packages
