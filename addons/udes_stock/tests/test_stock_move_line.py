@@ -673,7 +673,11 @@ class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
         for mls, mls_values in res.items():
             mls.mark_as_done(mls_values)
         self.assertEqual(first_picking.move_line_ids.lot_id.name, "2")
+        self.assertEqual(first_picking.move_line_ids.product_uom_qty, 10.0)
+        self.assertEqual(first_picking.move_line_ids.qty_done, 10.0)
         self.assertEqual(second_picking.move_line_ids.lot_id.name, "1")
+        self.assertEqual(second_picking.move_line_ids.product_uom_qty, 10.0)
+        self.assertEqual(second_picking.move_line_ids.qty_done, 0.0)
     
     def test_expect_10_of_lot_a_but_get_5_of_lot_b_and_5_of_lot_c(self):
         """

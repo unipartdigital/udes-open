@@ -333,7 +333,7 @@ class StockMoveLine(models.Model):
                 if is_serial:
                     qty_done = 1
 
-                # Swap the tracked products
+                # Swapping the tracked products
                 if mls.u_picking_type_id.u_allow_swapping_tracked_products:
                     # Find movelines in picking for location scanned in
                     picking_mls, new_ml = mls._find_move_lines(quantity, product, package, None, location)
@@ -344,6 +344,7 @@ class StockMoveLine(models.Model):
                     lot_names_on_picking = self.lot_id.mapped("name")
                     lot_names_swapped_in = list(set(lot_names) - set(lot_names_on_picking))
                     lot_ids_swapped_in = self.env["stock.production.lot"].search([("name", "in", lot_names_swapped_in)])
+                    lot_ids_swapped_out = picking_mls.lot_id
                     # Update the reserved_quantity on quants that have not been scanned in (unreserve that quantity)
                     # Reserve quantity on the quant and for each move_line attach the new lot_id 
                     for picking_mls, lot_id in zip(mls_need_changing, lot_ids_swapped_in):
@@ -355,7 +356,18 @@ class StockMoveLine(models.Model):
                         }
                         prod_dict.update(vals)
                         res[picking_mls] = prod_dict
+                    
                     # If any of the lot_ids_swapped_in belong to another move_line
+                    swapped_lot_on_assigned_mls = self.env["stock.move.line"].search([("lot_id", "in", lot_ids_swapped_in.mapped("id"))])
+                    # Can zip as lot_ids_swapped_out will never have fewer item then swapped_lot_on_assigned_mls
+                    for old_lot, mls in zip(lot_ids_swapped_out,swapped_lot_on_assigned_mls): 
+                        prod_dict = {
+                        "lot_name": old_lot.name,
+                        "lot_id": old_lot.id,
+                        "qty_done": 0.0
+                        }
+                        res[mls] = prod_dict
+
                     # Remove lot names that have been processed so they are not called below
                     lot_names = list(set(lot_names) - set(lot_names_swapped_in))
                 
