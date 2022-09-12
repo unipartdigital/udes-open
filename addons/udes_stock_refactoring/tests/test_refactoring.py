@@ -1,4 +1,5 @@
 from odoo.addons.udes_stock.tests import common
+from odoo.osv import expression
 
 
 class TestRefactoringBase(common.BaseUDES):
@@ -30,6 +31,29 @@ class TestRefactoringBase(common.BaseUDES):
             product_qty,
             package_id=self.banana_pallet.id,
         )
+
+    @classmethod
+    def get_move_lines_for_product(cls, product, picking_type=None, package=None, aux_domain=None):
+        """
+        Find and return all move lines in the system for a product.
+
+        Optionally provide a picking type, package and aux_domain.
+
+        Useful for retrieving move lines after a picking has been split via refactoring.
+        """
+        MoveLine = cls.env["stock.move.line"]
+
+        product.ensure_one()
+
+        domain = [("product_id", "=", product.id)]
+        if picking_type:
+            domain = expression.AND([domain, [("u_picking_type_id", "=", picking_type.id)]])
+        if package:
+            domain = expression.AND([domain, [("package_id", "=", package.id)]])
+        if aux_domain:
+            domain = expression.AND([domain, aux_domain])
+
+        return MoveLine.search(domain)
 
     def _assert_move_fields(self, move, product, product_qty):
         """
@@ -88,6 +112,43 @@ class TestRefactoringBase(common.BaseUDES):
             self.assertEqual(picking.location_dest_id, location_dest_id)
         if date_done:
             self.assertEqual(picking.date_done, date_done)
+
+    def _assert_package_levels(self, pickings):
+        """
+        Assert that each supplied picking has package level records for any packages
+        within the picking, and does not have any records for packages not in the picking.
+
+        Also assert any move lines with a package on each picking have a package level set.
+        """
+        for picking in pickings:
+            package_levels = picking.package_level_ids
+            packages = picking.move_line_ids.package_id
+            pl_packages = package_levels.package_id
+
+            package_names = ",".join(package.name for package in packages)
+            pl_package_names = ",".join(package.name for package in pl_packages)
+
+            with self.subTest(packages=packages, pl_packages=pl_packages):
+                self.assertEqual(
+                    packages,
+                    pl_packages,
+                    f"Picking {picking.name} should have package levels for {package_names}, "
+                    f"got: {pl_package_names}",
+                )
+
+            if package_levels:
+                package_level_move_lines = package_levels.move_line_ids
+                for move_line in picking.move_line_ids.filtered("package_id"):
+                    with self.subTest(move_line=move_line):
+                        prod_name = move_line.product_id.name
+                        ml_qty = move_line.product_uom_qty
+                        pack_name = move_line.package_id.name
+                        ml_desc = f"{prod_name} x {ml_qty} ({pack_name})"
+                        self.assertIn(
+                            move_line,
+                            package_level_move_lines,
+                            f"Move Line {ml_desc} should have a package level set.",
+                        )
 
 
 class TestAssignRefactoring(TestRefactoringBase):
@@ -149,8 +210,6 @@ class TestAssignRefactoring(TestRefactoringBase):
         Pick should be split into 2 picks 1 for each pallet,
         reusing the original pick.
         """
-        MoveLine = self.env["stock.move.line"]
-
         apple_pallet = self.apple_pallet
         other_apple_pallet = self.create_package()
         self.create_quant(
@@ -159,12 +218,15 @@ class TestAssignRefactoring(TestRefactoringBase):
         products_info = [{"product": self.apple, "uom_qty": 20}]
         self.create_move(self.picking, products_info)
         self.picking.action_assign()
-        apple_move_lines = MoveLine.search([("product_id", "=", self.apple.id)])
+        apple_move_lines = self.get_move_lines_for_product(
+            self.apple, picking_type=self.picking.picking_type_id
+        )
         self.assertEqual(len(apple_move_lines), 2)
         apple_pallet_move_line = apple_move_lines.filtered(lambda ml: ml.package_id == apple_pallet)
         other_apple_pallet_move_line = apple_move_lines - apple_pallet_move_line
         apple_pick = apple_pallet_move_line.picking_id
         other_apple_pick = other_apple_pallet_move_line.picking_id
+        refactored_picks = apple_pick | other_apple_pick
         # Assert picking fields are correct. Having different group names ensures
         # apple_pick and other_apple_pick are not the same.
         self._assert_picking_fields(apple_pick, state="assigned", group_name=apple_pallet.name)
@@ -182,9 +244,11 @@ class TestAssignRefactoring(TestRefactoringBase):
         self._assert_move_line_fields(
             other_apple_pick_move_line, self.apple, 10, other_apple_pallet
         )
+        # Check that the package levels have been split
+        self._assert_package_levels(refactored_picks)
         # Check that the original pick has been reused
         self.assertTrue(self.picking.exists())
-        original_picking_reused = self.picking in (apple_pick | other_apple_pick)
+        original_picking_reused = self.picking in refactored_picks
         self.assertTrue(original_picking_reused)
 
     def test_reserve_1_pallet_diff_prods_no_split(self):
@@ -313,6 +377,136 @@ class TestAssignRefactoring(TestRefactoringBase):
             location_id=self.test_stock_location_01,
             location_dest_id=self.test_goodsout_location_01,
         )
+
+    def test_package_levels_setup_after_split(self):
+        """
+        With 1 product being picked from 2 pallets.
+        Reserve stock for the pick.
+        Pick should be split into 2, with a package level for each pallet on each picking.
+        """
+        apple_pallet2 = self.create_package()
+        self.create_quant(
+            self.apple.id,
+            self.test_stock_location_01.id,
+            5,
+            package_id=apple_pallet2.id,
+        )
+        products_info = [{"product": self.apple, "uom_qty": 15}]
+        self.create_move(self.picking, products_info)
+        self.picking.action_assign()
+
+        pallet1_ml = self.get_move_lines_for_product(
+            self.apple, picking_type=self.picking.picking_type_id, package=self.apple_pallet
+        )
+        pallet2_ml = self.get_move_lines_for_product(
+            self.apple, picking_type=self.picking.picking_type_id, package=apple_pallet2
+        )
+        pallet1_picking = pallet1_ml.picking_id
+        pallet2_picking = pallet2_ml.picking_id
+        self._assert_package_levels(pallet1_picking | pallet2_picking)
+
+    def test_package_levels_setup_after_merge(self):
+        """
+        With 2 products being picked from 1 pallet.
+        Reserve stock for the picks.
+        Picks should be merged, with a package level for each pallet on the picking.
+        """
+        # Put both apple and banana quants onto a mixed pallet
+        mixed_pallet = self.create_package()
+        self.apple_quant.package_id = mixed_pallet
+        self.banana_quant.package_id = mixed_pallet
+
+        # Use original picking for apple
+        products_info_apple = [{"product": self.apple, "uom_qty": 10}]
+        apple_move = self.create_move(self.picking, products_info_apple)
+
+        # Create new picking for banana
+        banana_picking = self.create_picking(self.picking_type_pick)
+        products_info_banana = [{"product": self.banana, "uom_qty": 10}]
+        banana_move = self.create_move(banana_picking, products_info_banana)
+
+        # Reserve stock for apple picking then banana picking
+        self.picking.action_assign()
+        banana_picking.action_assign()
+        # Banana picking should be merged into apple picking
+        self.assertTrue(self.picking.exists())
+        self.assertFalse(banana_picking.exists())
+        self.assertEqual(apple_move | banana_move, self.picking.move_lines)
+
+        # Should be a single package level linked to both apple and banana move line
+        self._assert_package_levels(self.picking)
+
+    def test_2_pallets_over_backorder_preserves_package_levels_in_picking_chain(self):
+        """
+        With 1 product being picked onto two pallets via a backorder.
+        Reserve and complete both the original pick and the backorder. Then process next picking.
+        The package levels for each pallet should be properly set on the picking containing
+        each pallet.
+        """
+        # Clear out refactoring rules on Pick, apply to Goods Out
+        self.picking_type_pick.u_post_assign_action = False
+        self.picking_type_goods_out.write(
+            {
+                "u_post_assign_action": "group_by_move_line_key",
+                "u_move_line_key_format": "{package_id.name}",
+            }
+        )
+
+        # Remove pallet from apple quant, apple will be picked loose onto a pallet
+        self.apple_quant.package_id = False
+
+        products_info = [{"product": self.apple, "uom_qty": 10}]
+        self.create_move(self.picking, products_info)
+        self.picking.action_assign()
+
+        # Pick 7 of the 10 apples onto Pallet 1
+        pallet1 = self.create_package()
+        # Goods out picking should not have any package levels yet
+        self._assert_package_levels(self.picking.u_next_picking_ids)
+        self.picking.move_line_ids.write(
+            {
+                "location_dest_id": self.test_goodsout_location_01.id,
+                "result_package_id": pallet1.id,
+                "qty_done": 7,
+            }
+        )
+        self.picking._action_done()
+        # Pick partially completed on Pallet 1, goods out picking should have a package level
+        self._assert_package_levels(self.picking.u_next_picking_ids)
+
+        # Pick remaining 3 apples onto Pallet 2
+        backorder = self.picking.backorder_ids
+        pallet2 = self.create_package()
+        backorder.move_line_ids.write(
+            {
+                "location_dest_id": self.test_goodsout_location_01.id,
+                "result_package_id": pallet2.id,
+                "qty_done": 3,
+            }
+        )
+        backorder._action_done()
+
+        # Goods out picking should be split out into two pickings, one for each pallet
+        pick_pickings = self.picking | backorder
+        goods_out_pickings = pick_pickings.u_next_picking_ids
+        self.assertEqual(len(goods_out_pickings), 2)
+        self.assertEqual(len(goods_out_pickings.move_lines), 2)
+        # Verify that each picking has the correct package level for its pallet
+        self._assert_package_levels(goods_out_pickings)
+
+        # Complete each goods out picking and ensure after each one that the
+        # package levels are still correct
+        for picking in goods_out_pickings:
+            picking_ml = picking.move_line_ids
+            picking_ml.write(
+                {
+                    "location_dest_id": self.test_trailer_location_01.id,
+                    "result_package_id": picking_ml.package_id.id,
+                    "qty_done": picking_ml.product_uom_qty,
+                }
+            )
+            picking._action_done()
+            self._assert_package_levels(goods_out_pickings)
 
 
 class TestValidateRefactoring(TestRefactoringBase):
