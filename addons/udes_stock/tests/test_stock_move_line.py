@@ -679,7 +679,7 @@ class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
         self.assertEqual(second_picking.move_line_ids.product_uom_qty, 10.0)
         self.assertEqual(second_picking.move_line_ids.qty_done, 0.0)
     
-    def test_expect_10_of_lot_a_but_get_5_of_lot_b_and_5_of_lot_c(self):
+    def test_expect_one_lot_but_receieve_two_lots(self):
         """
         Expect ten of a lot, but get two other lots to make up the order of ten
         """
@@ -690,7 +690,7 @@ class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
         self.create_quant(self.tangerine.id, location_id = self.test_stock_location_01.id , qty = 5, lot_name = "3")
         # This will create a moveline for the first 10 of with lot_name 1
         product_info = [{"product": self.tangerine, "uom_qty": 10}]
-        first_picking = self.create_picking(
+        picking = self.create_picking(
             self.picking_type_pick, products_info=product_info, assign=True
         )
 
@@ -702,19 +702,13 @@ class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
         }]
         location = self.test_stock_location_01
         pallet_to_pick_onto = self.create_package(name = "UDES1")
-        res = first_picking.move_line_ids.prepare(product_ids = product_ids, location = location, result_package = pallet_to_pick_onto)
-        # Check that the move_line returned is for 5 of lot_name 2
-        self.assertEqual(len(first_picking.move_line_ids), 2)
-        # Need to think about what will be returned 
-        # Will need to return the adjusted desired quantity on the original move line
-        # Along with a bunch of information for this new move line that we will want to create 
-
-        # Below have adjusted information for original move_line
-        self.assertEqual(res[first_picking.move_line_ids[0]]["lot_name"], "1")
-        self.assertEqual(res[first_picking.move_line_ids[0]]["uom_qty"], "5")
-        # Along with new information on move_line added to different lot being scanned in
-        self.assertEqual(res[first_picking.move_line_ids[1]]["lot_name"], "2")
-        self.assertEqual(res[first_picking.move_line_ids[1]]["qty_done"], "5")
+        res = picking.move_line_ids.prepare(product_ids = product_ids, location = location, result_package = pallet_to_pick_onto)
+        for mls, mls_values in res.items():
+            mls.mark_as_done(mls_values)
+        
+        self.assertEqual(res[picking.move_line_ids[0]]["lot_name"], "2")
+        self.assertEqual(res[picking.move_line_ids[0]]["product_uom_qty"], 5.0)
+        self.assertEqual(res[picking.move_line_ids[0]]["qty_done"], 5.0)
 
         # Scan in five of lot_name 3
         product_ids = [{
@@ -724,17 +718,18 @@ class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
         }]
         location = self.test_stock_location_01
         pallet_to_pick_onto = self.create_package(name = "UDES1")
-        res = first_picking.move_line_ids.prepare(product_ids = product_ids, location = location, result_package = pallet_to_pick_onto)
-
-        # Check that the move_line returned is for 5 of lot_name 2
-        self.assertEqual(len(first_picking.move_line_ids), 2)
+        res = picking.move_line_ids.prepare(product_ids = product_ids, location = location, result_package = pallet_to_pick_onto)
+        for mls, mls_values in res.items():
+            mls.mark_as_done(mls_values)
 
         # Previous new lot that was swapped in
-        self.assertEqual(res[first_picking.move_line_ids[0]]["lot_name"], "2")
-        self.assertEqual(res[first_picking.move_line_ids[0]]["qty_done"], "5")
-        # New lot that was scanned in 
-        self.assertEqual(res[first_picking.move_line_ids[1]]["lot_name"], "3")
-        self.assertEqual(res[first_picking.move_line_ids[1]]["qty_done"], "5")
+        self.assertEqual(res[picking.move_line_ids[1]]["lot_name"], "3")
+        self.assertEqual(res[picking.move_line_ids[1]]["product_uom_qty"], 5.0)
+        self.assertEqual(res[picking.move_line_ids[1]]["qty_done"], 5.0)
+        
+        self.assertEqual(picking.move_line_ids.lot_id.mapped("name"), ["2","3"])
+        self.assertEqual(picking.move_line_ids.mapped("product_uom_qty"), [5.0,5.0])
+        self.assertEqual(picking.move_line_ids.mapped("qty_done"), [5.0,5.0])
 
     def test_expect_two_lots_be_scanned_in_but_only_receive_one_different_lot(self):
         """
@@ -758,7 +753,14 @@ class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
         location = self.test_stock_location_01
         pallet_to_pick_onto = self.create_package(name = "UDES1")
         res = picking.move_line_ids.prepare(product_ids = product_ids, location = location, result_package = pallet_to_pick_onto)
-        self.assertEqual(res[picking.move_line_ids]["lot_name"],"2")
+        for mls, mls_values in res.items():
+            mls.mark_as_done(mls_values)
+        
+        self.assertEqual(len(picking.move_line_ids), 1)
+        self.assertEqual(picking.move_line_ids.lot_id.mapped("name"), ["3"])
+        self.assertEqual(picking.move_line_ids.mapped("product_uom_qty"), [10.0])
+        self.assertEqual(picking.move_line_ids.mapped("qty_done"), [10.0])
+        
 
 # THIS ONE TIES INTO PREVIOUS TESTS
 # def test_partially_picked_lot_product_with_swapped_lot_name_for_single_move_line(self):
