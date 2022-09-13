@@ -188,7 +188,7 @@ class Base(models.AbstractModel):
          is not correct
 
          On Core _create method vals are expected to be a list
-         """
+        """
         for val in vals:
             if isinstance(val.get("stored"), dict):
                 self.validate_values_of_date_fields(val.get("stored"))
@@ -212,22 +212,45 @@ class Base(models.AbstractModel):
         Raising error in case year is less than 1000
         """
         date_fields = {
-            key: value for key, value in self._fields.items() if
-            value.type in ("date", "datetime") and key not in ("write_date", "create_date")
+            key: value
+            for key, value in self._fields.items()
+            if value.type in ("date", "datetime") and key not in ("write_date", "create_date")
         }
         date_values = {
-            k: v
-            for k, v in values.items()
-            if k in date_fields and isinstance(v, str) and v
+            k: v for k, v in values.items() if k in date_fields and isinstance(v, str) and v
         }
         for date_value in date_values.values():
             try:
                 date_field = datetime.strptime(date_value[:10], DATE_FORMAT)
             except:
-                raise UserError(
-                    _("Date '%s' is not valid.") % date_value
-                )
+                raise UserError(_("Date '%s' is not valid.") % date_value)
             if date_field.year < 1000:
-                raise UserError(
-                    _("Date '%s' is not valid.") % date_value
-                )
+                raise UserError(_("Date '%s' is not valid.") % date_value)
+
+    def record_is_child_of_self(self, child_record):
+        """
+        Returns true if `child_record` is a child of the record in self, including if it is
+        the same record as in self. Otherwise False.
+
+        Raises TypeError if the user tries to check a record is a child against a record
+        from a different model.
+
+        Raises ValueError if the model doesn't have a parent/child hierarchy setup
+        (i.e. doesn't have the `parent_path` field).
+        """
+        self.ensure_one()
+        child_record.ensure_one()
+
+        common_error_msg = "Unable to check if %s is child of %s."
+        if self._name != child_record._name:
+            raise TypeError(
+                _(f"{common_error_msg} Records are from different models.")
+                % (child_record, self)
+            )
+        if "parent_path" not in self._fields:
+            raise ValueError(
+                _(f"{common_error_msg} Model '%s' doesn't have a parent/child hierarchy.")
+                % (child_record, self, self._name)
+            )
+
+        return self.parent_path in child_record.parent_path
