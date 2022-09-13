@@ -125,6 +125,11 @@ class StockPickingType(models.Model):
         string="Report Pallet Counts",
         help="Report pallet counts",
     )
+    u_allow_swapping_tracked_products = fields.Boolean(
+        string="Allow Swapping Tracked Products",
+        default=False,
+        help="If enabled, tracked products that are not in the picking, but are more easily available to the warehouse user, can be swapped into the picking during scanning",
+    )
 
     def get_action_picking_tree_draft(self):
         return self._get_action("udes_stock.action_picking_tree_draft")
