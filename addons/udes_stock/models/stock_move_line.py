@@ -5,7 +5,7 @@ import logging
 from odoo import models, fields, api, _
 from odoo.tools.float_utils import float_compare, float_round
 from odoo.osv import expression
-from odoo.exceptions import ValidationError
+from odoo.exceptions import ValidationError, UserError
 
 _logger = logging.getLogger(__name__)
 
@@ -254,8 +254,8 @@ class StockMoveLine(models.Model):
         return StockMoveLine.search(domain, order=order)
 
     def _find_move_lines(self, uom_qty, product, package=None, lot_name=None, location=None):
-        """ Find a subset of move lines from self matching the subset of the key:
-            product, package, lot and location.
+        """Find a subset of move lines from self matching the subset of the key:
+        product, package, lot and location.
         """
         funcs = [lambda ml: ml.product_id == product]
         if package:
@@ -277,13 +277,13 @@ class StockMoveLine(models.Model):
     def prepare(
         self, product_ids=None, package=None, location=None, result_package=None, location_dest=None
     ):
-        """ Prepare incomplete move lines in self into groups of mls to be updated with
-            the same values. It will split move lines if required.
-            Product_ids is a list of dictionaries with the following keys:
-            * barcode: string
-            * qty: integer
-            * lot_names: list of strings (optional)
-            Example: [{"barcode": "PROD01", "uom_qty":1}]
+        """Prepare incomplete move lines in self into groups of mls to be updated with
+        the same values. It will split move lines if required.
+        Product_ids is a list of dictionaries with the following keys:
+        * barcode: string
+        * qty: integer
+        * lot_names: list of strings (optional)
+        Example: [{"barcode": "PROD01", "uom_qty":1}]
 
         """
         Product = self.env["product.product"]
@@ -302,8 +302,8 @@ class StockMoveLine(models.Model):
                 # TODO: this is probably where swap package should go
                 if (pack_mls & mls) != pack_mls:
                     raise ValidationError(
-                        _("All package %s move lines cannot be found in picking %s") %
-                        (package.name, mls.picking_id.name)
+                        _("All package %s move lines cannot be found in picking %s")
+                        % (package.name, mls.picking_id.name)
                     )
                 res[pack_mls] = vals
             else:
@@ -320,19 +320,17 @@ class StockMoveLine(models.Model):
             is_serial = product_tracking == "serial"
             is_lot = product_tracking == "lot"
             if is_serial and len(lot_names) != quantity:
-                raise ValidationError(
-                    _("Not enough serial numbers provided.")
-                )
+                raise ValidationError(_("Not enough serial numbers provided."))
             elif is_lot and len(lot_names) != 1:
-                raise ValidationError(
-                    _("Too many lots provided.")
-                )
+                raise ValidationError(_("Too many lots provided."))
             qty_done = quantity
             if product_tracking != "none":
                 quantity_fulfilled = 0
                 if is_serial:
                     qty_done = 1
-                res, lot_names = self._swap_tracked_items(mls, quantity, product, location, is_serial, vals, res, lot_names)
+                res, lot_names = self._swap_tracked_items(
+                    mls, quantity, product, location, is_serial, vals, res, lot_names
+                )
                 for lot_name in lot_names:
                     lot_name_val = lot_name
                     # If it is incoming we don't need to match the lot
@@ -343,10 +341,7 @@ class StockMoveLine(models.Model):
                     prod_mls, new_ml = mls._find_move_lines(
                         qty_done, product, package, lot_name, location
                     )
-                    prod_dict = {
-                        "qty_done": qty_done,
-                        "lot_name": lot_name_val
-                    }
+                    prod_dict = {"qty_done": qty_done, "lot_name": lot_name_val}
                     prod_dict.update(vals)
                     res[prod_mls] = prod_dict
                     quantity_fulfilled += qty_done
@@ -356,9 +351,7 @@ class StockMoveLine(models.Model):
                     if quantity_fulfilled == quantity:
                         break
             else:
-                prod_mls, new_ml = mls._find_move_lines(
-                    qty_done, product, package, None, location
-                )
+                prod_mls, new_ml = mls._find_move_lines(qty_done, product, package, None, location)
                 prod_dict = {"qty_done": qty_done}
                 prod_dict.update(vals)
                 res[prod_mls] = prod_dict
@@ -366,103 +359,153 @@ class StockMoveLine(models.Model):
                 if new_ml:
                     mls |= new_ml
         return dict(res)
-    
-    def _swap_tracked_items(self, mls, quantity, product, location, is_serial, vals, res, lot_names):
+
+    def _swap_tracked_items(
+        self, mls, quantity, product, location, is_serial, vals, res, lot_names
+    ):
         """
-        This handles the tracked product swaps. This method will produce a dictionary of a dictionary containing
-        update information on different movelines so that the tracked products can be swapped. An adjusted list of 
+        This handles the tracked product swaps. A tracked product swap is when a different lot name, than what is on the move_lines,
+        has been passed to prepare(). The swapped in lot name should be in the same location and of the same product, else no swaps
+        will happen.This method will produce a dictionary of a dictionary containing
+        update information on different movelines so that the tracked products can be swapped. An adjusted list of
         lot_names is also returned.
         Returns: dict(dict), list()
         """
         StockProductionLot = self.env["stock.production.lot"]
         StockMoveLine = self.env["stock.move.line"]
+        Quant = self.env["stock.quant"]
 
         # Swapping the tracked products
-        lot_names_on_picking = self.lot_id.mapped("name")
+        mls = mls.filtered(lambda m: m.qty_done < m.product_uom_qty)
+        lot_names_on_picking = mls.lot_id.mapped("name")
         lot_names_swapped_in = list(set(lot_names) - set(lot_names_on_picking))
         # If there swapping tracked products are allowed and some lot_names have been swapped in
-        if mls.u_picking_type_id.u_allow_swapping_tracked_products and lot_names_swapped_in:
-            # Find movelines in picking for location scanned in
-            picking_mls, new_ml = mls._find_move_lines(quantity, product, None, None, location)
-            picking_mls = picking_mls.filtered(lambda m: m.qty_done < m.product_uom_qty)
-            mls_need_changing = picking_mls.filtered(lambda mls: mls.lot_id.name not in lot_names) 
-            quantity_swapping = sum(mls_need_changing.mapped("product_uom_qty"))
+        if mls.u_picking_type_id.u_allow_swapping_tracked_products:
+            mls_not_changing = mls.filtered(lambda mls: mls.lot_id.name in lot_names)
 
-            # Workout the lot_ids that were swapped in and store the ones that were swapped out
-            lot_ids_swapped_in = StockProductionLot.search([("name", "in", lot_names_swapped_in)])
-            lot_ids_swapped_out = picking_mls.lot_id
-            
-            # If any of the lot_ids_swapped_in belong to another move_line
-            swapped_lot_on_assigned_mls = StockMoveLine.search([("lot_id", "in", lot_ids_swapped_in.mapped("id"))])
-        
-            # Generator expressions to easily iterate over
-            mls_need_changing = (ml for ml in mls_need_changing)
-            lot_ids_swapped_in = (lot for lot in lot_ids_swapped_in)
-            
-            if is_serial:
-                # Want to update the movelines on each serial tracked product
-                # until all the quantity scanned in is zero
-                qty_done = 1
-                while quantity_swapping > 0:
+            # Needed for the special case where we overpick on a moveline on the pick and
+            # want the overpicked quantity to be swapped in on the other movelines
+            for ml in mls_not_changing:
+                # Test that there are other movelines for the overpicking fulfillment
+                # ml.product_uom_qty < quantity
+                if (
+                    not is_serial
+                    and ml.product_uom_qty < quantity
+                    and not lot_names_swapped_in
+                    and len(mls) > 1
+                ):
+                    mls_not_changing = mls_not_changing - ml
+                    lot_names_swapped_in.append(ml.lot_id.name)
+
+            quantity_swapping = quantity - sum(mls_not_changing.mapped("product_uom_qty"))
+            mls_need_changing = mls - mls_not_changing
+            if quantity_swapping and lot_names_swapped_in:
+                picking_mls, new_ml = mls._find_move_lines(
+                    quantity_swapping, product, None, None, location
+                )
+
+                # Workout the lot_ids that were swapped in and store the ones that were swapped out
+                lot_ids_swapped_in = StockProductionLot.search(
+                    [("name", "in", lot_names_swapped_in)]
+                )
+                lot_ids_swapped_out = picking_mls.lot_id
+
+                # If any of the lot_ids_swapped_in belong to another move_line
+                swapped_lot_on_assigned_mls = StockMoveLine.search(
+                    [
+                        ("lot_id", "in", lot_ids_swapped_in.mapped("id")),
+                        ("state", "=", "assigned"),
+                        ("u_picking_type_id", "=", mls.u_picking_type_id.id),
+                        ("qty_done", "=", 0.0),
+                        ("picking_id", "!=", mls.picking_id.id),
+                    ], order="id"
+                )
+
+                # Check there is available quantity on the system
+                domain = [
+                    ("product_id", "=", product.id),
+                    ("location_id", "child_of", location.ids),
+                    ("lot_id", "in", [lot_id.id for lot_id in lot_ids_swapped_in]),
+                ]
+                quants = Quant.search(domain).with_context(prefetch_fields=False)
+                quants.read(["quantity", "reserved_quantity"], load="_classic_write")
+                if quantity_swapping > sum(quants.mapped("quantity")):
+                    raise UserError(
+                        "You have picked more stock than is available on the system. Speak to your manager."
+                    )
+
+                # Generator expressions to easily iterate over
+                mls_need_changing = (ml for ml in mls_need_changing)
+                lot_ids_swapped_in = (lot for lot in lot_ids_swapped_in)
+
+                amount_to_be_swapped = quantity_swapping
+                if is_serial:
+                    # Want to update the movelines on each serial tracked product
+                    # until all the quantity scanned in is zero
+                    qty_done = 1
+                    while quantity_swapping > 0:
+                        ml, lot_id = next(mls_need_changing), next(lot_ids_swapped_in)
+                        prod_dict = {
+                            "product_uom_qty": qty_done,
+                            "qty_done": qty_done,
+                            "lot_name": lot_id.name,
+                            "lot_id": lot_id.id,
+                        }
+                        prod_dict.update(vals)
+                        res[ml] = prod_dict
+                        quantity_swapping -= qty_done
+                else:
+                    qty_done = quantity_swapping
+                    # Update the first lot with all scanned in lot information
                     ml, lot_id = next(mls_need_changing), next(lot_ids_swapped_in)
+                    reserved_quantity = ml.product_uom_qty
                     prod_dict = {
-                    "product_uom_qty": qty_done,
-                    "qty_done": qty_done,
-                    "lot_name": lot_id.name,
-                    "lot_id": lot_id.id
+                        "product_uom_qty": qty_done,
+                        "qty_done": qty_done,
+                        "lot_name": lot_id.name,
+                        "lot_id": lot_id.id,
                     }
                     prod_dict.update(vals)
-                    res[ml] = prod_dict 
-                    quantity_swapping -= qty_done
-            else:
-                qty_done = quantity
-                # Update the first lot with all scanned in lot information
-                ml, lot_id = next(mls_need_changing), next(lot_ids_swapped_in)
-                reserved_quantity = ml.product_uom_qty
-                prod_dict = {
-                    "product_uom_qty": qty_done,
-                    "qty_done": qty_done,
-                    "lot_name": lot_id.name,
-                    "lot_id": lot_id.id
-                    }
-                prod_dict.update(vals)
-                res[ml] = prod_dict
-                quantity -= reserved_quantity
-                # If the lot quantity covers multiple movelines then delete these movelines
-                # Unless it has partially picked some moveline then update the reserved qty on that moveline
-                while quantity > 0:
-                    ml = next(mls_need_changing)
-                    reserved_quantity = ml.product_uom_qty
-                    quantity -= reserved_quantity 
-                    if quantity >= 0:
-                        ml.unlink()
-                    else: 
-                        prod_dict = {
-                        "product_uom_qty": abs(quantity),
-                        "qty_done": 0
-                        }
-                        res[ml] = prod_dict
-            
-            # Remove swapped in lot from old move line and replace it with swapped out lot 
-            # Can zip as lot_ids_swapped_out will never have fewer item then swapped_lot_on_assigned_mls
-            for old_lot, mls_to_change in zip(lot_ids_swapped_out,swapped_lot_on_assigned_mls): 
-                prod_dict = {
-                "lot_name": old_lot.name,
-                "lot_id": old_lot.id,
-                "qty_done": 0.0
-                }
-                res[mls_to_change] = prod_dict
+                    res[ml] = prod_dict
+                    quantity_swapping -= reserved_quantity
+                    # If the lot quantity covers multiple movelines then delete these movelines
+                    # Unless it has partially picked some moveline then update the reserved qty on that moveline
+                    while quantity_swapping > 0:
+                        ml = next(mls_need_changing)
+                        reserved_quantity = ml.product_uom_qty
+                        quantity_swapping -= reserved_quantity
+                        if quantity_swapping >= 0:
+                            ml.unlink()
+                        else:
+                            prod_dict = {"product_uom_qty": abs(quantity), "qty_done": 0}
+                            res[ml] = prod_dict
+                
+                # Remove swapped in lot from old move line and replace it with swapped out lot
+                # Can zip as lot_ids_swapped_out will never have fewer item then swapped_lot_on_assigned_mls
+                for old_lot, ml_to_change in zip(lot_ids_swapped_out, swapped_lot_on_assigned_mls):
+                    # If we partially pick a lot that is reserved on another picking then we need to update the 
+                    # mls on that picking to have a new reserved quantity (old quantity - quantity swapped out) and create another moveline with
+                    # for the lot that was swapped out.
+                    if not is_serial and ml_to_change.product_uom_qty > amount_to_be_swapped:
+                        prod_dict = {"lot_name": ml_to_change.lot_id.name, "lot_id": ml_to_change.lot_id.id, "product_uom_qty": ml_to_change.product_uom_qty - amount_to_be_swapped, "qty_done": 0.0}
+                        ml_to_change.write({"product_uom_qty": ml_to_change.product_uom_qty - amount_to_be_swapped})
+                        res[ml_to_change] = prod_dict
+                        new_mls = ml_to_change.copy()
+                        new_prod_dict = {"lot_name": old_lot.name, "lot_id": old_lot.id, "product_uom_qty": amount_to_be_swapped, "qty_done": 0.0}
+                        res[new_mls] = new_prod_dict
+                    else:
+                        prod_dict = {"lot_name": old_lot.name, "lot_id": old_lot.id, "product_uom_qty": 1.0 if is_serial else amount_to_be_swapped, "qty_done": 0.0}
+                        ml_to_change.write({"product_uom_qty": 0.0})
+                        res[ml_to_change] = prod_dict
 
-            # Remove lot names that have been processed so they are not called below
-            lot_names = list(set(lot_names) - set(lot_names_swapped_in))
-        elif not mls.u_picking_type_id.u_allow_swapping_tracked_products and lot_names_swapped_in:
-            raise ValidationError(_(f'Operation Type "{mls.u_picking_type_id.name}" does not allow swaps on tracked products, but you are trying to swap in these lot_names {lot_names_swapped_in}'))
+                # Remove lot names that have been processed so they are not called below
+                lot_names = list(set(lot_names) - set(lot_names_swapped_in))
         return res, lot_names
 
     def mark_as_done(self, values=None):
-        """ Marks as done the move lines in self and updates them with the values provided.
-            When no quantity is passed, it will mark the full line as done.
-            Move lines should always have enough quantity.
+        """Marks as done the move lines in self and updates them with the values provided.
+        When no quantity is passed, it will mark the full line as done.
+        Move lines should always have enough quantity.
         """
         if values is None:
             values = {}
@@ -472,7 +515,7 @@ class StockMoveLine(models.Model):
             current_uom_qty = ml.product_uom_qty
             if new_uom_qty is None:
                 ml_vals["qty_done"] = current_uom_qty
-            # A change of lot_id implies a change of quant so the old qty_done on 
+            # A change of lot_id implies a change of quant so the old qty_done on
             # the moveline is not important
             elif new_uom_qty > current_uom_qty and not values.get("lot_id"):
                 raise ValidationError(
