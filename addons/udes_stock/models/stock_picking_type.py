@@ -158,7 +158,6 @@ class StockPickingType(models.Model):
             del vals["sequence_code"]
         return super(StockPickingType, self).write(vals)
 
-
     @api.model
     def create(self, vals):
         """
@@ -169,7 +168,9 @@ class StockPickingType(models.Model):
         prefix.
         """
         Stockpickingtype = self.env["stock.picking.type"]
-        stock_picking_type_record = Stockpickingtype.search([("name","=",vals["name"]), ("company_id", "=", vals.get("company_id"))])
+        stock_picking_type_record = Stockpickingtype.search(
+            [("name", "=", vals["name"]), ("company_id", "=", vals.get("company_id"))]
+        )
         if len(stock_picking_type_record) != 0 and not vals.get("sequence_id"):
             vals["sequence_id"] = stock_picking_type_record[0].sequence_id.id
         else:
@@ -178,5 +179,5 @@ class StockPickingType(models.Model):
 
     # TODO: Review
     def is_picking_type_check(self):
-        """ Place holder """
+        """Place holder"""
         return False
