@@ -930,6 +930,10 @@ class TestStockPickingBackordering(TestStockPickingCommon):
         """If we start with a Pick for 50x figs, and pick it onto 2 separate packages
         ensure that no spurious backorder gets created"""
         StockPicking = self.env["stock.picking"]
+
+        # Cancel existing picking so it doesn't interfere with new test
+        self.test_picking_pick.action_cancel()
+
         pack1 = self.create_package(name="UDES01")
         pack2 = self.create_package(name="UDES02")
         self.create_quant(self.fig.id, self.test_stock_location_02.id, 30, package_id=pack1.id)
