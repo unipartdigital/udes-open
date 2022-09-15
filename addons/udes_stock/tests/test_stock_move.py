@@ -952,3 +952,63 @@ class TestUpdateOrigIds(TestStockMove):
         self.complete_picking(out_picking, self.test_trailer_location_01)
         self.assertEqual(out_picking.move_lines.move_orig_ids, move1 | move2)
         self.assertEqual(back_out_picking.move_lines.move_orig_ids, move1 | move2)
+
+    def test_update_orig_ids_over_earlier_backorder_in_chain(self):
+        """
+        Create a pick and partially complete it. Then with the stock that has been dropped off
+        from the pick, complete goods out pick for the available stock.
+
+        Ensure that the backorder created for the goods out is pointing to the backorder created
+        for the previous pick.
+
+        Complete the backorder of the pick and check that the backordered goods out has been
+        assigned stock.
+        """
+        # Cancel existing picking, start with
+        self.pick.action_cancel()
+        products_info = [
+            {"product": self.apple, "uom_qty": 10},
+            {"product": self.cherry, "uom_qty": 8},
+            {"product": self.damson, "uom_qty": 3},
+        ]
+        self.create_quant(self.apple.id, self.test_stock_location_01.id, 10)
+        self.create_quant(self.cherry.id, self.test_stock_location_01.id, 8)
+        self.create_quant(self.damson.id, self.test_stock_location_01.id, 3)
+
+        pick = self.create_picking(self.picking_type_pick, products_info=products_info, assign=True)
+
+        pallet1 = self.create_package()
+        pick.move_line_ids.result_package_id = pallet1
+        pick.move_line_ids.location_dest_id = self.test_goodsout_location_01
+
+        # Partially pick apple and cherry lines, fully pick damson line
+        pick.move_line_ids.filtered(lambda ml: ml.product_id == self.apple).qty_done = 9
+        pick.move_line_ids.filtered(lambda ml: ml.product_id == self.cherry).qty_done = 4
+        pick.move_line_ids.filtered(lambda ml: ml.product_id == self.damson).qty_done = 3
+
+        # Partially complete pick
+        pick._action_done()
+        pick_backorder = pick.backorder_ids
+
+        # Partially complete Goods Out with whatever was completed in Pick
+        goods_out = pick.u_next_picking_ids
+        self.complete_picking(goods_out, self.test_trailer_location_01)
+        goods_out_backorder = goods_out.backorder_ids
+        self.assertEqual(
+            goods_out_backorder.u_prev_picking_ids,
+            pick_backorder,
+            "Goods Out backorder should be pointing to Pick backorder",
+        )
+
+        # Complete pick backorder onto a new pallet
+        pallet2 = self.create_package()
+        self.complete_picking(
+            pick_backorder, self.test_goodsout_location_01, dest_package_id=pallet2
+        )
+
+        # As the pick backorder has been completed, the goods out picking should now be ready
+        self.assertEqual(
+            goods_out_backorder.state,
+            "assigned",
+            "Goods Out backorder should be assigned stock after Pick backorder is completed",
+        )
