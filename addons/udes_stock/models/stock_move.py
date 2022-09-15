@@ -208,6 +208,13 @@ class StockMove(models.Model):
         """
         return self.filtered(lambda mv: mv.state not in ("done", "cancel"))
 
+    def get_moves_with_quantity_todo(self):
+        """
+        Return the set of moves with outstanding quantities in self.
+        Excludes cancelled moves.
+        """
+        return self.filtered(lambda m: m.state != "cancel" and m.quantity_done < m.product_uom_qty)
+
     def get_uncovered_moves(self, mls):
         """
         Return the moves in self not covered by mls regardless of the mls state.
