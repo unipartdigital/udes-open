@@ -870,9 +870,10 @@ class StockPicking(models.Model):
                 self.move_line_ids.mark_as_done()
             # Check if a backorder is required and can be created:
             # a) Multi users is enabled
-            # b) There are incomplete move lines and create backorder is allowed
+            # b) There are incomplete moves (ie partially available/picked)
+            #    and create backorder is allowed
             multi_users_enabled = self.picking_type_id.u_multi_users_enabled
-            if self.move_line_ids.get_lines_incomplete():
+            if self.move_lines.get_moves_with_quantity_todo():
                 if multi_users_enabled:
                     user = self.env.user
                     mls_to_keep = self.move_line_ids.filtered(
