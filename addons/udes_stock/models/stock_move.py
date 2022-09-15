@@ -398,15 +398,20 @@ class StockMove(models.Model):
             and ml.product_id == move_line.product_id
         )
 
-    def update_orig_ids(self, origin_ids):
+    def update_orig_ids(self, origin_moves):
         """
         Updates the move_orig_ids for all moves in self.
-        All incomplete original moves in self are retained since they should
-        still point to self. For all move lines in each move, match the move line
+
+        For all move lines in each move, match the move line
         to one from the original id, if any match attach those moves as well.
 
-        Using _make_mls_comparison_lambda does cause over matching if they are not identifable
-        this is left because of the issue of intraceability should be avoided.
+        Using _make_mls_comparison_lambda does cause over matching if they are not identifiable
+        this is left because of the issue of untraceability should be avoided.
+
+        For any unmatched quantity of moves, attempt to match this up via a move key made up
+        of the product and quantity. This helps to ensure the chain is correct when a picking is
+        backordered and the earlier picking in the chain is also waiting on a backorder
+        to be completed.
 
         Examples can be found in test_stock_move.py
 
@@ -414,26 +419,62 @@ class StockMove(models.Model):
         consider moving the warning to the _make_mls_comparison_lambda or disable the checks
         for live and have it as a UAT testing commit.
         """
-        origin_mls = origin_ids.move_line_ids
+        Move = self.env["stock.move"]
+
+        self.picking_id.ensure_one()
+        origin_mls = origin_moves.move_line_ids
+
+        used_origin_moves = Move.browse()
+        orig_moves_by_move = {}
+        unlinked_qty_by_move = {}
+
         for move in self:
-            total_quantity = move.product_uom_qty
+            quantity_todo = move.product_uom_qty
             # Retain incomplete moves of the original ids
-            updated_origin_ids = move.move_orig_ids.get_incomplete_moves()
+            updated_origin_moves = Move.browse()
             # Include the subsequent completed moves from self
             for move_line in move.move_line_ids:
                 previous_mls = origin_mls.filtered(self._make_mls_comparison_lambda(move_line))
-                total_quantity -= sum(previous_mls.mapped("qty_done"))
-                updated_origin_ids |= previous_mls.move_id
-            if total_quantity < 0:
+                quantity_todo -= sum(previous_mls.mapped("qty_done"))
+
+                updated_origin_moves |= previous_mls.move_id
+            if quantity_todo > 0:
+                unlinked_qty_by_move[move] = quantity_todo
+            if quantity_todo < 0:
                 _logger.warning(
                     """
                     Move lines are being matched by location destination and
                     product, this has lead to over matching of the original move ids.
                     Relevant moves: %s
                     """,
-                    updated_origin_ids.ids,
+                    updated_origin_moves.ids,
                 )
-            move.move_orig_ids = updated_origin_ids
+            orig_moves_by_move[move] = updated_origin_moves
+            used_origin_moves |= updated_origin_moves
+
+        # Some moves were not linked, possibly because of not having move lines
+        if unlinked_qty_by_move:
+            free_origin_moves_by_prod_qty = {}
+            for origin_move in origin_moves.filtered(lambda m: m not in used_origin_moves):
+                # Assign each orig move to a key made up of:
+                # - Product ID
+                # - Product Qty
+                prod_qty_key = (origin_move.product_id.id, origin_move.product_uom_qty)
+                free_origin_moves_by_prod_qty[prod_qty_key] = origin_move
+
+            for move, prod_qty in unlinked_qty_by_move.items():
+                try:
+                    new_origin_move = free_origin_moves_by_prod_qty.pop(
+                        (move.product_id.id, prod_qty)
+                    )
+                    orig_moves_by_move[move] |= new_origin_move
+                except KeyError:
+                    _logger.warning(
+                        "Unable to find origin move for %sx%s", move.product_id.name, prod_qty
+                    )
+
+        for move, origin_moves in orig_moves_by_move.items():
+            move.write({"move_orig_ids": [(6, 0, origin_moves.ids)]})
 
     def _action_done(self, cancel_backorder=False):
         """
