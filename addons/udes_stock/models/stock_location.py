@@ -69,6 +69,12 @@ class StockLocation(models.Model):
     # Add tracking for archiving.
     active = fields.Boolean(track_visibility="onchange")
 
+    # Add tracking for parent.
+    location_id = fields.Many2one(track_visibility="onchange")
+
+    # Add tracking for view type.
+    usage = fields.Selection(track_visibility="onchange")
+
     u_date_last_checked = fields.Datetime(
         "Date Last Checked", help="The date that the location stock was last checked"
     )
