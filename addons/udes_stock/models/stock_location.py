@@ -57,6 +57,13 @@ class StockLocation(models.Model):
     name = fields.Char(translate=False)
     # Add tracking for archiving.
     active = fields.Boolean(tracking=True)
+
+    # Add tracking for parent.
+    location_id = fields.Many2one(tracking=True)
+
+    # Add tracking for view type.
+    usage = fields.Selection(tracking=True)
+
     u_height_category_id = fields.Many2one(
         comodel_name="product.category",
         domain=_domain_height_category,
