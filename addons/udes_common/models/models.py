@@ -132,7 +132,7 @@ def selection_display_name(self, selection_field_name):
         selection_field = self._fields[selection_field_name]
     except KeyError:
         raise ValidationError(
-            _(f"Field '{selection_field_name}' does not exist on model '{self._name}'")
+            _("Field '%s' does not exist on model '%s'") % (selection_field_name, self._name)
         )
     # Odoo has a nice function that handles all the weird ways you can define selections!
     selection_values_dict = dict(selection_field._description_selection(self.env))
@@ -238,19 +238,20 @@ class Base(models.AbstractModel):
         Raises ValueError if the model doesn't have a parent/child hierarchy setup
         (i.e. doesn't have the `parent_path` field).
         """
+        def get_error_msg_prefix():
+            return _("Unable to check if %s is child of %s.") % (child_record, self)
+
         self.ensure_one()
         child_record.ensure_one()
 
-        common_error_msg = "Unable to check if %s is child of %s."
         if self._name != child_record._name:
             raise TypeError(
-                _(f"{common_error_msg} Records are from different models.")
-                % (child_record, self)
+                _("%s Records are from different models.") % (get_error_msg_prefix())
             )
         if "parent_path" not in self._fields:
             raise ValueError(
-                _(f"{common_error_msg} Model '%s' doesn't have a parent/child hierarchy.")
-                % (child_record, self, self._name)
+                _("%s Model '%s' doesn't have a parent/child hierarchy.")
+                % (get_error_msg_prefix(), self._name)
             )
 
         return self.parent_path in child_record.parent_path
