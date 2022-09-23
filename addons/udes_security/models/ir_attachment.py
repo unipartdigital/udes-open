@@ -87,8 +87,8 @@ class IrAttachment(models.Model):
                             Unable to upload attachment:
                             File type '%s' blocked by the system administrator.
                             """
-                            % attachment.u_file_type
                         )
+                        % (attachment.u_file_type)
                     )
 
             if active != attachment.active:
