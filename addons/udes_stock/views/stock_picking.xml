@@ -156,6 +156,11 @@
                 <attribute name="string"/>
             </xpath>
 
+            <!-- Always show procurement group, even when not in debug mode -->
+            <xpath expr="//field[@name='group_id']" position="attributes">
+                <attribute name="groups"></attribute>
+            </xpath>
+
         </field>
     </record>
 
