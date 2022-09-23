@@ -64,7 +64,7 @@ class StockPickingType(models.Model):
         for picking_type in self:
             if not StockPickingType.valid_key_format(picking_type.u_move_key_format, "stock.move"):
                 raise UserError(
-                    _(f"Move key format {picking_type.u_move_key_format} isn't set correctly")
+                    _("Move key format %s isn't set correctly") % (picking_type.u_move_key_format)
                 )
 
     @api.constrains("u_move_line_key_format")
@@ -76,9 +76,8 @@ class StockPickingType(models.Model):
                 picking_type.u_move_line_key_format, "stock.move.line"
             ):
                 raise UserError(
-                    _(
-                        f"Move line key format {picking_type.u_move_line_key_format} isn't set correctly"
-                    )
+                    _("Move line key format %s isn't set correctly")
+                    % (picking_type.u_move_line_key_format)
                 )
 
     @api.model

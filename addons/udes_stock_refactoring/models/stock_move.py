@@ -37,7 +37,7 @@ class StockMove(models.Model):
                 refactor_class = REFACTOR_REGISTRY[refactor_action]
                 return refactor_class(self.env)
             except KeyError:
-                raise ValueError(_(f"Refactor action {refactor_action} could not be found."))
+                raise ValueError(_("Refactor action %s could not be found.") % (refactor_action))
 
         return refactor_action
 
@@ -56,10 +56,7 @@ class StockMove(models.Model):
                 if format_str:
                     # Generating a list of fields that are in u_move_key_format.
                     move_fields = StockPickingType.get_fields_from_key_format(format_str)
-                    move_vals = {
-                        field_name: move[field_name]
-                        for field_name in move_fields
-                    }
+                    move_vals = {field_name: move[field_name] for field_name in move_fields}
                     grouping_key = format_str.format(**move_vals)
 
             move.u_grouping_key = grouping_key
@@ -91,7 +88,7 @@ class StockMove(models.Model):
         The output should contain a functionally similar set of moves.
         """
         if stage is not None and stage not in STOCK_REFACTOR_STAGES.values():
-            raise UserError(_(f"Unknown stage for move refactor: {stage}"))
+            raise UserError(_("Unknown stage for move refactor: %s") % (stage))
         moves = self.exists()
 
         if self.env.context.get("disable_move_refactor"):
@@ -113,9 +110,7 @@ class StockMove(models.Model):
                     lambda m: STOCK_REFACTOR_STAGES[m.state]
                 )
             for stage, stage_moves in grouped_picking_type_moves:
-                refactor_class = self._get_refactor_class(
-                    picking_type, stage, refactor_action
-                )
+                refactor_class = self._get_refactor_class(picking_type, stage, refactor_action)
 
                 if refactor_class:
                     _logger.info(
@@ -210,11 +205,12 @@ class StockMove(models.Model):
             if len(move_group.location_id) > 1 or len(move_group.location_dest_id) > 1:
                 raise UserError(
                     _(
-                        f"Move grouping has generated a group of moves that has more than one "
-                        f"source or destination location. Aborting. key: {key}, "
-                        f"location_ids: {move_group.location_id}, "
-                        f"location_dest_ids: {move_group.location_dest_id}"
+                        "Move grouping has generated a group of moves that has more than one "
+                        "source or destination location. Aborting. key: %s, "
+                        "location_ids: %s, "
+                        "location_dest_ids: %s"
                     )
+                    % (key, move_group.location_id, move_group.location_dest_id)
                 )
 
             values = move_group.picking_id._prepare_extra_info_for_new_picking_for_group(move_group)
@@ -248,11 +244,12 @@ class StockMove(models.Model):
             if len(touched_moves.location_id) > 1 or len(touched_moves.location_dest_id) > 1:
                 raise UserError(
                     _(
-                        f"Move Line grouping has generated a group of moves that "
-                        f"has more than one source or destination location. "
-                        f"Aborting. key: {key}, location_ids: {touched_moves.location_id}, "
-                        f"location_dest_ids: {touched_moves.location_dest_id}"
+                        "Move Line grouping has generated a group of moves that "
+                        "has more than one source or destination location. "
+                        "Aborting. key: %s, location_ids: %s, "
+                        "location_dest_ids: %s"
                     )
+                    % (key, touched_moves.location_id, touched_moves.location_dest_id)
                 )
 
             group_moves = Move.browse()
