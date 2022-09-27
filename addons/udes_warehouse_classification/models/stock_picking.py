@@ -5,19 +5,13 @@ from odoo import fields, models
 class StockPicking(models.Model):
     _inherit = "stock.picking"
 
-    def _get_classification_messages_for_product_picking(self, all_products=False):
+    def _get_classification_messages_for_product_picking(self):
         """
-        Return the product with classification messages appropriate for a picking if
-        all_products is False.
-        Return all products with classification messages appropriate if all_products is True
+        Return the product with classification messages appropriate for a picking
         """
-        Product = self.env["product.product"]
         self.ensure_one()
         product_classifications = super()._get_classification_messages_for_product_picking()
-        if all_products:
-            products = Product.search([("u_has_warehouse_classifications", "=", True)])
-        else:
-            products = self.mapped("move_lines.product_id")
+        products = self.mapped("move_lines.product_id")
         for product in products:
             classifications = product.u_product_warehouse_classification_ids.filtered(
                 lambda c: self.picking_type_id in c.picking_type_ids
