@@ -1,10 +1,15 @@
 # -*- coding: utf-8 -*-
 from itertools import groupby
+
 from odoo import api, fields, models, tools, _
 from odoo.exceptions import UserError, ValidationError
 from odoo.tools.float_utils import float_compare, float_round
 from copy import deepcopy
+import logging
 from collections import Counter, defaultdict
+from ..utils import UDES_STATISTICS_LOG_FORMAT
+
+_logger = logging.getLogger(__name__)
 
 
 class StockMoveLine(models.Model):
@@ -164,135 +169,146 @@ class StockMoveLine(models.Model):
             - product_ids = list of dictionaries, whose keys will be
                               barcode, qty, lot_names
         """
-        MoveLine = self.env["stock.move.line"]
-        Location = self.env["stock.location"]
-        Package = self.env["stock.quant.package"]
+        # Collect mark_as_done stats for monitor
+        with self.statistics() as stats:
+            MoveLine = self.env["stock.move.line"]
+            Location = self.env["stock.location"]
+            Package = self.env["stock.quant.package"]
+            result_package, parent_package = self._prepare_result_packages(
+                package, result_package, result_parent_package, product_ids
+            )
 
-        result_package, parent_package = self._prepare_result_packages(
-            package, result_package, result_parent_package, product_ids
-        )
+            move_lines = self
+            values = {}
+            loc_dest_instance = None
+            picking = None
 
-        move_lines = self
-        values = {}
-        loc_dest_instance = None
-        picking = None
+            if location_dest is not None:
+                # NB: checking if the dest loc is valid; better erroring
+                # sooner than later (we'll write the new loc dest below)
+                loc_dest_instance = Location.get_location(location_dest)
+                picking = self.mapped("picking_id")
 
-        if location_dest is not None:
-            # NB: checking if the dest loc is valid; better erroring
-            # sooner than later (we'll write the new loc dest below)
-            loc_dest_instance = Location.get_location(location_dest)
-            picking = self.mapped("picking_id")
-
-            if not picking.is_valid_location_dest_id(loc_dest_instance):
-                raise ValidationError(
-                    _(
-                        "The location '%s' is not a child of the picking destination "
-                        "location '%s'" % (loc_dest_instance.name, picking.location_dest_id.name)
+                if not picking.is_valid_location_dest_id(loc_dest_instance):
+                    raise ValidationError(
+                        _(
+                            "The location '%s' is not a child of the picking destination "
+                            "location '%s'" % (loc_dest_instance.name, picking.location_dest_id.name)
+                        )
                     )
+
+            if result_package:
+                # get the result package to check if it is valid
+                result_package = Package.get_package(result_package)
+                values["result_package_id"] = result_package.id
+
+            if package:
+                # get the package
+                package = Package.get_package(package)
+
+            products_info_by_product = {}
+            if product_ids:
+                # TODO: move functions into picking instead of parameter
+                picking = move_lines.mapped("picking_id")
+                # prepare products_info
+                products_info_by_product = move_lines._prepare_products_info(deepcopy(product_ids))
+                # filter move_lines by products in producst_info_by_product and undone
+                move_lines = move_lines._filter_by_products_info(products_info_by_product)
+                # filter unfinished move lines
+                move_lines = move_lines.get_lines_todo()
+                # TODO all in one function?
+                move_lines = move_lines._check_enough_quantity(
+                    products_info_by_product, picking=picking
                 )
 
-        if result_package:
-            # get the result package to check if it is valid
-            result_package = Package.get_package(result_package)
-            values["result_package_id"] = result_package.id
+                if not package and move_lines.mapped("package_id"):
+                    raise ValidationError(_("Setting as done package operations as product operations"))
 
-        if package:
-            # get the package
-            package = Package.get_package(package)
+            if not move_lines:
+                raise ValidationError(_("Cannot find move lines to mark as done"))
 
-        products_info_by_product = {}
-        if product_ids:
-            # TODO: move functions into picking instead of parameter
-            picking = move_lines.mapped("picking_id")
-            # prepare products_info
-            products_info_by_product = move_lines._prepare_products_info(deepcopy(product_ids))
-            # filter move_lines by products in producst_info_by_product and undone
-            move_lines = move_lines._filter_by_products_info(products_info_by_product)
-            # filter unfinished move lines
-            move_lines = move_lines.get_lines_todo()
-            # TODO all in one function?
-            move_lines = move_lines._check_enough_quantity(
-                products_info_by_product, picking=picking
-            )
+            if move_lines.filtered(lambda ml: ml.qty_done > 0):
+                raise ValidationError(_("The operation is already done"))
 
-            if not package and move_lines.mapped("package_id"):
-                raise ValidationError(_("Setting as done package operations as product operations"))
+            # check valid result_package for the move_lines that are going
+            # to be marked as done only
+            move_lines._assert_result_package(result_package)
 
-        if not move_lines:
-            raise ValidationError(_("Cannot find move lines to mark as done"))
-
-        if move_lines.filtered(lambda ml: ml.qty_done > 0):
-            raise ValidationError(_("The operation is already done"))
-
-        # check valid result_package for the move_lines that are going
-        # to be marked as done only
-        move_lines._assert_result_package(result_package)
-
-        if (
-            loc_dest_instance is not None
-            and parent_package
-            and parent_package.location_id
-            and parent_package.location_id != loc_dest_instance
-        ):
-            # complain now rather than at validation time which could be much
-            # later
-            raise ValidationError(
-                _("Package is already in a different location: %s in %s")
-                % (parent_package.name, parent_package.location_id.name)
-            )
-
-        mls_done = MoveLine.browse()
-        for ml in move_lines:
-            ml_values = values.copy()
-            # Check if there is specific info for the move_line product
-            # otherwise we fully mark as done the move_line
-            if products_info_by_product:
-                # check if the qty done has been fulfilled
-                if products_info_by_product[ml.product_id]["qty"] == 0:
-                    continue
-                ml_values, products_info_by_product = ml._prepare_line_product_info(
-                    ml_values, products_info_by_product
+            if (
+                loc_dest_instance is not None
+                and parent_package
+                and parent_package.location_id
+                and parent_package.location_id != loc_dest_instance
+            ):
+                # complain now rather than at validation time which could be much
+                # later
+                raise ValidationError(
+                    _("Package is already in a different location: %s in %s")
+                    % (parent_package.name, parent_package.location_id.name)
                 )
-            else:
-                ml_values["qty_done"] = ml.product_qty
-            mls_done |= ml._mark_as_done(ml_values)
 
-        if loc_dest_instance is not None:
-            # HERE(ale): updating the dest loc here to have a single
-            # invocation of its constraint handler (see below)
-            mls_done.write({"location_dest_id": loc_dest_instance.id})
+            mls_done = MoveLine.browse()
+            for ml in move_lines:
+                ml_values = values.copy()
+                # Check if there is specific info for the move_line product
+                # otherwise we fully mark as done the move_line
+                if products_info_by_product:
+                    # check if the qty done has been fulfilled
+                    if products_info_by_product[ml.product_id]["qty"] == 0:
+                        continue
+                    ml_values, products_info_by_product = ml._prepare_line_product_info(
+                        ml_values, products_info_by_product
+                    )
+                else:
+                    ml_values["qty_done"] = ml.product_qty
+                mls_done |= ml._mark_as_done(ml_values)
 
-        # TODO: at this point products_info_by_product should be with qty_todo = 0?
-        #       No necessarily, can we have add unexpected parts and not enough stock?
+            if loc_dest_instance is not None:
+                # HERE(ale): updating the dest loc here to have a single
+                # invocation of its constraint handler (see below)
+                mls_done.write({"location_dest_id": loc_dest_instance.id})
 
-        # it might be useful when extending the method
-        if parent_package:
-            mls_done.write({"u_result_parent_package_id": parent_package.id})
+            # TODO: at this point products_info_by_product should be with qty_todo = 0?
+            #       No necessarily, can we have add unexpected parts and not enough stock?
 
-        if result_package and picking is not None:
-            # Print the package label
-            self._trigger_print_for_pack_mark_as_done(
-                active_model=picking._name,
-                active_ids=picking.ids,
-                print_records=result_package,
-                action_filter="move_lines.mark_as_done",
-            )
+            # it might be useful when extending the method
+            if parent_package:
+                mls_done.write({"u_result_parent_package_id": parent_package.id})
 
-        if mls_done and picking is not None:
-            # Print the move line label
-            print_mls = MoveLine.search(
-                [
-                    ("result_package_id", "in", mls_done.mapped("result_package_id").ids),
-                    ("product_id", "in", mls_done.mapped("product_id").ids),
-                ]
-            )
-            self._trigger_print_for_move_line_mark_as_done(
-                active_model=picking._name,
-                active_ids=picking.ids,
-                print_records=print_mls,
-                action_filter="move_lines.mark_as_done",
-            )
+            if result_package and picking is not None:
+                # Print the package label
+                self._trigger_print_for_pack_mark_as_done(
+                    active_model=picking._name,
+                    active_ids=picking.ids,
+                    print_records=result_package,
+                    action_filter="move_lines.mark_as_done",
+                )
 
+            if mls_done and picking is not None:
+                # Print the move line label
+                print_mls = MoveLine.search(
+                    [
+                        ("result_package_id", "in", mls_done.mapped("result_package_id").ids),
+                        ("product_id", "in", mls_done.mapped("product_id").ids),
+                    ]
+                )
+                self._trigger_print_for_move_line_mark_as_done(
+                    active_model=picking._name,
+                    active_ids=picking.ids,
+                    print_records=print_mls,
+                    action_filter="move_lines.mark_as_done",
+                )
+        # Write the log
+        _logger.info(
+            UDES_STATISTICS_LOG_FORMAT,
+            self._name,
+            mls_done.ids,
+            "move_lines",
+            "mark_as_done",
+            stats.elapsed,
+            stats.count,
+            stats.count / stats.elapsed
+        )
         return mls_done
 
     def _trigger_print_for_pack_mark_as_done(self, **pack_ctx):
