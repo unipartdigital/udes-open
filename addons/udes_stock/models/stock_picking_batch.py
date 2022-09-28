@@ -847,14 +847,19 @@ class StockPickingBatch(models.Model):
                 picks_todo.sudo().with_context(tracking_disable=True).action_done()
 
             # Write the log
+            # It should never happen but ensure when multiple picking types
+            # are involved that the names are combined
+            picking_type_names = ""
+            for pick_type in picks_todo.mapped("picking_type_id"):
+                picking_type_names += pick_type.name
             _logger.info(
                 "(%s) %s (%s) drop_off_picked in %.2fs, %d queries, %.2f q/s",
                 picks_todo._name,
                 picks_todo.ids,
-                picks_todo.picking_type_id.name,
+                picking_type_names,
                 stats.elapsed,
                 stats.count,
-                stats.count/stats.elapsed
+                stats.count / stats.elapsed
             )
         if not continue_batch:
             self.close()

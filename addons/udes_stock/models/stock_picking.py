@@ -496,18 +496,24 @@ class StockPicking(models.Model):
                 action_filter="picking.action_done",
                 **extra_context
             ).run()
+
+            # Write the log
+            # Ensure when multiple picking types are involved that the names are combined
+            picking_type_names = ""
+            for pick_type in self.mapped("picking_type_id"):
+                picking_type_names += pick_type.name
+            _logger.info(
+                "(%s) %s (%s) action_done in %.2fs, %d queries, %.2f q/s",
+                self._name,
+                self.ids,
+                picking_type_names,
+                stats.elapsed,
+                stats.count,
+                stats.count / stats.elapsed
+            )
+
             if self:
                 (self | next_pickings).unlink_empty()
-        # Write the log
-        _logger.info(
-            "(%s) %s (%s) action_done in %.2fs, %d queries, %.2f q/s",
-            self._name,
-            self.ids,
-            self.picking_type_id.name,
-            stats.elapsed,
-            stats.count,
-            stats.count / stats.elapsed
-        )
         return res
 
     def action_cancel(self):
