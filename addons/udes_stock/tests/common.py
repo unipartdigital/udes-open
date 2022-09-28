@@ -70,7 +70,7 @@ class UnconfiguredBaseUDES(common.SavepointCase):
         """
         Sequence = cls.env["ir.sequence"]
 
-        sequence = Sequence.create({"name": f"TEST{name.replace('_', '').upper()}", "prefix": f"TEST{name.upper()}", "padding": 5})
+        sequence = Sequence.create({"name": f"TEST{name.replace('_', '').upper()}", "prefix": f"TEST{name.replace('_','').upper()}", "padding": 5})
         picking_type = getattr(cls, f"picking_type_{name}")
         picking_type.write({"sequence_id": sequence.id, "sequence": 13})
 

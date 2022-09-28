@@ -2,69 +2,11 @@ from odoo.addons.udes_stock.tests import common
 from odoo import fields
 
 
-class TestSaleOrder(common.BaseUDES):
+class TestSaleOrder(common.BaseUDESPullOutboundRoute):
     @classmethod
     def setUpClass(cls):
         super(TestSaleOrder, cls).setUpClass()
-        # These tests depend on the routes being setup with a different configuration
-        # Can create a new route with pull rules attached to them
         cls.Picking = cls.env["stock.picking"]
-        cls._set_up_pull_routes()
-
-    @classmethod
-    def _set_up_pull_routes(cls):
-        Rule = cls.env["stock.rule"]
-        Route = cls.env["stock.location.route"]
-
-        Rule.search([("name", "=", "TestOut")]).unlink()
-        Rule.search([("name", "=", "TestPick")]).unlink()
-        Rule.search([("name", "=", "TestTrailerDispatch")]).unlink()
-        Route.search([("name", "=", "TestGoodsOut")]).unlink()
-        
-        # Create Outbound route
-        route_vals = {
-            "name": "TestGoodsOut",
-            "sequence": 10,
-            "product_selectable": False,
-            "warehouse_selectable": True,
-            "warehouse_ids": [(6, 0, [cls.picking_type_goods_out.warehouse_id.id])],
-        }
-        cls.route_out = Route.create(route_vals)
-        
-        # Create rules for Outbound route
-        cls.rule_pick = Rule.create(
-            {
-                "name": "TestPick",
-                "route_id": cls.route_out.id,
-                "picking_type_id": cls.picking_type_pick.id,
-                "location_src_id": cls.picking_type_pick.default_location_src_id.id,
-                "location_id": cls.picking_type_pick.default_location_dest_id.id,
-                "action": "pull",
-                "procure_method": "make_to_stock",
-            }
-        )
-        cls.rule_out = Rule.create(
-            {
-                "name": "TestOut",
-                "route_id": cls.route_out.id,
-                "picking_type_id": cls.picking_type_goods_out.id,
-                "location_src_id": cls.picking_type_goods_out.default_location_src_id.id,
-                "location_id": cls.picking_type_goods_out.default_location_dest_id.id,
-                "action": "pull",
-                "procure_method": "make_to_order",
-            }
-        )
-        cls.rule_out = Rule.create(
-            {
-                "name": "TestTrailer",
-                "route_id": cls.route_out.id,
-                "picking_type_id": cls.picking_type_trailer_dispatch.id,
-                "location_id": cls.picking_type_trailer_dispatch.default_location_dest_id.id,
-                "location_src_id": cls.picking_type_trailer_dispatch.default_location_src_id.id,
-                "action": "pull",
-                "procure_method": "make_to_order",
-            }
-        )
 
     def test_all_created_pickings_are_attached_to_sale_order(self):
         """
