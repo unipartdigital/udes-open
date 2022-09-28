@@ -547,3 +547,65 @@ class BaseUDES(UnconfiguredBaseUDES):
     def setUpClass(cls):
         super().setUpClass()
         cls.setup_default_warehouse()
+
+class BaseUDESPullOutboundRoute(UnconfiguredBaseUDES):
+    """
+    Some unit tests require a different outbound route configuration, and so can inherit from this test class
+    """
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.setup_default_warehouse()
+    
+    @classmethod
+    def create_simple_outbound_route(
+        cls, picking_type_pick, picking_type_out, picking_type_trailer
+    ):
+        Route = cls.env["stock.location.route"]
+        Rule = cls.env["stock.rule"]
+
+        # Create Outbound route
+        route_vals = {
+            "name": "TestGoodsOut",
+            "sequence": 10,
+            "product_selectable": False,
+            "warehouse_selectable": True,
+            "warehouse_ids": [(6, 0, [picking_type_out.warehouse_id.id])],
+        }
+        cls.route_out = Route.create(route_vals)
+        
+        # Create rules for Outbound route
+        cls.rule_pick = Rule.create(
+            {
+                "name": "TestPick",
+                "route_id": cls.route_out.id,
+                "picking_type_id": picking_type_pick.id,
+                "location_src_id": picking_type_pick.default_location_src_id.id,
+                "location_id": picking_type_pick.default_location_dest_id.id,
+                "action": "pull",
+                "procure_method": "make_to_stock",
+            }
+        )
+        cls.rule_out = Rule.create(
+            {
+                "name": "TestOut",
+                "route_id": cls.route_out.id,
+                "picking_type_id": picking_type_out.id,
+                "location_src_id": picking_type_out.default_location_src_id.id,
+                "location_id": picking_type_out.default_location_dest_id.id,
+                "action": "pull",
+                "procure_method": "make_to_order",
+            }
+        )
+        cls.rule_dispatch = Rule.create(
+            {
+                "name": "TestTrailerDispatch",
+                "route_id": cls.route_out.id,
+                "location_src_id": cls.picking_type_trailer_dispatch.default_location_src_id.id,
+                "location_id": cls.picking_type_trailer_dispatch.default_location_dest_id.id,
+                "picking_type_id": cls.picking_type_trailer_dispatch.id,
+                "action": "pull",
+                "procure_method": "make_to_order"
+            }
+        )
+
