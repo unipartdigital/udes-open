@@ -4,6 +4,8 @@ from odoo import _
 
 BASE_PRODUCT_IMAGE_URL = "/web/image/product.product/%i"
 
+UDES_STATISTICS_LOG_FORMAT = "(%s) %s (%s) %s in %.2fs, %d queries, %.2f q/s"
+
 
 def location_to_dict(location, **extras):
     """Represent a location in a format that json can understand"""
