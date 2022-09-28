@@ -288,46 +288,38 @@ class UnconfiguredBaseUDES(common.SavepointCase):
         )
 
     @classmethod
-    def create_simple_inbound_route(cls, picking_type_in, picking_type_internal):
+    def create_simple_inbound_route(cls, picking_type_in, picking_type_putaway):
         Route = cls.env["stock.location.route"]
-        Sequence = cls.env["ir.sequence"]
         Rule = cls.env["stock.rule"]
 
+        # Create the Inbound route
         route_vals = {
             "name": "TestPutaway",
             "sequence": 10,
             "product_selectable": False,
             "warehouse_selectable": True,
-            "warehouse_ids": [(6, 0, [picking_type_internal.warehouse_id.id])],
+            "warehouse_ids": [(6, 0, [picking_type_putaway.warehouse_id.id])],
         }
         cls.route_in = Route.create(route_vals)
 
-        # PUTAWAY
-        sequence_putaway = Sequence.create(
-            {"name": "TestPutaway", "prefix": "TESTPUT", "padding": 5}
-        )
-        picking_type_internal.write({"sequence_id": sequence_putaway.id, "sequence": 13})
-
-        location_path_vals = {
+        # Create rules for the Inbound route
+        cls.push_putaway = Rule.create({
             "name": "TestPutaway",
             "route_id": cls.route_in.id,
-            "sequence": 20,
             "action": "push",
-            "location_id": picking_type_in.default_location_dest_id.id,
-            "location_src_id": picking_type_internal.default_location_dest_id.id,
-            "picking_type_id": picking_type_internal.id,
-        }
-        cls.push_putaway = Rule.create(location_path_vals)
+            "location_id": picking_type_putaway.default_location_dest_id.id,
+            "location_src_id": picking_type_putaway.default_location_src_id.id,
+            "picking_type_id": picking_type_putaway.id,
+        })
 
     @classmethod
     def create_simple_outbound_route(
         cls, picking_type_pick, picking_type_out, picking_type_trailer
     ):
         Route = cls.env["stock.location.route"]
-        Sequence = cls.env["ir.sequence"]
-        Location = cls.env["stock.location"]
         Rule = cls.env["stock.rule"]
 
+        # Create Outbound route
         route_vals = {
             "name": "TestGoodsOut",
             "sequence": 10,
@@ -336,39 +328,15 @@ class UnconfiguredBaseUDES(common.SavepointCase):
             "warehouse_ids": [(6, 0, [picking_type_out.warehouse_id.id])],
         }
         cls.route_out = Route.create(route_vals)
-
-        # Goods out
-        sequence_vals = {"name": "TestGoodsOut", "prefix": "TESTGOODSOUT", "padding": 5}
-        sequence_goodsout = Sequence.create(sequence_vals)
-
-        out_vals = {"sequence_id": sequence_goodsout.id, "sequence": 13}
-        picking_type_out.write(out_vals)
-
-        # set goods-out source location = pick dest location
-        picking_type_out.default_location_src_id = picking_type_pick.default_location_dest_id
-        if not picking_type_out.default_location_dest_id:
-            picking_type_out.default_location_dest_id = Location.search(
-                [("name", "=", "Customers")]
-            )[0]
-
-        location_path_vals = {
-            "name": "TestGoodsOut",
-            "route_id": cls.route_out.id,
-            "sequence": 20,
-            "location_src_id": picking_type_pick.default_location_dest_id.id,
-            "location_id": picking_type_out.default_location_dest_id.id,
-            "picking_type_id": picking_type_out.id,
-            "action": "pull_push",
-        }
-        path_out_goodsout = Rule.create(location_path_vals)
-
+        
+        # Create rules for Outbound route
         cls.rule_pick = Rule.create(
             {
                 "name": "TestPick",
                 "route_id": cls.route_out.id,
                 "picking_type_id": picking_type_pick.id,
                 "location_id": picking_type_pick.default_location_dest_id.id,
-                "location_src_id": picking_type_out.default_location_dest_id.id,
+                "location_src_id": picking_type_pick.default_location_src_id.id,
                 "action": "pull",
                 "procure_method": "make_to_stock",
             }
@@ -380,7 +348,7 @@ class UnconfiguredBaseUDES(common.SavepointCase):
                 "picking_type_id": picking_type_out.id,
                 "location_id": picking_type_out.default_location_dest_id.id,
                 "location_src_id": picking_type_out.default_location_src_id.id,
-                "action": "pull",
+                "action": "pull_push",
                 "procure_method": "make_to_order",
             }
         )
