@@ -460,7 +460,7 @@ class TestUdesPropagateCancel(common.BaseUDES):
         cls.Move = cls.env["stock.move"]
         cls.package1 = cls.create_package()
         cls.package2 = cls.create_package()
-        cls.create_trailer_route()
+        # cls.create_trailer_route()
         # Create a picking
         cls._pick_info = [{"product": cls.banana, "uom_qty": 6}]
         cls.quant1 = cls.create_quant(cls.banana.id, cls.test_stock_location_01.id, 5)
@@ -473,45 +473,6 @@ class TestUdesPropagateCancel(common.BaseUDES):
 
         cls.pick_ml1.location_dest_id = cls.test_goodsout_location_01
         cls.pick_ml2.location_dest_id = cls.test_goodsout_location_01
-
-    @classmethod
-    def create_trailer_route(cls):
-        """
-        Sets up push rule for trailer dispatch to ensure a trailer pick
-        gets created after goods out
-        """
-        Route = cls.env["stock.location.route"]
-        Sequence = cls.env["ir.sequence"]
-        Rule = cls.env["stock.rule"]
-
-        route_vals = {
-            "name": "TestTrailerDispatch",
-            "sequence": 15,
-            "product_selectable": False,
-            "warehouse_selectable": True,
-            "warehouse_ids": [(6, 0, [cls.warehouse.id])],
-        }
-        cls.route_trailer = Route.create(route_vals)
-
-        sequence_vals = {
-            "name": "TestTrailerDispatch",
-            "prefix": "TESTTRAILERDISPATCH",
-            "padding": 5,
-        }
-        sequence_trailer = Sequence.create(sequence_vals)
-        trailer_vals = {"sequence_id": sequence_trailer.id, "sequence": 18}
-        cls.picking_type_trailer_dispatch.write(trailer_vals)
-
-        location_path_vals = {
-            "name": "TestTrailerDispatch",
-            "route_id": cls.route_trailer.id,
-            "sequence": 25,
-            "location_src_id": cls.picking_type_goods_out.default_location_dest_id.id,
-            "location_id": cls.picking_type_trailer_dispatch.default_location_dest_id.id,
-            "picking_type_id": cls.picking_type_trailer_dispatch.id,
-            "action": "pull_push",
-        }
-        Rule.create(location_path_vals)
 
     def toggle_u_propagate_cancel(self, toggle_value):
         """Helper function to enable/disable u_propagate_cancel on all picking types"""

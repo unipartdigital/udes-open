@@ -11,7 +11,6 @@ class UnconfiguredBaseUDES(common.SavepointCase):
     @classmethod
     def setUpClass(cls):
         super(UnconfiguredBaseUDES, cls).setUpClass()
-
         # Products
         ## Untracked
         cls.apple = cls.create_product("Apple")
@@ -62,6 +61,18 @@ class UnconfiguredBaseUDES(common.SavepointCase):
         new_pt = wh_attr.copy(copy_vals)
         setattr(cls, f"picking_type_{name}", new_pt)
         setattr(cls.warehouse, f"{ptype}_type_id", new_pt)
+        cls._create_sequence(name)
+    
+    @classmethod
+    def _create_sequence(cls, name):
+        """
+        Overwrite the default sequence that Odoo gives to the picking type
+        """
+        Sequence = cls.env["ir.sequence"]
+
+        sequence = Sequence.create({"name": f"TEST{name.replace('_', '').upper()}", "prefix": f"TEST{name.upper()}", "padding": 5})
+        picking_type = getattr(cls, f"picking_type_{name}")
+        picking_type.write({"sequence_id": sequence.id, "sequence": 13})
 
     @classmethod
     def create_location(cls, name, **kwargs):
@@ -335,9 +346,9 @@ class UnconfiguredBaseUDES(common.SavepointCase):
                 "name": "TestPick",
                 "route_id": cls.route_out.id,
                 "picking_type_id": picking_type_pick.id,
-                "location_id": picking_type_pick.default_location_dest_id.id,
                 "location_src_id": picking_type_pick.default_location_src_id.id,
-                "action": "pull",
+                "location_id": picking_type_pick.default_location_dest_id.id,
+                "action": "push",
                 "procure_method": "make_to_stock",
             }
         )
@@ -346,10 +357,21 @@ class UnconfiguredBaseUDES(common.SavepointCase):
                 "name": "TestOut",
                 "route_id": cls.route_out.id,
                 "picking_type_id": picking_type_out.id,
-                "location_id": picking_type_out.default_location_dest_id.id,
                 "location_src_id": picking_type_out.default_location_src_id.id,
-                "action": "pull_push",
+                "location_id": picking_type_out.default_location_dest_id.id,
+                "action": "push",
                 "procure_method": "make_to_order",
+            }
+        )
+        cls.rule_dispatch = Rule.create(
+            {
+                "name": "TestTrailerDispatch",
+                "route_id": cls.route_out.id,
+                "location_src_id": cls.picking_type_trailer_dispatch.default_location_src_id.id,
+                "location_id": cls.picking_type_trailer_dispatch.default_location_dest_id.id,
+                "picking_type_id": cls.picking_type_trailer_dispatch.id,
+                "action": "push",
+                "procure_method": "make_to_order"
             }
         )
 
