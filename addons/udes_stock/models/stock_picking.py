@@ -465,37 +465,49 @@ class StockPicking(models.Model):
         Ensure we don't incorrectly validate pending pickings.
         Check if picking batch is now complete
         """
-        self.assert_not_pending()
-        mls = self.mapped("move_line_ids")
-        # Prevent recomputing the batch stat
-        batches = mls.mapped("picking_id.batch_id")
-        next_pickings = self.mapped("u_next_picking_ids")
+        # Collect action_done stats for monitor
+        with self.statistics() as stats:
+            self.assert_not_pending()
+            mls = self.mapped("move_line_ids")
+            # Prevent recomputing the batch stat
+            batches = mls.mapped("picking_id.batch_id")
+            next_pickings = self.mapped("u_next_picking_ids")
 
-        res = super(StockPicking, self.with_context(lock_batch_state=True)).action_done()
+            res = super(StockPicking, self.with_context(lock_batch_state=True)).action_done()
 
-        # just in case move lines change on action done, for instance cancelling
-        # a picking
-        mls = mls.exists()
-        picks = mls.mapped("picking_id")
-        # batches of the following stage should also be recomputed
-        all_picks = picks | picks.mapped("u_next_picking_ids")
-        all_picks.with_context(lock_batch_state=False)._trigger_batch_state_recompute()
+            # just in case move lines change on action done, for instance cancelling
+            # a picking
+            mls = mls.exists()
+            picks = mls.mapped("picking_id")
+            # batches of the following stage should also be recomputed
+            all_picks = picks | picks.mapped("u_next_picking_ids")
+            all_picks.with_context(lock_batch_state=False)._trigger_batch_state_recompute()
 
-        self.assert_not_lot_restricted()
+            self.assert_not_lot_restricted()
 
-        extra_context = {}
-        if hasattr(self, "get_extra_printing_context"):
-            extra_context = picks.get_extra_printing_context()
+            extra_context = {}
+            if hasattr(self, "get_extra_printing_context"):
+                extra_context = picks.get_extra_printing_context()
 
-        # Trigger print strategies for pickings done
-        self.env.ref("udes_stock.picking_done").with_context(
-            active_model=picks._name,
-            active_ids=picks.ids,
-            action_filter="picking.action_done",
-            **extra_context
-        ).run()
-        if self:
-            (self | next_pickings).unlink_empty()
+            # Trigger print strategies for pickings done
+            self.env.ref("udes_stock.picking_done").with_context(
+                active_model=picks._name,
+                active_ids=picks.ids,
+                action_filter="picking.action_done",
+                **extra_context
+            ).run()
+            if self:
+                (self | next_pickings).unlink_empty()
+        # Write the log
+        _logger.info(
+            "(%s) %s (%s) action_done in %.2fs, %d queries, %.2f q/s",
+            self._name,
+            self.ids,
+            self.picking_type_id.name,
+            stats.elapsed,
+            stats.count,
+            stats.count / stats.elapsed
+        )
         return res
 
     def action_cancel(self):

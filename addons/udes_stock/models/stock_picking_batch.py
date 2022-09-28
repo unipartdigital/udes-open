@@ -793,60 +793,68 @@ class StockPickingBatch(models.Model):
             completed_move_lines = self._get_move_lines_to_drop_off()
 
         if completed_move_lines:
-            to_update = {}
-
-            if dest_loc:
-                to_update["location_dest_id"] = dest_loc.id
-
-            pickings = completed_move_lines.mapped("picking_id")
-            picking_type = pickings.mapped("picking_type_id")
-            picking_type.ensure_one()
-
-            if picking_type.u_scan_parent_package_end:
-                if not result_package_name:
-                    raise ValidationError(_("Expecting result package on drop off."))
-
-                result_package = Package.get_package(result_package_name, create=True)
-
-                if picking_type.u_target_storage_format == "pallet_packages":
-                    to_update["u_result_parent_package_id"] = result_package.id
-                elif picking_type.u_target_storage_format == "pallet_products":
-                    to_update["result_package_id"] = result_package.id
-                else:
-                    raise ValidationError(_("Unexpected result package at drop off."))
-
-            if to_update:
-                completed_move_lines.write(to_update)
-
-            to_add = Picking.browse()
-            picks_todo = Picking.browse()
-
-            for pick in pickings:
-                pick_todo = pick
-                pick_mls = completed_move_lines.filtered(lambda x: x.picking_id == pick)
-
-                if pick._requires_backorder(pick_mls):
-                    pick_todo = pick.with_context(
-                        done_mls_into_backorder=True
-                    )._backorder_movelines(pick_mls)
-
-                    to_add |= pick_todo
-
-                picks_todo |= pick_todo
-                pick.write({"u_reserved_pallet": False})
-
-            # If we dropped a package then reset the last package reserved as
-            # it will not be possible to keep using it
-            self.u_last_reserved_pallet_name = False
-
-            # Add backorders to the batch
-            to_add.write({"batch_id": self.id})
-
+            # Collect drop off stats for monitor
             with self.statistics() as stats:
+                to_update = {}
+
+                if dest_loc:
+                    to_update["location_dest_id"] = dest_loc.id
+
+                pickings = completed_move_lines.mapped("picking_id")
+                picking_type = pickings.mapped("picking_type_id")
+                picking_type.ensure_one()
+
+                if picking_type.u_scan_parent_package_end:
+                    if not result_package_name:
+                        raise ValidationError(_("Expecting result package on drop off."))
+
+                    result_package = Package.get_package(result_package_name, create=True)
+
+                    if picking_type.u_target_storage_format == "pallet_packages":
+                        to_update["u_result_parent_package_id"] = result_package.id
+                    elif picking_type.u_target_storage_format == "pallet_products":
+                        to_update["result_package_id"] = result_package.id
+                    else:
+                        raise ValidationError(_("Unexpected result package at drop off."))
+
+                if to_update:
+                    completed_move_lines.write(to_update)
+
+                to_add = Picking.browse()
+                picks_todo = Picking.browse()
+
+                for pick in pickings:
+                    pick_todo = pick
+                    pick_mls = completed_move_lines.filtered(lambda x: x.picking_id == pick)
+
+                    if pick._requires_backorder(pick_mls):
+                        pick_todo = pick.with_context(
+                            done_mls_into_backorder=True
+                        )._backorder_movelines(pick_mls)
+
+                        to_add |= pick_todo
+
+                    picks_todo |= pick_todo
+                    pick.write({"u_reserved_pallet": False})
+
+                # If we dropped a package then reset the last package reserved as
+                # it will not be possible to keep using it
+                self.u_last_reserved_pallet_name = False
+
+                # Add backorders to the batch
+                to_add.write({"batch_id": self.id})
+
                 picks_todo.sudo().with_context(tracking_disable=True).action_done()
 
+            # Write the log
             _logger.info(
-                "%s action_done in %.2fs, %d queries", picks_todo, stats.elapsed, stats.count
+                "(%s) %s (%s) drop_off_picked in %.2fs, %d queries, %.2f q/s",
+                picks_todo._name,
+                picks_todo.ids,
+                picks_todo.picking_type_id.name,
+                stats.elapsed,
+                stats.count,
+                stats.count/stats.elapsed
             )
         if not continue_batch:
             self.close()
