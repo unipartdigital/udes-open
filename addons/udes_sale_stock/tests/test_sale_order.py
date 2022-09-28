@@ -6,14 +6,54 @@ class TestSaleOrder(common.BaseUDES):
     @classmethod
     def setUpClass(cls):
         super(TestSaleOrder, cls).setUpClass()
-        # Unlink the TestGoodsOut pull_push rule as it was causing the route to misbehave. 
-        # The rule was not being triggered when a sale order was created in the customer location i.e.
-        # no pickings were being created for GoodsOut or Pick.
-        # Add in the final step to the route which links customers and the warehouse i.e. Trailer Dispatch rule
-        Rule = cls.env["stock.rule"]
+        # These tests depend on the routes being setup with a different configuration
+        # Can create a new route with pull rules attached to them
         cls.Picking = cls.env["stock.picking"]
+        cls._set_up_pull_routes()
 
-        Rule.search([("name", "=", "TestGoodsOut")]).unlink()
+    @classmethod
+    def _set_up_pull_routes(cls):
+        Rule = cls.env["stock.rule"]
+        Route = cls.env["stock.location.route"]
+
+        Rule.search([("name", "=", "TestOut")]).unlink()
+        Rule.search([("name", "=", "TestPick")]).unlink()
+        Rule.search([("name", "=", "TestTrailerDispatch")]).unlink()
+        Route.search([("name", "=", "TestGoodsOut")]).unlink()
+        
+        # Create Outbound route
+        route_vals = {
+            "name": "TestGoodsOut",
+            "sequence": 10,
+            "product_selectable": False,
+            "warehouse_selectable": True,
+            "warehouse_ids": [(6, 0, [cls.picking_type_goods_out.warehouse_id.id])],
+        }
+        cls.route_out = Route.create(route_vals)
+        
+        # Create rules for Outbound route
+        cls.rule_pick = Rule.create(
+            {
+                "name": "TestPick",
+                "route_id": cls.route_out.id,
+                "picking_type_id": cls.picking_type_pick.id,
+                "location_src_id": cls.picking_type_pick.default_location_src_id.id,
+                "location_id": cls.picking_type_pick.default_location_dest_id.id,
+                "action": "pull",
+                "procure_method": "make_to_stock",
+            }
+        )
+        cls.rule_out = Rule.create(
+            {
+                "name": "TestOut",
+                "route_id": cls.route_out.id,
+                "picking_type_id": cls.picking_type_goods_out.id,
+                "location_src_id": cls.picking_type_goods_out.default_location_src_id.id,
+                "location_id": cls.picking_type_goods_out.default_location_dest_id.id,
+                "action": "pull",
+                "procure_method": "make_to_order",
+            }
+        )
         cls.rule_out = Rule.create(
             {
                 "name": "TestTrailer",
