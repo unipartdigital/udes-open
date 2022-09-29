@@ -31,7 +31,7 @@ class TestSuggestByProduct(common.SuggestedLocations):
             self.mls.filtered(lambda ml: ml.product_id == self.apple)
         )
         self.assertEqual(vals.get("product"), self.apple)
-        self.assertEqual(vals.get("location"), self.out_location)
+        self.assertEqual(vals.get("location"), self.check_location)
 
     def test02_get_values_from_mls_failure(self):
         """Fail to get details due to multiple move lines given"""

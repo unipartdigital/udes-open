@@ -25,7 +25,7 @@ class TestStockMove(common.SuggestedLocations):
         with mute_logger("odoo.addons.udes_suggest_location.models.stock_move"):
             self.assertEqual(
                 self.apple_mv._prepare_move_line_vals().get("location_dest_id"),
-                self.out_location.id,
+                self.check_location.id,
             )
 
     def test_prepare_move_line_vals(self):
@@ -35,15 +35,15 @@ class TestStockMove(common.SuggestedLocations):
         # Check first the default location is used in the returned dict
         self.assertEqual(
             self.apple_mv._prepare_move_line_vals().get("location_dest_id"),
-            self.out_location.id,
+            self.check_location.id,
         )
         # Create quant - should now get this as the destination location
-        self.create_quant(self.apple.id, self.test_goodsout_location_02.id, 10)
+        self.create_quant(self.apple.id, self.test_check_location_02.id, 10)
         self.assertEqual(
             self.apple_mv._prepare_move_line_vals().get("location_dest_id"),
-            self.test_goodsout_location_02.id,
+            self.test_check_location_02.id,
         )
 
         self.picking.action_assign()
         apple_mls = self.apple_mv.move_line_ids
-        self.assertEqual(apple_mls.location_dest_id, self.test_goodsout_location_02)
+        self.assertEqual(apple_mls.location_dest_id, self.test_check_location_02)

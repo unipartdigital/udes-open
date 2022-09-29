@@ -16,9 +16,9 @@ class TestStockMoveLine(common.SuggestedLocations):
         # Create quants for picking and suggested location
         cls.create_quant(cls.apple.id, cls.test_stock_location_01.id, 10)
         cls.create_quant(cls.banana.id, cls.test_stock_location_02.id, 10)
-        cls.create_quant(cls.apple.id, cls.test_goodsout_location_01.id, 10)
-        cls.create_quant(cls.banana.id, cls.test_goodsout_location_02.id, 10)
-        cls.create_quant(cls.apple.id, cls.test_goodsout_location_03.id, 10)
+        cls.create_quant(cls.apple.id, cls.test_check_location_01.id, 10)
+        cls.create_quant(cls.banana.id, cls.test_check_location_02.id, 10)
+        cls.create_quant(cls.apple.id, cls.test_check_location_03.id, 10)
 
         # Create picking
         cls._pick_info = [{"product": cls.banana, "qty": 5}, {"product": cls.apple, "qty": 5}]
@@ -29,13 +29,10 @@ class TestStockMoveLine(common.SuggestedLocations):
             assign=True,
         )
         cls.mls = cls.picking_pick.move_line_ids
-        # Make the out and trailer locations a view
-        cls.out_location.usage = "view"
-        cls.trailer_location.usage = "view"
 
         # Destination locations for each product
-        cls.pick_apple_locs = cls.test_goodsout_location_01 | cls.test_goodsout_location_03
-        pick_empty_locs = cls.test_goodsout_location_04
+        cls.pick_apple_locs = cls.test_check_location_01 | cls.test_check_location_03
+        pick_empty_locs = cls.test_check_location_04
         cls.pick_all_locs = cls.pick_apple_locs | pick_empty_locs
 
         # Particular movelines for pick
@@ -47,7 +44,7 @@ class TestStockMoveLine(common.SuggestedLocations):
         cls.mock_suggested_locations = patch.object(
             cls.MoveLine.__class__,
             "suggest_locations",
-            return_value=cls.test_goodsout_location_04,
+            return_value=cls.test_check_location_04,
         )
         cls.mock_validate_location_dest = patch.object(
             cls.MoveLine.__class__, "validate_location_dest", return_value=None
@@ -204,7 +201,7 @@ class TestStockMoveLine(common.SuggestedLocations):
             self.apple_mls.suggest_locations(),
             self.pick_apple_locs,
         )
-        self.assertEqual(self.banana_mls.suggest_locations(), self.test_goodsout_location_02)
+        self.assertEqual(self.banana_mls.suggest_locations(), self.test_check_location_02)
         # Set policy to suggest
         self.picking_type_pick.u_drop_location_constraint = "suggest"
         # Check that for suggest the checks aren't done and it is just returned
@@ -219,9 +216,9 @@ class TestStockMoveLine(common.SuggestedLocations):
             self.apple_mls.suggest_locations(),
             self.pick_apple_locs,
         )
-        self.assertEqual(self.banana_mls.suggest_locations(), self.test_goodsout_location_02)
+        self.assertEqual(self.banana_mls.suggest_locations(), self.test_check_location_02)
         # Set all the mls to a single location -> to later throw an error
-        self.mls.location_dest_id = self.test_goodsout_location_01
+        self.mls.location_dest_id = self.test_check_location_01
         # Set policy to enforce
         # Note this must be done afterward as enforce stops a write to an invalid dest loc
         self.picking_type_pick.u_drop_location_constraint = "enforce"
@@ -232,7 +229,7 @@ class TestStockMoveLine(common.SuggestedLocations):
             e.exception.args[0], "Drop off location must be one of the suggested locations"
         )
         # Set the mls destination for bananas to be a valid one
-        self.banana_mls.location_dest_id = self.test_goodsout_location_02
+        self.banana_mls.location_dest_id = self.test_check_location_02
         # Check that the suggested locations are now correct, and no validation error
         self.assertIsNone(self.mls.validate_location_dest())
 
