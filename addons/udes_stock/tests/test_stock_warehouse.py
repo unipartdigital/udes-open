@@ -14,12 +14,12 @@ class TestStockWarehouseModel(BaseUDES):
         test_picking_types = self.warehouse.get_picking_types().filtered(
             lambda pt: "TEST" in pt.name
         )
-        self.assertEqual(len(test_picking_types), 6)
+        self.assertEqual(len(test_picking_types), 7)
 
     def test_finds_expected_number_of_picking_types(self):
         """Test checks if the test picking types and the normal pick types are present"""
         test_picking_types = self.warehouse.get_picking_types()
-        self.assertEqual(len(test_picking_types), 9)
+        self.assertEqual(len(test_picking_types), 10)
 
     def test_get_default_picking_types_new_warehouse(self):
         """Create a new warehouse and look at the default picking types"""

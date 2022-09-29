@@ -48,6 +48,7 @@ class UnconfiguredBaseUDES(common.SavepointCase):
         # this order is important as int is overwritten
         cls._set_test_picking_type("int", "putaway")
         cls._set_test_picking_type("int", "internal")
+        cls._set_test_picking_type("out", "check")
         cls._set_test_picking_type("out", "goods_out")
         cls._set_test_picking_type("out", "trailer_dispatch")
 
@@ -148,7 +149,10 @@ class UnconfiguredBaseUDES(common.SavepointCase):
         """Test Locations"""
         Location = cls.env["stock.location"]
 
+        cls.warehouse_location = cls.warehouse.view_location_id
         cls.stock_location = cls.env.ref("stock.stock_location_stock")
+        cls.stock_location.write({"name":"TEST_STOCK"})
+
         cls.received_location = cls.stock_location.copy({"name": "TEST_INPUT"})
         cls.test_received_locations = Location.create(
             [
@@ -197,7 +201,22 @@ class UnconfiguredBaseUDES(common.SavepointCase):
             cls.test_stock_location_04,
         ) = cls.test_stock_locations
 
-        cls.warehouse_location = Location.create({"name": "Warehouse", "usage": "view"})
+        cls.check_location = cls.stock_location.copy({"name": "TEST_CHECK"})
+        cls.test_check_locations = Location.create(
+            [
+                {
+                    "name": "Test Check location 01",
+                    "barcode": "LCTEST01",
+                    "location_id": cls.check_location.id,
+                },
+                {
+                    "name": "Test Check location 02",
+                    "barcode": "LCTEST02",
+                    "location_id": cls.check_location.id,
+                },
+            ]
+        )
+        cls.test_check_location_01, cls.test_check_location_02 = cls.test_check_locations
 
         cls.out_location = cls.stock_location.copy({"name": "TEST_GOODS_OUT"})
         cls.test_goodsout_locations = Location.create(
@@ -216,15 +235,7 @@ class UnconfiguredBaseUDES(common.SavepointCase):
         )
         cls.test_goodsout_location_01, cls.test_goodsout_location_02 = cls.test_goodsout_locations
 
-        cls.trailer_location = Location.create(
-            {
-                "name": "TEST_OUT_TRAILER",
-                "active": True,
-                "location_id": cls.warehouse_location.id,
-                "company_id": cls.company.id,
-                "usage": "view",
-            }
-        )
+        cls.trailer_location = cls.stock_location.copy({"name": "TEST_TRAILER_DISPATCH"})
         cls.test_trailer_locations = Location.create(
             [
                 {
@@ -275,6 +286,13 @@ class UnconfiguredBaseUDES(common.SavepointCase):
         cls.picking_type_pick.write(
             {
                 "default_location_src_id": cls.stock_location.id,
+                "default_location_dest_id": cls.check_location.id,
+            }
+        )
+
+        cls.picking_type_check.write(
+            {
+                "default_location_src_id": cls.check_location.id,
                 "default_location_dest_id": cls.out_location.id,
             }
         )
@@ -293,23 +311,21 @@ class UnconfiguredBaseUDES(common.SavepointCase):
             }
         )
 
-        cls.create_simple_inbound_route(cls.picking_type_goods_in, cls.picking_type_putaway)
-        cls.create_simple_outbound_route(
-            cls.picking_type_pick, cls.picking_type_goods_out, cls.picking_type_trailer_dispatch
-        )
+        cls.create_simple_inbound_route()
+        cls.create_simple_outbound_route()
 
     @classmethod
-    def create_simple_inbound_route(cls, picking_type_in, picking_type_putaway):
+    def create_simple_inbound_route(cls):
         Route = cls.env["stock.location.route"]
         Rule = cls.env["stock.rule"]
 
         # Create the Inbound route
         route_vals = {
-            "name": "TestPutaway",
+            "name": "TestInbound",
             "sequence": 10,
             "product_selectable": False,
             "warehouse_selectable": True,
-            "warehouse_ids": [(6, 0, [picking_type_putaway.warehouse_id.id])],
+            "warehouse_ids": [(6, 0, [cls.picking_type_putaway.warehouse_id.id])],
         }
         cls.route_in = Route.create(route_vals)
 
@@ -318,47 +334,46 @@ class UnconfiguredBaseUDES(common.SavepointCase):
             "name": "TestPutaway",
             "route_id": cls.route_in.id,
             "action": "push",
-            "location_id": picking_type_putaway.default_location_dest_id.id,
-            "location_src_id": picking_type_putaway.default_location_src_id.id,
-            "picking_type_id": picking_type_putaway.id,
+            "location_id": cls.picking_type_putaway.default_location_dest_id.id,
+            "location_src_id": cls.picking_type_putaway.default_location_src_id.id,
+            "picking_type_id": cls.picking_type_putaway.id,
+            "procure_method": "make_to_order"
         })
 
     @classmethod
-    def create_simple_outbound_route(
-        cls, picking_type_pick, picking_type_out, picking_type_trailer
-    ):
+    def create_simple_outbound_route(cls):
         Route = cls.env["stock.location.route"]
         Rule = cls.env["stock.rule"]
 
         # Create Outbound route
         route_vals = {
-            "name": "TestGoodsOut",
+            "name": "TestOutbound",
             "sequence": 10,
             "product_selectable": False,
             "warehouse_selectable": True,
-            "warehouse_ids": [(6, 0, [picking_type_out.warehouse_id.id])],
+            "warehouse_ids": [(6, 0, [cls.picking_type_goods_out.warehouse_id.id])],
         }
         cls.route_out = Route.create(route_vals)
         
         # Create rules for Outbound route
-        cls.rule_pick = Rule.create(
+        cls.rule_check = Rule.create(
             {
-                "name": "TestPick",
+                "name": "TestCheck",
                 "route_id": cls.route_out.id,
-                "picking_type_id": picking_type_pick.id,
-                "location_src_id": picking_type_pick.default_location_src_id.id,
-                "location_id": picking_type_pick.default_location_dest_id.id,
+                "picking_type_id": cls.picking_type_check.id,
+                "location_src_id": cls.picking_type_check.default_location_src_id.id,
+                "location_id": cls.picking_type_check.default_location_dest_id.id,
                 "action": "push",
-                "procure_method": "make_to_stock",
+                "procure_method": "make_to_order",
             }
         )
         cls.rule_out = Rule.create(
             {
                 "name": "TestOut",
                 "route_id": cls.route_out.id,
-                "picking_type_id": picking_type_out.id,
-                "location_src_id": picking_type_out.default_location_src_id.id,
-                "location_id": picking_type_out.default_location_dest_id.id,
+                "picking_type_id": cls.picking_type_goods_out.id,
+                "location_src_id": cls.picking_type_goods_out.default_location_src_id.id,
+                "location_id": cls.picking_type_goods_out.default_location_dest_id.id,
                 "action": "push",
                 "procure_method": "make_to_order",
             }
@@ -372,20 +387,6 @@ class UnconfiguredBaseUDES(common.SavepointCase):
                 "picking_type_id": cls.picking_type_trailer_dispatch.id,
                 "action": "push",
                 "procure_method": "make_to_order"
-            }
-        )
-
-    @classmethod
-    def _setup_check_location(cls):
-        Location = cls.env["stock.location"]
-        cls.check_location = cls.picking_type_pick.default_location_dest_id.copy(
-            {"name": "TEST_CHECK", "active": True}
-        )
-        cls.test_check_location_01 = Location.create(
-            {
-                "name": "Test check location 01",
-                "barcode": "LTESCHECK01",
-                "location_id": cls.check_location.id,
             }
         )
 
@@ -558,19 +559,17 @@ class BaseUDESPullOutboundRoute(UnconfiguredBaseUDES):
         cls.setup_default_warehouse()
     
     @classmethod
-    def create_simple_outbound_route(
-        cls, picking_type_pick, picking_type_out, picking_type_trailer
-    ):
+    def create_simple_outbound_route(cls):
         Route = cls.env["stock.location.route"]
         Rule = cls.env["stock.rule"]
 
         # Create Outbound route
         route_vals = {
-            "name": "TestGoodsOut",
+            "name": "TestOutbound",
             "sequence": 10,
             "product_selectable": False,
             "warehouse_selectable": True,
-            "warehouse_ids": [(6, 0, [picking_type_out.warehouse_id.id])],
+            "warehouse_ids": [(6, 0, [cls.picking_type_goods_out.warehouse_id.id])],
         }
         cls.route_out = Route.create(route_vals)
         
@@ -579,20 +578,31 @@ class BaseUDESPullOutboundRoute(UnconfiguredBaseUDES):
             {
                 "name": "TestPick",
                 "route_id": cls.route_out.id,
-                "picking_type_id": picking_type_pick.id,
-                "location_src_id": picking_type_pick.default_location_src_id.id,
-                "location_id": picking_type_pick.default_location_dest_id.id,
+                "picking_type_id": cls.picking_type_pick.id,
+                "location_src_id": cls.picking_type_pick.default_location_src_id.id,
+                "location_id": cls.picking_type_pick.default_location_dest_id.id,
                 "action": "pull",
                 "procure_method": "make_to_stock",
+            }
+        )
+        cls.rule_check = Rule.create(
+            {
+                "name": "TestCheck",
+                "route_id": cls.route_out.id,
+                "picking_type_id": cls.picking_type_check.id,
+                "location_src_id": cls.picking_type_check.default_location_src_id.id,
+                "location_id": cls.picking_type_check.default_location_dest_id.id,
+                "action": "pull",
+                "procure_method": "make_to_order",
             }
         )
         cls.rule_out = Rule.create(
             {
                 "name": "TestOut",
                 "route_id": cls.route_out.id,
-                "picking_type_id": picking_type_out.id,
-                "location_src_id": picking_type_out.default_location_src_id.id,
-                "location_id": picking_type_out.default_location_dest_id.id,
+                "picking_type_id": cls.picking_type_goods_out.id,
+                "location_src_id": cls.picking_type_goods_out.default_location_src_id.id,
+                "location_id": cls.picking_type_goods_out.default_location_dest_id.id,
                 "action": "pull",
                 "procure_method": "make_to_order",
             }
@@ -601,9 +611,9 @@ class BaseUDESPullOutboundRoute(UnconfiguredBaseUDES):
             {
                 "name": "TestTrailerDispatch",
                 "route_id": cls.route_out.id,
+                "picking_type_id": cls.picking_type_trailer_dispatch.id,
                 "location_src_id": cls.picking_type_trailer_dispatch.default_location_src_id.id,
                 "location_id": cls.picking_type_trailer_dispatch.default_location_dest_id.id,
-                "picking_type_id": cls.picking_type_trailer_dispatch.id,
                 "action": "pull",
                 "procure_method": "make_to_order"
             }

@@ -460,7 +460,6 @@ class TestUdesPropagateCancel(common.BaseUDES):
         cls.Move = cls.env["stock.move"]
         cls.package1 = cls.create_package()
         cls.package2 = cls.create_package()
-        # cls.create_trailer_route()
         # Create a picking
         cls._pick_info = [{"product": cls.banana, "uom_qty": 6}]
         cls.quant1 = cls.create_quant(cls.banana.id, cls.test_stock_location_01.id, 5)
@@ -478,6 +477,7 @@ class TestUdesPropagateCancel(common.BaseUDES):
         """Helper function to enable/disable u_propagate_cancel on all picking types"""
         picking_types_to_configure = [
             self.picking_type_pick,
+            self.picking_type_check,
             self.picking_type_goods_out,
             self.picking_type_trailer_dispatch,
         ]
@@ -506,7 +506,7 @@ class TestUdesPropagateCancel(common.BaseUDES):
         bk_pick = self.pick.u_created_backorder_ids
         self.assertEqual(bk_pick.move_lines.product_qty, 1)
         next_pickings = self.get_next_pick_chain(bk_pick)
-        self.assertTrue(len(next_pickings) == 2)
+        self.assertTrue(len(next_pickings) == 3)
         for next_picking in next_pickings:
             with self.subTest():
                 self.assertEqual(next_picking.move_lines.product_qty, 6)
@@ -519,7 +519,7 @@ class TestUdesPropagateCancel(common.BaseUDES):
     def test_cancel_picking_propagates_to_some_next_pickings(self):
         """
         If u_propagate_cancel is enabled on Pick only,
-        ensure that when a Pick is cancelled, propagation only occurs to Goods Out
+        ensure that when a Pick is cancelled, propagation only occurs to Check
         """
         self.toggle_u_propagate_cancel(False)
         self.picking_type_pick.u_propagate_cancel = True
@@ -529,7 +529,7 @@ class TestUdesPropagateCancel(common.BaseUDES):
         bk_pick = self.pick.u_created_backorder_ids
         self.assertEqual(bk_pick.move_lines.product_qty, 1)
         next_pickings = self.get_next_pick_chain(bk_pick)
-        self.assertTrue(len(next_pickings) == 2)
+        self.assertTrue(len(next_pickings) == 3)
         for next_picking in next_pickings:
             with self.subTest():
                 self.assertEqual(next_picking.move_lines.product_qty, 6)
@@ -537,10 +537,10 @@ class TestUdesPropagateCancel(common.BaseUDES):
         self.assertEqual(bk_pick.state, "cancel")
         for next_picking in next_pickings:
             with self.subTest():
-                if next_picking.picking_type_id == self.picking_type_trailer_dispatch:
-                    self.assertEqual(next_picking.move_lines.product_qty, 6)
-                else:
+                if next_picking.picking_type_id == self.picking_type_check:
                     self.assertEqual(next_picking.move_lines.product_qty, 5)
+                else:
+                    self.assertEqual(next_picking.move_lines.product_qty, 6)
 
     def test_cancel_picking_propagates_to_next_pickings(self):
         """
@@ -551,7 +551,7 @@ class TestUdesPropagateCancel(common.BaseUDES):
         self.toggle_u_propagate_cancel(True)
 
         next_pickings = self.get_next_pick_chain(self.pick)
-        self.assertTrue(len(next_pickings) == 2)
+        self.assertTrue(len(next_pickings) == 3)
         for next_picking in next_pickings:
             with self.subTest():
                 self.assertEqual(next_picking.move_lines.product_qty, 6)
@@ -575,7 +575,7 @@ class TestUdesPropagateCancel(common.BaseUDES):
         bk_pick = self.pick.u_created_backorder_ids
         self.assertEqual(bk_pick.move_lines.product_qty, 1)
         next_pickings = self.get_next_pick_chain(bk_pick)
-        self.assertTrue(len(next_pickings) == 2)
+        self.assertTrue(len(next_pickings) == 3)
         for next_picking in next_pickings:
             with self.subTest():
                 self.assertEqual(next_picking.move_lines.product_qty, 6)
@@ -602,7 +602,7 @@ class TestUpdateOrigIds(TestStockMove):
     def test_update_orig_ids_with_product_location_default_matching(self):
         """
         Test that update_orig_ids updates the origins for the moves corectly and the pickings
-        always point to the relevant original moves, when pickings are chained. (Pick -> Goods Out)
+        always point to the relevant original moves, when pickings are chained. (Pick -> Check)
         Here the matching is based on the product and the current location id and the previous
         move lines destination id.
 
@@ -616,17 +616,17 @@ class TestUpdateOrigIds(TestStockMove):
         original_banana_move = self.pick.move_lines
         banana_1ml = self.pick.move_line_ids.filtered(lambda ml: ml.product_uom_qty == 1)
         backorder = self.pick.backorder_move_lines(banana_1ml)
-        self.complete_picking(self.pick, self.test_goodsout_location_01)
+        self.complete_picking(self.pick, self.test_check_location_01)
 
         # Add the newly created backorder move
         backorder_banana_move = backorder.move_lines
 
         # Complete the backorder and drop in a different location
-        self.complete_picking(backorder, self.test_goodsout_location_02)
+        self.complete_picking(backorder, self.test_check_location_02)
 
         # Next pickings: Get the outbound picking
         out_picking = self.Picking.search(
-            [("state", "=", "assigned"), ("picking_type_id", "=", self.picking_type_goods_out.id)]
+            [("state", "=", "assigned"), ("picking_type_id", "=", self.picking_type_check.id)]
         )
         self.assertEqual(len(out_picking), 1)
         self.assertEqual(len(out_picking.move_line_ids), 2)
@@ -717,13 +717,13 @@ class TestUpdateOrigIds(TestStockMove):
         backorder2.move_line_ids.write({"result_package_id": package2.id})
 
         # Complete the original picking, then the backorders, and drop in the same location
-        self.complete_picking(self.pick, self.test_goodsout_location_01)
-        self.complete_picking(backorder1, self.test_goodsout_location_01)
-        self.complete_picking(backorder2, self.test_goodsout_location_01)
+        self.complete_picking(self.pick, self.test_check_location_01)
+        self.complete_picking(backorder1, self.test_check_location_01)
+        self.complete_picking(backorder2, self.test_check_location_01)
 
         # Next pickings: Get the outbound picking
         out_picking = self.Picking.search(
-            [("state", "=", "assigned"), ("picking_type_id", "=", self.picking_type_goods_out.id)]
+            [("state", "=", "assigned"), ("picking_type_id", "=", self.picking_type_check.id)]
         )
         self.assertEqual(len(out_picking), 1)
         self.assertEqual(len(out_picking.move_lines), 2)
@@ -743,7 +743,7 @@ class TestUpdateOrigIds(TestStockMove):
         # Have to create package for the apples
         apple_out_4ml.result_package_id = self.create_package()
         backorder_out1 = out_picking.backorder_move_lines(mls_to_keep=apple_out_4ml)
-        self.complete_picking(out_picking, self.test_trailer_location_01)
+        self.complete_picking(out_picking, self.test_goodsout_location_01)
         self.assertEqual(out_picking.move_lines.move_orig_ids, apple_move)
 
         # Complete another apple move line with lot2, can be identified by package and lot
@@ -752,20 +752,20 @@ class TestUpdateOrigIds(TestStockMove):
         # Have to create package for the apples
         apple_out_1ml.result_package_id = self.create_package()
         backorder_out2 = backorder_out1.backorder_move_lines(mls_to_keep=apple_out_1ml)
-        self.complete_picking(backorder_out1, self.test_trailer_location_01)
+        self.complete_picking(backorder_out1, self.test_goodsout_location_01)
         self.assertEqual(backorder_out1.move_lines.move_orig_ids, back2_apple_move)
 
         # Complete the remaining parts of the second package first (switcheroo)
         # Banana and apple. The banana is matched by package, the apple by lot and package
         package2_mls = backorder_out2.move_line_ids.filtered(lambda ml: ml.package_id == package2)
         backorder_out3 = backorder_out2.backorder_move_lines(mls_to_keep=package2_mls)
-        self.complete_picking(backorder_out2, self.test_trailer_location_01)
+        self.complete_picking(backorder_out2, self.test_goodsout_location_01)
         self.assertEqual(
             backorder_out2.move_lines.move_orig_ids, back2_apple_move | back2_banana_move
         )
 
         # Complete the first package, identified by package only
-        self.complete_picking(backorder_out3, self.test_trailer_location_01)
+        self.complete_picking(backorder_out3, self.test_goodsout_location_01)
         self.assertEqual(backorder_out3.move_lines.move_orig_ids, orig_banana_move)
 
         # Recheck the state is as expected
@@ -798,7 +798,7 @@ class TestUpdateOrigIds(TestStockMove):
         # Complete one banana move line
         banana_1ml.qty_done = banana_1ml.product_uom_qty
         backorder = picking.backorder_move_lines(mls_to_keep=banana_1ml)
-        self.complete_picking(picking, self.test_goodsout_location_01)
+        self.complete_picking(picking, self.test_check_location_01)
 
         # Add the split banana 5 move
         banana_5mv = backorder.move_lines.filtered(lambda mv: mv.product_id == self.banana)
@@ -806,7 +806,7 @@ class TestUpdateOrigIds(TestStockMove):
 
         # Split again leaving only unavailable work
         backorder2 = backorder.backorder_move_lines(mls_to_keep=backorder.move_line_ids)
-        self.complete_picking(backorder, self.test_goodsout_location_01)
+        self.complete_picking(backorder, self.test_check_location_01)
         self.assertEqual(backorder2.state, "confirmed")
 
         # Add the new remaining move
@@ -815,7 +815,7 @@ class TestUpdateOrigIds(TestStockMove):
 
         # Next pickings: Get the outbound picking
         out_picking = self.Picking.search(
-            [("move_lines", "!=", False), ("picking_type_id", "=", self.picking_type_goods_out.id)]
+            [("move_lines", "!=", False), ("picking_type_id", "=", self.picking_type_check.id)]
         )
         self.assertEqual(len(out_picking), 1)
 
@@ -834,7 +834,7 @@ class TestUpdateOrigIds(TestStockMove):
             lambda ml: ml.product_id == self.banana
         )
         backorder_out3 = backorder_out1.backorder_move_lines(mls_to_keep=remaining_banana_mls)
-        self.complete_picking(backorder_out1, self.test_trailer_location_01)
+        self.complete_picking(backorder_out1, self.test_goodsout_location_01)
         self.assertEqual(backorder_out1.move_lines.move_orig_ids, banana_move | banana_5mv)
 
         # Check the state is as expected. The out picking with just apple move points to the
@@ -863,8 +863,8 @@ class TestUpdateOrigIds(TestStockMove):
         pick2 = self.create_picking(self.picking_type_pick, products_info=product_info, assign=True)
         move1 = pick1.move_lines
         move2 = pick2.move_lines
-        self.complete_picking(pick1, self.test_goodsout_location_01)
-        self.complete_picking(pick2, self.test_goodsout_location_01)
+        self.complete_picking(pick1, self.test_check_location_01)
+        self.complete_picking(pick2, self.test_check_location_01)
 
         # Check that there is not a mysterious package/lot anywhere
         self.assertFalse(pick1.move_line_ids.result_package_id)
@@ -875,7 +875,7 @@ class TestUpdateOrigIds(TestStockMove):
         # Next pickings: Get the outbound pickings and merge into one, merging moves where possible
         # as well
         out_pickings = self.Picking.search(
-            [("state", "=", "assigned"), ("picking_type_id", "=", self.picking_type_goods_out.id)]
+            [("state", "=", "assigned"), ("picking_type_id", "=", self.picking_type_check.id)]
         )
         out_picking = out_pickings[0]
         self._combine_moves_and_pickings(
@@ -917,12 +917,12 @@ class TestUpdateOrigIds(TestStockMove):
     def test_update_orig_ids_over_earlier_backorder_in_chain(self):
         """
         Create a pick and partially complete it. Then with the stock that has been dropped off
-        from the pick, complete goods out pick for the available stock.
+        from the pick, complete Check pick for the available stock.
 
-        Ensure that the backorder created for the goods out is pointing to the backorder created
+        Ensure that the backorder created for the Check is pointing to the backorder created
         for the previous pick.
 
-        Complete the backorder of the pick and check that the backordered goods out has been
+        Complete the backorder of the pick and check that the backordered Check has been
         assigned stock.
         """
         # Cancel existing picking, start with
@@ -940,7 +940,7 @@ class TestUpdateOrigIds(TestStockMove):
 
         pallet1 = self.create_package()
         pick.move_line_ids.result_package_id = pallet1
-        pick.move_line_ids.location_dest_id = self.test_goodsout_location_01
+        pick.move_line_ids.location_dest_id = self.test_check_location_01
 
         # Partially pick apple and cherry lines, fully pick damson line
         pick.move_line_ids.filtered(lambda ml: ml.product_id == self.apple).qty_done = 9
@@ -951,25 +951,25 @@ class TestUpdateOrigIds(TestStockMove):
         pick._action_done()
         pick_backorder = pick.backorder_ids
 
-        # Partially complete Goods Out with whatever was completed in Pick
-        goods_out = pick.u_next_picking_ids
-        self.complete_picking(goods_out, self.test_trailer_location_01)
-        goods_out_backorder = goods_out.backorder_ids
+        # Partially complete Check with whatever was completed in Pick
+        check = pick.u_next_picking_ids
+        self.complete_picking(check, self.test_goodsout_location_01)
+        check_backorder = check.backorder_ids
         self.assertEqual(
-            goods_out_backorder.u_prev_picking_ids,
+            check_backorder.u_prev_picking_ids,
             pick_backorder,
-            "Goods Out backorder should be pointing to Pick backorder",
+            "Check backorder should be pointing to Pick backorder",
         )
 
         # Complete pick backorder onto a new pallet
         pallet2 = self.create_package()
         self.complete_picking(
-            pick_backorder, self.test_goodsout_location_01, dest_package_id=pallet2
+            pick_backorder, self.test_check_location_01, dest_package_id=pallet2
         )
 
-        # As the pick backorder has been completed, the goods out picking should now be ready
+        # As the pick backorder has been completed, the Check picking should now be ready
         self.assertEqual(
-            goods_out_backorder.state,
+            check_backorder.state,
             "assigned",
-            "Goods Out backorder should be assigned stock after Pick backorder is completed",
+            "Check backorder should be assigned stock after Pick backorder is completed",
         )
