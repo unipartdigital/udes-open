@@ -8,6 +8,8 @@ from odoo.addons.udes_common.models.fields import PreciseDatetime
 from odoo.exceptions import ValidationError
 from lxml import etree
 
+from ..utils import UDES_STATISTICS_LOG_FORMAT
+
 _logger = logging.getLogger(__name__)
 
 
@@ -850,7 +852,27 @@ class StockPicking(models.Model):
         ):
             pick._create_own_procurement_group()
         res = super().action_confirm()
+        return res
 
+    def _action_done(self):
+        """Extend to collect stats for the UDES monitor"""
+        # Collect action_done stats for monitor
+        with self.statistics() as stats:
+            res = super()._action_done()
+
+        # Ensure when multiple picking types are involved that the names are combined
+        picking_type_names = ",".join(self.mapped("picking_type_id.name"))
+        # Write the log
+        _logger.info(
+            UDES_STATISTICS_LOG_FORMAT,
+            self._name,
+            self.ids,
+            picking_type_names,
+            "action_done",
+            stats.elapsed,
+            stats.count,
+            stats.count / stats.elapsed
+        )
         return res
 
     def validate_picking(self, create_backorder=False, force_validate=False):
@@ -899,11 +921,19 @@ class StockPicking(models.Model):
             # but still needs more access rights for the flow
             # We don't want odoo stock module to create backorders. That is handed in UDES layer.
             self.sudo().with_context({"cancel_backorder": True})._action_done()
+        # Write the log
+        # It should never happen but ensure when multiple picking types
+        # are involved that the names are combined
+        picking_type_names = ",".join(self.mapped("picking_type_id.name"))
         _logger.info(
-            "%s udes_stock::validate_picking in %.2fs, %d queries",
-            self.log_name(),
+            UDES_STATISTICS_LOG_FORMAT,
+            self._name,
+            self.ids,
+            picking_type_names,
+            "validate_picking",
             stats.elapsed,
             stats.count,
+            stats.count / stats.elapsed
         )
 
         return new_picking

@@ -3,6 +3,8 @@ from odoo import _
 
 BASE_PRODUCT_IMAGE_URL = "/web/image/product.product/%i"
 
+UDES_STATISTICS_LOG_FORMAT = "(%s) %s (%s) %s in %.2fs, %d queries, %.2f q/s"
+
 
 def product_quantity_label(product, quantity):
     """A function for a common output format for product quantity labels"""
