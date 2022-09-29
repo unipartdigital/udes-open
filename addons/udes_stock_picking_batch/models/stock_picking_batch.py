@@ -726,67 +726,81 @@ class StockPickingBatch(models.Model):
         if completed_move_lines:
             to_update = {}
 
-            if dest_loc:
-                to_update["location_dest_id"] = dest_loc.id
-
-            pickings = completed_move_lines.picking_id
-            picking_type = pickings.picking_type_id
-            picking_type.ensure_one()
-
-            if picking_type.u_scan_parent_package_end:
-                if not result_package_name:
-                    raise ValidationError(_("Expecting result package on drop off."))
-
-                result_package = Package.get_or_create(result_package_name, create=True)
-
-                if picking_type.u_target_storage_format == "pallet_packages":
-                    # TODO: use new package hierarchy
-                    to_update["u_result_parent_package_id"] = result_package.id
-                elif picking_type.u_target_storage_format == "pallet_products":
-                    to_update["result_package_id"] = result_package.id
-                else:
-                    raise ValidationError(_("Unexpected result package at drop off."))
-
-            if to_update:
-                completed_move_lines.write(to_update)
-
-            to_add = Picking.browse()
-            picks_todo = Picking.browse()
-
-            for pick, rel_mls in completed_move_lines.groupby("picking_id"):
-                # Check if the picking needs to be backordered based on all the move lines
-                # in the picking. If something is incomplete then they will be placed into
-                # a backorder.
-                # NOTE: Added sudo() - Uses sudo() here as a user might not have the full access rights to stock.picking.batch
-                # but still needs more access rights for the flow
-                backorder = pick.sudo().backorder_move_lines(mls_to_keep=rel_mls)
-                # Add the picking to the batch if they are still continuing and it
-                # is available to be picked. Else kick it out for auto completion
-                # of batches.
-                if continue_batch and backorder.state in ("partially_available", "assigned"):
-                    to_add |= backorder
-
-                picks_todo |= pick
-
-            picks_todo.write({"u_reserved_pallet": False})
-
-            # If we dropped a package then reset the last package reserved in the batch as we usually
-            # ask the user to scan a new pallet once it has been dropped off in a new location
-            # NOTE: Added sudo() - Uses sudo() here as a user might not have the full access rights to stock.picking.batch
-            # but still needs more access rights for the flow
-            self.sudo().u_last_reserved_pallet_name = False
-
-            # Add any created backorders if needed
-            if to_add:
-                # NOTE: Added sudo() - Uses sudo() here as a user might not have the full access rights to stock.picking.batch
-                # but still needs more access rights for the flow
-                to_add.sudo().write({"batch_id": self.id})
-
+            # Collect mark_as_done stats for monitor
             with self.statistics() as stats:
+
+                if dest_loc:
+                    to_update["location_dest_id"] = dest_loc.id
+
+                pickings = completed_move_lines.picking_id
+                picking_type = pickings.picking_type_id
+                picking_type.ensure_one()
+
+                if picking_type.u_scan_parent_package_end:
+                    if not result_package_name:
+                        raise ValidationError(_("Expecting result package on drop off."))
+
+                    result_package = Package.get_or_create(result_package_name, create=True)
+
+                    if picking_type.u_target_storage_format == "pallet_packages":
+                        # TODO: use new package hierarchy
+                        to_update["u_result_parent_package_id"] = result_package.id
+                    elif picking_type.u_target_storage_format == "pallet_products":
+                        to_update["result_package_id"] = result_package.id
+                    else:
+                        raise ValidationError(_("Unexpected result package at drop off."))
+
+                if to_update:
+                    completed_move_lines.write(to_update)
+
+                to_add = Picking.browse()
+                picks_todo = Picking.browse()
+
+                for pick, rel_mls in completed_move_lines.groupby("picking_id"):
+                    # Check if the picking needs to be backordered based on all the move lines
+                    # in the picking. If something is incomplete then they will be placed into
+                    # a backorder.
+                    # NOTE: Added sudo() - Uses sudo() here as a user might not have the full access rights to stock.picking.batch
+                    # but still needs more access rights for the flow
+                    backorder = pick.sudo().backorder_move_lines(mls_to_keep=rel_mls)
+                    # Add the picking to the batch if they are still continuing and it
+                    # is available to be picked. Else kick it out for auto completion
+                    # of batches.
+                    if continue_batch and backorder.state in ("partially_available", "assigned"):
+                        to_add |= backorder
+
+                    picks_todo |= pick
+
+                picks_todo.write({"u_reserved_pallet": False})
+
+                # If we dropped a package then reset the last package reserved in the batch as we usually
+                # ask the user to scan a new pallet once it has been dropped off in a new location
+                # NOTE: Added sudo() - Uses sudo() here as a user might not have the full access rights to stock.picking.batch
+                # but still needs more access rights for the flow
+                self.sudo().u_last_reserved_pallet_name = False
+
+                # Add any created backorders if needed
+                if to_add:
+                    # NOTE: Added sudo() - Uses sudo() here as a user might not have the full access rights to stock.picking.batch
+                    # but still needs more access rights for the flow
+                    to_add.sudo().write({"batch_id": self.id})
+
                 picks_todo.sudo().with_context(tracking_disable=True)._action_done()
 
+            # Write the log
+            # It should never happen but ensure when multiple picking types
+            # are involved that the names are combined
+            picking_type_names = ""
+            for pick_type in picks_todo.mapped("picking_type_id"):
+                picking_type_names += pick_type.name
             _logger.info(
-                "%s action_done in %.2fs, %d queries", picks_todo, stats.elapsed, stats.count
+                "(%s) %s (%s) drop_off_picked in %.2fs, %d queries, %.2f q/s",
+                picks_todo._name,
+                picks_todo.ids,
+                picking_type_names,
+                stats.elapsed,
+                stats.count,
+                stats.count / stats.elapsed
             )
         if not continue_batch:
             # NOTE: Added sudo() - Uses sudo() here as a user might not have the full access rights to stock.picking.batch
