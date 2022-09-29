@@ -998,14 +998,14 @@ class TestStockPicking(TestStockPickingCommon):
 
     def test_get_child_locations_simple_success(self):
         """Get child locations"""
-        self.assertEqual(self.test_picking_pick._get_child_dest_locations(), self.test_goodsout_locations)
+        self.assertEqual(self.test_picking_pick._get_child_dest_locations(), self.test_check_locations)
 
     def test_get_child_locations_simple_success_with_extra_domain(self):
         """Get child locations - with extra domain"""
-        aux_domain = [("name", "=", self.test_goodsout_location_01.name)]
+        aux_domain = [("name", "=", self.test_check_location_01.name)]
         self.assertEqual(
             self.test_picking_pick._get_child_dest_locations(aux_domain=aux_domain),
-            self.test_goodsout_location_01,
+            self.test_check_location_01,
         )
 
     def test_get_child_locations_with_incorrrect_extra_domain(self):
@@ -1021,7 +1021,7 @@ class TestStockPicking(TestStockPickingCommon):
         self.assertEqual(pick.picking_type_id, self.picking_type_pick)
         # Check default pick locations
         self.assertEqual(pick.location_id, self.stock_location)
-        self.assertEqual(pick.location_dest_id, self.out_location)
+        self.assertEqual(pick.location_dest_id, self.check_location)
         # Check the number of moves is zero
         self.assertEqual(len(pick.move_lines), 0)
 
@@ -1039,7 +1039,7 @@ class TestStockPicking(TestStockPickingCommon):
         )
         # Check default pick locations
         self.assertEqual(pick.location_id, self.stock_location)
-        self.assertEqual(pick.location_dest_id, self.out_location)
+        self.assertEqual(pick.location_dest_id, self.check_location)
         # Check products
         self.assertEqual(pick.move_lines.product_id, products)
         # State is in draft
