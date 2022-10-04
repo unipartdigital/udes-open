@@ -7,8 +7,11 @@ odoo.define("udes_stock.FormController", function (require) {
     renderButtons: function () {
       this._super.apply(this, arguments);
       var hideCreateModels = ["stock.picking", "stock.inventory"];
-      if (hideCreateModels.includes(this.modelName)) {
-          this.$buttons.find("button.o_form_button_create").hide();
+      if (this.$buttons && hideCreateModels.includes(this.modelName)) {
+        var createButton = this.$buttons.find("button.o_form_button_create");
+        if (createButton) {
+          createButton.hide();
+        }
       }
     },
   });
