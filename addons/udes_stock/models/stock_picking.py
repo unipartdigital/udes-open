@@ -10,6 +10,7 @@ from ..common import check_many2one_validity
 from . import common
 from .. import utils
 
+import traceback
 import logging
 
 import time
@@ -210,10 +211,13 @@ class StockPicking(models.Model):
         For example, when creating a backorder,
         the backorder gets related but u_prev_picking_ids gets done after.
         So instead, we just write to a new field which we copy across backordered pickings
+
+        Checking date_done field if is set to a value but picking is not done.
         """
         picking = super().create(vals)
         if not picking.backorder_id:
             picking.write({"u_original_picking_id": picking.id})
+        picking.check_date_done()
         return picking
 
     def copy(self, default=None):
@@ -466,6 +470,8 @@ class StockPicking(models.Model):
         """
         Ensure we don't incorrectly validate pending pickings.
         Check if picking batch is now complete
+
+        Checking date_done field if is set to a value but pickings are not done.
         """
         res = False
         # Collect action_done stats for monitor
@@ -477,6 +483,7 @@ class StockPicking(models.Model):
             next_pickings = self.mapped("u_next_picking_ids")
 
             res = super(StockPicking, self.with_context(lock_batch_state=True)).action_done()
+            self.check_date_done()
 
             # just in case move lines change on action done, for instance cancelling
             # a picking
@@ -3093,3 +3100,42 @@ class StockPicking(models.Model):
         return self.open_related_pickings(
             self.u_created_back_orders.ids, "Created Back Orders"
         )
+
+    def check_date_done(self):
+        """
+        Set date_done field to empty in case that not all moves are in state done
+        """
+        for picking in self.filtered(lambda p: p.date_done and p.move_lines):
+            moves = picking.move_lines
+            move_states = moves.mapped("state")
+            if not set(move_states).issubset({"done", "cancel"}) and move_states != ["done"]:
+                # Traceback into an issue to be able to trace more why happened in
+                # order to replicate it and solve the issue
+                picking.traceback_date_done_issue()
+                # Set date_done field to empty
+                picking.write({"date_done": False})
+
+    def traceback_date_done_issue(self):
+        """
+        Check if a project with a specific name exists
+        In case that exists create an issue with the traceback on it, otherwise first create
+        the project, after create issue for the created project.
+        """
+        # Give sudo access rights not to have access rights issue
+        self = self.sudo()
+        Project = self.env["project.project"]
+        Issue = self.env["project.task"]
+        self.ensure_one()
+        traceback_message = traceback.extract_stack()
+        prevent_name = "Open Pickings with Date Done"
+        prevent_project = Project.search([
+            ("name", "=", prevent_name)
+        ], limit=1)
+        if not prevent_project:
+            prevent_project = Project.create({"name": prevent_name})
+        vals = {
+            "project_id": prevent_project.id,
+            "name": ("[%s] date_done set on open picking" % self.name),
+            "description": ''.join(traceback_message.format()),
+        }
+        Issue.create(vals)
