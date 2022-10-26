@@ -221,12 +221,16 @@ class StockMoveLine(models.Model):
             < 0
         ):
             # create new move line
+            move = self.move_id
+            location_dest_id = move.location_dest_id._get_putaway_strategy(
+                move.product_id).id or move.location_dest_id.id
             new_ml = self.copy(
                 default={
                     "product_uom_qty": split_qty,
                     "qty_done": 0.0,
                     "result_package_id": False,
                     "lot_name": False,
+                    "location_dest_id": location_dest_id,
                 }
             )
             # Quantity to keep in self
