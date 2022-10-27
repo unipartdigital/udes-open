@@ -145,31 +145,6 @@ class TestStockMoveLine(common.SuggestedLocations):
         self.assertEqual(len(locs), 1)
         self.assertIn(locs, self.pick_all_locs)
 
-    def test_validate_location_dest_nothing_droppable(self):
-        """Check that we just return when nothing is droppable"""
-        # Create a pick but do not assign
-        picking = self.create_picking(
-            self.picking_type_pick, products_info=[{"product": self.apple, "qty": 5}], confirm=True
-        )
-        apple_mls = picking.move_line_ids
-
-        # Check that suggested locations is not done as nothing is droppable
-        self.assertIsNone(apple_mls.validate_location_dest())
-        with self.mock_suggested_locations as mock_suggest_locs:
-            apple_mls.validate_location_dest()
-            mock_suggest_locs.assert_not_called()
-
-        # Complete the moves
-        picking.move_lines.quantity_done = 5
-        picking.move_line_ids.location_id = self.test_stock_location_01
-        picking._action_done()
-
-        # Sanity check that suggest_locations is not called
-        self.assertIsNone(apple_mls.validate_location_dest())
-        with self.mock_suggested_locations as mock_suggest_locs:
-            apple_mls.validate_location_dest()
-            mock_suggest_locs.assert_not_called()
-
     def test_validate_location_dest_view(self):
         """Check that we just return when the drop location is a view"""
         # Check location is a view
