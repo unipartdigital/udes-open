@@ -79,9 +79,11 @@ class SecureAction(Action):
         action_group_ids = []
         parent_path_ids = []
 
-        if not isinstance(action_id, int):
-            try:
-                action_id = int(action_id)
+        try:  # If you middle click a menu, action_id is a string..
+            action_id = int(action_id)
+        except ValueError:
+            try:  # JS `do_action("action_extid")` results in the parameter coming in as a string here
+                action_id = request.env.ref(action_id).id
             except ValueError:
                 raise ValidationError("Invalid action ID specified.")
         query = """
