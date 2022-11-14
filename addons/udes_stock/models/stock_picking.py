@@ -456,6 +456,18 @@ class StockPicking(models.Model):
                             )
                         )
 
+    def button_draft(self):
+        """
+        A button that moves the picking to the draft state. Adds an extra check in the backend that
+        should be triggered for only one transfer at time and the state is in waiting or confirmed
+        when the button is clicked.
+        Normally should not be any move lines, adding extra safety just in case in an
+        unknown scenario there are move lines.
+        """
+        self.ensure_one()
+        if self.state in ("waiting", "confirmed") and not self.move_line_ids:
+            self.move_lines.write({"state": "draft"})
+
     def action_assign(self):
         """
         Unlink empty pickings after action_assign, as there may be junk data

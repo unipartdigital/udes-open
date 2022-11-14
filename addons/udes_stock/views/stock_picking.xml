@@ -127,6 +127,13 @@
                 <attribute name="invisible">1</attribute>
             </xpath>
 
+            <!--Add Set To Draft button visible when picking has been marked as to do-->
+            <xpath expr="//button[@name='do_unreserve']" position="after">
+                <button name="button_draft"
+                        attrs="{'invisible': ['|', ('state', 'not in', ['waiting', 'confirmed']), ('move_line_ids', '=', True)]}"
+                        string="Set to Draft" type="object" groups="base.group_user"/>
+            </xpath>
+
             <!--Hide lock button-->
             <xpath expr="//button[@name='action_toggle_is_locked'][2]" position="attributes">
                 <attribute name="invisible">1</attribute>
@@ -162,6 +169,11 @@
             <!-- Add move_line_id to context for new packages name -->
             <xpath expr="//field[@name='result_package_id']" position="attributes">
                 <attribute name="context">{'move_line_ids': [id]}</attribute>
+            </xpath>
+
+            <!-- Adding another or condition: Not to be able to modify the Source location when transfer is not in specified states-->
+            <xpath expr="//field[@name='move_line_ids']/tree/field[@name='location_id']" position="attributes">
+                <attribute name="attrs">{'readonly': ['|', ('in_entire_package', '=', True), ('parent.state', 'not in', ['draft', 'waiting', 'confirmed'])]}</attribute>
             </xpath>
 
             <!-- Add button to show all fields, by default hidden fields will not be shown -->
