@@ -35,14 +35,14 @@ class StockMoveLine(models.Model):
             lines.write({"u_picking_type_id": pick_type_id})
 
     def get_lines_todo(self):
-        """ Return the move lines in self that are not completed,
-            i.e., quantity done < quantity todo
+        """Return the move lines in self that are not completed,
+        i.e., quantity done < quantity todo
         """
         return self.filtered(lambda ml: ml.qty_done < ml.product_uom_qty)
 
     def get_lines_done(self):
-        """ Return the move lines in self that are completed,
-            i.e., quantity done == quantity todo
+        """Return the move lines in self that are completed,
+        i.e., quantity done == quantity todo
         """
         return self.filtered(lambda ml: ml.qty_done == ml.product_uom_qty)
 
@@ -143,9 +143,7 @@ class StockMoveLine(models.Model):
             # Error when trying to mark_as_done a full package or setting result package
             # when result storage format is products
             if result_package:
-                raise ValidationError(
-                    _("Invalid parameters for products target storage format.")
-                )
+                raise ValidationError(_("Invalid parameters for products target storage format."))
 
         return (result_package, parent_package)
 
@@ -157,17 +155,17 @@ class StockMoveLine(models.Model):
         package=None,
         product_ids=None,
     ):
-        """ Marks as done the move lines in self and updates location_dest_id
-            and result_package_id if they are set.
+        """Marks as done the move lines in self and updates location_dest_id
+        and result_package_id if they are set.
 
-            When product_ids is set, only matching move lines from self will
-            be marked as done for a specific quantity.
+        When product_ids is set, only matching move lines from self will
+        be marked as done for a specific quantity.
 
-            - location_dest = string or id
-            - result_package = string or id
-            - package = string or id
-            - product_ids = list of dictionaries, whose keys will be
-                              barcode, qty, lot_names
+        - location_dest = string or id
+        - result_package = string or id
+        - package = string or id
+        - product_ids = list of dictionaries, whose keys will be
+                          barcode, qty, lot_names
         """
         # Collect mark_as_done stats for monitor
         with self.statistics() as stats:
@@ -193,7 +191,8 @@ class StockMoveLine(models.Model):
                     raise ValidationError(
                         _(
                             "The location '%s' is not a child of the picking destination "
-                            "location '%s'" % (loc_dest_instance.name, picking.location_dest_id.name)
+                            "location '%s'"
+                            % (loc_dest_instance.name, picking.location_dest_id.name)
                         )
                     )
 
@@ -222,7 +221,9 @@ class StockMoveLine(models.Model):
                 )
 
                 if not package and move_lines.mapped("package_id"):
-                    raise ValidationError(_("Setting as done package operations as product operations"))
+                    raise ValidationError(
+                        _("Setting as done package operations as product operations")
+                    )
 
             if not move_lines:
                 raise ValidationError(_("Cannot find move lines to mark as done"))
@@ -307,7 +308,7 @@ class StockMoveLine(models.Model):
             "mark_as_done",
             stats.elapsed,
             stats.count,
-            stats.count / stats.elapsed
+            stats.count / stats.elapsed,
         )
         return mls_done
 
@@ -320,13 +321,13 @@ class StockMoveLine(models.Model):
         self.env.ref("udes_stock.picking_update_move_done").with_context(**move_ctx).run()
 
     def _filter_by_products_info(self, products_info):
-        """ Filter the move_lines in self by the products in product_ids.
-            When a product is tracked by lot/serial number:
-            - when they have lot_id set, they are also filtered by
-              lot number and check that they are not done
-            - when they have lot_name, it is checked to avoid repeated
-              lot numbers (except for lot based tracking where this is
-              allowed)
+        """Filter the move_lines in self by the products in product_ids.
+        When a product is tracked by lot/serial number:
+        - when they have lot_id set, they are also filtered by
+          lot number and check that they are not done
+        - when they have lot_name, it is checked to avoid repeated
+          lot numbers (except for lot based tracking where this is
+          allowed)
         """
         # get all move lines of the products in products_info
         move_lines = self.filtered(lambda ml: ml.product_id in products_info)
@@ -424,10 +425,10 @@ class StockMoveLine(models.Model):
             return False
 
     def get_package_move_lines(self, package):
-        """ Get move lines of package when package is a package or
-            a parent package, and to handle swapping packages in
-            case the expected_package_names entry is included in
-            the context.
+        """Get move lines of package when package is a package or
+        a parent package, and to handle swapping packages in
+        case the expected_package_names entry is included in
+        the context.
 
         """
         Package = self.env["stock.quant.package"]
@@ -439,7 +440,11 @@ class StockMoveLine(models.Model):
 
         if expected_package_names is not None:
 
-            expected_packages = Package.search([("name", "in", expected_package_names),])
+            expected_packages = Package.search(
+                [
+                    ("name", "in", expected_package_names),
+                ]
+            )
 
             product_ids = self.env.context.get("product_ids")
             if self._requires_pack_swapping(package, expected_packages, product_ids):
@@ -460,9 +465,9 @@ class StockMoveLine(models.Model):
         return move_lines
 
     def _assert_result_package(self, result_package):
-        """ Checks that result_package is the expected result package
-            for the move lines in self. i.e., result_package has to
-            match with move_line.result_package_id.
+        """Checks that result_package is the expected result package
+        for the move lines in self. i.e., result_package has to
+        match with move_line.result_package_id.
         """
         if not result_package:
             return
@@ -480,7 +485,7 @@ class StockMoveLine(models.Model):
                 )
 
     def generate_lot_name(self, lot_names, product):
-        """ If required, create a lot and return it's name in a list """
+        """If required, create a lot and return it's name in a list"""
         picking_type = self.mapped("picking_id.picking_type_id")
         picking_type.ensure_one()
         confirm_tracking = picking_type.u_scan_tracking
@@ -495,22 +500,22 @@ class StockMoveLine(models.Model):
             return lot_names
 
     def _generate_lot_name(self, product):
-        """ Create a lot and return the name of it """
+        """Create a lot and return the name of it"""
         Lots = self.env["stock.production.lot"]
         lot = Lots.create({"product_id": product.id})
         return lot.name
 
     def _update_products_info(self, product, products_info, info):
-        """ For each (key, value) in info it merges to the corresponding
-            product info if it already exists.
+        """For each (key, value) in info it merges to the corresponding
+        product info if it already exists.
 
-            where key:
-                qty, lot_names
+        where key:
+            qty, lot_names
 
-            Only for products not tracked or tracked by serial numbers
+        Only for products not tracked or tracked by serial numbers
 
-            TODO: extend this function to handle damaged
-                damaged_qty, damaged_serial_numbers
+        TODO: extend this function to handle damaged
+            damaged_qty, damaged_serial_numbers
         """
         tracking = product.tracking
         if tracking != "none":
@@ -548,13 +553,13 @@ class StockMoveLine(models.Model):
         return products_info
 
     def _check_enough_quantity(self, products_info, picking=None):
-        """ Check that move_lines in self can fulfill the quantity done
-            in products_info, otherwise create unexpected parts if
-            applicable.
+        """Check that move_lines in self can fulfill the quantity done
+        in products_info, otherwise create unexpected parts if
+        applicable.
 
-            products_info is mapped by product and contains a dictionary
-            with the qty to be marked as done and the list of serial
-            numbers
+        products_info is mapped by product and contains a dictionary
+        with the qty to be marked as done and the list of serial
+        numbers
         """
         move_lines = self
         # products_todo stores extra quantity done per product that
@@ -582,8 +587,8 @@ class StockMoveLine(models.Model):
         return move_lines
 
     def _prepare_products_info(self, product_ids):
-        """ Reindex products_info by product.product model, merge repeated
-            products info into one
+        """Reindex products_info by product.product model, merge repeated
+        products info into one
         """
         Product = self.env["product.product"]
 
@@ -597,12 +602,12 @@ class StockMoveLine(models.Model):
         return products_info_by_product
 
     def _prepare_line_product_info(self, values, products_info):
-        """ Updates values with the proper quantity done and optionally
-            with a serial number, and updates products_info according
-            to it by decreasing the remaining quantity to be done
-            There is an assumption that if using lot numbers/serial numbers
-            that the lot names of move lines are included in the list of lot
-            numbers
+        """Updates values with the proper quantity done and optionally
+        with a serial number, and updates products_info according
+        to it by decreasing the remaining quantity to be done
+        There is an assumption that if using lot numbers/serial numbers
+        that the lot names of move lines are included in the list of lot
+        numbers
         """
         # TODO: extend for damaged in a different module
         self.ensure_one()
@@ -638,8 +643,7 @@ class StockMoveLine(models.Model):
         return (values, products_info)
 
     def _mark_as_done(self, values, split=True):
-        """ Upate the move line with values and splits it if needed.
-        """
+        """Upate the move line with values and splits it if needed."""
         self.ensure_one()
         if "qty_done" not in values:
             raise ValidationError(
@@ -656,11 +660,11 @@ class StockMoveLine(models.Model):
         return self
 
     def _split(self):
-        """ Split the move line in self if:
-            - quantity done < quantity todo
-            - quantity done > 0
+        """Split the move line in self if:
+        - quantity done < quantity todo
+        - quantity done > 0
 
-            returns either self or the new move line
+        returns either self or the new move line
         """
         self.ensure_one()
         res = self
@@ -701,17 +705,21 @@ class StockMoveLine(models.Model):
             # - bypass_reservation_update:
             #   avoids to execute code specific for Odoo UI at stock.move.line.write()
             self.with_context(bypass_reservation_update=True).write(
-                {"product_uom_qty": done_to_keep, "qty_done": qty_done, "ordered_qty": ordered_qty,}
+                {
+                    "product_uom_qty": done_to_keep,
+                    "qty_done": qty_done,
+                    "ordered_qty": ordered_qty,
+                }
             )
             res = new_ml
 
         return res
 
     def _split_by_qty(self, qty):
-        """ Split current move line in self in two move lines, where the new one
-            has product_uom_qty (quantity to do) == qty
+        """Split current move line in self in two move lines, where the new one
+        has product_uom_qty (quantity to do) == qty
 
-            returns either self or the new move line
+        returns either self or the new move line
         """
         # TODO: refactor with _split() making qty optional, when it is not set
         #       split by qty done
@@ -760,20 +768,23 @@ class StockMoveLine(models.Model):
             # - bypass_reservation_update:
             #   avoids to execute code specific for Odoo UI at stock.move.line.write()
             self.with_context(bypass_reservation_update=True).write(
-                {"product_uom_qty": old_ml_qty_todo, "ordered_qty": old_ml_ordered_qty,}
+                {
+                    "product_uom_qty": old_ml_qty_todo,
+                    "ordered_qty": old_ml_ordered_qty,
+                }
             )
             res = new_ml
 
         return res
 
     def move_lines_for_qty(self, quantity, sort=True):
-        """ Return a subset of move lines from self where their sum of quantity
-            to do is equal to parameter quantity.
-            In case that a move line needs to be split, the new move line is
-            also returned (this happens when total quantity in the move lines is
-            greater than quantity parameter).
-            If there is not enough quantity to do in the mov lines,
-            also return the remaining quantity.
+        """Return a subset of move lines from self where their sum of quantity
+        to do is equal to parameter quantity.
+        In case that a move line needs to be split, the new move line is
+        also returned (this happens when total quantity in the move lines is
+        greater than quantity parameter).
+        If there is not enough quantity to do in the mov lines,
+        also return the remaining quantity.
         """
         new_ml = None
 
@@ -805,8 +816,7 @@ class StockMoveLine(models.Model):
         return result, new_ml, quantity
 
     def _get_all_products_quantities(self):
-        """This function computes the different product quantities for the given move_lines
-        """
+        """This function computes the different product quantities for the given move_lines"""
         res = defaultdict(int)
         for move_line in self:
             res[move_line.product_id] += move_line.product_uom_qty
@@ -814,18 +824,18 @@ class StockMoveLine(models.Model):
 
     def _prepare_info(self):
         """
-            Prepares the following info of the move line self:
-            - id: int
-            - create_date: datetime
-            - location_dest_id: {stock.lcation}
-            - location_id: {stock.lcation}
-            - lot_id: TBC
-            - package_id: {stock.quant.package}
-            - result_package_id: {stock.quant.package}
-            - u_result_parent_package_id: {stock.quant.package}
-            - product_uom_qty: float
-            - qty_done: float
-            - write_date: datetime
+        Prepares the following info of the move line self:
+        - id: int
+        - create_date: datetime
+        - location_dest_id: {stock.lcation}
+        - location_id: {stock.lcation}
+        - lot_id: TBC
+        - package_id: {stock.quant.package}
+        - result_package_id: {stock.quant.package}
+        - u_result_parent_package_id: {stock.quant.package}
+        - product_uom_qty: float
+        - qty_done: float
+        - write_date: datetime
         """
         self.ensure_one()
 
@@ -854,8 +864,7 @@ class StockMoveLine(models.Model):
         }
 
     def get_info(self):
-        """ Return a list with the information of each move line in self.
-        """
+        """Return a list with the information of each move line in self."""
         res = []
         for line in self:
             res.append(line._prepare_info())
@@ -863,13 +872,11 @@ class StockMoveLine(models.Model):
         return res
 
     def sort_by_location_product(self):
-        """ Return the move lines sorted by location and product
-        """
+        """Return the move lines sorted by location and product"""
         return self.sorted(key=lambda ml: (ml.location_id.name, ml.product_id.id))
 
     def get_quants(self):
-        """ Returns the quants related to move lines in self
-        """
+        """Returns the quants related to move lines in self"""
         Quant = self.env["stock.quant"]
 
         quants = Quant.browse()
@@ -897,9 +904,7 @@ class StockMoveLine(models.Model):
             "picking_id": picking.id,
         }
         if picking.picking_type_id.u_reserve_pallet_per_picking:
-            task.update({
-                "reserved_pallet": picking.u_reserved_pallet
-            })
+            task.update({"reserved_pallet": picking.u_reserved_pallet})
 
         # Check if user_scans is manually set in context first
         user_scans = self.env.context.get("user_scans")
@@ -993,10 +998,10 @@ class StockMoveLine(models.Model):
     @api.constrains("location_dest_id")
     @api.onchange("location_dest_id")
     def _validate_location_dest(self, location=None):
-        """ Ensures that the location destination is a child of the
-            default_location_dest_id of the picking and that is
-            one of the suggested locations if the drop off policy
-            is 'enforce' or 'enforce_with_empty'.
+        """Ensures that the location destination is a child of the
+        default_location_dest_id of the picking and that is
+        one of the suggested locations if the drop off policy
+        is 'enforce' or 'enforce_with_empty'.
         """
         Users = self.env["res.users"]
 
@@ -1053,16 +1058,16 @@ class StockMoveLine(models.Model):
 
     def any_destination_locations_default(self):
         """Checks if all location_dest_id's are the picks default
-           location_dest_id of the picking.
+        location_dest_id of the picking.
         """
         default_dest = self.mapped("picking_id.location_dest_id")
         default_dest.ensure_one()
         return any(ml.location_dest_id == default_dest for ml in self)
 
     def new_package_name(self):
-        """ Given a move line compute the next package name according to
-            the policy assigned to the its picking picking type.
-            If no policy is assigned the default policy is applied.
+        """Given a move line compute the next package name according to
+        the policy assigned to the its picking picking type.
+        If no policy is assigned the default policy is applied.
         """
         picking_type = self.mapped("picking_id.picking_type_id")
         picking_type.ensure_one()
@@ -1081,12 +1086,12 @@ class StockMoveLine(models.Model):
         return self.env["stock.quant.package"].new_package_name()
 
     def _drop_off_criterion_summary(self):
-        """ Generate product summary for drop off criterion for the move
-            lines in self.
-            Generate one piece of information for each product:
-            * Display name
-            * Total quantity in move lines
-            * Speed of the product (if it is set)
+        """Generate product summary for drop off criterion for the move
+        lines in self.
+        Generate one piece of information for each product:
+        * Display name
+        * Total quantity in move lines
+        * Speed of the product (if it is set)
         """
         self.mapped("product_id")
         summary = ""
@@ -1114,21 +1119,29 @@ class StockMoveLine(models.Model):
 
         # When a moveline is updated through desktop only one "done" move line is passed into self even when there are multiple
         # Get all the done move lines on the picking if there is only one "done" move line
-        if len(done_lines) == 1 and self.mapped("picking_id"):
-            done_lines = self.mapped("picking_id.move_line_ids").filtered(
-                lambda ml: ml.state == "done"
-            )
+        if len(done_lines) == 1:
+            picking_ids = self.mapped("picking_id.id")
+            if picking_ids:
+                done_lines = self.search(
+                    [("picking_id", "in", picking_ids), ("state", "=", "done")], order="id"
+                )
 
         if done_lines:
-            # For each done line
-            # Create error message
+            # For each done line create an error message
             move_line_strings = list()
             for line in done_lines:
                 _logger.error(
-                    f"Move Line id: {line.id} in state 'done' cannot be written to. Product id: {line.product_id.id}, Quantity: {line.qty_done}, Destination Location id: {line.location_dest_id.id}, Lot/Serial id: {line.lot_id if line.lot_id else False}, Package id: {line.result_package_id.id if line.result_package_id else False}"
+                    "Move Line id: %s in state 'done' cannot be written to. Picking id: %s, Product id: %s, Quantity: %s Destination Location id: %s, Lot/Serial id: %s, Package id: %s",
+                    line.id,
+                    line.picking_id.id,
+                    line.product_id.id,
+                    line.qty_done,
+                    line.location_dest_id.id,
+                    line.lot_id if line.lot_id else False,
+                    line.result_package_id.id if line.result_package_id else False,
                 )
                 move_line_strings.append(
-                    f"Product: {line.product_id.name}, Quantity: {line.qty_done}, Location: {line.location_dest_id.name}, Lot/Serial Number: {line.lot_name if line.lot_name else False}, Package Name: {line.result_package_id.name if line.result_package_id else False}"
+                    f"Picking: {line.picking_id.name}, Product: {line.product_id.name}, Quantity: {line.qty_done}, Location: {line.location_dest_id.name}, Lot/Serial Number: {line.lot_id.name if line.lot_id.name else False}, Package Name: {line.result_package_id.name if line.result_package_id else False}"
                 )
 
             raise ValidationError(
@@ -1138,8 +1151,7 @@ class StockMoveLine(models.Model):
 
     @api.model_cr
     def init(self):
-        """ Creates indexes for _check_resultant_package_level
-        """
+        """Creates indexes for _check_resultant_package_level"""
         super(StockMoveLine, self).init()
 
         tools.create_index(
@@ -1251,7 +1263,7 @@ class StockMoveLine(models.Model):
                 # Need to split a line to reach the maximum without exceeding it
                 remainder = ml.product_uom_qty - difference
                 new_ml = ml._split_by_qty(remainder)
-                movelines =+ ml
+                movelines = +ml
                 grouped_mls.append(movelines)
                 # Use the other split ml as the first ml in a new group
                 # (will allways be less than maximum due to previous step)
