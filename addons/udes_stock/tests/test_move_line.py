@@ -162,3 +162,93 @@ class TestValidateLocationDest(common.BaseUDES):
             for ml in mls:
                 # Expecting no error
                 ml.write({'location_dest_id': self.test_location_02.id})
+
+class TestDoneMoveLineErrorMessage(common.BaseUDES):
+    """Test the error message when writing to a "done" move line"""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        # Setup first picking
+        products_info = [{"product": cls.apple, "qty": 5}]
+        cls.create_quant(cls.apple.id, cls.test_location_02.id, 5)
+        cls.test_picking = cls.create_picking(
+            cls.picking_type_pick,
+            products_info=products_info,
+            assign=True,
+        )
+
+        # Create picking to generate done move line, and it to the first picking
+        cls.create_quant(cls.apple.id, cls.test_location_01.id, 5)
+        cls.test_picking_2 = cls.create_picking(
+            cls.picking_type_pick,
+            products_info=products_info,
+            assign=True,
+        )
+        cls.test_picking_2.mapped("move_line_ids").write({"qty_done": 5.0})
+        cls.test_picking_2.button_validate()
+        done_move_line = cls.test_picking_2.move_line_ids
+        done_move_line.write({"picking_id": cls.test_picking.id})
+
+    def test_validate_picking_with_done_move_lines_produces_correct_error_message_one_done_move_line(
+        self,
+    ):
+        """
+        Write to move lines on a picking with a move line in the "done" state, should give a detailed error message
+        """
+        move_lines = self.test_picking.mapped("move_line_ids")
+        self.assertEqual(len(move_lines), 2)
+        self.assertEqual(move_lines.mapped("product_id.name"), ["Test product Apple"])
+        self.assertEqual(move_lines.mapped("qty_done"), [0.0, 5.0])
+        self.assertEqual(move_lines.mapped("product_uom_qty"), [5.0, 0.0])
+        self.assertEqual(move_lines.mapped("state"), ["assigned", "done"])
+
+        # Replicate writing to both the movelines which will throw exception
+        with self.assertRaises(ValidationError) as e:
+            move_lines.write({"qty_done": 5.0})
+
+        self.assertEqual(
+            e.exception.name,
+            "Cannot update move lines that are already 'done': \n"
+            "Product: Test product Apple, Quantity: 5.0, Location: TEST_OUT, Lot/Serial Number: False, Package Name: False",
+        )
+
+    def test_validate_picking_with_done_move_lines_produces_correct_error_message_two_done_move_line(
+        self,
+    ):
+        """
+        Write to move lines on a picking with two move lines that are in the "done" state, should give a detailed error message
+        """
+        # Create another done move line
+        products_info = [{"product": self.banana, "qty": 5}]
+        self.create_quant(self.banana.id, self.test_location_01.id, 5)
+        test_picking_3 = self.create_picking(
+            self.picking_type_pick,
+            products_info=products_info,
+            assign=True,
+        )
+        test_picking_3.mapped("move_line_ids").write({"qty_done": 5.0})
+        test_picking_3.button_validate()
+        done_move_line = test_picking_3.move_line_ids
+        # Add "done" move line to picking
+        done_move_line.write({"picking_id": self.test_picking.id})
+
+        move_lines = self.test_picking.mapped("move_line_ids")
+        self.assertEqual(len(move_lines), 3)
+        self.assertEqual(
+            move_lines.mapped("product_id.name"), ["Test product Apple", "Test product Banana"]
+        )
+        self.assertEqual(move_lines.mapped("qty_done"), [0.0, 5.0, 5.0])
+        self.assertEqual(move_lines.mapped("product_uom_qty"), [5.0, 0.0, 0.0])
+        self.assertEqual(move_lines.mapped("state"), ["assigned", "done", "done"])
+
+        # Replicate writing to all the movelines which will throw exception
+        with self.assertRaises(ValidationError) as e:
+            move_lines.write({"qty_done": 5.0})
+
+        self.assertEqual(
+            e.exception.name,
+            "Cannot update move lines that are already 'done': \n"
+            "Product: Test product Apple, Quantity: 5.0, Location: TEST_OUT, Lot/Serial Number: False, Package Name: False\n"
+            "Product: Test product Banana, Quantity: 5.0, Location: TEST_OUT, Lot/Serial Number: False, Package Name: False",
+        )

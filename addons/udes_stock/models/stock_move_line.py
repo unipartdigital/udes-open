@@ -1110,9 +1110,31 @@ class StockMoveLine(models.Model):
         "qty_done",
     )
     def _prevent_write_after_done(self):
-        done_lines = self.filtered(lambda x: x.state == "done")
+        done_lines = self.filtered(lambda ml: ml.state == "done")
+
+        # When a moveline is updated through desktop only one "done" move line is passed into self even when there are multiple
+        # Get all the done move lines on the picking if there is only one "done" move line
+        if len(done_lines) == 1 and self.mapped("picking_id"):
+            done_lines = self.mapped("picking_id.move_line_ids").filtered(
+                lambda ml: ml.state == "done"
+            )
+
         if done_lines:
-            raise ValidationError(_("Cannot update move lines that are already 'done'."))
+            # For each done line
+            # Create error message
+            move_line_strings = list()
+            for line in done_lines:
+                _logger.error(
+                    f"Move Line id: {line.id} in state 'done' cannot be written to. Product id: {line.product_id.id}, Quantity: {line.qty_done}, Destination Location id: {line.location_dest_id.id}, Lot/Serial id: {line.lot_id if line.lot_id else False}, Package id: {line.result_package_id.id if line.result_package_id else False}"
+                )
+                move_line_strings.append(
+                    f"Product: {line.product_id.name}, Quantity: {line.qty_done}, Location: {line.location_dest_id.name}, Lot/Serial Number: {line.lot_name if line.lot_name else False}, Package Name: {line.result_package_id.name if line.result_package_id else False}"
+                )
+
+            raise ValidationError(
+                _("Cannot update move lines that are already 'done': \n%s")
+                % ("\n".join(move_line_strings))
+            )
 
     @api.model_cr
     def init(self):
