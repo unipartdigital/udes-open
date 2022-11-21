@@ -25,6 +25,23 @@
                 </tree>
             </field>
         </record>
+        <record id="location_category_form_view" model="ir.ui.view">
+            <field name="name">stock.location.category.form</field>
+            <field name="model">stock.location.category</field>
+            <field name="priority">1</field>
+            <field name="arch" type="xml">
+                <form string="Product Compartment Quantity" duplicate="0">
+                    <sheet>
+                        <group string="Location Categories">
+                            <field name="name"/>
+                            <field name="complete_name"/>
+                            <field name="parent_id"/>
+                            <field name="child_ids"/>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
         <record id="location_category_action" model="ir.actions.act_window">
             <field name="name">Location Categories</field>
             <field name="type">ir.actions.act_window</field>
