@@ -425,6 +425,24 @@ class StockMoveLine(models.Model):
                     ], order="id"
                 )
 
+                # For the message thread to notify of the tracked product swapped out
+                old_mls = mls_need_changing | swapped_lot_on_assigned_mls
+                for picking, mls in old_mls.groupby("picking_id"): 
+                    picking_qty = quantity_swapping
+                    swap_out_title = "Tracked Products Swapped Out: <ul>"
+                    swap_out_text=""
+                    for ml in mls:
+                        picking_qty -= ml.product_uom_qty
+                        swapped_qty = min([quantity_swapping,ml.product_uom_qty])
+                        if is_serial:
+                            swapped_qty = 1
+                        swap_out_text += f"<li>Product: {ml.product_id.name}, Quantity: {float(swapped_qty)}, Lot/Serial Name: {ml.lot_id.name} </li>"
+                        if picking_qty <= 0:
+                            break
+                    end_of_list = "</ul>"
+                    body = swap_out_title + swap_out_text + end_of_list
+                    picking.message_post(body=body)
+
                 # Check there is available quantity on the system
                 domain = [
                     ("product_id", "=", product.id),
@@ -483,7 +501,7 @@ class StockMoveLine(models.Model):
                         else:
                             prod_dict = {"product_uom_qty": abs(quantity), "qty_done": 0}
                             res[ml] = prod_dict
-                
+
                 # Remove swapped in lot from old move line and replace it with swapped out lot
                 # Can zip as lot_ids_swapped_out will never have fewer item then swapped_lot_on_assigned_mls
                 for old_lot, ml_to_change in zip(lot_ids_swapped_out, swapped_lot_on_assigned_mls):
@@ -504,6 +522,23 @@ class StockMoveLine(models.Model):
 
                 # Remove lot names that have been processed so they are not called below
                 lot_names = list(set(lot_names) - set(lot_names_swapped_in))
+
+            # For the message thread to notify of the tracked products swapped in
+            new_mls = StockMoveLine.browse() 
+            for ml, mls_values in res.items():
+                new_mls = new_mls | ml
+            
+            for picking, mls in new_mls.groupby("picking_id"):
+                swap_in_title = "Tracked Products Swapped In: <ul>"
+                swap_in_text=""
+                for ml in mls:
+                    mls_value = res[ml]
+                    if mls_value["lot_name"] != ml.lot_id.name:
+                        swap_in_text += f"<li>Product: {ml.product_id.name}, Quantity: {float(mls_value['product_uom_qty'])}, Lot/Serial Name: {mls_value['lot_name']} </li>"
+                end_of_list = "</ul>"
+                body = swap_in_title + swap_in_text + end_of_list
+                picking.message_post(body=body)
+                
         return res, lot_names
 
     def mark_as_done(self, values=None):
