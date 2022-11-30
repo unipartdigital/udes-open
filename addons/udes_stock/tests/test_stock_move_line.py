@@ -587,6 +587,15 @@ class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
         for mls, mls_values in res.items():
             mls.mark_as_done(mls_values)
         self.assertEqual(picking.move_line_ids.lot_id.mapped("name"), ["2"])
+        
+        swap_out_title = "<p>Tracked Products Swapped Out: </p><ul>"
+        swap_out_text = f"<li>Product: {self.strawberry.name}, Quantity: 1.0, Lot/Serial Name: 1 </li></ul>"
+        swap_out_message = swap_out_title + swap_out_text
+        swap_in_title = "<p>Tracked Products Swapped In: </p><ul>"
+        swap_in_text = f"<li>Product: {self.strawberry.name}, Quantity: 1.0, Lot/Serial Name: 2 </li></ul>"
+        swap_in_message = swap_in_title + swap_in_text
+        self.assertEqual(picking.message_ids[0].body, swap_in_message)
+        self.assertEqual(picking.message_ids[1].body, swap_out_message)
 
     def test_swap_serial_lot_names_on_multiple_move_lines(self):
         """
@@ -622,6 +631,17 @@ class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
         self.assertEqual(picking.move_line_ids.mapped("product_uom_qty"), [1.0, 1.0, 1.0])
         self.assertEqual(picking.move_line_ids.mapped("qty_done"), [1.0, 1.0, 1.0])
 
+        swap_out_title = "<p>Tracked Products Swapped Out: </p><ul>"
+        swap_out_text = f"<li>Product: {self.strawberry.name}, Quantity: 1.0, Lot/Serial Name: 2 </li>"
+        swap_out_text += f"<li>Product: {self.strawberry.name}, Quantity: 1.0, Lot/Serial Name: 3 </li></ul>"
+        swap_out_message = swap_out_title + swap_out_text
+        swap_in_title = "<p>Tracked Products Swapped In: </p><ul>"
+        swap_in_text = f"<li>Product: {self.strawberry.name}, Quantity: 1.0, Lot/Serial Name: 4 </li>"
+        swap_in_text += f"<li>Product: {self.strawberry.name}, Quantity: 1.0, Lot/Serial Name: 5 </li></ul>"
+        swap_in_message = swap_in_title + swap_in_text
+        self.assertEqual(picking.message_ids[0].body, swap_in_message)
+        self.assertEqual(picking.message_ids[1].body, swap_out_message)
+
     def test_swap_lot_lot_name_on_single_move_line(self):
         """
         When prepare is given a differrent lot name for a single lot product move_line, and u_tracked_product_swap is turned on, then the resultant move_line value will
@@ -655,6 +675,15 @@ class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
             mls.mark_as_done(mls_values)
         self.assertEqual(picking.move_line_ids.lot_id.mapped("name"), ["2"])
 
+        swap_out_title = "<p>Tracked Products Swapped Out: </p><ul>"
+        swap_out_text = f"<li>Product: {self.tangerine.name}, Quantity: 10.0, Lot/Serial Name: 1 </li></ul>"
+        swap_out_message = swap_out_title + swap_out_text
+        swap_in_title = "<p>Tracked Products Swapped In: </p><ul>"
+        swap_in_text = f"<li>Product: {self.tangerine.name}, Quantity: 10.0, Lot/Serial Name: 2 </li></ul>"
+        swap_in_message = swap_in_title + swap_in_text
+        self.assertEqual(picking.message_ids[0].body, swap_in_message)
+        self.assertEqual(picking.message_ids[1].body, swap_out_message)
+
     def test_swapping_the_lots_on_two_move_lines(self):
         """
         Swap lot when new lot is actually reserved on the move_line of another picking
@@ -670,8 +699,6 @@ class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
         Picking 1, Moveline: 10 x lot 2
         Picking 2, Moveline: 10 x lot 1
         """
-        Quant = self.env["stock.quant"]
-
         self.picking_type_pick.u_allow_swapping_tracked_products = True
         for lot_num in range(1, 6):
             self.create_quant(
@@ -708,6 +735,24 @@ class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
 
         self.assertEqual(self._quantity_reserved_on_a_quant("1", location = self.test_stock_location_01), 10.0)
         self.assertEqual(self._quantity_reserved_on_a_quant("2", location = self.test_stock_location_01), 10.0)
+
+        swap_out_title = "<p>Tracked Products Swapped Out: </p><ul>"
+        swap_out_text = f"<li>Product: {self.tangerine.name}, Quantity: 10.0, Lot/Serial Name: 1 </li></ul>"
+        swap_out_message = swap_out_title + swap_out_text
+        swap_in_title = "<p>Tracked Products Swapped In: </p><ul>"
+        swap_in_text = f"<li>Product: {self.tangerine.name}, Quantity: 10.0, Lot/Serial Name: 2 </li></ul>"
+        swap_in_message = swap_in_title + swap_in_text
+        self.assertEqual(first_picking.message_ids[0].body, swap_in_message)
+        self.assertEqual(first_picking.message_ids[1].body, swap_out_message)
+
+        swap_out_title = "<p>Tracked Products Swapped Out: </p><ul>"
+        swap_out_text = f"<li>Product: {self.tangerine.name}, Quantity: 10.0, Lot/Serial Name: 2 </li></ul>"
+        swap_out_message = swap_out_title + swap_out_text
+        swap_in_title = "<p>Tracked Products Swapped In: </p><ul>"
+        swap_in_text = f"<li>Product: {self.tangerine.name}, Quantity: 10.0, Lot/Serial Name: 1 </li></ul>"
+        swap_in_message = swap_in_title + swap_in_text
+        self.assertEqual(second_picking.message_ids[0].body, swap_in_message)
+        self.assertEqual(second_picking.message_ids[1].body, swap_out_message)
     
     def test_swapping_the_lots_on_two_move_lines_with_partial_qty(self):
         """
@@ -727,8 +772,6 @@ class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
         Picking 1, Moveline: 10 x lot 2
         Picking 2, Moveline: 10 x lot 1
         """
-        Quant = self.env["stock.quant"]
-
         self.picking_type_pick.u_allow_swapping_tracked_products = True
         for lot_num in range(1, 6):
             self.create_quant(
@@ -779,6 +822,28 @@ class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
 
         self.assertEqual(self._quantity_reserved_on_a_quant("1", location = self.test_stock_location_01), 10.0)
         self.assertEqual(self._quantity_reserved_on_a_quant("2", location = self.test_stock_location_01), 10.0)
+
+        swap_out_title = "<p>Tracked Products Swapped Out: </p><ul>"
+        swap_out_text = f"<li>Product: {self.tangerine.name}, Quantity: 5.0, Lot/Serial Name: 1 </li></ul>"
+        swap_out_message = swap_out_title + swap_out_text
+        swap_in_title = "<p>Tracked Products Swapped In: </p><ul>"
+        swap_in_text = f"<li>Product: {self.tangerine.name}, Quantity: 5.0, Lot/Serial Name: 2 </li></ul>"
+        swap_in_message = swap_in_title + swap_in_text
+        self.assertEqual(first_picking.message_ids[0].body, swap_in_message)
+        self.assertEqual(first_picking.message_ids[1].body, swap_out_message)
+        self.assertEqual(first_picking.message_ids[2].body, swap_in_message)
+        self.assertEqual(first_picking.message_ids[3].body, swap_out_message)
+
+        swap_out_title = "<p>Tracked Products Swapped Out: </p><ul>"
+        swap_out_text = f"<li>Product: {self.tangerine.name}, Quantity: 5.0, Lot/Serial Name: 2 </li></ul>"
+        swap_out_message = swap_out_title + swap_out_text
+        swap_in_title = "<p>Tracked Products Swapped In: </p><ul>"
+        swap_in_text = f"<li>Product: {self.tangerine.name}, Quantity: 5.0, Lot/Serial Name: 1 </li></ul>"
+        swap_in_message = swap_in_title + swap_in_text
+        self.assertEqual(second_picking.message_ids[0].body, swap_in_message)
+        self.assertEqual(second_picking.message_ids[1].body, swap_out_message)
+        self.assertEqual(second_picking.message_ids[2].body, swap_in_message)
+        self.assertEqual(second_picking.message_ids[3].body, swap_out_message)
 
     def test_expect_one_lot_but_receieve_two_lots(self):
         """
@@ -844,6 +909,19 @@ class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
         self.assertEqual(quant_two.reserved_quantity, 5.0)
         self.assertEqual(quant_three.reserved_quantity, 5.0)
 
+        swap_out_title = "<p>Tracked Products Swapped Out: </p><ul>"
+        swap_out_text = f"<li>Product: {self.tangerine.name}, Quantity: 5.0, Lot/Serial Name: 1 </li></ul>"
+        swap_out_message = swap_out_title + swap_out_text
+        swap_in_title = "<p>Tracked Products Swapped In: </p><ul>"
+        swap_in_text = f"<li>Product: {self.tangerine.name}, Quantity: 5.0, Lot/Serial Name: 2 </li></ul>"
+        swap_in_text_2 = f"<li>Product: {self.tangerine.name}, Quantity: 5.0, Lot/Serial Name: 3 </li></ul>"
+        swap_in_message = swap_in_title + swap_in_text
+        swap_in_message_2 = swap_in_title + swap_in_text_2
+        self.assertEqual(picking.message_ids[0].body, swap_in_message_2)
+        self.assertEqual(picking.message_ids[1].body, swap_out_message)
+        self.assertEqual(picking.message_ids[2].body, swap_in_message)
+        self.assertEqual(picking.message_ids[3].body, swap_out_message)
+
     def test_expect_two_lots_be_scanned_in_but_only_receive_one_different_lot(self):
         """
         Expect two lots be scanned in, but only receive one different lot
@@ -889,6 +967,16 @@ class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
         self.assertEqual(quant_one.reserved_quantity, 0.0)
         self.assertEqual(quant_two.reserved_quantity, 0.0)
         self.assertEqual(quant_three.reserved_quantity, 10.0)
+
+        swap_out_title = "<p>Tracked Products Swapped Out: </p><ul>"
+        swap_out_text = f"<li>Product: {self.tangerine.name}, Quantity: 5.0, Lot/Serial Name: 1 </li>"
+        swap_out_text += f"<li>Product: {self.tangerine.name}, Quantity: 5.0, Lot/Serial Name: 2 </li></ul>"
+        swap_out_message = swap_out_title + swap_out_text
+        swap_in_title = "<p>Tracked Products Swapped In: </p><ul>"
+        swap_in_text = f"<li>Product: {self.tangerine.name}, Quantity: 10.0, Lot/Serial Name: 3 </li></ul>"
+        swap_in_message = swap_in_title + swap_in_text
+        self.assertEqual(picking.message_ids[0].body, swap_in_message)
+        self.assertEqual(picking.message_ids[1].body, swap_out_message)
 
     def test_swap_in_lot_quantity_with_more_quantity_than_many_move_lines(self):
         """
@@ -972,6 +1060,24 @@ class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
         self.assertEqual(quant_six.reserved_quantity, 10.0)
         self.assertEqual(quant_seven.reserved_quantity, 5.0)
 
+        swap_out_title = "<p>Tracked Products Swapped Out: </p><ul>"
+        swap_out_text = f"<li>Product: {self.tangerine.name}, Quantity: 1.0, Lot/Serial Name: 1 </li>"
+        swap_out_text += f"<li>Product: {self.tangerine.name}, Quantity: 1.0, Lot/Serial Name: 2 </li>"
+        swap_out_text += f"<li>Product: {self.tangerine.name}, Quantity: 5.0, Lot/Serial Name: 3 </li>"
+        swap_out_text += f"<li>Product: {self.tangerine.name}, Quantity: 3.0, Lot/Serial Name: 4 </li></ul>"
+        swap_out_text_2 = f"<li>Product: {self.tangerine.name}, Quantity: 5.0, Lot/Serial Name: 5 </li></ul>"
+        swap_out_message = swap_out_title + swap_out_text
+        swap_out_message_2 = swap_out_title + swap_out_text_2
+        swap_in_title = "<p>Tracked Products Swapped In: </p><ul>"
+        swap_in_text = f"<li>Product: {self.tangerine.name}, Quantity: 10.0, Lot/Serial Name: 6 </li></ul>"
+        swap_in_text_2 = f"<li>Product: {self.tangerine.name}, Quantity: 5.0, Lot/Serial Name: 7 </li></ul>"
+        swap_in_message = swap_in_title + swap_in_text
+        swap_in_message_2 = swap_in_title + swap_in_text_2
+        self.assertEqual(picking.message_ids[0].body, swap_in_message_2)
+        self.assertEqual(picking.message_ids[1].body, swap_out_message_2)
+        self.assertEqual(picking.message_ids[2].body, swap_in_message)
+        self.assertEqual(picking.message_ids[3].body, swap_out_message)
+
     def test_swap_in_lot_quantity_which_partially_covers_a_moveline(self):
         """
         Swap in a quantity of lot which will partially cover a moveline
@@ -1036,7 +1142,22 @@ class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
         self.assertEqual(quant_two.reserved_quantity, 0.0)
         self.assertEqual(quant_three.reserved_quantity, 6.0)
         self.assertEqual(quant_four.reserved_quantity, 4.0)
-        
+
+        swap_out_title = "<p>Tracked Products Swapped Out: </p><ul>"
+        swap_out_text = f"<li>Product: {self.tangerine.name}, Quantity: 5.0, Lot/Serial Name: 1 </li>"
+        swap_out_text += f"<li>Product: {self.tangerine.name}, Quantity: 1.0, Lot/Serial Name: 2 </li></ul>"
+        swap_out_text_2 = f"<li>Product: {self.tangerine.name}, Quantity: 4.0, Lot/Serial Name: 2 </li></ul>"
+        swap_out_message = swap_out_title + swap_out_text
+        swap_out_message_2 = swap_out_title + swap_out_text_2
+        swap_in_title = "<p>Tracked Products Swapped In: </p><ul>"
+        swap_in_text = f"<li>Product: {self.tangerine.name}, Quantity: 6.0, Lot/Serial Name: 3 </li></ul>"
+        swap_in_text_2 = f"<li>Product: {self.tangerine.name}, Quantity: 4.0, Lot/Serial Name: 4 </li></ul>"
+        swap_in_message = swap_in_title + swap_in_text
+        swap_in_message_2 = swap_in_title + swap_in_text_2
+        self.assertEqual(picking.message_ids[0].body, swap_in_message_2)
+        self.assertEqual(picking.message_ids[1].body, swap_out_message_2)
+        self.assertEqual(picking.message_ids[2].body, swap_in_message)
+        self.assertEqual(picking.message_ids[3].body, swap_out_message)
 
     def test_complete_picking_with_serial_product_then_create_another_picking_and_swap_in_previous_lot_id(
         self,
@@ -1099,6 +1220,15 @@ class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
         self.assertEqual(Quant.search([])[1].reserved_quantity, 1.0)
         self.assertEqual(quant_two.reserved_quantity, 0.0)
 
+        swap_out_title = "<p>Tracked Products Swapped Out: </p><ul>"
+        swap_out_text = f"<li>Product: {self.strawberry.name}, Quantity: 1.0, Lot/Serial Name: 2 </li></ul>"
+        swap_out_message = swap_out_title + swap_out_text
+        swap_in_title = "<p>Tracked Products Swapped In: </p><ul>"
+        swap_in_text = f"<li>Product: {self.strawberry.name}, Quantity: 1.0, Lot/Serial Name: 1 </li></ul>"
+        swap_in_message = swap_in_title + swap_in_text
+        self.assertEqual(picking.message_ids[0].body, swap_in_message)
+        self.assertEqual(picking.message_ids[1].body, swap_out_message)
+
         # Picking was validated okay
         picking.validate_picking()
         self.assertEqual(picking.state, "done")
@@ -1117,17 +1247,17 @@ class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
         Picking 3: 5 x lot 2 --> 5 x lot 1
         Final:
         Picking 1: 5 x lot 1, qty_done = 5
-        Picking 2: 5 x lot 2, qty_done = 0 
+        Picking 2: 5 x lot 2, qty_done = 5
         Picking 3: 5 x lot 1, qty_done = 0
         """
         self.picking_type_pick.u_allow_swapping_tracked_products = True
         quant_one = self.create_quant(
-            self.tangerine.id, location_id=self.test_stock_location_01.id, qty=10.0, lot_name="1"
+            self.tangerine.id, location_id=self.test_stock_location_01.id, qty=5.0, lot_name="1"
         )
         quant_two = self.create_quant(
             self.tangerine.id, location_id=self.test_stock_location_01.id, qty=5.0, lot_name="2"
         )
-
+        
         product_info = [{"product": self.tangerine, "uom_qty": 5.0}]
         picking_qty_done = self.create_picking(
             self.picking_type_pick, products_info=product_info, assign=True
@@ -1145,6 +1275,9 @@ class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
         picking = self.create_picking(
             self.picking_type_pick, products_info=product_info, assign=True
         )
+        self.assertEqual(picking.move_line_ids.lot_id.name, "2")
+
+        quant_one.write({"quantity": 15.0})
 
         product_info = [{"product": self.tangerine, "uom_qty": 5.0}]
         picking_no_qty_done = self.create_picking(
@@ -1174,6 +1307,24 @@ class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
 
         self.assertEqual(quant_one.reserved_quantity, 10.0)
         self.assertEqual(quant_two.reserved_quantity, 5.0)
+
+        swap_out_title = "<p>Tracked Products Swapped Out: </p><ul>"
+        swap_out_text = f"<li>Product: {self.tangerine.name}, Quantity: 5.0, Lot/Serial Name: 1 </li></ul>"
+        swap_out_message = swap_out_title + swap_out_text
+        swap_in_title = "<p>Tracked Products Swapped In: </p><ul>"
+        swap_in_text = f"<li>Product: {self.tangerine.name}, Quantity: 5.0, Lot/Serial Name: 2 </li></ul>"
+        swap_in_message = swap_in_title + swap_in_text
+        self.assertEqual(picking_no_qty_done.message_ids[0].body, swap_in_message)
+        self.assertEqual(picking_no_qty_done.message_ids[1].body, swap_out_message)
+
+        swap_out_title = "<p>Tracked Products Swapped Out: </p><ul>"
+        swap_out_text = f"<li>Product: {self.tangerine.name}, Quantity: 5.0, Lot/Serial Name: 2 </li></ul>"
+        swap_out_message = swap_out_title + swap_out_text
+        swap_in_title = "<p>Tracked Products Swapped In: </p><ul>"
+        swap_in_text = f"<li>Product: {self.tangerine.name}, Quantity: 5.0, Lot/Serial Name: 1 </li></ul>"
+        swap_in_message = swap_in_title + swap_in_text
+        self.assertEqual(picking.message_ids[0].body, swap_in_message)
+        self.assertEqual(picking.message_ids[1].body, swap_out_message)
 
     def test_over_receive_on_a_lot_with_swapping_tracked_products_on(self):
         """
@@ -1215,6 +1366,16 @@ class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
 
         self.assertEqual(quant_one.reserved_quantity, 0.0)
         self.assertEqual(quant_two.reserved_quantity, 10.0)
+
+        swap_out_title = "<p>Tracked Products Swapped Out: </p><ul>"
+        swap_out_text = f"<li>Product: {self.tangerine.name}, Quantity: 5.0, Lot/Serial Name: 1 </li>"
+        swap_out_text += f"<li>Product: {self.tangerine.name}, Quantity: 5.0, Lot/Serial Name: 2 </li></ul>"
+        swap_out_message = swap_out_title + swap_out_text
+        swap_in_title = "<p>Tracked Products Swapped In: </p><ul>"
+        swap_in_text = f"<li>Product: {self.tangerine.name}, Quantity: 10.0, Lot/Serial Name: 2 </li></ul>"
+        swap_in_message = swap_in_title + swap_in_text
+        self.assertEqual(picking.message_ids[0].body, swap_in_message)
+        self.assertEqual(picking.message_ids[1].body, swap_out_message)
 
     def test_over_receive_on_a_lot_such_that_next_moveline_is_partially_fulfilled(self):
         """
@@ -1269,6 +1430,16 @@ class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
 
         self.assertEqual(quant_one.reserved_quantity, 0.0)
         self.assertEqual(quant_two.reserved_quantity, 10.0)
+
+        swap_out_title = "<p>Tracked Products Swapped Out: </p><ul>"
+        swap_out_text = f"<li>Product: {self.tangerine.name}, Quantity: 5.0, Lot/Serial Name: 1 </li>"
+        swap_out_text += f"<li>Product: {self.tangerine.name}, Quantity: 3.0, Lot/Serial Name: 2 </li></ul>"
+        swap_out_message = swap_out_title + swap_out_text
+        swap_in_title = "<p>Tracked Products Swapped In: </p><ul>"
+        swap_in_text = f"<li>Product: {self.tangerine.name}, Quantity: 8.0, Lot/Serial Name: 2 </li></ul>"
+        swap_in_message = swap_in_title + swap_in_text
+        self.assertEqual(picking.message_ids[0].body, swap_in_message)
+        self.assertEqual(picking.message_ids[1].body, swap_out_message)
 
     def test_over_receive_on_a_single_moveline_ensure_an_error_is_still_thrown_unless_over_receiving_is_implemented(
         self,
