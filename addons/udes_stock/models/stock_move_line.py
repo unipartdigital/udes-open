@@ -222,8 +222,10 @@ class StockMoveLine(models.Model):
         ):
             # create new move line
             move = self.move_id
-            location_dest_id = move.location_dest_id._get_putaway_strategy(
-                move.product_id).id or move.location_dest_id.id
+            location_dest_id = (
+                move.location_dest_id._get_putaway_strategy(move.product_id).id
+                or move.location_dest_id.id
+            )
             new_ml = self.copy(
                 default={
                     "product_uom_qty": split_qty,
@@ -422,25 +424,24 @@ class StockMoveLine(models.Model):
                         ("u_picking_type_id", "=", mls.u_picking_type_id.id),
                         ("qty_done", "=", 0.0),
                         ("picking_id", "!=", mls.picking_id.id),
-                    ], order="id"
+                    ],
+                    order="id",
                 )
 
                 # For the message thread to notify of the tracked product swapped out
                 old_mls = mls_need_changing | swapped_lot_on_assigned_mls
-                for picking, mls in old_mls.groupby("picking_id"): 
+                for picking, mls in old_mls.groupby("picking_id"):
                     picking_qty = quantity_swapping
-                    swap_out_title = "Tracked Products Swapped Out: <ul>"
-                    swap_out_text=""
+                    swap_out_text = ""
                     for ml in mls:
                         picking_qty -= ml.product_uom_qty
-                        swapped_qty = min([quantity_swapping,ml.product_uom_qty])
+                        swapped_qty = min([quantity_swapping, ml.product_uom_qty])
                         if is_serial:
                             swapped_qty = 1
                         swap_out_text += f"<li>Product: {ml.product_id.name}, Quantity: {float(swapped_qty)}, Lot/Serial Name: {ml.lot_id.name} </li>"
                         if picking_qty <= 0:
                             break
-                    end_of_list = "</ul>"
-                    body = swap_out_title + swap_out_text + end_of_list
+                    body = "Tracked Products Swapped Out: <ul>" + swap_out_text + "</ul>"
                     picking.message_post(body=body)
 
                 # Check there is available quantity on the system
@@ -505,18 +506,35 @@ class StockMoveLine(models.Model):
                 # Remove swapped in lot from old move line and replace it with swapped out lot
                 # Can zip as lot_ids_swapped_out will never have fewer item then swapped_lot_on_assigned_mls
                 for old_lot, ml_to_change in zip(lot_ids_swapped_out, swapped_lot_on_assigned_mls):
-                    # If we partially pick a lot that is reserved on another picking then we need to update the 
+                    # If we partially pick a lot that is reserved on another picking then we need to update the
                     # mls on that picking to have a new reserved quantity (old quantity - quantity swapped out) and create another moveline with
                     # for the lot that was swapped out.
                     if not is_serial and ml_to_change.product_uom_qty > amount_to_be_swapped:
-                        prod_dict = {"lot_name": ml_to_change.lot_id.name, "lot_id": ml_to_change.lot_id.id, "product_uom_qty": ml_to_change.product_uom_qty - amount_to_be_swapped, "qty_done": 0.0}
-                        ml_to_change.write({"product_uom_qty": ml_to_change.product_uom_qty - amount_to_be_swapped})
+                        prod_dict = {
+                            "lot_name": ml_to_change.lot_id.name,
+                            "lot_id": ml_to_change.lot_id.id,
+                            "product_uom_qty": ml_to_change.product_uom_qty - amount_to_be_swapped,
+                            "qty_done": 0.0,
+                        }
+                        ml_to_change.write(
+                            {"product_uom_qty": ml_to_change.product_uom_qty - amount_to_be_swapped}
+                        )
                         res[ml_to_change] = prod_dict
                         new_mls = ml_to_change.copy()
-                        new_prod_dict = {"lot_name": old_lot.name, "lot_id": old_lot.id, "product_uom_qty": amount_to_be_swapped, "qty_done": 0.0}
+                        new_prod_dict = {
+                            "lot_name": old_lot.name,
+                            "lot_id": old_lot.id,
+                            "product_uom_qty": amount_to_be_swapped,
+                            "qty_done": 0.0,
+                        }
                         res[new_mls] = new_prod_dict
                     else:
-                        prod_dict = {"lot_name": old_lot.name, "lot_id": old_lot.id, "product_uom_qty": 1.0 if is_serial else amount_to_be_swapped, "qty_done": 0.0}
+                        prod_dict = {
+                            "lot_name": old_lot.name,
+                            "lot_id": old_lot.id,
+                            "product_uom_qty": 1.0 if is_serial else amount_to_be_swapped,
+                            "qty_done": 0.0,
+                        }
                         ml_to_change.write({"product_uom_qty": 0.0})
                         res[ml_to_change] = prod_dict
 
@@ -524,21 +542,19 @@ class StockMoveLine(models.Model):
                 lot_names = list(set(lot_names) - set(lot_names_swapped_in))
 
             # For the message thread to notify of the tracked products swapped in
-            new_mls = StockMoveLine.browse() 
-            for ml, mls_values in res.items():
+            new_mls = StockMoveLine.browse()
+            for ml, _mls_values in res.items():
                 new_mls = new_mls | ml
-            
+
             for picking, mls in new_mls.groupby("picking_id"):
-                swap_in_title = "Tracked Products Swapped In: <ul>"
-                swap_in_text=""
+                swap_in_text = ""
                 for ml in mls:
                     mls_value = res[ml]
                     if mls_value["lot_name"] != ml.lot_id.name:
                         swap_in_text += f"<li>Product: {ml.product_id.name}, Quantity: {float(mls_value['product_uom_qty'])}, Lot/Serial Name: {mls_value['lot_name']} </li>"
-                end_of_list = "</ul>"
-                body = swap_in_title + swap_in_text + end_of_list
+                body = "Tracked Products Swapped In: <ul>" + swap_in_text + "</ul>"
                 picking.message_post(body=body)
-                
+
         return res, lot_names
 
     def mark_as_done(self, values=None):
