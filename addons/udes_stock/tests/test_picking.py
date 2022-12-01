@@ -22,7 +22,7 @@ class TestGoodsInPicking(common.BaseUDES):
 
     def generate_picks_and_pallets_for_check_entire_pack(self):
         """
-            Generate picks and pallets for ready for_check_entire_pack function
+        Generate picks and pallets for ready for_check_entire_pack function
         """
         Package = self.env["stock.quant.package"]
         mummy_pallet = Package.get_package("mummy_pallet", create=True)
@@ -41,15 +41,15 @@ class TestGoodsInPicking(common.BaseUDES):
         return mummy_pallet, pick
 
     def test01_get_pickings_by_package_name_fail(self):
-        """ Tests get_pickings by package_name
-            when no package exists
+        """Tests get_pickings by package_name
+        when no package exists
         """
         returned_pickings = self.SudoPicking.get_pickings(package_name="DUMMY")
         self.assertEqual(len(returned_pickings), 0)
 
     def test02_get_pickings_by_package_name_sucess(self):
-        """ Tests get_pickings by package_name
-            when package exists
+        """Tests get_pickings by package_name
+        when package exists
         """
         Package = self.env["stock.quant.package"]
         test_package = Package.get_package("test_package", create=True)
@@ -58,23 +58,23 @@ class TestGoodsInPicking(common.BaseUDES):
         self.assertEqual(returned_pickings.id, self.test_picking.id)
 
     def test03_get_pickings_by_origin_fail(self):
-        """ Tests get_pickings by origin
-            when no package exists
+        """Tests get_pickings by origin
+        when no package exists
         """
         returned_pickings = self.SudoPicking.get_pickings(origin="DUMMY")
         self.assertEqual(len(returned_pickings), 0)
 
     def test04_get_pickings_by_origin_sucess(self):
-        """ Tests get_pickings by origin
-            when package exists
+        """Tests get_pickings by origin
+        when package exists
         """
         returned_pickings = self.SudoPicking.get_pickings(origin=self.test_picking.origin)
         self.assertEqual(len(returned_pickings), 2)
         self.assertTrue(self.test_picking in returned_pickings)
 
     def test05_get_info_all(self):
-        """ Tests get_info without requesting
-            a field
+        """Tests get_info without requesting
+        a field
         """
         info = self.test_picking.get_info()
         expected = [
@@ -96,13 +96,13 @@ class TestGoodsInPicking(common.BaseUDES):
         self.assertEqual(sorted(info[0].keys()), sorted(expected))
 
     def test06_get_info_only_id(self):
-        """ Tests get_info requesting a specific field"""
+        """Tests get_info requesting a specific field"""
         info = self.test_picking.get_info(fields_to_fetch=["id"])
         # There should only be one and they should all be the same if not
         self.assertEqual(list(info[0].keys()), ["id"])
 
     def test07_get_priorities(self):
-        """ Tests get_priorities by trivially exercising it """
+        """Tests get_priorities by trivially exercising it"""
         priorities = self.SudoPicking.get_priorities()
         self.assertNotEqual(priorities, [])
 
@@ -131,8 +131,8 @@ class TestGoodsInPicking(common.BaseUDES):
 
     def test09_pallets_of_packages_have_parent_package(self):
         """
-            Test that only pallets of packages have a parent package added by
-           _check_entire_pack/_set_u_result_parent_package_id
+         Test that only pallets of packages have a parent package added by
+        _check_entire_pack/_set_u_result_parent_package_id
         """
 
         self.picking_type_in.u_target_storage_format = "pallet_packages"
@@ -142,8 +142,8 @@ class TestGoodsInPicking(common.BaseUDES):
 
     def test10_product_packages_has_no_parent_package(self):
         """
-            Test that only product have a parent package added by
-           _check_entire_pack/_set_u_result_parent_package_id
+         Test that only product have a parent package added by
+        _check_entire_pack/_set_u_result_parent_package_id
         """
 
         self.picking_type_in.u_target_storage_format = "product"
@@ -155,8 +155,8 @@ class TestGoodsInPicking(common.BaseUDES):
 
     def test11_pallet_of_products_has_no_parent_package(self):
         """
-            Test that only product have a parent package added by
-           _check_entire_pack/_set_u_result_parent_package_id
+         Test that only product have a parent package added by
+        _check_entire_pack/_set_u_result_parent_package_id
         """
 
         self.picking_type_in.u_target_storage_format = "pallet_products"
@@ -166,8 +166,8 @@ class TestGoodsInPicking(common.BaseUDES):
 
     def test12_package_has_no_parent_package(self):
         """
-            Test that only product have a parent package added by
-           _check_entire_pack/_set_u_result_parent_package_id
+         Test that only product have a parent package added by
+        _check_entire_pack/_set_u_result_parent_package_id
         """
 
         self.picking_type_in.u_target_storage_format = "pallet_products"
@@ -177,8 +177,8 @@ class TestGoodsInPicking(common.BaseUDES):
 
     def test13_pallet_of_packages_has_no_parent_package_if_user_scans_is_package(self):
         """
-            Test that only product have a parent package added by
-           _check_entire_pack/_set_u_result_parent_package_id
+         Test that only product have a parent package added by
+        _check_entire_pack/_set_u_result_parent_package_id
         """
 
         self.picking_type_in.u_target_storage_format = "pallet_packages"
@@ -607,6 +607,7 @@ class TestPickingLocked(common.BaseUDES):
             self.picking.is_locked, "Picking should have been locked after its moves are  confirmed"
         )
 
+
 class TestBatchUserName(common.BaseUDES):
     """Test Batch User takes value expected and changes when expected"""
 
@@ -615,28 +616,32 @@ class TestBatchUserName(common.BaseUDES):
         super(TestBatchUserName, cls).setUpClass()
         cls.create_quant(cls.apple.id, cls.test_location_01.id, 10)
 
-        cls.batch = cls.create_batch(user = cls.env.user)
+        cls.batch = cls.create_batch(user=cls.env.user)
 
         cls._pick_info = [{"product": cls.apple, "qty": 5}]
-        cls.picking = cls.create_picking(picking_type = cls.picking_type_pick, products_info=cls._pick_info, confirm=True)
+        cls.picking = cls.create_picking(
+            picking_type=cls.picking_type_pick, products_info=cls._pick_info, confirm=True
+        )
 
     def test_correct_batch_user_on_picking_tree_view(self):
         self.picking.write({"batch_id": self.batch.id})
 
         self.assertEqual(self.picking.u_batch_user_id, self.env.user)
-    
+
     def test_no_batch_user_on_picking_when_no_batch(self):
         self.assertEqual(len(self.picking.u_batch_user_id), 0)
-    
+
     def test_batch_user_on_picking_changes_when_user_is_changed_on_batch(self):
         self.picking.write({"batch_id": self.batch.id})
 
         self.batch.write({"user_id": self.stock_manager.id})
 
         self.assertEqual(self.picking.u_batch_user_id, self.stock_manager)
-    
+
     def test_same_batch_user_on_multiple_pickings(self):
-        picking_2 = self.create_picking(picking_type = self.picking_type_pick, products_info=self._pick_info, confirm=True)
+        picking_2 = self.create_picking(
+            picking_type=self.picking_type_pick, products_info=self._pick_info, confirm=True
+        )
 
         self.picking.write({"batch_id": self.batch.id})
         picking_2.write({"batch_id": self.batch.id})

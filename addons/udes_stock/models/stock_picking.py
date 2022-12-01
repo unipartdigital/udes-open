@@ -40,6 +40,7 @@ class StockPicking(models.Model):
 
     _order = "priority desc, scheduled_date asc, sequence asc, id asc"
 
+    origin = fields.Char(track_visibility = "onchange")
     # Adding fields to be hidden by default from form view.
     DetailedFormViewFields = [
         "u_first_picking_ids",
@@ -214,11 +215,12 @@ class StockPicking(models.Model):
 
         Checking date_done field if is set to a value but picking is not done.
         """
-        picking = super().create(vals)
-        if not picking.backorder_id:
-            picking.write({"u_original_picking_id": picking.id})
-        picking.check_date_done()
-        return picking
+        pickings = super().create(vals)
+        for picking in pickings:
+            if not picking.backorder_id:
+                picking.write({"u_original_picking_id": picking.id})
+        pickings.check_date_done()
+        return pickings
 
     def copy(self, default=None):
         """Set `planned_picking` to True in context"""
