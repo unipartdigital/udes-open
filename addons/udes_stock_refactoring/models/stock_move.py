@@ -258,7 +258,7 @@ class StockMove(models.Model):
                 group_pickings |= move.picking_id
                 move_lines = ml_group.filtered(lambda l: l.move_id == move)
 
-                if move_lines != move.move_line_ids:
+                if move_lines != move.move_line_ids or move.state == "partially_available":
                     # The move is not entirely contained by the move lines
                     # for this grouping. Need to split the move.
                     group_moves |= move.split_out_move_lines(move_lines)

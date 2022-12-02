@@ -508,6 +508,28 @@ class TestAssignRefactoring(TestRefactoringBase):
             picking._action_done()
             self._assert_package_levels(goods_out_pickings)
 
+    def test_refactors_partially_unavailable_stock_into_new_move(self):
+        """The system should split moves into available and unavailable."""
+        products_info = [
+            {"product": self.apple, "uom_qty": 15},
+        ]
+        original_move = self.create_move(self.picking, products_info)
+
+        self.picking.action_assign()
+
+        apple_move_lines = self.get_move_lines_for_product(
+            self.apple, picking_type=self.picking_type_pick
+        )
+        refactored_moves = apple_move_lines.move_id
+
+        self._assert_move_fields(original_move, self.apple, 5)
+        self._assert_move_fields(refactored_moves, self.apple, 10)
+
+        self._assert_move_line_fields(apple_move_lines, self.apple, 10, self.apple_pallet)
+
+        self._assert_picking_fields(self.picking, state="confirmed")
+        self._assert_picking_fields(refactored_moves.picking_id, state="assigned")
+
 
 class TestValidateRefactoring(TestRefactoringBase):
     def setUp(self):
