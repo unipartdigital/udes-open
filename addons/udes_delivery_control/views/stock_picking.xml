@@ -21,7 +21,7 @@
             </xpath>
             <!-- Make partner field mandatory -->
             <xpath expr="//field[@name='partner_id']" position="attributes">
-                <attribute name="attrs">{'required': [('u_is_delivery_control', '=', True)], 'readonly': [('state', '!=', 'draft')]}</attribute>
+                <attribute name="attrs">{'required': [('state', '=', 'draft'), ('u_is_delivery_control', '=', True)], 'readonly': [('state', '!=', 'draft')]}</attribute>
             </xpath>
             <!-- Add page to notebook -->
             <xpath expr="//page[@name='extra']" position="before">
