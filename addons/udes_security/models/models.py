@@ -26,7 +26,8 @@ class BaseModel(models.AbstractModel):
             """Add confirm attribute on toggle_active button"""
             nodes = doc.xpath("//button[@name='toggle_active']")
             confirm_message = "Are you sure you want to modify this record? " \
-                              "If archived will become unavailable and hidden from searches."
+                              "If Archived, it will become unavailable and hidden from searches. " \
+                              "If Unarchived, it will become available and included in searches. "
             for node in nodes:
                 node.attrib["confirm"] = confirm_message
                 setup_modifiers(node, {})
