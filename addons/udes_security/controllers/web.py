@@ -17,7 +17,7 @@ class Home(Home):
         )
         return has_desktop_access
 
-    @http.route("/", type="http", auth="none")
+    @http.route("/", type="http", auth="public")
     def index(self, *args, **kw):
         """Extend controller to redirect non-desktop user if they try to access the main system"""
         if request.session.uid and not self.user_has_desktop_access():
