@@ -488,3 +488,15 @@ class StockMove(models.Model):
 
         Quant._quant_tasks()
         return result
+
+    def _action_assign(self):
+        """
+        Assign moves and return all moves to the caller.
+
+        Technically this is a LSP violation, as Odoo core coes not return the
+        moves. However we want to ensure that we capture all assigned moves in
+        the event that some are added or removed, for example through
+        refactoring.
+        """
+        super()._action_assign()
+        return self
