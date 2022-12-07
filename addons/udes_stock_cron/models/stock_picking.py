@@ -95,8 +95,8 @@ class StockPicking(models.Model):
         """
         # Assign at the move level disabling refactoring
         moves = self.move_lines
-        moves._action_assign()
-        return moves.picking_id
+        assigned_moves = moves._action_assign()
+        return assigned_moves.mapped("picking_id")
 
     def reserve_stock(self):
         """
