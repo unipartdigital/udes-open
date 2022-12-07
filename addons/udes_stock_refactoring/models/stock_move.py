@@ -151,13 +151,11 @@ class StockMove(models.Model):
     def _action_assign(self):
         """
         Extend _action_assign to trigger refactor action.
-        n.b. _action_assign does not return anything in core Odoo, so we
-        don't return any extra moves that may have been created
-        by refactoring.
         """
         res = super(StockMove, self)._action_assign()
 
-        self._action_refactor(stage="assign")
+        refactored_moves = res._action_refactor(stage="assign")
+        res |= refactored_moves
         return res
 
     def _action_done(self, cancel_backorder=False):
