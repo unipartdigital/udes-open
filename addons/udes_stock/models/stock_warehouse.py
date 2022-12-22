@@ -129,6 +129,12 @@ class StockWarehouse(models.Model):
         default=False,
         help="Logs details when picking is added to batch picking",
     )
+    u_show_current_quantity = fields.Boolean(
+        string="Show Current Quantity",
+        default=False,
+        help="Show current quantity on old mobile look up. "
+             "If this is set True the field to compute current quantity on stock should be added",
+    )
 
     @lazy_property
     def reserved_package_name(self):
@@ -191,6 +197,7 @@ class StockWarehouse(models.Model):
             "u_stock_investigation_picking_type": self.u_stock_investigation_picking_type.id,
             "u_show_rpc_timing": self.u_show_rpc_timing,
             "u_allow_create_picking_reserved_package": self.u_allow_create_picking_reserved_package,
+            "u_show_current_quantity": self.u_show_current_quantity,
         }
 
     def get_info(self):
