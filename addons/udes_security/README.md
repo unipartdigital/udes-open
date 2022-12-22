@@ -31,3 +31,19 @@ Conversely, if an Allowed File Type is deleted or made inactive, any existing at
 * If the security group is not set, the user is redirected to a `No Access` page
 * If the security group is set, login proceeds as usual
 * If a users desktop access group is revoked while their session is active, they can continue their session until refreshing the page or session expires.
+
+
+## Password Complexity
+
+Password complexity can be configured per company. These settings are
+available:
+
+**Company (model: res.company)**
+
+| Field Name | Type | Description |
+|------------|------|-------------|
+| u_minimum_password_length | Integer | The minimum length for a password. |
+| u_minimum_password_lower | Integer | The minimum number of lowercase ASCII characters in a password. |
+| u_minimum_password_upper | Integer | The minimum number of uppercase ASCII characters in a password. |
+| u_minimum_password_numeric | Integer | The minimum number of ASCII digits in a password. |
+| u_minimum_password_special | Integer | The minimum number of unique special characters in a password. |

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_company_form" model="ir.ui.view">
+        <field name="name">res.company.form</field>
+        <field name="model">res.company</field>
+        <field name="inherit_id" ref="base.view_company_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="UDES password security">
+                    <group name="complexity" string="Password Requirements">
+                        <group name="length" string="Password length">
+                            <field name="u_minimum_password_length"/>
+                        </group>
+                        <group name="characters" string="Required characters">
+                            <field name="u_minimum_password_lower"/>
+                            <field name="u_minimum_password_upper"/>
+                            <field name="u_minimum_password_numeric"/>
+                            <field name="u_minimum_password_special"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>
