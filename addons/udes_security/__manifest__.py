@@ -14,6 +14,7 @@
         "data/res_users.xml",
         "security/ir.model.access.csv",
         "security/ir_model_access.xml",
+        "views/res_company_view.xml",
         "views/res_groups_views.xml",
         "views/allowed_file_type_views.xml",
         "views/ir_attachment_views.xml",

@@ -1,6 +1,7 @@
 import logging
+import re
 from odoo import models, fields, _, api
-from odoo.exceptions import AccessError
+from odoo.exceptions import AccessError, UserError
 from odoo.http import root
 from collections import namedtuple
 from odoo.addons.udes_common.tools import RelFieldOps
@@ -32,6 +33,10 @@ class ResUsers(models.Model):
         """
         Active user permissions checked when updating user groups
         """
+        password = vals.get("password")
+        if password:
+            self._check_password_complexity(password)
+
         self._check_user_group_modify(vals)
         return super(ResUsers, self).write(vals)
 
@@ -127,3 +132,57 @@ class ResUsers(models.Model):
                         )
                         % disallowed_group.full_name
                     )
+
+    def _check_password_complexity(self, password, raise_on_failure=True):
+        """
+        Returns True if supplied password passes complexity threshold
+
+        If not, UserError is raised by default (raise_on_failure), otherwise False is returned
+        """
+        self.ensure_one()
+        if not password:
+            return True
+        company_id = self.company_id
+
+        length = company_id.u_minimum_password_length
+        lower = company_id.u_minimum_password_lower
+        upper = company_id.u_minimum_password_upper
+        numeric = company_id.u_minimum_password_numeric
+        special = company_id.u_minimum_password_special
+
+        password_rules = (
+            complexity_rule(
+                regex="^.{%d,}$" % length,
+                message="Your password must be at least %s characters in length" % length,
+            ),
+            complexity_rule(
+                regex="^(.*?[a-z].*?){%s,}" % lower,
+                message="Your password must contain at least %s lowercase characters (a-z)" % lower,
+            ),
+            complexity_rule(
+                regex="^(.*?[A-Z].*?){%s,}" % upper,
+                message="Your password must contain at least %s uppercase characters (A-Z)" % upper,
+            ),
+            complexity_rule(
+                regex="^(.*?[0-9].*?){%s,}" % numeric,
+                message="Your password must contain at least %s numerical digits (0-9)" % numeric,
+            ),
+            complexity_rule(
+                regex="^(.*?[\\W_].*?){%s,}" % special,
+                message="Your password must contain at least %s special characters such as (!@$[]{}_)"
+                % special,
+            ),
+        )
+
+        errors = []
+        for rule in password_rules:
+            if not re.search(rule.regex, password):
+                errors.append(rule.message)
+
+        if errors:
+            if raise_on_failure:
+                raise UserError("\r\n".join(["- " + _(e) for e in errors]))
+            else:
+                return False
+
+        return True

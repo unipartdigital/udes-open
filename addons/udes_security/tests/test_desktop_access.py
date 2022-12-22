@@ -2,8 +2,10 @@ from odoo.tests import common
 from odoo.tools import mute_logger, config
 from odoo import http
 
+from ..tests.common import PasswordMixin
 
-class DesktopAccessBase(common.HttpSavepointCase):
+
+class DesktopAccessBase(common.HttpSavepointCase, PasswordMixin):
     @classmethod
     def setUpClass(cls):
         """
@@ -16,11 +18,15 @@ class DesktopAccessBase(common.HttpSavepointCase):
 
         cls.group_internal_user = cls.env.ref("base.group_user")
         cls.group_desktop_access = cls.env.ref("udes_security.group_desktop_access")
+        cls.company = cls.env["res.company"].create({"name": "Unipart"})
+        cls.set_complexity(length=0, numeric=0, upper=0, lower=0, special=0)
         cls.user_1 = User.create(
             {
                 "name": "Test User 1",
                 "login": "test_user_1",
                 "groups_id": [(6, 0, [cls.group_desktop_access.id, cls.group_internal_user.id])],
+                "company_ids": cls.company,
+                "company_id": cls.company.id,
             }
         )
         cls.user_2 = User.create(
@@ -28,6 +34,8 @@ class DesktopAccessBase(common.HttpSavepointCase):
                 "name": "Test User 2",
                 "login": "test_user_2",
                 "groups_id": [(6, 0, [cls.group_internal_user.id])],
+                "company_ids": cls.company,
+                "company_id": cls.company.id,
             }
         )
         cls.base_url = cls.env["ir.config_parameter"].sudo().get_param("web.base.url")
