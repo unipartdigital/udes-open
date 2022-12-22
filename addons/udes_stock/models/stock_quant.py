@@ -153,6 +153,18 @@ class StockQuant(models.Model):
         """
         self.ensure_one()
         MoveLine = self.env["stock.move.line"]
+        domain = self.get_move_lines_domain(aux_domain=aux_domain)
+        return MoveLine.search(domain)
+
+    def get_move_lines_domain(self, aux_domain=None):
+        """
+        Getting the domain in its own method, would be easier to reuse it when we need just domain
+        and example to execute search_read or search method.
+        It can be easier even if is needed to extend it with super without having to extend with
+        aux_domain optional parameter
+        """
+        self.ensure_one()
+        
         domain = [
             ("product_id", "=", self.product_id.id),
             ("package_id", "=", self.package_id.id),
@@ -162,7 +174,7 @@ class StockQuant(models.Model):
         ]
         if aux_domain is not None:
             domain.extend(aux_domain)
-        return MoveLine.search(domain)
+        return domain
 
     @api.multi
     def _split(self, qty):
