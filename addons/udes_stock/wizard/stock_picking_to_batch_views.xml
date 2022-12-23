@@ -5,7 +5,7 @@
     <record id="stock_picking_batch.stock_picking_to_batch_action_stock_picking"
         model="ir.actions.act_window">
         <field name="groups_id"
-            eval="[(4, ref('udes_security.group_trusted_user'))]"/>
+            eval="[(4, ref('udes_security.group_trusted_user')), (4,ref('udes_stock.group_outbound_user'))]"/>
     </record>
 
     <record id="stock_picking_to_batch_form" model="ir.ui.view">
