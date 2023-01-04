@@ -549,15 +549,12 @@ class BaseUDES(UnconfiguredBaseUDES):
         super().setUpClass()
         cls.setup_default_warehouse()
 
+
 class BaseUDESPullOutboundRoute(UnconfiguredBaseUDES):
     """
     Some unit tests require a different outbound route configuration, and so can inherit from this test class
     """
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls.setup_default_warehouse()
-    
+
     @classmethod
     def create_simple_outbound_route(cls):
         Route = cls.env["stock.location.route"]
@@ -618,4 +615,3 @@ class BaseUDESPullOutboundRoute(UnconfiguredBaseUDES):
                 "procure_method": "make_to_order"
             }
         )
-
