@@ -330,6 +330,7 @@ class StockPickingBatch(models.Model):
         skipped_move_line_ids=None,
         task_grouping_criteria=None,
         limit=1,
+        current_remaining_tasks=None,
     ):
         """
         Get the next not completed tasks of the batch to be done.
@@ -352,6 +353,10 @@ class StockPickingBatch(models.Model):
         MoveLine = self.env["stock.move.line"]
 
         self.ensure_one()
+        if current_remaining_tasks:
+            # TODO Check if there will be remaining tasks in context, after will be processed
+            #  the logic of ordering
+            a = 1
 
         all_available_mls = self.get_available_move_lines()
         skipped_mls = MoveLine.browse()
