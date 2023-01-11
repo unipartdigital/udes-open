@@ -1,7 +1,5 @@
-from urllib.parse import urljoin
 from odoo import _
-
-BASE_PRODUCT_IMAGE_URL = "/web/image/product.product/%i"
+from odoo.tools.image import image_data_uri
 
 UDES_STATISTICS_LOG_FORMAT = "(%s) %s (%s) %s in %.2fs, %d queries, %.2f q/s"
 
@@ -34,22 +32,24 @@ def format_picking_data_for_display_list_component(picking, order=True):
     return contents
 
 
-# TODO: add tests when produce image field is ported
-def product_image_urls(base_url, product):
-    """Produces a product image urls object"""
-    if product.image:
-        base_url = urljoin(base_url, BASE_PRODUCT_IMAGE_URL % product.id)
-        image_urls = {
-            "large": base_url + "/image",
-            "medium": base_url + "/image_medium",
-            "small": base_url + "/image_small",
+def product_image_uris(product):
+    """
+    Produces a product image uris object.
+    Each value is a base64 encoded `data:image/<format>;base64,<b64>` string
+    """
+    if product.image_1920:
+        # NB: all fields: [image_1920, image_1024, image_512, image_256, image_128]
+        # If image is smaller than fields res, then the field will just show the smaller image.
+        return {
+            "large": image_data_uri(product.image_1920),
+            "medium": image_data_uri(product.image_512),
+            "small": image_data_uri(product.image_128),
         }
-        return image_urls
     return False
 
 
 def md_format_label_value(label, value="", separator=":"):
-    """Formats a label and value to markdown string: '**label:** value' """
+    """Formats a label and value to markdown string: '**label:** value'"""
     if label and value == "":
         md_string = f"**{_(label)}**\n"
     elif label == "" and value:
