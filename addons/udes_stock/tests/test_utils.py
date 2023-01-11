@@ -1,5 +1,7 @@
 from odoo.addons.udes_stock.tests import common
 from odoo.addons.udes_stock import utils
+from odoo import tools
+from PIL import Image
 
 
 class TestUtils(common.BaseUDES):
@@ -127,3 +129,26 @@ class TestUtils(common.BaseUDES):
         result = utils.format_dict_for_display_list_component(input_dict)
         test_result = ["**label**: " + label, "**value**: None"]
         self.assertEqual(result, test_result)
+
+    def test_product_image_uris(self):
+        """Assert product_image_uris util function returns the expected results"""
+        product = self.strawberry
+
+        # Ensure result is False when no image is on the product
+        result = utils.product_image_uris(product)
+        self.assertFalse(result)
+
+        # Make the product have an image
+        base64_1920x1080_jpeg = tools.image_to_base64(Image.new("RGB", (1920, 1080)), "JPEG")
+        self.strawberry.image_1920 = base64_1920x1080_jpeg
+
+        # Ensure result is as expected
+        result = utils.product_image_uris(product)
+        self.assertTrue(result)
+        self.assertEqual(result.get("small"), tools.image.image_data_uri(self.strawberry.image_128))
+        self.assertEqual(
+            result.get("medium"), tools.image.image_data_uri(self.strawberry.image_512)
+        )
+        self.assertEqual(
+            result.get("large"), tools.image.image_data_uri(self.strawberry.image_1920)
+        )
