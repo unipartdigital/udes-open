@@ -41,6 +41,7 @@
         "views/stock_op_analysis.xml",
         "views/stock_orderpoint_views.xml",
         "views/stock_location_views.xml",
+        "views/stock_location_route_views.xml",
         "views/stock_template.xml",
         "views/stock_scrap_views.xml",
         "views/stock_warehouse.xml",

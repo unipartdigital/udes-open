@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="stock_location_route_tree_inherit" model="ir.ui.view">
+        <field name="name">udes_stock.stock.location.route.tree</field>
+        <field name="model">stock.location.route</field>
+        <field name="inherit_id" ref="stock.stock_location_route_tree" />
+        <field name="arch" type="xml">
+            <tree position="attributes">
+                <attribute name="decoration-muted">not active</attribute>
+            </tree>
+            <field name="active" position="attributes">
+                <attribute name="widget">boolean_toggle</attribute>
+                <attribute name="invisible">0</attribute>
+            </field>
+        </field>
+    </record>
+
+    <record id="stock_location_route_form_view_inherit" model="ir.ui.view">
+        <field name="name">udes_stock.stock.location.route.form</field>
+        <field name="model">stock.location.route</field>
+        <field name="inherit_id" ref="stock.stock_location_route_form_view" />
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='rule_ids']/tree" position="attributes">
+                <attribute name="decoration-muted">not active</attribute>
+            </xpath>
+            <xpath expr="//field[@name='rule_ids']/tree/field[@name='location_id']" position="after">
+                <field name="active" widget="boolean_toggle"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="stock_location_route_view_search_inherit" model="ir.ui.view">
+        <field name="name">udes_stock.stock.location.route.search</field>
+        <field name="model">stock.location.route</field>
+        <field name="inherit_id" ref="stock.stock_location_route_view_search" />
+        <field name="arch" type="xml">
+            <filter name="inactive" position="after">
+                <filter string="Active" name="active" domain="[('active','=',True)]"/>
+            </filter>
+        </field>
+    </record>
+
+    <record id="stock.action_routes_form" model="ir.actions.act_window">
+        <field name="context">{"active_test": False, "search_default_active": 1}</field>
+    </record>
+
+</odoo>
