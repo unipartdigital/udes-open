@@ -51,6 +51,7 @@
         "views/scrap_views.xml",
         "views/stock_inventory.xml",
         "views/stock_location.xml",
+        "views/stock_location_route_views.xml",
         "views/stock_location_category.xml",
         "views/stock_move_line_views.xml",
         "views/stock_op_analysis.xml",
