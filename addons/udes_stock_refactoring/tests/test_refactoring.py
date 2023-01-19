@@ -183,10 +183,13 @@ class TestAssignRefactoring(TestRefactoringBase):
         apple_move = moves.filtered(lambda m: m.product_id == self.apple)
         banana_move = moves - apple_move
         self.picking.action_assign()
+        self.assertFalse(self.picking.date_done)
         apple_pick = apple_move.picking_id
         banana_pick = banana_move.picking_id
         # Assert picking fields are correct. Having different group names ensures
         # apple_pick and banana_pick are not the same.
+        self.assertFalse(apple_pick.date_done)
+        self.assertFalse(banana_pick.date_done)
         self._assert_picking_fields(apple_pick, state="assigned", group_name=apple_pallet.name)
         self._assert_picking_fields(banana_pick, state="assigned", group_name=banana_pallet.name)
         # Check we haven't mangled the moves or move_lines
@@ -226,6 +229,8 @@ class TestAssignRefactoring(TestRefactoringBase):
         other_apple_pallet_move_line = apple_move_lines - apple_pallet_move_line
         apple_pick = apple_pallet_move_line.picking_id
         other_apple_pick = other_apple_pallet_move_line.picking_id
+        self.assertFalse(apple_pick.date_done)
+        self.assertFalse(other_apple_pick.date_done)
         refactored_picks = apple_pick | other_apple_pick
         # Assert picking fields are correct. Having different group names ensures
         # apple_pick and other_apple_pick are not the same.
@@ -285,6 +290,7 @@ class TestAssignRefactoring(TestRefactoringBase):
         self._assert_move_line_fields(grape_moveline, grape, 10, mixed_pallet)
         # Check that the original pick has been reused
         self.assertTrue(self.picking.exists())
+        self.assertFalse(self.picking.date_done)
 
     def test_reserve_simultaneously_2_picks_1_pallet_same_prods_merges_1_pick(self):
         """
@@ -308,6 +314,7 @@ class TestAssignRefactoring(TestRefactoringBase):
         self.assertEqual((move1 | move2), pick.move_lines)
         move_lines = pick.move_line_ids
         self.assertEqual(len(move_lines), 2)
+        self.assertFalse(pick.date_done)
         move_line1 = move_lines.filtered(lambda ml: ml.move_id == move1)
         move_line2 = move_lines - move_line1
         self._assert_move_line_fields(move_line1, self.apple, 10, apple_pallet)
@@ -349,6 +356,7 @@ class TestAssignRefactoring(TestRefactoringBase):
         # Check that the first pick has been reused and the second pick is empty
         # (u_is_empty = True) and deleted at the very end of the action
         self.assertTrue(pick1.exists())
+        self.assertFalse(pick1.date_done)
         self.assertFalse(pick2.exists())
 
     def test_reserve_1_prod_assert_non_default_locations_maintained(self):
@@ -370,6 +378,7 @@ class TestAssignRefactoring(TestRefactoringBase):
         apple_pick = apple_move.picking_id
         # Check pick reuse
         self.assertEqual(self.picking, apple_pick)
+        self.assertFalse(self.picking.date_done)
         # Check pick state, location and destination location
         self._assert_picking_fields(
             apple_pick,
@@ -404,6 +413,8 @@ class TestAssignRefactoring(TestRefactoringBase):
         pallet1_picking = pallet1_ml.picking_id
         pallet2_picking = pallet2_ml.picking_id
         self._assert_package_levels(pallet1_picking | pallet2_picking)
+        self.assertFalse(pallet1_picking.date_done)
+        self.assertFalse(pallet2_picking.date_done)
 
     def test_package_levels_setup_after_merge(self):
         """
@@ -431,6 +442,7 @@ class TestAssignRefactoring(TestRefactoringBase):
         # Banana picking should be merged into apple picking
         self.assertTrue(self.picking.exists())
         self.assertFalse(banana_picking.exists())
+        self.assertFalse(self.picking.date_done)
         self.assertEqual(apple_move | banana_move, self.picking.move_lines)
 
         # Should be a single package level linked to both apple and banana move line
@@ -494,9 +506,11 @@ class TestAssignRefactoring(TestRefactoringBase):
         # Verify that each picking has the correct package level for its pallet
         self._assert_package_levels(goods_out_pickings)
 
+
         # Complete each goods out picking and ensure after each one that the
         # package levels are still correct
         for picking in goods_out_pickings:
+            self.assertFalse(picking.date_done)
             picking_ml = picking.move_line_ids
             picking_ml.write(
                 {
@@ -507,6 +521,7 @@ class TestAssignRefactoring(TestRefactoringBase):
             )
             picking._action_done()
             self._assert_package_levels(goods_out_pickings)
+            self.assertTrue(picking.date_done)
 
     def test_refactors_partially_unavailable_stock_into_new_move(self):
         """The system should split moves into available and unavailable."""
@@ -529,6 +544,7 @@ class TestAssignRefactoring(TestRefactoringBase):
 
         self._assert_picking_fields(self.picking, state="confirmed")
         self._assert_picking_fields(refactored_moves.picking_id, state="assigned")
+        self.assertFalse(refactored_moves.picking_id.date_done)
 
 
 class TestValidateRefactoring(TestRefactoringBase):
@@ -578,7 +594,9 @@ class TestValidateRefactoring(TestRefactoringBase):
 
         self.assertEqual(apple_move_line.picking_id, self.picking)
         self.assertEqual(banana_move_line.picking_id, self.picking)
+        self.assertFalse(self.picking.date_done)
         self.picking._action_done()
+        self.assertTrue(self.picking.date_done)
         # Check that apple and banana moves are now in different picks
         # and the original pick has been reused.
         self.assertNotEqual(apple_move.picking_id, banana_move.picking_id)
@@ -625,7 +643,9 @@ class TestValidateRefactoring(TestRefactoringBase):
         partner = self.create_partner("Test Partner 123")
         origin = "Test origin 123"
         self.picking.write({"origin": origin, "partner_id": partner.id})
+        self.assertFalse(self.picking.date_done)
         self.picking._action_done()
+        self.assertTrue(self.picking.date_done)
         # apple and banana moves are now in different picks
         # and the original pick has been reused.
         self.assertNotEqual(apple_move.picking_id, banana_move.picking_id)
@@ -718,6 +738,8 @@ class TestValidateRefactoring(TestRefactoringBase):
 
         # Prepare both picks extra info and validate them at the same time
         both_picks = self.picking | self.picking_2
+        self.assertFalse(self.picking.date_done)
+        self.assertFalse(self.picking_2.date_done)
         partner = self.create_partner("Test Partner 123")
         origin = "Test origin 123"
         both_picks.write({"origin": origin, "partner_id": partner.id})
@@ -778,6 +800,8 @@ class TestConfirmRefactoring(TestRefactoringBase):
         self.assertTrue(self.picking == apple_pick or self.picking == banana_pick)
         self.assertEqual(apple_pick.move_lines, apple_move)
         self.assertEqual(banana_pick.move_lines, banana_move)
+        self.assertFalse(apple_pick.date_done)
+        self.assertFalse(banana_pick.date_done)
         self._assert_picking_fields(apple_pick, state="confirmed")
         self._assert_picking_fields(banana_pick, state="confirmed")
 
@@ -803,3 +827,4 @@ class TestConfirmRefactoring(TestRefactoringBase):
         self.assertTrue(self.picking == banana_pick)
         self._assert_picking_fields(apple_pick, state="confirmed")
         self._assert_picking_fields(banana_pick, state="confirmed")
+        self.assertFalse(self.picking.date_done)
