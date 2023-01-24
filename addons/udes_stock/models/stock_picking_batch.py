@@ -299,7 +299,7 @@ class StockPickingBatch(models.Model):
         if not (batch_pt.u_allow_swapping_packages and batch_pt.u_user_scans == "product"):
             parts.append(lambda ml: (ml.package_id.id,))
 
-        parts.append(lambda ml: (ml.location_id.id, ml.product_id.id))
+        parts.append(lambda ml: (ml.location_id.name, ml.product_id.id))
 
         return lambda ml: tuple(chain(*[part(ml) for part in parts]))
 
