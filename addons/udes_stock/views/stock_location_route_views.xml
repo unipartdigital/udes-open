@@ -9,10 +9,6 @@
             <tree position="attributes">
                 <attribute name="decoration-muted">not active</attribute>
             </tree>
-            <field name="active" position="attributes">
-                <attribute name="widget">boolean_toggle</attribute>
-                <attribute name="invisible">0</attribute>
-            </field>
         </field>
     </record>
 
