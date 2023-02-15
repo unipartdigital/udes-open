@@ -86,14 +86,15 @@ class StockQuantPackage(models.Model):
         :returns: a recordset with the move lines in progress.
         """
         MoveLine = self.env["stock.move.line"]
+        self.ensure_one()
 
         if aux_domain is None:
             aux_domain = [("state", "not in", ["done", "cancel"])]
-        # TODO: do we want to use child_of instead of in?
+
         domain = aux_domain + [
             "|",
-            ("result_package_id", "in", self.ids),
-            ("package_id", "in", self.ids),
+            ("result_package_id", "child_of", self.id),
+            ("package_id", "child_of", self.id),
         ]
         move_lines = MoveLine.search(domain)
         return move_lines
