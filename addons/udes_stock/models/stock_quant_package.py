@@ -12,7 +12,7 @@ class StockQuantPackage(models.Model):
     MSM_CREATE_SUDO = True
 
     def _get_current_move_lines(self):
-        """ Helper function to return current move lines for the package in self """
+        """Helper function to return current move lines for the package in self"""
         MoveLine = self.env["stock.move.line"]
         return MoveLine.search(
             [("package_id", "child_of", self.id), ("state", "not in", ["done", "cancel"])],
