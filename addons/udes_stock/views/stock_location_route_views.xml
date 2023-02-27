@@ -27,6 +27,21 @@
         </field>
     </record>
 
+    <record id="view_procurement_rule_tree_inherit" model="ir.ui.view">
+        <field name="name">udes_stock.procurement.rule.tree</field>
+        <field name="model">procurement.rule</field>
+        <field name="inherit_id" ref="stock.view_procurement_rule_tree" />
+        <field name="arch" type="xml">
+            <tree position="attributes">
+                <attribute name="decoration-muted">not active</attribute>
+            </tree>
+            <field name="active" position="replace"/>
+            <field name="company_id" position="after">
+                <field name="active" widget="boolean_toggle"/>
+            </field>
+        </field>
+    </record>
+
     <record id="stock_location_route_view_search_inherit" model="ir.ui.view">
         <field name="name">udes_stock.stock.location.route.search</field>
         <field name="model">stock.location.route</field>
