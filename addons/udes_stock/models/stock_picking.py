@@ -2787,11 +2787,24 @@ class StockPicking(models.Model):
             processed = Picking.browse()
             by_type = lambda x: x.picking_type_id == picking_type
 
+            # Get the number of pickings that are not in batches.
+            domain = base_domain[:]
+            domain.append(("batch_id", "=", False))
+            num_unbatched = Picking.search(domain, count=True)
+
             while reserve_all or to_reserve > 0:
 
                 if self:
                     # Removed processed pickings from self
                     pickings = self.filtered(by_type) - processed
+                elif num_unbatched > 0:
+                    # Process pickings that are not in batches in groups,
+                    # rather than singly.
+                    domain = base_domain[:]
+                    if processed:
+                        domain.extend([("id", "not in", processed.ids), ("batch_id", "=", False)])
+                    pickings = Picking.search(domain, limit=1000)
+                    num_unbatched -= len(pickings)
                 else:
                     domain = base_domain[:]
                     if processed:
