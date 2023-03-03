@@ -14,6 +14,7 @@
         "udes_common",
         "package_hierarchy",
         "udes_security",
+        "print",
     ],
     "data": [
         "security/ir.model.access.csv",
@@ -26,6 +27,7 @@
         "data/warehouse.xml",
         "data/routes.xml",
         "data/scheduler.xml",
+        "data/picking_print.xml",
         "report/deliveryslip_reports.xml",
         "report/deliveryslip_templates.xml",
         "report/external_layout.xml",
@@ -50,6 +52,7 @@
         "views/stock_location_category_views.xml",
         "views/stock_scheduler_compute_views.xml",
         "views/res_users_view.xml",
+        "views/stock_picking_print_strategy_views.xml",
         "wizard/reservation_views.xml",
     ],
 }

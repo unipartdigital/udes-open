@@ -15,3 +15,4 @@ from . import stock_location_category
 from . import stock_warehouse_orderpoint
 from . import stock_production_lot
 from . import res_config_settings
+from . import stock_picking_print_strategy

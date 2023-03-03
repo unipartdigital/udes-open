@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<odoo>
+    <data>
+
+        <!-- Print on Picking done event -->
+        <record id="udes_stock.picking_done" model="ir.actions.server">
+            <field name="name">Picking Done</field>
+            <field name="model_id" ref="model_stock_picking"/>
+            <field name="state">print</field>
+            <field name="type">ir.actions.server</field>
+            <field name="strategy_id" ref="model_udes_stock_stock_picking_print_strategy"/>
+        </record>
+
+        <!-- Print on Picking Package Update event -->
+        <record id="udes_stock.picking_update_package" model="ir.actions.server">
+            <field name="name">Picking Update Package</field>
+            <field name="model_id" ref="model_stock_picking"/>
+            <field name="state">print</field>
+            <field name="type">ir.actions.server</field>
+            <field name="strategy_id" ref="model_udes_stock_stock_picking_print_strategy"/>
+        </record>   
+
+        <!-- Print on Picking Move Line done event -->
+        <record id="udes_stock.picking_update_move_done" model="ir.actions.server">
+            <field name="name">Picking Move Line Done</field>
+            <field name="model_id" ref="model_stock_picking"/>
+            <field name="state">print</field>
+            <field name="type">ir.actions.server</field>
+            <field name="strategy_id" ref="model_udes_stock_stock_picking_print_strategy"/>
+        </record> 
+
+        <!-- Print on Picking start event -->
+        <record id="udes_stock.picking_start" model="ir.actions.server">
+            <field name="name">Picking Start</field>
+            <field name="model_id" ref="model_stock_picking"/>
+            <field name="state">print</field>
+            <field name="type">ir.actions.server</field>
+            <field name="strategy_id" ref="model_udes_stock_stock_picking_print_strategy"/>
+        </record> 
+
+    </data>
+</odoo>
