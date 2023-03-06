@@ -4,6 +4,7 @@ Tests for StockPicking.reserve_stock.
 The method itself cannot be tested because it contains a commit statement, but
 we can test related methods.
 """
+from unittest import mock
 from .common import BaseUDES
 
 
@@ -67,3 +68,164 @@ class FindUnreservableMovesTestCase(BaseUDES):
         unreservable_moves = picking._find_unreservable_moves()
 
         self.assertEqual(unreservable_moves, picking.move_lines)
+
+
+# Reserve Stock tests.
+
+# The principal conditions that affect stock reservation are whether a picking
+# is in a batch, and the values of the picking type's u_reserve_batches and
+# u_handle_partial flags. The stock level conditions that affect reservation
+# are: sufficent stock, no stock, some lines are not reservable and some lines
+# are partially available.
+
+# To test this, we have a matrix of configuration options, initial stock levels
+# and expected reservations. The ReservationMixin class has tests for each of
+# the stock level conditions; the TestCase classes provide the configuration
+# for each test method.
+
+# Test configuration, stock levels and expected outputs, keyed on:
+# Pickings are in batches, PickingType.u_reserve_batches, PickingType.u_handle_partials.
+# Values order: all available, none available, partially available, line partially available
+# In-values order:
+# quantity in stock, expected reservation
+# each picking has two identical lines (2 x 10)
+# each batch has two identical pickings
+RESERVATION_MATRIX = {
+    (True, True, True): [(40, 40), (0, 0), (30, 30), (35, 35)],
+    (True, True, False): [(40, 40), (0, 0), (0, 0), (0, 0)],
+    (True, False, True): [(40, 40), (0, 0), (30, 30), (35, 35)],
+    (True, False, False): [(40, 40), (0, 0), (30, 20), (35, 20)],
+    (False, True, True): [(40, 40), (0, 0), (40, 40), (40, 40)],
+    (False, True, False): [(40, 40), (0, 0), (0, 0), (0, 0)],
+    (False, False, True): [(40, 40), (0, 0), (30, 30), (35, 35)],
+    (False, False, False): [(40, 40), (0, 0), (0, 0), (0, 0)],
+}
+
+
+class ReservationMixin(object):
+    def test_reserves_stock_when_sufficient_stock_is_available(self):
+        """The system will reserve all demand if stock is available."""
+        initial_qty, expected = self.config[0]
+        self.create_pickings(initial_qty)
+
+        with mock.patch.object(self.pick.env.cr, "commit", return_value=None):
+            self.pick.reserve_stock()
+
+        quant = self.Quant.search([("reserved_quantity", ">", 0)])
+        self.assertEqual(quant.reserved_quantity, expected)
+
+    def test_does_not_reserve_if_no_available_stock(self):
+        """The system will not reserve stock if none is available."""
+        initial_qty, expected = self.config[1]
+        self.create_pickings(initial_qty)
+
+        with mock.patch.object(self.pick.env.cr, "commit", return_value=None):
+            self.pick.reserve_stock()
+
+        quant = self.Quant.search([("reserved_quantity", ">", 0)])
+        self.assertEqual(quant.reserved_quantity, expected)
+
+    def test_handles_partially_available_pickings(self):
+        """The system will correctly handle the case when not all lines can be reserved."""
+        initial_qty, expected = self.config[2]
+        self.create_pickings(initial_qty)
+
+        with mock.patch.object(self.pick.env.cr, "commit", return_value=None):
+            self.pick.reserve_stock()
+
+        quant = self.Quant.search([("reserved_quantity", ">", 0)])
+        self.assertEqual(quant.reserved_quantity, expected)
+
+    def test_handles_partially_available_lines(self):
+        """The system will correctly handle the case when a line is partially available."""
+        initial_qty, expected = self.config[2]
+        self.create_pickings(initial_qty)
+
+        with mock.patch.object(self.pick.env.cr, "commit", return_value=None):
+            self.pick.reserve_stock()
+
+        quant = self.Quant.search([("reserved_quantity", ">", 0)])
+        self.assertEqual(quant.reserved_quantity, expected)
+
+
+class ReservationBase(BaseUDES):
+    """Test cases for stock reservation."""
+
+    KEY = ()
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        Pick = cls.env["stock.picking"]
+        cls.Quant = cls.env["stock.quant"]
+
+        cls.picking_type_pick.u_num_reservable_pickings = 100
+        batched, reserve_batches, handle_partials = cls.KEY
+        cls.batched = batched
+        cls.config = RESERVATION_MATRIX[cls.KEY]
+        cls.picking_type_pick.u_reserve_batches = reserve_batches
+        cls.picking_type_pick.u_handle_partials = handle_partials
+
+        cls.Pick = Pick
+        cls.pick = Pick.browse()
+
+    def create_pickings(self, initial_quantity):
+        """Create two pickings with two lines of 10."""
+        # TODO creating quant in pickins method🧐 ?
+        self.create_quant(self.apple.id, self.test_location_01.id, initial_quantity)
+        products_info = [{"product": self.apple, "qty": 10}] * 2
+        pickings = self.create_picking(self.picking_type_pick, products_info, confirm=True)
+        pickings |= self.create_picking(self.picking_type_pick, products_info, confirm=True)
+        if self.batched:
+            batch = self.create_batch()
+            pickings.write({"batch_id": batch.id})
+            batch.mark_as_todo()
+        return pickings
+
+
+class BatchedReserveBatchHandlePartialsTestCase(ReservationBase, ReservationMixin):
+    """Test cases for stock reservation."""
+
+    KEY = True, True, True
+
+
+class BatchedReserveBatchNoHandlePartialsTestCase(ReservationBase, ReservationMixin):
+    """Test cases for stock reservation."""
+
+    KEY = True, True, False
+
+
+class BatchedNoReserveBatchHandlePartialsTestCase(ReservationBase, ReservationMixin):
+    """Test cases for stock reservation."""
+
+    KEY = True, False, True
+
+
+class BatchedNoReserveBatchNoHandlePartialsTestCase(ReservationBase, ReservationMixin):
+    """Test cases for stock reservation."""
+
+    KEY = True, False, False
+
+
+class UnbatchedReserveBatchHandlePartialsTestCase(ReservationBase, ReservationMixin):
+    """Test cases for stock reservation."""
+
+    KEY = False, True, True
+
+
+class UnbatchedReserveBatchNoHandlePartialsTestCase(ReservationBase, ReservationMixin):
+    """Test cases for stock reservation."""
+
+    KEY = False, True, False
+
+
+class UnbatchedNoReserveBatchHandlePartialsTestCase(ReservationBase, ReservationMixin):
+    """Test cases for stock reservation."""
+
+    KEY = False, False, True
+
+
+class UnbatchedNoReserveBatchNoHandlePartialsTestCase(ReservationBase, ReservationMixin):
+    """Test cases for stock reservation."""
+
+    KEY = False, False, False
