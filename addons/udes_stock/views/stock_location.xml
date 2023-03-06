@@ -85,6 +85,24 @@
                     <field name="u_heatmap_data_updated"/>
                 </xpath>
 
+                <!-- Make usage field readonly for all users -->
+                <xpath expr="//field[@name='usage']" position="attributes">
+                    <attribute name="readonly">1</attribute>
+                </xpath>
+
+            </field>
+        </record>
+
+        <!-- Change readonly = False for Trusted users-->
+        <record id="view_form_stock_location_udes_trusted_user" model="ir.ui.view">
+            <field name="name">trusted_users.location.form</field>
+            <field name="model">stock.location</field>
+            <field name="inherit_id" ref="stock.view_location_form" />
+            <field name="groups_id" eval="[(6, 0, [ref('udes_security.group_trusted_user') ])]" />
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='usage']" position="attributes">
+                    <attribute name="readonly">0</attribute>
+                </xpath>
             </field>
         </record>
 

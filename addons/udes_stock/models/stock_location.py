@@ -6,6 +6,9 @@ from .stock_picking_type import TARGET_STORAGE_FORMAT_OPTIONS
 
 from odoo import fields, models, _, api
 from odoo.exceptions import ValidationError
+import logging
+
+_logger = logging.getLogger(__name__)
 
 
 PI_COUNT_MOVES = "pi_count_moves"
@@ -278,6 +281,33 @@ class StockLocation(models.Model):
                 if parent.u_is_countable:
                     is_countable = True
             location.u_is_countable = is_countable
+
+    def write(self, values):
+        """
+        Remove usage from values when updating locations from a new release if they already have
+        stock in it.
+
+        Making sure that if usage is in values locations are updated 1 by one not as multi.
+
+        This change will not raise any error when we run the script with -u base or -i base.
+        Logging a critical warning for every location that was tried to change the usage field,
+        but bypassed from this method.
+        """
+        if (
+                self._context.get("install_mode", None)
+                and "usage" in values
+                and len(self) == 1
+                and self.quant_ids
+        ):
+            _logger.warning(
+                "Location %s (%s) is bypassed changing usage field from %s to %s",
+                self.name,
+                self.id,
+                self.usage,
+                values["usage"],
+            )
+            values.pop("usage")
+        return super().write(values)
 
     def _prepare_info(self, extended=False, load_quants=False):
         """
