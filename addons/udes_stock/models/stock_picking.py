@@ -2784,7 +2784,7 @@ class StockPicking(models.Model):
             to_reserve = picking_type.u_num_reservable_pickings
             reserve_all = to_reserve == -1
             base_domain = [("picking_type_id", "=", picking_type.id), ("state", "=", "confirmed")]
-            limit = 1
+            limit = 100 if reserve_all else picking_type.u_num_reservable_pickings
             processed = Picking.browse()
             by_type = lambda x: x.picking_type_id == picking_type
 
@@ -2792,122 +2792,129 @@ class StockPicking(models.Model):
 
                 if self:
                     # Removed processed pickings from self
-                    pickings = self.filtered(by_type) - processed
+                    pickings_to_process = self.filtered(by_type) - processed
                 else:
                     domain = base_domain[:]
                     if processed:
                         domain.append(("id", "not in", processed.ids))
-                    pickings = Picking.search(domain, limit=limit)
+                    pickings_to_process = Picking.search(domain, limit=limit)
 
-                if not pickings:
+                if not pickings_to_process:
                     # No pickings left to process.
                     # If u_num_reservable_pickings is -1, or there are
                     # fewer available pickings that the limit, the loop must
                     # terminate here.
                     break
 
-                batch = pickings.mapped("batch_id")
-                if batch and batch.state == "draft":
-                    # Add to seen pickings so that we don't try to process
-                    # this batch again.
-                    processed |= batch.picking_ids
-                    continue
-
-                if batch and picking_type.u_reserve_batches:
-                    pickings = batch.picking_ids
-
-                # Check for available stock and add pickings which we cannot
-                # fulfill to the processed recordset. The logic here
-                # should mirror that within the savepoint below, expect here we
-                # do not have the move lines.
-                unreservable_moves = pickings._find_unreservable_moves(return_fast=bool(self))
-                if unreservable_moves:
-                    moves = pickings.mapped("move_lines")
-                    moves_todo = (
-                        moves.filtered(lambda m: m.state in ["confirmed", "draft"])
-                        - unreservable_moves
-                    )
-                    if not picking_type.u_handle_partials:
-                        # Add to processed to skip reservation.
-                        processed |= pickings
-
-                        if self:
-                            raise_insufficiency_error(unreservable_moves)
-                        continue
-                    elif not moves_todo:
-                        # Add to processed to skip reservation.
-                        processed |= pickings
+                # "pickings" is plural as the individual picking may be
+                # extended if it's in a batch.
+                for pickings in pickings_to_process:
+                    if pickings in processed:
                         continue
 
-                # MPS: mimic Odoo's retry behaviour
-                tries = 0
-                while True:
+                    batch = pickings.mapped("batch_id")
+                    if batch and batch.state == "draft":
+                        # Add to seen pickings so that we don't try to process
+                        # this batch again.
+                        processed |= batch.picking_ids
+                        continue
 
-                    try:
-                        with self.env.cr.savepoint():
-                            pickings = pickings._reserve_stock_assign()
-                            batch._compute_state()
+                    if batch and picking_type.u_reserve_batches:
+                        pickings = batch.picking_ids
 
+                    # Check for available stock and add pickings which we cannot
+                    # fulfill to the processed recordset. The logic here
+                    # should mirror that within the savepoint below, expect here we
+                    # do not have the move lines.
+                    unreservable_moves = pickings._find_unreservable_moves(return_fast=bool(self))
+                    if unreservable_moves:
+                        moves = pickings.mapped("move_lines")
+                        moves_todo = (
+                            moves.filtered(lambda m: m.state in ["confirmed", "draft"])
+                            - unreservable_moves
+                        )
+                        if not picking_type.u_handle_partials:
+                            # Add to processed to skip reservation.
                             processed |= pickings
 
-                            unsatisfied = pickings.filtered(
-                                lambda x: x.state not in ["assigned", "cancel", "done"]
-                            )
-                            mls = pickings.mapped("move_line_ids")
-                            if unsatisfied:
-                                # Unreserve if the picking type cannot handle partials or it
-                                # can but there is nothing allocated (no stock.move.lines)
-                                if not picking_type.u_handle_partials or not mls:
-                                    # construct error message, report only products
-                                    # that are unreservable.
-                                    not_done = lambda x: x.state not in (
-                                        "done",
-                                        "assigned",
-                                        "cancel",
-                                    )
-                                    moves = unsatisfied.mapped("move_lines").filtered(not_done)
-                                    raise_insufficiency_error(moves)
-                            break
-                    except UserError as e:
-                        self.invalidate_cache()
-                        # Only propagate the error if the function has been
-                        # manually triggered
-                        if self:
-                            raise e
-                        tries = -1
-                        break
-                    except OperationalError as e:
-                        self.invalidate_cache()
-                        if e.pgcode not in PG_CONCURRENCY_ERRORS_TO_RETRY:
-                            raise
-                        if tries >= MAX_TRIES_ON_CONCURRENCY_FAILURE:
-                            _logger.info(
-                                "%s, maximum number of tries reached" % errorcodes.lookup(e.pgcode)
-                            )
-                            break
-                        tries += 1
-                        wait_time = 1
-                        _logger.info(
-                            "%s, retry %d/%d in %.04f sec..."
-                            % (
-                                errorcodes.lookup(e.pgcode),
-                                tries,
-                                MAX_TRIES_ON_CONCURRENCY_FAILURE,
-                                wait_time,
-                            )
-                        )
-                        time.sleep(wait_time)
-                if tries == -1:
-                    continue
-                if tries >= MAX_TRIES_ON_CONCURRENCY_FAILURE:
-                    break
+                            if self:
+                                raise_insufficiency_error(unreservable_moves)
+                            continue
+                        elif not moves_todo:
+                            # Add to processed to skip reservation.
+                            processed |= pickings
+                            continue
 
-                # Incrementally commit to release picks as soon as possible and
-                # allow serialisation error to propagate to respect priority
-                # order
-                self.env.cr.commit()
-                # Only count as reserved the number of pickings at mls
-                to_reserve -= len(mls.mapped("picking_id"))
+                    # MPS: mimic Odoo's retry behaviour
+                    tries = 0
+                    while True:
+
+                        try:
+                            with self.env.cr.savepoint():
+                                pickings = pickings._reserve_stock_assign()
+                                batch._compute_state()
+
+                                processed |= pickings
+
+                                unsatisfied = pickings.filtered(
+                                    lambda x: x.state not in ["assigned", "cancel", "done"]
+                                )
+                                mls = pickings.mapped("move_line_ids")
+                                if unsatisfied:
+                                    # Unreserve if the picking type cannot handle partials or it
+                                    # can but there is nothing allocated (no stock.move.lines)
+                                    if not picking_type.u_handle_partials or not mls:
+                                        # construct error message, report only products
+                                        # that are unreservable.
+                                        not_done = lambda x: x.state not in (
+                                            "done",
+                                            "assigned",
+                                            "cancel",
+                                        )
+                                        moves = unsatisfied.mapped("move_lines").filtered(not_done)
+                                        raise_insufficiency_error(moves)
+                                break
+                        except UserError as e:
+                            self.invalidate_cache()
+                            # Only propagate the error if the function has been
+                            # manually triggered
+                            if self:
+                                raise e
+                            tries = -1
+                            break
+                        except OperationalError as e:
+                            self.invalidate_cache()
+                            if e.pgcode not in PG_CONCURRENCY_ERRORS_TO_RETRY:
+                                raise
+                            if tries >= MAX_TRIES_ON_CONCURRENCY_FAILURE:
+                                _logger.info(
+                                    "%s, maximum number of tries reached"
+                                    % errorcodes.lookup(e.pgcode)
+                                )
+                                break
+                            tries += 1
+                            wait_time = 1
+                            _logger.info(
+                                "%s, retry %d/%d in %.04f sec..."
+                                % (
+                                    errorcodes.lookup(e.pgcode),
+                                    tries,
+                                    MAX_TRIES_ON_CONCURRENCY_FAILURE,
+                                    wait_time,
+                                )
+                            )
+                            time.sleep(wait_time)
+                    if tries == -1:
+                        continue
+                    if tries >= MAX_TRIES_ON_CONCURRENCY_FAILURE:
+                        break
+
+                    # Incrementally commit to release picks as soon as possible and
+                    # allow serialisation error to propagate to respect priority
+                    # order
+                    self.env.cr.commit()
+                    # Only count as reserved the number of pickings at mls
+                    to_reserve -= len(mls.mapped("picking_id"))
 
                 if self:
                     # Only process the specified pickings
