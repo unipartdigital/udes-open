@@ -40,7 +40,7 @@ class StockPicking(models.Model):
 
     _order = "priority desc, scheduled_date asc, sequence asc, id asc"
 
-    origin = fields.Char(track_visibility = "onchange")
+    origin = fields.Char(track_visibility="onchange")
     # Adding fields to be hidden by default from form view.
     DetailedFormViewFields = [
         "u_first_picking_ids",
@@ -230,7 +230,7 @@ class StockPicking(models.Model):
     @api.depends("move_line_ids", "move_line_ids.location_id")
     @api.one
     def _compute_location_category(self):
-        """ Compute location category from move lines"""
+        """Compute location category from move lines"""
         if self.move_line_ids:
             categories = self.move_line_ids.mapped("location_id.u_location_category_id")
             self.u_location_category_id = categories if len(categories) == 1 else False
@@ -238,7 +238,7 @@ class StockPicking(models.Model):
     @api.depends("move_lines", "move_lines.quantity_done", "move_lines.ordered_qty")
     @api.one
     def _compute_picking_quantities(self):
-        """ Compute the quantity done and to do of the picking from the moves"""
+        """Compute the quantity done and to do of the picking from the moves"""
         total_qty_done = 0.0
         total_qty_todo = 0.0
         has_discrepancies = False
@@ -257,7 +257,7 @@ class StockPicking(models.Model):
     @api.depends("move_line_ids", "move_line_ids.result_package_id")
     @api.one
     def _compute_picking_packages(self):
-        """ Compute the number of pallets and packages from the operations """
+        """Compute the number of pallets and packages from the operations"""
         User = self.env["res.users"]
 
         warehouse = User.get_user_warehouse()
@@ -532,7 +532,7 @@ class StockPicking(models.Model):
             "action_done",
             stats.elapsed,
             stats.count,
-            stats.count / stats.elapsed
+            stats.count / stats.elapsed,
         )
 
         if self:
@@ -591,7 +591,7 @@ class StockPicking(models.Model):
         return super(StockPicking, self).button_validate()
 
     def update_lot_names(self):
-        """ Create lot names for move lines where user is not required to provide them """
+        """Create lot names for move lines where user is not required to provide them"""
         picking_type = self.picking_type_id
         if (
             picking_type.use_create_lots or picking_type.use_existing_lots
@@ -1384,7 +1384,7 @@ class StockPicking(models.Model):
         return self._get_priority_dict().get(self.priority)
 
     def get_picking_guidance(self):
-        """ Return dict of guidance info to aid user when picking """
+        """Return dict of guidance info to aid user when picking"""
         return {"Priorities": self._get_priority_name()}
 
     def get_info(self, **kwargs):
@@ -1449,7 +1449,7 @@ class StockPicking(models.Model):
 
     @api.multi
     def get_move_lines_done(self):
-        """ Return the recordset of move lines done. """
+        """Return the recordset of move lines done."""
         move_lines = self.mapped("move_line_ids")
 
         return move_lines.filtered(lambda o: o.qty_done > 0)
@@ -1916,7 +1916,7 @@ class StockPicking(models.Model):
     def _swap_entire_package(
         self, scanned_package, expected_package, scanned_pack_mls, exp_pack_mls
     ):
-        """ Performs the swap. """
+        """Performs the swap."""
         expected_package.ensure_one()
 
         if scanned_pack_mls and exp_pack_mls:
@@ -2963,7 +2963,7 @@ class StockPicking(models.Model):
         return {}
 
     def _get_pick_details(self):
-        """Getting main picking details, method can be extendable on other modules """
+        """Getting main picking details, method can be extendable on other modules"""
         self.ensure_one()
         pick_details = {
             "details": utils.md_format_label_value("Supplier Name", self.partner_id.name)
@@ -3093,27 +3093,19 @@ class StockPicking(models.Model):
 
     def open_first_pickings(self):
         """Open first pickings button will redirect to first pickings"""
-        return self.open_related_pickings(
-            self.u_first_picking_ids.ids, "First Pickings"
-        )
+        return self.open_related_pickings(self.u_first_picking_ids.ids, "First Pickings")
 
     def open_prev_pickings(self):
         """Open prev pickings button will redirect to previous pickings"""
-        return self.open_related_pickings(
-            self.u_prev_picking_ids.ids, "Previous Pickings"
-        )
+        return self.open_related_pickings(self.u_prev_picking_ids.ids, "Previous Pickings")
 
     def open_next_pickings(self):
         """Open next pickings button will redirect to next pickings"""
-        return self.open_related_pickings(
-            self.u_next_picking_ids.ids, "Next Pickings"
-        )
+        return self.open_related_pickings(self.u_next_picking_ids.ids, "Next Pickings")
 
     def open_back_orders(self):
         """Open back orders button will redirect to created back orders"""
-        return self.open_related_pickings(
-            self.u_created_back_orders.ids, "Created Back Orders"
-        )
+        return self.open_related_pickings(self.u_created_back_orders.ids, "Created Back Orders")
 
     def check_date_done(self):
         """
@@ -3142,14 +3134,12 @@ class StockPicking(models.Model):
         self.ensure_one()
         traceback_message = traceback.extract_stack()
         prevent_name = "Open Pickings with Date Done"
-        prevent_project = Project.search([
-            ("name", "=", prevent_name)
-        ], limit=1)
+        prevent_project = Project.search([("name", "=", prevent_name)], limit=1)
         if not prevent_project:
             prevent_project = Project.create({"name": prevent_name})
         vals = {
             "project_id": prevent_project.id,
             "name": ("[%s] date_done set on open picking" % self.name),
-            "description": ''.join(traceback_message.format()),
+            "description": "".join(traceback_message.format()),
         }
         Issue.create(vals)
