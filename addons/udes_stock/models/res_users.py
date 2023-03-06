@@ -89,6 +89,16 @@ class ResUser(models.Model):
                 picking.unassign_users(skip_users=users_to_assign)
                 users_to_assign._assign_picking_to_users(picking)
 
+                # Trigger the Print Job when a user is assigned to a picking
+                # This is when the user will start the picking
+                self.env.ref("udes_stock.picking_start").with_context(
+                    active_model=picking._name,
+                    active_ids=picking.ids,
+                    print_records=picking,
+                    action_filter="user._action_assign",
+                    skip_printing=True if picking.picking_type_id.u_disable_automated_printing else False
+                ).run()
+
     def _assign_picking_to_users(self, picking):
         """Placing into a method in order to be able to inherit and change behaviour if needed.
         If the picking has never been started, update the start time."""
