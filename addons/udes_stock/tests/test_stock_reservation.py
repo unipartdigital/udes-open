@@ -4,6 +4,7 @@ Tests for StockPicking.reserve_stock.
 The method itself cannot be tested because it contains a commit statement, but
 we can test related methods.
 """
+import logging
 from .common import BaseUDES
 
 
@@ -67,3 +68,30 @@ class FindUnreservableMovesTestCase(BaseUDES):
         unreservable_moves = picking._find_unreservable_moves()
 
         self.assertEqual(unreservable_moves, picking.move_lines)
+
+    def test_logs_info_message_if_more_than_one_picking_processed(self):
+        """The system will log an INFO level message if more than one picking is processed."""
+        products_info = [{"product": self.apple, "qty": 5}]
+        pickings = self.create_picking(self.picking_type_pick, products_info, confirm=True)
+        pickings |= self.create_picking(self.picking_type_pick, products_info, confirm=True)
+        logger = "odoo.addons.udes_stock.models.stock_picking"
+
+        with self.assertLogs(logger, logging.INFO) as cm:
+            pickings._find_unreservable_moves()
+        messages = [r.getMessage() for r in cm.records]
+        self.assertEqual(
+            messages, ["Checking reservability for 2 pickings.", "Checking pickings 0-1"]
+        )
+
+    def test_logs_debug_message_if_more_one_picking_processed(self):
+        """The system will log a DEBUG level message if only one picking is processed."""
+        products_info = [{"product": self.apple, "qty": 5}]
+        picking = self.create_picking(self.picking_type_pick, products_info, confirm=True)
+        logger = "odoo.addons.udes_stock.models.stock_picking"
+
+        with self.assertLogs(logger, logging.DEBUG) as cm:
+            picking._find_unreservable_moves()
+        messages = [r.getMessage() for r in cm.records]
+        self.assertEqual(
+            messages, ["Checking reservability for 1 pickings.", "Checking pickings 0-0"]
+        )
