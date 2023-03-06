@@ -2662,9 +2662,10 @@ class StockPicking(models.Model):
         stock_for_products = defaultdict(int)
         skip_states = ("assigned", "done", "cancel")
 
-        _logger.info(_("Checking reservability for %d pickings."), len(self))
+        level = logging.DEBUG if len(self) == 1 else logging.INFO
+        _logger.log(level, _("Checking reservability for %d pickings."), len(self))
         for r, batch in self.batched(size=batch_size):
-            _logger.info("Checking pickings %d-%d", r[0], r[-1])
+            _logger.log(level, "Checking pickings %d-%d", r[0], r[-1])
             # Cache the needed fields and only the needed fields
             # Caching too much is expensive here because of the sheer number of
             # records processed: Odoo's field loading becomes a bottleneck and
