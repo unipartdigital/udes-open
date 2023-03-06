@@ -278,6 +278,25 @@ Model used to register users that can access the system in the way has been defi
 | assign_picking_to_users       | Assigning a picking to users                                 |
 | _unassign_pickings_from_user  | Unassigning pickings from users                              |
 
+### Stock Picking Print Strategy
+This model contains records for printing during pickings. It inherits from the "print.strategy" model in "print". In the code there is 
+hardcoded calls to "print actions". The "print actions" are ir.actions.server data, defined in data/picking_print.xml, with a state set
+to "print" and pointing to a specific "print strategy". When the "print action" is triggered, it calls "_run_action_print", where records 
+in the related "print strategy" (odoo model) are searched for and printed. 
+
+When calling the "print action" a number of variables need to be set in context to ensure "_run_action_print" executes properly. These include: 
+ - active_model : the odoo model which we want to print records for
+ - active_ids : the ids of the recordsets we want to print, must belong to the model in active model
+ - action_filter : a variable used for filtering print strategy records. This variable allows print strategies belonging to the same picking_type
+ to be triggered at different times during the picking flow. If we did not have this variable, then when a "print action" was called all print strategies related to a given picking type would be triggered. action_filter is set to the name of the model and then the function it is being called in, for example: `action_filter = stock_picking._action_done`. When browsing print strategies only strategies that should be called on this trigger (completion of the picking) will have action_filter set to `stock_picking._action_done`.
+ - skip_printing : a boolean value to skip printing altogether.
+
+| Field Name              | Type                     | Description                                                                                                       |
+|-------------------------|--------------------------|-------------------------------------------------------------------------------------------------------------------|
+| picking_type_id         | Many2one                 | The picking type where this strategy should be used.                                                            |
+| action_filter           | Char                     | A word that corresponds to the action_filter variable passed into context when calling a specific "print action". This allows for strategies to be called at different times during the picking flow. |
+
+
 ## Addtional Information
 
 ### Picking Naming Convention
