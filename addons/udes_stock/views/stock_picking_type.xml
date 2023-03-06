@@ -26,6 +26,7 @@
                     <field name="u_create_procurement_group" />
                     <field name="u_count_packages" />
                     <field name="u_count_pallets" />
+                    <field name="u_disable_automated_printing" />
                 </group>
             </xpath>
 

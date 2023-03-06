@@ -130,6 +130,10 @@ class StockPickingType(models.Model):
         default=False,
         help="If enabled, tracked products that are not in the picking, but are more easily available to the warehouse user, can be swapped into the picking during scanning",
     )
+    u_disable_automated_printing = fields.Boolean(
+        string="Forcefully disable automated printing for this picking type",
+        default=True,
+    )
 
     def get_action_picking_tree_draft(self):
         return self._get_action("udes_stock.action_picking_tree_draft")
