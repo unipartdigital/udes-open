@@ -256,3 +256,62 @@ class UnbatchedNoReserveBatchNoHandlePartialsTestCase(ReservationBase, Reservati
     """Test cases for stock reservation."""
 
     KEY = False, False, False
+
+
+class NumReservablePickingsTestCase(BaseUDES):
+    """Tests for the StockPickingType.u_num_reservable_pickings settings."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        Pick = cls.env["stock.picking"]
+        cls.Quant = cls.env["stock.quant"]
+
+        cls.picking_type_pick.u_handle_partials = True
+
+        cls.pick = Pick.browse()
+
+    def test_reserves_no_stock_if_zero(self):
+        """If u_num_reservable_pickings is zero, do not reserve."""
+        expected = 0
+        self.picking_type_pick.u_num_reservable_pickings = 0
+        self.create_quant(self.apple.id, self.test_location_01.id, qty=10)
+        products_info = [{"product": self.apple, "qty": 10}]
+        self.create_picking(self.picking_type_pick, products_info=products_info, confirm=True)
+
+        with mock.patch.object(self.pick.env.cr, "commit", return_value=None):
+            self.pick.reserve_stock()
+
+        quant = self.Quant.search([("reserved_quantity", ">", 0)])
+        self.assertEqual(quant.reserved_quantity, expected)
+
+    def test_reserves_all_stock_if_minus_one(self):
+        """If u_num_reservable_pickings is minus one, reserve as much as possible."""
+        expected = 20
+        self.picking_type_pick.u_num_reservable_pickings = -1
+        self.create_quant(self.apple.id, self.test_location_01.id, qty=20)
+        products_info = [{"product": self.apple, "qty": 10}]
+        self.create_picking(self.picking_type_pick, products_info=products_info, confirm=True)
+        self.create_picking(self.picking_type_pick, products_info=products_info, confirm=True)
+
+        with mock.patch.object(self.pick.env.cr, "commit", return_value=None):
+            self.pick.reserve_stock()
+
+        quant = self.Quant.search([("reserved_quantity", ">", 0)])
+        self.assertEqual(quant.reserved_quantity, expected)
+
+    def test_reserves_to_limit_of_num_reservable_pickings(self):
+        """If u_num_reservable_pickings is greater one, reserve pickings up to that limit."""
+        expected = 20
+        self.picking_type_pick.u_num_reservable_pickings = 2
+        self.create_quant(self.apple.id, self.test_location_01.id, qty=30)
+        products_info = [{"product": self.apple, "qty": 10}]
+        self.create_picking(self.picking_type_pick, products_info=products_info, confirm=True)
+        self.create_picking(self.picking_type_pick, products_info=products_info, confirm=True)
+        self.create_picking(self.picking_type_pick, products_info=products_info, confirm=True)
+
+        with mock.patch.object(self.pick.env.cr, "commit", return_value=None):
+            self.pick.reserve_stock()
+
+        quant = self.Quant.search([("reserved_quantity", ">", 0)])
+        self.assertEqual(quant.reserved_quantity, expected)
