@@ -4,8 +4,11 @@ Tests for StockPicking.reserve_stock.
 The method itself cannot be tested because it contains a commit statement, but
 we can test related methods.
 """
+import contextlib
 import logging
 from unittest import mock
+import uuid
+
 from .common import BaseUDES
 
 
@@ -264,3 +267,49 @@ class UnbatchedNoReserveBatchNoHandlePartialsTestCase(ReservationBase, Reservati
     """Test cases for stock reservation."""
 
     KEY = False, False, False
+
+
+class NumReservablePickingsTestCase(BaseUDES, SavepointMixin):
+    """Tests for the StockPickingType.u_num_reservable_pickings settings."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        Pick = cls.env["stock.picking"]
+        cls.Quant = cls.env["stock.quant"]
+
+        cls.picking_type_pick.u_handle_partials = True
+
+        cls.pick = Pick.browse()
+        cls.Pick = Pick
+
+    def test_respects_number_of_reservable_pickings(self):
+        """The system will respect the value of
+        StockPickingType.u_num_reservable_pickings"""
+        expected = (0, 10, 20)
+        values = (0, 1, -1)
+        messages = [
+            "Case: reserve no stock",
+            "Case: reserve stock for a limited number of pickings",
+            "Case: reserve as much stock as possible",
+        ]
+        quant = self.create_quant(self.apple.id, self.test_location_01.id, qty=30)
+        products_info = [{"product": self.apple, "qty": 10}]
+        pickings = self.create_picking(
+            self.picking_type_pick, products_info=products_info, confirm=True
+        )
+        pickings |= self.create_picking(
+            self.picking_type_pick, products_info=products_info, confirm=True
+        )
+
+        for message, value, expected in zip(messages, values, expected):
+            with self.subTest(msg=message, u_num_reservable_pickings=value):
+                # Run inside a savepoint so that changes to pickings and quants
+                # etc. are reversed after each subtest.
+                with self.savepoint():
+                    self.picking_type_pick.u_num_reservable_pickings = value
+
+                    with mock.patch.object(self.pick.env.cr, "commit", return_value=None):
+                        self.pick.reserve_stock()
+
+                    self.assertEqual(quant.reserved_quantity, expected)
