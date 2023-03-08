@@ -134,52 +134,59 @@ RESERVATION_MATRIX = {
 
 
 class ReservationMixin(object):
-    def test_reserves_stock_when_sufficient_stock_is_available(self):
-        """The system will reserve all demand if stock is available."""
-        initial_qty, expected = self.config[0]
-        self.setup(initial_qty)
+    """Tests for the criteria in the reservation matrix."""
 
-        with mock.patch.object(self.pick.env.cr, "commit", return_value=None):
-            self.pick.reserve_stock()
+    def test_reserves_stock_in_accordance_with_picking_type_flags(self):
+        """The system will respect picking type configuration when reserving stock."""
+        messages = [
+            "Case: there is enough stock for all lines",
+            "Case: there is no stock for any lines",
+            "Case: there is no stock for one line",
+            "Case: there is partial stock for one line",
+        ]
+        for message, (initial_qty, expected) in zip(messages, self.config):
+            with self.subTest(
+                msg=message,
+                batched=self.batched,
+                reserve_batches=self.picking_type_pick.u_reserve_batches,
+                handle_partials=self.picking_type_pick.u_handle_partials,
+            ):
+                with self.savepoint():
+                    # Run inside a savepoint so that changes to pickings and quants
+                    # etc. are reversed after each subtest.
+                    self.create_quant(self.apple.id, self.test_location_01.id, initial_qty)
 
-        quant = self.Quant.search([("reserved_quantity", ">", 0)])
-        self.assertEqual(quant.reserved_quantity, expected)
+                    with mock.patch.object(self.pick.env.cr, "commit", return_value=None):
+                        self.pick.reserve_stock()
 
-    def test_does_not_reserve_if_no_available_stock(self):
-        """The system will not reserve stock if none is available."""
-        initial_qty, expected = self.config[1]
-        self.setup(initial_qty)
-
-        with mock.patch.object(self.pick.env.cr, "commit", return_value=None):
-            self.pick.reserve_stock()
-
-        quant = self.Quant.search([("reserved_quantity", ">", 0)])
-        self.assertEqual(quant.reserved_quantity, expected)
-
-    def test_handles_partially_available_pickings(self):
-        """The system will correctly handle the case when not all lines can be reserved."""
-        initial_qty, expected = self.config[2]
-        self.setup(initial_qty)
-
-        with mock.patch.object(self.pick.env.cr, "commit", return_value=None):
-            self.pick.reserve_stock()
-
-        quant = self.Quant.search([("reserved_quantity", ">", 0)])
-        self.assertEqual(quant.reserved_quantity, expected)
-
-    def test_handles_partially_available_lines(self):
-        """The system will correctly handle the case when a line is partially available."""
-        initial_qty, expected = self.config[3]
-        self.setup(initial_qty)
-
-        with mock.patch.object(self.pick.env.cr, "commit", return_value=None):
-            self.pick.reserve_stock()
-
-        quant = self.Quant.search([("reserved_quantity", ">", 0)])
-        self.assertEqual(quant.reserved_quantity, expected)
+                    quant = self.Quant.search([("reserved_quantity", ">", 0)])
+                    self.assertEqual(quant.reserved_quantity, expected)
 
 
-class ReservationBase(BaseUDES):
+class SavepointMixin:
+    """
+    Provides a context manager that creates a savepoint and rolls back on exit.
+
+    This can be used to reverse state changes made during subtests, as there is
+    no automatic rollback after a subtest iteration completes.
+
+    (The core Cursor.savepoint() releases the savepoint on exit, and
+    doesn't expose its name so we can't roll it back ourselves.
+    """
+
+    @contextlib.contextmanager
+    def savepoint(self):
+        """A savepoint that always rolls back."""
+        # This is how Odoo core name their savepoints.
+        name = uuid.uuid1().hex
+        self.cr.execute(f'SAVEPOINT "{name}"')
+        try:
+            yield
+        finally:
+            self.cr.execute(f'ROLLBACK TO SAVEPOINT "{name}"')
+
+
+class ReservationBase(BaseUDES, SavepointMixin):
     """Test cases for stock reservation."""
 
     KEY = ()
@@ -200,17 +207,18 @@ class ReservationBase(BaseUDES):
         cls.Pick = Pick
         cls.pick = Pick.browse()
 
-    def setup(self, initial_quantity):
-        """Create two pickings with two lines of 10, batch if required."""
-        self.create_quant(self.apple.id, self.test_location_01.id, initial_quantity)
-        products_info = [{"product": self.apple, "qty": 10}] * 2
-        pickings = self.create_picking(self.picking_type_pick, products_info, confirm=True)
-        pickings |= self.create_picking(self.picking_type_pick, products_info, confirm=True)
-        if self.batched:
-            batch = self.create_batch()
+        # Create two pickings with two lines of 10, batch if required.
+        products_info = [{"product": cls.apple, "qty": 10}] * 2
+        pickings = cls.create_picking(cls.picking_type_pick, products_info, confirm=True)
+        pickings |= cls.create_picking(cls.picking_type_pick, products_info, confirm=True)
+        if cls.batched:
+            batch = cls.create_batch()
             pickings.write({"batch_id": batch.id})
             batch.mark_as_todo()
-        return pickings
+
+    def setup(self, initial_quantity):
+        self.create_quant(self.apple.id, self.test_location_01.id, initial_quantity)
+        return
 
 
 class BatchedReserveBatchHandlePartialsTestCase(ReservationBase, ReservationMixin):
