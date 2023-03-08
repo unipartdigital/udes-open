@@ -4,8 +4,11 @@ Tests for StockPicking.reserve_stock.
 The method itself cannot be tested because it contains a commit statement, but
 we can test related methods.
 """
+import contextlib
 import logging
 from unittest import mock
+import uuid
+
 from .common import BaseUDES
 
 
@@ -270,48 +273,45 @@ class NumReservablePickingsTestCase(BaseUDES):
         cls.picking_type_pick.u_handle_partials = True
 
         cls.pick = Pick.browse()
+        cls.Pick = Pick
 
-    def test_reserves_no_stock_if_zero(self):
-        """If u_num_reservable_pickings is zero, do not reserve."""
-        expected = 0
-        self.picking_type_pick.u_num_reservable_pickings = 0
-        self.create_quant(self.apple.id, self.test_location_01.id, qty=10)
+    @contextlib.contextmanager
+    def savepoint(self):
+        """
+        A savepoint that always rolls back.
+
+        This saves having to unlink objects during subtests.
+        (The core Cursor.savepoint() releases the savepoint on exit, and
+        doesn't expose its name so we can't roll back ourselves.
+        """
+        # This is how Odoo core name their savepoints.
+        name = uuid.uuid1().hex
+        self.cr.execute(f'SAVEPOINT "{name}"')
+        try:
+            yield
+        finally:
+            self.cr.execute(f'ROLLBACK TO SAVEPOINT "{name}"')
+
+    def test_respects_number_of_reservable_pickings(self):
+        """The system will respect the value of
+        StockPickingType.u_num_reservable_pickings"""
+        expected = (0, 10, 20)
+        values = (0, 1, -1)
         products_info = [{"product": self.apple, "qty": 10}]
-        self.create_picking(self.picking_type_pick, products_info=products_info, confirm=True)
 
-        with mock.patch.object(self.pick.env.cr, "commit", return_value=None):
-            self.pick.reserve_stock()
+        for value, expected in zip(values, expected):
+            with self.subTest(u_num_reservable_pickings=value):
+                with self.savepoint():
+                    self.picking_type_pick.u_num_reservable_pickings = value
+                    quant = self.create_quant(self.apple.id, self.test_location_01.id, qty=30)
+                    pickings = self.create_picking(
+                        self.picking_type_pick, products_info=products_info, confirm=True
+                    )
+                    pickings |= self.create_picking(
+                        self.picking_type_pick, products_info=products_info, confirm=True
+                    )
 
-        quant = self.Quant.search([("reserved_quantity", ">", 0)])
-        self.assertEqual(quant.reserved_quantity, expected)
+                    with mock.patch.object(self.pick.env.cr, "commit", return_value=None):
+                        self.pick.reserve_stock()
 
-    def test_reserves_all_stock_if_minus_one(self):
-        """If u_num_reservable_pickings is minus one, reserve as much as possible."""
-        expected = 20
-        self.picking_type_pick.u_num_reservable_pickings = -1
-        self.create_quant(self.apple.id, self.test_location_01.id, qty=20)
-        products_info = [{"product": self.apple, "qty": 10}]
-        self.create_picking(self.picking_type_pick, products_info=products_info, confirm=True)
-        self.create_picking(self.picking_type_pick, products_info=products_info, confirm=True)
-
-        with mock.patch.object(self.pick.env.cr, "commit", return_value=None):
-            self.pick.reserve_stock()
-
-        quant = self.Quant.search([("reserved_quantity", ">", 0)])
-        self.assertEqual(quant.reserved_quantity, expected)
-
-    def test_reserves_to_limit_of_num_reservable_pickings(self):
-        """If u_num_reservable_pickings is greater one, reserve pickings up to that limit."""
-        expected = 20
-        self.picking_type_pick.u_num_reservable_pickings = 2
-        self.create_quant(self.apple.id, self.test_location_01.id, qty=30)
-        products_info = [{"product": self.apple, "qty": 10}]
-        self.create_picking(self.picking_type_pick, products_info=products_info, confirm=True)
-        self.create_picking(self.picking_type_pick, products_info=products_info, confirm=True)
-        self.create_picking(self.picking_type_pick, products_info=products_info, confirm=True)
-
-        with mock.patch.object(self.pick.env.cr, "commit", return_value=None):
-            self.pick.reserve_stock()
-
-        quant = self.Quant.search([("reserved_quantity", ">", 0)])
-        self.assertEqual(quant.reserved_quantity, expected)
+                    self.assertEqual(quant.reserved_quantity, expected)
