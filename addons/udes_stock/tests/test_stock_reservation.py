@@ -297,19 +297,19 @@ class NumReservablePickingsTestCase(BaseUDES):
         StockPickingType.u_num_reservable_pickings"""
         expected = (0, 10, 20)
         values = (0, 1, -1)
+        quant = self.create_quant(self.apple.id, self.test_location_01.id, qty=30)
         products_info = [{"product": self.apple, "qty": 10}]
+        pickings = self.create_picking(
+            self.picking_type_pick, products_info=products_info, confirm=True
+        )
+        pickings |= self.create_picking(
+            self.picking_type_pick, products_info=products_info, confirm=True
+        )
 
         for value, expected in zip(values, expected):
             with self.subTest(u_num_reservable_pickings=value):
                 with self.savepoint():
                     self.picking_type_pick.u_num_reservable_pickings = value
-                    quant = self.create_quant(self.apple.id, self.test_location_01.id, qty=30)
-                    pickings = self.create_picking(
-                        self.picking_type_pick, products_info=products_info, confirm=True
-                    )
-                    pickings |= self.create_picking(
-                        self.picking_type_pick, products_info=products_info, confirm=True
-                    )
 
                     with mock.patch.object(self.pick.env.cr, "commit", return_value=None):
                         self.pick.reserve_stock()
