@@ -169,7 +169,7 @@ class ReservationMixin(object):
 
     def test_handles_partially_available_lines(self):
         """The system will correctly handle the case when a line is partially available."""
-        initial_qty, expected = self.config[2]
+        initial_qty, expected = self.config[3]
         self.setup(initial_qty)
 
         with mock.patch.object(self.pick.env.cr, "commit", return_value=None):
