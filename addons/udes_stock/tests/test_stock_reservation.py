@@ -269,7 +269,7 @@ class UnbatchedNoReserveBatchNoHandlePartialsTestCase(ReservationBase, Reservati
     KEY = False, False, False
 
 
-class NumReservablePickingsTestCase(BaseUDES):
+class NumReservablePickingsTestCase(BaseUDES, SavepointMixin):
     """Tests for the StockPickingType.u_num_reservable_pickings settings."""
 
     @classmethod
@@ -283,28 +283,16 @@ class NumReservablePickingsTestCase(BaseUDES):
         cls.pick = Pick.browse()
         cls.Pick = Pick
 
-    @contextlib.contextmanager
-    def savepoint(self):
-        """
-        A savepoint that always rolls back.
-
-        This saves having to unlink objects during subtests.
-        (The core Cursor.savepoint() releases the savepoint on exit, and
-        doesn't expose its name so we can't roll back ourselves.
-        """
-        # This is how Odoo core name their savepoints.
-        name = uuid.uuid1().hex
-        self.cr.execute(f'SAVEPOINT "{name}"')
-        try:
-            yield
-        finally:
-            self.cr.execute(f'ROLLBACK TO SAVEPOINT "{name}"')
-
     def test_respects_number_of_reservable_pickings(self):
         """The system will respect the value of
         StockPickingType.u_num_reservable_pickings"""
         expected = (0, 10, 20)
         values = (0, 1, -1)
+        messages = [
+            "Case: reserve no stock",
+            "Case: reserve stock for a limited number of pickings",
+            "Case: reserve as much stock as possible",
+        ]
         quant = self.create_quant(self.apple.id, self.test_location_01.id, qty=30)
         products_info = [{"product": self.apple, "qty": 10}]
         pickings = self.create_picking(
@@ -314,8 +302,10 @@ class NumReservablePickingsTestCase(BaseUDES):
             self.picking_type_pick, products_info=products_info, confirm=True
         )
 
-        for value, expected in zip(values, expected):
-            with self.subTest(u_num_reservable_pickings=value):
+        for message, value, expected in zip(messages, values, expected):
+            with self.subTest(msg=message, u_num_reservable_pickings=value):
+                # Run inside a savepoint so that changes to pickings and quants
+                # etc. are reversed after each subtest.
                 with self.savepoint():
                     self.picking_type_pick.u_num_reservable_pickings = value
 
