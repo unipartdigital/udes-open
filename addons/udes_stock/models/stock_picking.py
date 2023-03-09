@@ -2726,7 +2726,7 @@ class StockPicking(models.Model):
 
         return refactored_moves.mapped("picking_id")
 
-    def reserve_stock(self):
+    def reserve_stock(self, batch_size=100):
         """
         Reserve stock according to the number of reservable pickings.
 
@@ -2744,6 +2744,11 @@ class StockPicking(models.Model):
         The number of reservable pickings is defined on the picking type.
         0 reservable pickings means this function should not reserve stock
         -1 reservable picking means all reservable stock should be reserved.
+
+        Params:
+        batch_size: (int) The number of pickings to retrieve in each fetch from
+                          the database if the number of reservable pickings is
+                          unlimited.
         """
         Picking = self.env["stock.picking"]
         PickingType = self.env["stock.picking.type"]
@@ -2784,20 +2789,30 @@ class StockPicking(models.Model):
             to_reserve = picking_type.u_num_reservable_pickings
             reserve_all = to_reserve == -1
             base_domain = [("picking_type_id", "=", picking_type.id), ("state", "=", "confirmed")]
-            limit = 1
+            limit = batch_size if reserve_all else to_reserve
             processed = Picking.browse()
             by_type = lambda x: x.picking_type_id == picking_type
 
+            def generate_pickings():
+                """Abstract iteration over fetched pickings."""
+                while True:
+                    if self:
+                        # Removed processed pickings from self
+                        yield self.filtered(by_type) - processed
+                    else:
+                        domain = base_domain[:]
+                        if processed:
+                            domain.append(("id", "not in", processed.ids))
+                        pickings = Picking.search(domain, limit=batch_size)
+                        if not pickings:
+                            break
+                        yield from pickings
+
+            pickings_to_reserve = generate_pickings()
+
             while reserve_all or to_reserve > 0:
 
-                if self:
-                    # Removed processed pickings from self
-                    pickings = self.filtered(by_type) - processed
-                else:
-                    domain = base_domain[:]
-                    if processed:
-                        domain.append(("id", "not in", processed.ids))
-                    pickings = Picking.search(domain, limit=limit)
+                pickings = next(pickings_to_reserve, Picking.browse())
 
                 if not pickings:
                     # No pickings left to process.
