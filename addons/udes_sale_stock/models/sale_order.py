@@ -393,6 +393,7 @@ class SaleOrder(models.Model):
         self,
         confirm_orders_batch_size=1000,
         confirm_orders_commit_size=1000,
+        reserve_orders_batch_size=100,
         finish=False,
     ):
         """Confirm Orders and Reserve Stock in a single cron job so the two processes can be
@@ -421,11 +422,11 @@ class SaleOrder(models.Model):
         orders_to_confirm = SaleOrder.get_orders_to_confirm()
         # If there aren't any orders to confirm just run the reserve stock cron
         if not orders_to_confirm:
-            StockPicking.reserve_stock()
+            StockPicking.reserve_stock(batch_size=reserve_orders_batch_size)
         for _, batched_orders in orders_to_confirm.batched(size=confirm_orders_batch_size):
             # Confirm orders cron and reserve stock after for every confirm_orders_batch_size
             batched_orders.confirm_orders(size=confirm_orders_commit_size)
-            StockPicking.reserve_stock()
+            StockPicking.reserve_stock(batch_size=reserve_orders_batch_size)
             # Break the for loop in case we want to finish the cron job after the first iteration
             if finish:
                 break
