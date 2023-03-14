@@ -134,6 +134,10 @@ class StockPickingBatch(models.Model):
         """ Return unready picks from picks or self.picking_ids """
         picks = self.picking_ids
         return picks.filtered(lambda pick: pick.state in ["draft", "waiting", "confirmed"])
+    
+    def cancel_pickings(self):
+        self.mapped('picking_ids').action_cancel()
+        return self.write({'state': 'cancel'})
 
     def mark_as_todo(self):
         """Mark as to-do will change the state from draft to waiting.
