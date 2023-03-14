@@ -973,3 +973,86 @@ class TestUpdateOrigIds(TestStockMove):
             "assigned",
             "Check backorder should be assigned stock after Pick backorder is completed",
         )
+
+
+class TestFragmentedOriginalMoves(common.BaseUDES):
+    """Test case(s) for when a move has more than one original move id."""
+
+    # This is separate from TestUpdateOrigIds because that class inherits a
+    # picking chain from TestStockMove that interferes with this test case.
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.Picking = cls.env["stock.picking"]
+
+    def test_preserves_multiple_original_moves_in_split(self):
+        """Preserves original moves if a move with multiple original moves is split."""
+        # Setup
+
+        # Create a pick picking and backorder it repeatedly to create original
+        # moves.
+        picking_sequence = [3, 2, 2, 2, 1]
+        split_qty = 3
+        total_quantity = sum(picking_sequence)
+        self.create_quant(self.apple.id, self.test_stock_location_01.id, total_quantity)
+        udes1, *_ = packages = [
+            self.create_package(name=f"UDES{i}") for i in range(1, len(picking_sequence) + 1)
+        ]
+        products_info = [{"product": self.apple, "qty": total_quantity}]
+
+        picking = self.create_picking(
+            self.picking_type_pick, products_info=products_info, assign=True
+        )
+
+        pick_pickings = self.Picking.browse()
+        for package, quantity in zip(packages, picking_sequence):
+            pick_pickings |= picking
+            picking.move_line_ids.ensure_one()
+            picking.move_line_ids.write(
+                {
+                    "qty_done": quantity,
+                    "result_package_id": package,
+                    "location_dest_id": self.test_check_location_01.id,
+                }
+            )
+            picking.move_line_ids._split()
+            new_picking = picking.validate_picking(create_backorder=True)
+            picking = new_picking
+
+        qty3_pick_move = pick_pickings.mapped("move_lines").filtered(
+            lambda m: m.product_uom_qty == split_qty
+        )
+
+        check_picking = pick_pickings.mapped("u_next_picking_ids")
+        check_picking.ensure_one()
+
+        # We need to engineer a situation where our move has only a single move
+        # line, for the quantity that we want to split out,
+        check_picking.do_unreserve()
+
+        check_picking.move_lines._update_reserved_quantity(
+            total_quantity, split_qty, self.test_check_location_01, package_id=udes1, strict=False
+        )
+        check_picking.move_lines.state = "partially_available"
+        check_picking._check_entire_pack()
+
+        self.assertEqual(len(check_picking.move_lines), 1)
+        self.assertEqual(check_picking.move_line_ids.product_uom_qty, split_qty)
+
+        original_check_move = check_picking.move_lines
+
+        # Test: split out a qty 3 move from our picking's move.
+        mls_to_split = check_picking.move_line_ids.filtered(
+            lambda ml: ml.product_uom_qty == split_qty
+        )
+        new_check_move = original_check_move.split_out_move_lines(move_lines=mls_to_split)
+
+        # Check that quantities are correct and each move has the expected
+        # original move ids.
+        self.assertEqual(original_check_move.product_uom_qty, total_quantity - split_qty)
+        self.assertEqual(new_check_move.product_uom_qty, split_qty)
+        self.assertEqual(
+            original_check_move.move_orig_ids, pick_pickings.mapped("move_lines") - qty3_pick_move
+        )
+        self.assertEqual(new_check_move.move_orig_ids, qty3_pick_move)

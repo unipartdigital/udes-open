@@ -1,7 +1,9 @@
 import logging
+import math
 
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError
+from odoo.tools import float_compare
 
 
 _logger = logging.getLogger(__name__)
@@ -462,16 +464,33 @@ class StockMove(models.Model):
                 prod_qty_key = (origin_move.product_id.id, origin_move.product_uom_qty)
                 free_origin_moves_by_prod_qty[prod_qty_key] = origin_move
 
-            for move, prod_qty in unlinked_qty_by_move.items():
-                try:
-                    new_origin_move = free_origin_moves_by_prod_qty.pop(
-                        (move.product_id.id, prod_qty)
-                    )
-                    orig_moves_by_move[move] |= new_origin_move
-                except KeyError:
-                    _logger.warning(
-                        "Unable to find origin move for %sx%s", move.product_id.name, prod_qty
-                    )
+            if len(unlinked_qty_by_move) == 1:
+                # Special case: total unused origin quantities match the unlinked quantity.
+                move, prod_qty = list(unlinked_qty_by_move.items())[0]
+                rounding = move.product_id.uom_id.rounding
+                unused_origs = origin_moves.filtered(
+                    lambda m: m.product_id == move.product_id and m not in used_origin_moves
+                )
+                unused_qty = math.fsum(unused_origs.mapped("product_uom_qty"))
+                if float_compare(prod_qty, unused_qty, precision_rounding=rounding) == 0:
+
+                    orig_moves_by_move[move] |= unused_origs
+                    for unused_orig in unused_origs:
+                        free_origin_moves_by_prod_qty.pop(
+                            unused_orig.product_id.id, unused_orig.product_uom_qty
+                        )
+            else:
+
+                for move, prod_qty in unlinked_qty_by_move.items():
+                    try:
+                        new_origin_move = free_origin_moves_by_prod_qty.pop(
+                            (move.product_id.id, prod_qty)
+                        )
+                        orig_moves_by_move[move] |= new_origin_move
+                    except KeyError:
+                        _logger.warning(
+                            "Unable to find origin move for %sx%s", move.product_id.name, prod_qty
+                        )
 
         for move, origin_moves in orig_moves_by_move.items():
             move.write({"move_orig_ids": [(6, 0, origin_moves.ids)]})
