@@ -444,11 +444,13 @@ class StockMove(models.Model):
                 unlinked_qty_by_move[move] = quantity_todo
             if quantity_todo < 0:
                 _logger.warning(
-                    """
+                    _(
+                        """
                     Move lines are being matched by location destination and
                     product, this has lead to over matching of the original move ids.
                     Relevant moves: %s
-                    """,
+                    """
+                    ),
                     updated_origin_moves.ids,
                 )
             orig_moves_by_move[move] = updated_origin_moves
@@ -489,7 +491,9 @@ class StockMove(models.Model):
                         orig_moves_by_move[move] |= new_origin_move
                     except KeyError:
                         _logger.warning(
-                            "Unable to find origin move for %sx%s", move.product_id.name, prod_qty
+                            _("Unable to find origin move for %sx%s"),
+                            move.product_id.name,
+                            prod_qty,
                         )
 
         for move, origin_moves in orig_moves_by_move.items():
