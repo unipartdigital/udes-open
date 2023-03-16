@@ -1,5 +1,3 @@
-import unittest
-
 from .common import BaseUDES
 from datetime import datetime, timedelta
 
@@ -233,7 +231,6 @@ class TestStockQuantFIFO(BaseUDES):
         self.assertEqual(reserved_quant.package_id, self.pack2)
         self.assertEqual(reserved_quant, self.quant2)
 
-    @unittest.skip("Skip unittest due to Issue 782")
     def test_in_date_ordered_first_in_fifo(self):
         """Check that the FIFO strategies correctly applies when you have populated `in_date`
         fields and None for `package_id` fields, except for one.
@@ -250,7 +247,7 @@ class TestStockQuantFIFO(BaseUDES):
         now = datetime.now()
         oldest_time = now - timedelta(days=5)
         self.quant1.in_date = now
-        self.quant2.write({"in_date": oldest_time, "package_id ": self.pack2.id})
+        self.quant2.write({"in_date": oldest_time, "package_id": self.pack2.id})
         self.quant3.in_date = now - timedelta(days=3)
 
         # Assert we are as expected
