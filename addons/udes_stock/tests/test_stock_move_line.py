@@ -800,7 +800,11 @@ class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
         Picking 1, Moveline: 10 x lot 2
         Picking 2, Moveline: 10 x lot 1
         """
+        Picking = self.env["stock.picking"]
+
         self.picking_type_pick.u_allow_swapping_tracked_products = True
+        product_info = [{"product": self.tangerine, "uom_qty": 10}]
+        new_pickings = Picking.browse()
         for lot_num in range(1, 6):
             self.create_quant(
                 self.tangerine.id,
@@ -808,13 +812,11 @@ class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
                 qty=10,
                 lot_name=f"{lot_num}",
             )
-        product_info = [{"product": self.tangerine, "uom_qty": 10}]
-        first_picking = self.create_picking(
-            self.picking_type_pick, products_info=product_info, assign=True
-        )
-        second_picking = self.create_picking(
-            self.picking_type_pick, products_info=product_info, assign=True
-        )
+            if lot_num < 3:
+                new_pickings |= self.create_picking(
+                    self.picking_type_pick, products_info=product_info, assign=True
+                )
+        first_picking, second_picking = new_pickings
         self.assertEqual(first_picking.move_line_ids.lot_id.name, "1")
         self.assertEqual(second_picking.move_line_ids.lot_id.name, "2")
 
