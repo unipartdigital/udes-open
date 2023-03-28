@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import patch
 
+from odoo.models import NewId
 from odoo.exceptions import ValidationError, UserError
 from odoo.tools import mute_logger
 
@@ -2003,3 +2004,46 @@ class TestStockPickingProcurementGroup(TestStockPickingCommon):
         # Newly created Goods-in and Pick pickings do have a group
         self.assertEqual(new_test_picking_in.group_id.name, new_test_picking_in.name)
         self.assertEqual(new_test_picking_pick.group_id.name, new_test_picking_pick.name)
+
+
+class TestStockPickingPartnerId(TestStockPickingCommon):
+    """Tests for moves "inheriting" picking partner at creation time."""
+
+    def test_passes_partner_id_to_moves_without_package_ids_at_creation_time(self):
+        Picking = self.env["stock.picking"]
+
+        origin = "SO001"
+        partner = self.create_partner("ACME Corporation")
+        products_info = [{"product": self.apple, "qty": 10}, {"product": self.banana, "qty": 20}]
+        move_data = {
+            "state": "draft",
+            "picking_type_id": self.picking_type_pick.id,
+            "location_id": self.stock_location.id,
+            "location_dest_id": self.check_location.id,
+        }
+
+        move_ids_without_package = []
+        for product_info in products_info:
+            product = product_info["product"]
+            qty = product_info["qty"]
+            data = move_data.copy()
+            data["name"] = product.name
+            data["product_id"] = product.id
+            data["product_uom_qty"] = qty
+            data["product_uom"] = product.uom_id
+            move_ids_without_package.append([0, NewId(), data])
+        picking_data = {
+            "partner_id": partner.id,
+            "picking_type_id": self.picking_type_pick.id,
+            "location_id": self.stock_location.id,
+            "location_dest_id": self.check_location.id,
+            "origin": origin,
+            "move_ids_without_package": move_ids_without_package,
+        }
+
+        # Pickings created via the desktop are created directly with
+        # Picking.create - our `create_picking` method is not used.
+        new_test_picking_pick = Picking.create(picking_data)
+
+        self.assertEqual(len(new_test_picking_pick.move_lines), 2)
+        self.assertEqual(new_test_picking_pick.mapped("move_lines.partner_id"), partner)

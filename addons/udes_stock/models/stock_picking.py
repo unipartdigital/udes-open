@@ -1024,6 +1024,9 @@ class StockPicking(models.Model):
         the backorder gets related but u_prev_picking_ids gets done after.
         So instead, we just write to a new field which we copy across backordered pickings
         """
+        if frozenset(["partner_id", "move_ids_without_package"]) <= vals.keys():
+            for *__, move_data in vals["move_ids_without_package"]:
+                move_data["partner_id"] = vals["partner_id"]
         picking = super().create(vals)
         if not picking.backorder_id:
             picking.write({"u_original_picking_id": picking.id})
