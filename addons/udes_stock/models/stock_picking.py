@@ -871,7 +871,7 @@ class StockPicking(models.Model):
             "action_done",
             stats.elapsed,
             stats.count,
-            stats.count / stats.elapsed
+            stats.count / stats.elapsed,
         )
         return res
 
@@ -933,7 +933,7 @@ class StockPicking(models.Model):
             "validate_picking",
             stats.elapsed,
             stats.count,
-            stats.count / stats.elapsed
+            stats.count / stats.elapsed,
         )
 
         return new_picking

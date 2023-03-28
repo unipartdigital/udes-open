@@ -998,7 +998,9 @@ class TestStockPicking(TestStockPickingCommon):
 
     def test_get_child_locations_simple_success(self):
         """Get child locations"""
-        self.assertEqual(self.test_picking_pick._get_child_dest_locations(), self.test_check_locations)
+        self.assertEqual(
+            self.test_picking_pick._get_child_dest_locations(), self.test_check_locations
+        )
 
     def test_get_child_locations_simple_success_with_extra_domain(self):
         """Get child locations - with extra domain"""
@@ -1980,7 +1982,6 @@ class TestStockPickingPriorities(common.BaseUDES):
 
 
 class TestStockPickingProcurementGroup(TestStockPickingCommon):
-
     def test_procurement_group_created(self):
         """Procurement group created when u_create_procurement_group is enabled"""
         # Goods-in and Pick pickings created at setup do not have a group
