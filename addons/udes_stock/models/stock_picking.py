@@ -5,7 +5,6 @@ from odoo import api, models, fields, _
 from odoo.exceptions import ValidationError, UserError
 from .common import get_next_name
 from odoo.addons.udes_common.models.fields import PreciseDatetime
-from odoo.exceptions import ValidationError
 from lxml import etree
 
 from ..utils import UDES_STATISTICS_LOG_FORMAT
