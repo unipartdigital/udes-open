@@ -17,6 +17,7 @@ Policies are based on a metaclass that enforces the methods needed for suggested
 | ByEmpty | Suggest empty locations |
 | ExactlyMatchMoveLine | Suggest the destination that matches the move line's destination location |
 | ByProduct | Match drop locations to locations which are already store the product being dropped off |
+| ByOrigin  | Match drop locations to the origin of the picking |
 
 # Drop Configurations (u_drop_location_constaint)
 
