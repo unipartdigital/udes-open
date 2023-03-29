@@ -2,6 +2,7 @@ from odoo import models, fields
 from ..registry.suggest_by_product import ByProduct
 from ..registry.suggest_by_empty_location import ByEmptyLocation
 from ..registry.suggest_exactly_match_move_line import ExactlyMatchMoveLine
+from ..registry.suggest_by_origin import ByOrigin
 from ..registry.suggest_locations_policy import get_selection
 
 
@@ -9,6 +10,7 @@ SUGGEST_LOCATION_POLICIES = [
     get_selection(ExactlyMatchMoveLine),
     get_selection(ByProduct),
     get_selection(ByEmptyLocation),
+    get_selection(ByOrigin),
 ]
 
 
