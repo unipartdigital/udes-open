@@ -690,3 +690,22 @@ class StockMove(models.Model):
 
         return self | new_pickings.mapped("move_lines")
 
+    def _split(self, qty, restrict_partner_id=False):
+        """
+        Extend _split to disable move refactoring when the move has move_lines linked to it. Within _split()
+        the move in self is split into two moves, the original move and the new move (which has quantity = qty).
+        After these moves are split _action_confirm() is called on the new move. This will also trigger refactoring,
+        which can put the new move into another picking. If the original move has a linked move_line with
+        unfulfilled qty only the move will be put into another picking, the move_line will remain on the
+        original picking. In this situation its better if we do not trigger any refactoring and allow the new move
+        and move_line to remain on the same picking, as core odoo will create a backorder for the new
+        move and move_line.
+        """
+        if self.move_line_ids:
+            new_move_id = super(StockMove, self.with_context(disable_move_refactor=True))._split(
+                qty, restrict_partner_id
+            )
+        else:
+            new_move_id = super(StockMove, self)._split(qty, restrict_partner_id)
+        return new_move_id
+
