@@ -24,8 +24,8 @@ class StockMove(models.Model):
     u_grouping_key = fields.Char("Key", compute="compute_grouping_key")
 
     def _unreserve_initial_demand(self, new_move):
-        """ Override stock default function to keep the old move lines,
-            so there is no need to create them again.
+        """Override stock default function to keep the old move lines,
+        so there is no need to create them again.
         """
         self.mapped("move_line_ids").filtered(lambda x: x.qty_done == 0.0).write(
             {"move_id": new_move, "product_uom_qty": 0}
@@ -33,16 +33,16 @@ class StockMove(models.Model):
 
     def _prepare_info(self):
         """
-            Prepares the following info of the move in self:
-            - id: int
-            - location_dest_id:  {stock.location}
-            - location_id: {stock.location}
-            - ordered_qty: float
-            - product_id: {product.product}
-            - product_qty: float
-            - quantity_done: float
-            - move_line_ids: [{stock.move.line}]
-            - state: string
+        Prepares the following info of the move in self:
+        - id: int
+        - location_dest_id:  {stock.location}
+        - location_id: {stock.location}
+        - ordered_qty: float
+        - product_id: {product.product}
+        - product_qty: float
+        - quantity_done: float
+        - move_line_ids: [{stock.move.line}]
+        - state: string
         """
         self.ensure_one()
 
@@ -55,12 +55,11 @@ class StockMove(models.Model):
             "quantity_done": self.quantity_done,
             "product_id": self.product_id.get_info()[0],
             "moves_line_ids": self.move_line_ids.get_info(),
-            "state": self.state
+            "state": self.state,
         }
 
     def get_info(self):
-        """ Return a list with the information of each move in self.
-        """
+        """Return a list with the information of each move in self."""
         res = []
         for move in self:
             res.append(move._prepare_info())
@@ -93,15 +92,15 @@ class StockMove(models.Model):
 
     @api.depends("product_id", "has_tracking", "move_line_ids", "location_id", "location_dest_id")
     def _compute_show_details_visible(self):
-        """ According to this field, the button that calls `action_show_details` will be displayed
+        """According to this field, the button that calls `action_show_details` will be displayed
         to work on a move from its picking form view, or not.
         """
         return False
 
     def _make_mls_comparison_lambda(self, move_line):
-        """ This makes the lambda for
-            checking the a move_line
-            against move_orign_ids
+        """This makes the lambda for
+        checking the a move_line
+        against move_orign_ids
         """
         lot_name = move_line.lot_id.name or move_line.lot_name
         package = move_line.package_id
@@ -126,9 +125,9 @@ class StockMove(models.Model):
             )
 
     def update_orig_ids(self, origin_ids):
-        """ Updates move_orig_ids based on a given set of
-            origin_ids for moves in self by finding the ones
-            relevent to the current moves.
+        """Updates move_orig_ids based on a given set of
+        origin_ids for moves in self by finding the ones
+        relevent to the current moves.
         """
         origin_mls = origin_ids.mapped("move_line_ids")
         for move in self:
@@ -149,7 +148,7 @@ class StockMove(models.Model):
             ml._split()
 
     def split_out_move_lines(self, move_lines):
-        """ Split sufficient quantity from self to cover move_lines, and
+        """Split sufficient quantity from self to cover move_lines, and
         attach move_lines to the new move. Return the move that now holds all
         of move_lines.
         If self is completely covered by move_lines, it will be removed from
@@ -270,7 +269,9 @@ class StockMove(models.Model):
                         action,
                         st_moves.ids,
                     )
-                    func = getattr(st_moves.with_context(refactor_stage=stage), "refactor_action_" + action)
+                    func = getattr(
+                        st_moves.with_context(refactor_stage=stage), "refactor_action_" + action
+                    )
                     new_moves = func()
                     if new_moves is not None:
                         moves -= st_moves
@@ -351,7 +352,6 @@ class StockMove(models.Model):
         return them as part of the set of completed moves.
         """
         done_moves = super(StockMove, self)._action_done()
-
         post_refactor_done_moves = done_moves._action_refactor(stage="validate")
 
         post_refactor_done_moves.push_from_drop()
@@ -453,10 +453,10 @@ class StockMove(models.Model):
         return self.with_context(compute_key=True).groupby(lambda ml: ml.u_grouping_key)
 
     def _prepare_extra_info_for_new_picking_for_group(self, pickings, moves):
-        """ Given the group of moves to refactor and its related pickings,
-            prepare the extra info for the new pickings that might be created
-            for the group of moves.
-            Fields with more than one value are going to be ignored.
+        """Given the group of moves to refactor and its related pickings,
+        prepare the extra info for the new pickings that might be created
+        for the group of moves.
+        Fields with more than one value are going to be ignored.
         """
         values = {}
 
@@ -490,7 +490,7 @@ class StockMove(models.Model):
         return self.refactor_by_move_groups(self.group_by_key())
 
     def refactor_by_move_groups(self, groups):
-        """ Takes an iterator which produces key, move_group and moves
+        """Takes an iterator which produces key, move_group and moves
         move_group into it's own picking
         """
         Move = self.env["stock.move"]
@@ -546,7 +546,7 @@ class StockMove(models.Model):
         return self.refactor_by_move_line_groups(mls_by_key.items())
 
     def refactor_by_move_line_groups(self, groups):
-        """ Takes an iterator which produces key, ml_group and moves ml_group
+        """Takes an iterator which produces key, ml_group and moves ml_group
         into it's own picking
         """
         Move = self.env["stock.move"]
@@ -659,7 +659,9 @@ class StockMove(models.Model):
         if not picking_type.u_assign_refactor_constraint_value:
             return
 
-        return self._refactor_action_by_maximum_quantity(picking_type.u_assign_refactor_constraint_value)
+        return self._refactor_action_by_maximum_quantity(
+            picking_type.u_assign_refactor_constraint_value
+        )
 
     def _refactor_action_by_maximum_quantity(self, maximum_qty):
         """Split move_line_ids out into pickings with a maximum quantity
@@ -687,3 +689,4 @@ class StockMove(models.Model):
                 new_pickings += picking._backorder_movelines(mls, dest_picking)
 
         return self | new_pickings.mapped("move_lines")
+
