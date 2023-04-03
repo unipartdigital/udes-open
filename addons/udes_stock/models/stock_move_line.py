@@ -322,22 +322,31 @@ class StockMoveLine(models.Model):
             product = Product.get_or_create(product_barcode)
             quantity = prod["uom_qty"]
             lot_names = prod.get("lot_names", [])
+            lot_quantities = prod.get("lot_quantities", [])
             product_tracking = product.tracking
+            is_trackable = product_tracking != "none"
             is_serial = product_tracking == "serial"
             is_lot = product_tracking == "lot"
-            if is_serial and len(lot_names) != quantity:
-                raise ValidationError(_("Not enough serial numbers provided."))
-            elif is_lot and len(lot_names) != 1:
-                raise ValidationError(_("Too many lots provided."))
+            if is_lot and not lot_quantities:
+                lot_quantities = [quantity]
+            if is_serial and not lot_quantities:
+                lot_quantities = [1]*quantity
+            if is_trackable and sum(lot_quantities) != quantity:
+                raise ValidationError(
+                    _("Total lot/serial quantities entered doesn't match to total quantity.")
+                )
+            elif is_trackable and len(lot_names) != len(lot_quantities):
+                raise ValidationError(
+                    _("Lot/Serial quantity doesn't correspond to every lot/serial number entered.")
+                )
             qty_done = quantity
             if product_tracking != "none":
                 quantity_fulfilled = 0
-                if is_serial:
-                    qty_done = 1
                 res, lot_names = self._swap_tracked_items(
                     mls, quantity, product, location, is_serial, vals, res, lot_names
                 )
-                for lot_name in lot_names:
+                for idx, lot_name in enumerate(lot_names):
+                    qty_done = lot_quantities[idx]
                     lot_name_val = lot_name
                     # If it is incoming we don't need to match the lot
                     if incoming:
