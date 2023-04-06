@@ -156,9 +156,9 @@ class StockPicking(models.Model):
         """
         values = {}
 
-        origins = list(set(self.mapped("origin")))
+        origins = set(self.mapped("origin"))
         if len(origins) == 1:
-            values["origin"] = origins[0]
+            values["origin"] = origins.pop()
 
         partners = self.partner_id
         if len(partners) == 1:
@@ -167,6 +167,10 @@ class StockPicking(models.Model):
         dates_done = set(moves.mapped("date"))
         if set(moves.mapped("state")).issubset({"done", "cancel"}):
             values["date_done"] = max(dates_done)
+
+        priorities = set(self.mapped("priority"))
+        if len(priorities) == 1:
+            values["priority"] = priorities.pop()
 
         return values
 
