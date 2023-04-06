@@ -197,9 +197,16 @@ class StockMove(models.Model):
             new_move = self
             new_move.write({"picking_id": None})
         else:
-            new_move_qty = sum(move_lines.mapped("product_uom_qty"))
-            remaing_move_qty = self.product_uom_qty - new_move_qty
-            new_move = self._create_split_move(move_lines, remaing_move_qty, new_move_qty, **kwargs)
+            done_mls = move_lines.filtered(lambda ml: ml.state == "done")
+            new_move_qty = (
+                sum(move_lines.mapped("qty_done"))
+                if done_mls
+                else sum(move_lines.mapped("product_qty"))
+            )
+            remaining_move_qty = self.product_uom_qty - new_move_qty
+            new_move = self._create_split_move(
+                move_lines, remaining_move_qty, new_move_qty, **kwargs
+            )
 
         return new_move
 

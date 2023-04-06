@@ -187,6 +187,54 @@ class TestStockMove(common.BaseUDES):
             sum(Quant.search([]).mapped("reserved_quantity")),
         )
 
+    def test_sets_correct_move_quantities_when_splitting_out_done_move_lines(self):
+        """When splitting out done move lines, the correct move quantities must be set."""
+        MoveLine = self.env["stock.move.line"]
+
+        products_info = [{"product": self.apple, "qty": 3}]
+        picking = self.create_picking(
+            self.picking_type_goods_in,
+            products_info=products_info,
+            confirm=True,
+            assign=True,
+        )
+        original_move = picking.move_lines
+
+        # Find / prepare move lines to partially complete.
+        product_ids = [{"barcode": self.apple.barcode, "uom_qty": 2}]
+        vendor_location = self.env.ref("stock.stock_location_suppliers")
+        prepared_mls = picking.move_line_ids.prepare(
+            product_ids=product_ids,
+            package=None,
+            location=vendor_location,
+            result_package=self.create_package(),
+            location_dest=self.test_received_location_01,
+        )
+        # Mark move line as done / picked
+        mls_done = MoveLine.browse()
+        for mls, mls_values in prepared_mls.items():
+            mls.mark_as_done(mls_values)
+            mls_done |= mls
+
+        # Complete the remaining quantity.
+        second_move_line = picking.move_line_ids.filtered(lambda ml: ml.qty_done == 0)
+        second_move_line.write(
+            {
+                "location_dest_id": self.test_received_location_02.id,
+                "result_package_id": self.create_package().id,
+                "qty_done": 1,
+            }
+        )
+
+        # Mark the move as done (this will zeroise product_uom_quantity on the
+        # move lines).
+        original_move._action_done()
+
+        new_move = original_move.split_out_move_lines(move_lines=mls_done)
+
+        moves = original_move | new_move
+        self.assertEqual(sorted(moves.mapped("product_uom_qty")), [1, 2])
+
     def test_split_out_move_raises_exception_when_qty_done_in_ml_less_than_product_uom_qty(
         self,
     ):
