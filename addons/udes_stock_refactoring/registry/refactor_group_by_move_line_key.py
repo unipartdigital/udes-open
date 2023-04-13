@@ -31,7 +31,7 @@ class GroupByMoveLineKey(Refactor):
         picking_type.ensure_one()
 
         if not picking_type.u_move_line_key_format:
-            return
+            return moves
 
         group_by_key = moves.move_line_ids.group_by_key()
 

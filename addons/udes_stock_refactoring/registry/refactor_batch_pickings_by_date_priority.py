@@ -16,6 +16,6 @@ class BatchPickingsByDatePriority(Refactor):
 
     def do_refactor(self, moves):
         """Batch pickings by date and priority."""
-        moves._refactor_action_batch_pickings_by(
+        return moves._refactor_action_batch_pickings_by(
             lambda picking: (picking.scheduled_date.strftime("%Y-%m-%d"), picking.priority)
         )

@@ -29,7 +29,7 @@ class GroupByMoveKey(Refactor):
         picking_type.ensure_one()
 
         if not picking_type.u_move_key_format:
-            return
+            return moves
 
         group_by_key = moves.group_by_key()
 

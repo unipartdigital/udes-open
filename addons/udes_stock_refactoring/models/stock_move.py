@@ -119,7 +119,7 @@ class StockMove(models.Model):
                     )
 
                     new_moves = refactor_class.do_refactor(stage_moves)
-                    if new_moves is not None:
+                    if new_moves != stage_moves:
                         moves -= stage_moves
                         moves |= new_moves
 
@@ -314,6 +314,7 @@ class StockMove(models.Model):
 
             # Associate picking to the batch.
             picking.write({"batch_id": batch.id})
+        return self
 
     def _get_picking_batch_domain(self):
         """Find existing draft batches. Returning with a method in order to be able to extend it."""
