@@ -1,5 +1,6 @@
 from odoo.addons.udes_stock.tests import common
 from odoo.osv import expression
+import random
 
 
 class TestRefactoringBase(common.BaseUDES):
@@ -840,3 +841,66 @@ class TestConfirmRefactoring(TestRefactoringBase):
         self._assert_picking_fields(apple_pick, state="confirmed")
         self._assert_picking_fields(banana_pick, state="confirmed")
         self.assertFalse(self.picking.date_done)
+
+
+class TestByDate(TestRefactoringBase):
+    """Tests for grouping by date."""
+    
+    def setUp(self):
+        """
+        Set post confirm action for test pick type
+        """
+        Picking = self.env["stock.picking"]
+
+        # group by package post confirm
+        self.picking_type_pick.write(
+            {
+                "u_post_confirm_action": "batch_pickings_by_date",
+            }
+        )
+        self.today = "2023-04-13"
+        self.tomorrow = "2023-04-14"
+
+        picks = [
+            # Orders today.
+            (self.today, 1),
+            (self.today, 2),
+            # Orders tomorrow.
+            (self.tomorrow, 1),
+            (self.tomorrow, 2),
+        ]
+        random.seed(42)
+        random.shuffle(picks)
+        self.picks_by_key = {
+            (date, sequence): self.create_picking(
+                name="{}/{}".format(date, sequence),
+                picking_type=self.picking_type_pick,
+                sequence=sequence,
+                products_info=[
+                    # Set the date here because create_picking creates the picking
+                    # without moves then adds the moves, overwriting the `scheduled_date`.
+                    dict(product=product, qty=1, expected_date=date)
+                    for product in [self.apple, self.banana]
+                ],
+            )
+            for date, sequence in picks
+        }
+
+        self.picks = Picking.union(*(self.picks_by_key.values()))
+        for pick in self.picks:
+            pick.with_context(disable_move_refactor=True).action_confirm()
+
+        super(TestByDate, self).setUp()
+
+    def test_refactor_by_date_returns_moves(self):
+        """Verify that refactoring by date returns same moves."""
+        picks = self.picks.filtered(
+            lambda x: x.picking_type_id == self.picking_type_pick
+        )
+        batches_before_refactoring = picks.batch_id
+        self.assertEqual(len(batches_before_refactoring), 0)
+        # It returns the moves sent to refactor
+        refactored_moves = picks.move_lines._action_refactor()
+        self.assertEqual(refactored_moves, picks.move_lines)
+        batches_after_refactoring = picks.batch_id
+        self.assertEqual(len(batches_after_refactoring), 2)
