@@ -1890,7 +1890,6 @@ class TestStockPickingPriorities(common.BaseUDES):
         self.pick.action_cancel()
         self.assertEqual(self.pick.priority, "0")
 
-    @unittest.skip("Needs odoo-tester:14.0 image rebuilding")
     def test_priority_one_remains_on_done_picking(self):
         """
         Test that priority 1 is not overwritten on done pickings.
