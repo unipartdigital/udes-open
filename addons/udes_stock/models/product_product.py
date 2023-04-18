@@ -12,21 +12,21 @@ class ProductProduct(models.Model):
     # Add tracking for archiving.
     active = fields.Boolean(tracking=True)
 
-    def assert_serial_numbers(self, serial_numbers):
+    def assert_tracking_unique(self, serial_numbers):
         """
-        If the product in self is tracked by serial numbers, check if
+        If the product in self is tracked, check if
         the ones in serial_numbers are currently in use in the system.
         """
         Lot = self.env["stock.production.lot"]
         self.ensure_one()
-        if self.tracking == "serial":
+        if self.tracking != "none":
             lots = Lot.search(
                 [("product_id", "=", self.id), ("name", "in", serial_numbers)]
             )
             if lots:
                 raise ValidationError(
-                    _("Serial numbers %s already in use for product %s")
-                    % (" ".join(lots.mapped("name")), self.name)
+                    _("%s numbers %s already in use for product %s")
+                    % (self.tracking.capitalize(), " ".join(lots.mapped("name")), self.name)
                 )
 
     def sync_active_to_templates(
