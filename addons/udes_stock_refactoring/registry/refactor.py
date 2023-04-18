@@ -29,7 +29,7 @@ class Refactor(metaclass=RefactorRegistryMeta):
     @abstractmethod
     def do_refactor(self, moves):
         """Refactor action to be carried out on the supplied stock move records."""
-        return
+        return moves
 
 
 def get_selection(cls):

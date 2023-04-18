@@ -636,6 +636,7 @@ class StockPicking(models.Model):
                 product = product_info.get("product")
                 uom_qty = product_info.get("uom_qty") or product_info.get("qty")
                 uom_id = product_info.get("uom_id") or product.uom_id.id
+                expected_date = product_info.get("expected_date")
                 vals = {
                     "product_id": product.id,
                     "name": product.name,
@@ -648,6 +649,10 @@ class StockPicking(models.Model):
                     "picking_type_id": picking.picking_type_id.id,
                     "description_picking": product._get_description(picking.picking_type_id),
                 }
+                if expected_date:
+                    vals.update({
+                        "date": expected_date,
+                    })
                 vals.update(kwargs)
                 move_values.append(vals)
         return move_values
