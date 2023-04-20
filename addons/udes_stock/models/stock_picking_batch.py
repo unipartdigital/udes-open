@@ -761,7 +761,7 @@ class StockPickingBatch(models.Model):
                 ).format(picks_txt)
             )
 
-    def drop_off_picked(self, continue_batch, move_line_ids, location_barcode, result_package_name):
+    def drop_off_picked(self, continue_batch, move_line_ids, location_barcode, result_package_name, work_on_done_batch=False):
         """
         Validate the move lines of the batch (expects a singleton) by moving them
         to the specified location and if continue_batch is not flagged then close the batch.
@@ -772,11 +772,12 @@ class StockPickingBatch(models.Model):
             - move_line_ids: model stock.move.line, the move lines to validate
             - location_barcode: String, the destination location barcode for the move lines
             - result_package_name: String, the barcode for the package to be set as result package in move lines
+            - work_on_done_batch: Bool, whether to work on the batch even if it is done.
         :returns: the batch in self
         """
         self.ensure_one()
 
-        if self.state != "in_progress":
+        if self.state != "in_progress" and not work_on_done_batch:
             raise ValidationError(_("Wrong batch state: %s.") % self.state)
 
         Location = self.env["stock.location"]
