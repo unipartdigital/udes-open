@@ -151,6 +151,13 @@
                             <td><span t-esc="round(move_line.move_id.u_uom_initial_demand)"/></td>
                             <td><span t-field="move_line.qty_done"/></td>
                         </tr>
+                        <!-- Adding "has_packages" to avoid conflict when installing sale_mrp -->
+                        <t t-if="o.has_packages" name="has_packages">
+                        <!-- Make sure we do another section for package-less products if they exist -->
+                            <t t-set="move_lines" t-value="o.move_line_ids.filtered(lambda l: not l.result_package_id)"/>
+                            <t t-if="move_lines" name="no_package_section"/>
+                            <t t-if="move_lines" name="no_package_move_lines"/>
+                        </t>
                     </tbody>
                 </table>
             </t>
