@@ -27,7 +27,7 @@ class TestStockWarehouseModel(BaseUDES):
         test_company = self.create_company("test_company")
         new_warehouse = self.Warehouse.search([("company_id", "=", test_company.id)])
         test_picking_types = new_warehouse.get_picking_types()
-        self.assertEqual(len(test_picking_types), 3)
+        self.assertEqual(len(test_picking_types), 4)
 
     def test_check_picking_types_prefix_after_updating_warehouse_code(self):
         """
