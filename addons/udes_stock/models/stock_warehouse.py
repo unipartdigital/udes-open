@@ -81,3 +81,16 @@ class StockWarehouse(models.Model):
             "pick_type_id": {},
             "int_type_id": {},
         }
+
+    def _get_picking_type_update_values(self):
+        """
+        Remove active and default locations keys from picking types which makes sure core
+        functionalities are not changed for our custom picking types when relevant fields that
+        trigger this method are modified on the warehouse record.
+        """
+        result = super(StockWarehouse, self)._get_picking_type_update_values()
+        result.get("in_type_id", {}).pop("default_location_dest_id", None)
+        result.get("out_type_id", {}).pop("default_location_src_id", None)
+        result.get("pick_type_id", {}).pop("active", None)
+        result.get("pick_type_id", {}).pop("default_location_dest_id", None)
+        return result
