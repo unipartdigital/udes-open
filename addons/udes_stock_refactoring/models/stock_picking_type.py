@@ -5,6 +5,7 @@ from ..registry.refactor_batch_pickings_by_date_priority import BatchPickingsByD
 from ..registry.refactor_batch_pickings_by_date import BatchPickingsByDate
 from ..registry.refactor_group_by_move_key import GroupByMoveKey
 from ..registry.refactor_group_by_move_line_key import GroupByMoveLineKey
+from ..registry.refactor_by_maximum_quantity import ByMaximumQuantity
 
 POST_CONFIRM_ACTIONS = [
     get_selection(BatchPickingsByDatePriority),
@@ -15,6 +16,7 @@ POST_CONFIRM_ACTIONS = [
 POST_ASSIGN_ACTIONS = [
     get_selection(GroupByMoveKey),
     get_selection(GroupByMoveLineKey),
+    get_selection(ByMaximumQuantity),
 ]
 
 POST_VALIDATE_ACTIONS = [
@@ -49,6 +51,11 @@ class StockPickingType(models.Model):
         selection=POST_VALIDATE_ACTIONS,
         string="Post Validate Action",
         help="Choose the action to be taken after validating a picking.",
+    )
+    u_assign_refactor_constraint_value = fields.Integer(
+        string="Assign Refactor Constraint Value",
+        help="Constraint value used when refactoring post assign. "
+             "Currently only used for the post assign action: Maximum Quantity."
     )
 
     @api.constrains("u_move_key_format")

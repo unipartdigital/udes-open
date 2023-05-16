@@ -478,7 +478,7 @@ class StockPicking(models.Model):
         NOTE: function uses sudo to override permissions. This is because creating
         a backorder requires having the picking create permission and we treat backorders
         creation differently from generic picking creation. E.g. the system needs to be able
-        to create barckorders when pickings are validated regardless of the user's generic
+        to create backorders when pickings are validated regardless of the user's generic
         permissions.
         """
         bk_picking = self.sudo().copy(

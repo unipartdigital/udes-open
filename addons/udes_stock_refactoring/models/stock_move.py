@@ -1,5 +1,5 @@
 from odoo import api, models, fields, _
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 from ..registry.refactor import REFACTOR_REGISTRY
 import logging
 
@@ -319,3 +319,33 @@ class StockMove(models.Model):
     def _get_picking_batch_domain(self):
         """Find existing draft batches. Returning with a method in order to be able to extend it."""
         return [("state", "=", "draft"), ("picking_type_id", "in", self.picking_type_id.ids)]
+
+    def _refactor_action_by_maximum_quantity(self, maximum_qty):
+        """Split move_line_ids out into pickings with a maximum quantity
+        This first tries to create pickings with a single move_line_id with the maximum allowed
+        Then combines the remaining move_line_ids into pickings with maximum allowed
+        """
+        Picking = self.env["stock.picking"]
+
+        if maximum_qty < 1:
+            raise ValidationError(_("Cannot split quants into quantity: %i") % maximum_qty)
+
+        new_pickings = Picking.browse()
+        for picking, moves in self.groupby("picking_id"):
+            mls = moves.move_line_ids
+
+            grouped_mls = mls._split_and_group_mls_by_quantity(maximum_qty)
+            # If there are un-reserved moves then keep them in the original picking
+            max_range = len(grouped_mls)
+            if not any([move.product_uom_qty > move.reserved_availability for move in moves]):
+                max_range = -1
+            # Split out move lines to their own pickings,
+            current_picking = picking
+            for mls_to_keep in grouped_mls[:max_range]:
+                # Move all other move lines to the new picking, on next iteration do the same
+                # for the new_picking created in previous iteration.
+                new_picking = current_picking._backorder_move_lines(mls_to_keep)
+                new_pickings += new_picking
+                current_picking = new_picking
+
+        return self | new_pickings.move_lines

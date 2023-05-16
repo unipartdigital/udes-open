@@ -589,3 +589,35 @@ class StockMoveLine(models.Model):
             ml.write(ml_vals)
 
         return True
+
+    def _split_and_group_mls_by_quantity(self, maximum_qty):
+        """
+        Split move lines into groups of up to a maximum quantity
+        :param maximum_qty: float quantity to split and group move lines
+        :returns: list of grouped move lines
+        """
+        grouped_mls = []
+
+        # Group all (partially) done and cancelled moves first
+        remaining_mls = self
+        excluded_move_lines = self.filtered(lambda m: m.qty_done or m.state == "done")
+        if excluded_move_lines:
+            grouped_mls.append(excluded_move_lines)
+            remaining_mls -= excluded_move_lines
+
+        # See if any mls are equal to the maximum and add them as individual groups
+        exact_mls = self.filtered(lambda l: l.product_uom_qty == maximum_qty)
+        remaining_mls -= exact_mls
+        for ml in exact_mls:
+            grouped_mls.append(ml)
+
+        # Splitting and grouping remaining move lines by using move_lines_for_qty method, where if
+        # a move line is split we add the split move line to be split again and remove the move line
+        # used from move lines to be split. Add the move lines to the grouped move lines.
+        while remaining_mls:
+            mls_used, new_ml, _uom_qty = remaining_mls.move_lines_for_qty(maximum_qty)
+            if new_ml:
+                remaining_mls |= new_ml
+            remaining_mls -= mls_used
+            grouped_mls.append(mls_used)
+        return grouped_mls
