@@ -61,6 +61,7 @@ class StockMoveLine(models.Model):
         if user_scans == "product":
             task["type"] = "product"
             task["pick_quantity"] = sum(self.mapped("product_qty"))
+            task["initial_demand"] = sum(self.move_id.mapped("u_uom_initial_demand"))
             task["quant_ids"] = self.get_quants().get_info(level=2)
         else:
             package = self.package_id
