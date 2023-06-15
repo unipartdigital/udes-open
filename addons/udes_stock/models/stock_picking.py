@@ -481,12 +481,18 @@ class StockPicking(models.Model):
         to create backorders when pickings are validated regardless of the user's generic
         permissions.
         """
+        # If configuration is enabled, copy the batch to the backorder too.
+        batch_id = False
+        if self.picking_type_id.u_preserve_backorder_batch:
+            # If the picking has no batch, batch_id will be False.
+            batch_id = self.batch_id.id
         bk_picking = self.sudo().copy(
             {
                 "name": "/",
                 "move_lines": [(6, 0, moves.ids)],
                 "move_line_ids": [(6, 0, moves.move_line_ids.ids)],
                 "backorder_id": self.id,
+                "batch_id": batch_id,
             }
         )
         return bk_picking

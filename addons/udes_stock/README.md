@@ -190,6 +190,7 @@ The type of stock.picking can is defined by this type. It can represent a goods 
 | u_handle_partials          | Boolean | If the picking type is allowed to handle partially available pickings.                                                                   |
 | u_propagate_cancel         | Boolean | If the picking type should propagate move cancellations to the next moves                                                                |
 | u_create_procurement_group | Boolean | Indicate if a procurement group should be created on confirmation of the picking if one does not already exist.                          |
+| u_preserve_backorder_batch | boolean | Flag to indicate whether to copy the batch_id on a picking of this type when a backorder is created                                      |
 
 | Helpers                       | Description                                          |
 |-------------------------------|------------------------------------------------------|
