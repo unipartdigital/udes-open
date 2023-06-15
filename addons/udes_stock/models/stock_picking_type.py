@@ -130,6 +130,12 @@ class StockPickingType(models.Model):
         default=False,
         help="If enabled, tracked products that are not in the picking, but are more easily available to the warehouse user, can be swapped into the picking during scanning",
     )
+    u_preserve_backorder_batch = fields.Boolean(
+        string="Preserve Batch on Backorder",
+        default=False,
+        help="Flag to indicate whether to copy the batch_id on a picking of "
+        "this type when a backorder is created",
+    )
 
     def get_action_picking_tree_draft(self):
         return self._get_action("udes_stock.action_picking_tree_draft")
