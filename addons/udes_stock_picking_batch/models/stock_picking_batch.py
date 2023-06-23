@@ -458,6 +458,9 @@ class StockPickingBatch(models.Model):
 
         parts.append(lambda ml: (ml.location_id.id, ml.product_id.id))
 
+        if batch_pt.u_user_scans == "product" and not batch_pt.u_allow_swapping_tracked_products:
+            parts.append(lambda ml: (ml.lot_id.id,))
+
         return lambda ml: tuple(chain(*[part(ml) for part in parts]))
 
     def get_available_move_lines(self):
