@@ -310,3 +310,63 @@ class TestInternalLocationChildrenConstraint(BaseUDES):
             f"Unable to save location '{location_constraint_name}'."
             " Internal Locations cannot have child locations.",
         )
+
+
+class PickingZoneTestCase(BaseUDES):
+    """Tests for picking zone behaviours."""
+
+    def test_returns_location_id_if_location_is_a_picking_zone(self):
+        """Test that a location that is a picking zone returns its id for u_picking_zone_id."""
+        loc = self.create_location(
+            "picking_zone_test_location", location_id=self.stock_location.id, u_is_picking_zone=True
+        )
+        self.assertEqual(loc.u_picking_zone_id, loc)
+
+    def test_returns_parent_id_if_parent_is_a_picking_zone(self):
+        """Test that when a parent location is a picking zone it is returned correctly."""
+        loc = self.create_location("picking_zone_test_location", location_id=self.stock_location.id)
+        self.stock_location.u_is_picking_zone = True
+        self.assertEqual(loc.u_picking_zone_id, self.stock_location)
+
+    def test_returns_false_if_not_within_a_picking_zone(self):
+        """Test that when no parent location is a picking zone, u_picking_zone_id is False."""
+        loc = self.create_location("picking_zone_test_location", location_id=self.stock_location.id)
+        self.assertFalse(loc.u_picking_zone_id)
+
+    def test_returns_closest_zone_in_hierarchy_of_zones(self):
+        """Test that a location's picking zone is the closest in the location hierarchy."""
+        Location = self.env["stock.location"]
+
+        wh_location = Location.search([("name", "=", "WH")])
+        grandparent = self.create_location(
+            "picking_zone_test_location_A",
+            location_id=wh_location.id,
+            u_is_picking_zone=True,
+            usage="view",
+        )
+        parent = self.create_location(
+            "picking_zone_test_location_B",
+            location_id=grandparent.id,
+            u_is_picking_zone=True,
+            usage="view",
+        )
+        location = self.create_location("test_location", location_id=parent.id)
+
+        self.assertEqual(location.u_picking_zone_id, parent)
+
+        (grandparent | parent | location).unlink()
+        grandparent = self.create_location(
+            "picking_zone_test_location_B",
+            location_id=wh_location.id,
+            u_is_picking_zone=True,
+            usage="view",
+        )
+        parent = self.create_location(
+            "picking_zone_test_location_A",
+            location_id=grandparent.id,
+            u_is_picking_zone=True,
+            usage="view",
+        )
+        location = self.create_location("test_location", location_id=parent.id)
+
+        self.assertEqual(location.u_picking_zone_id, parent)

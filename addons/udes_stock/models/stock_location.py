@@ -149,6 +149,20 @@ class StockLocation(models.Model):
         default=lambda _: PreciseDatetime.now(),
     )
 
+    u_is_picking_zone = fields.Boolean(
+        string="Is A Picking Zone",
+        help="Picking Zones are the level to which warehouse-wide Picks are broken down.",
+    )
+
+    u_picking_zone_id = fields.Many2one(
+        "stock.location",
+        string="Picking Zone",
+        help="This location's picking zone, if it is in a picking zone.",
+        compute="_compute_picking_zone_id",
+        readonly=True,
+        store=False,
+    )
+
     def set_u_heatmap_data_updated(self, vals):
         """
         Iterate over locations in `self`, checking if any heatmap fields
@@ -251,6 +265,36 @@ class StockLocation(models.Model):
                 state = location._set_countable_state()
 
             location.u_countable_state = state
+
+    def _compute_picking_zone_id(self):
+        """Set the location that is the picking zone for the location in self.
+
+        A picking zone is a location with u_is_picking_zone == True.
+        If a record is a picking zone, its is set to itself, otherwise we
+        retrieve all ancestor locations that are picking zones and select the
+        closest in the location hierarchy.
+        If no picking zone is found, False is set.
+        """
+        Location = self.env["stock.location"]
+
+        for record in self:
+            if record.u_is_picking_zone:
+                record.u_picking_zone_id = record.id
+            else:
+                result = Location.search_read(
+                    [("u_is_picking_zone", "=", True), ("id", "parent_of", record.id)], ["id"]
+                )
+                if len(result) == 1:
+                    record.u_picking_zone_id = result[0]["id"]
+                elif len(result) > 1:
+                    # The query result is ordered by name and id, which doesn't
+                    # help us find the closest zone in the hierarchy.
+                    path_ids = list(map(int, filter(None, record.parent_path.split("/"))))
+                    result_ids = [x["id"] for x in result]
+                    record.u_picking_zone_id = max(result_ids, key=path_ids.index)
+                else:
+                    record.u_picking_zone_id = False
+        return
 
     def _set_countable_state(self):
         """

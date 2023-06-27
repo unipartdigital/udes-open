@@ -93,6 +93,8 @@ Additional Details:
 |------------|------------------|-----------------------------------------|
 | name       | int              | Disable translation instead of renaming |
 | active     | [{stock.quants}] | Add tracking or archiving               |
+| u_is_picking_zone | Boolean   | Denotes whether or not the location is a picking zone |
+| u_picking_zone_id | {stock.location} | The picking zone that a location is under, if defined |
 
 ### Quants (model: stock.quant)
 

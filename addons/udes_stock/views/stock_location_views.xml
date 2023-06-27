@@ -10,6 +10,8 @@
             <xpath expr="//field[@name='return_location']" position="after">
                 <field name="barcode"/>
                 <field name="u_limit_orderpoints" />
+                <field name="u_is_picking_zone" attrs="{'invisible': [('usage', '!=', 'view')]}" />
+                <field name="u_picking_zone_id" attrs="{'invisible': [('u_picking_zone_id', '=', False)]}"/>
                 <field name="u_storage_format"/>
                 <field name="u_location_storage_format" groups="stock.group_stock_manager"/>
                 <field name="u_location_is_countable"/>
@@ -60,6 +62,20 @@
             </xpath>
 
         </field>
+    </record>
+
+    <!-- Changes to search dropdown -->
+    <record id="view_location_search" model="ir.ui.view">
+      <field name="name">udes_stock.stock.location.search</field>
+      <field name="model">stock.location</field>
+      <field name="inherit_id" ref="stock.view_location_search"/>
+      <field name="arch" type="xml">
+        <!-- Append u_is_picking_zone filter -->
+        <xpath expr="//search" position="inside">
+          <separator/>
+          <filter name="u_is_picking_zone" string="Picking Zone" domain="[('u_is_picking_zone', '=', 'True')]" help="Show only Picking Zones"/>
+        </xpath>
+      </field>
     </record>
 
     <!-- Move Locations menu item outside of config menu -->
