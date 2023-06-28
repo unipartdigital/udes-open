@@ -16,9 +16,9 @@ class StockPickingRefactorCriteria(models.AbstractModel):
     custom_criteria = fields.Boolean(
         string="Custom Criteria",
         help="""
-            If set to False it will refactor by default criteria which are set on picking types and 
+            If set to False it will refactor by default criteria which are set on picking types and
             triggered by appropriate state of the pickings.
-            If set to True it will show other options that we may refactor even if is not the 
+            If set to True it will show other options that we may refactor even if is not the
             specific trigger state
             """,
     )
@@ -68,9 +68,7 @@ class RefactorStockPickingBatch(models.TransientModel):
             f"User number {str(self.env.uid)} has requested refactoring of batches {batch_ids}"
         )
         batches = Batch.browse(batch_ids)
-        res = batches.picking_ids.move_lines._action_refactor(
-            refactor_action=self.refactor_action
-        )
+        res = batches.picking_ids.move_lines._action_refactor(refactor_action=self.refactor_action)
         batches.picking_ids.unlink_empty()
         return res
 

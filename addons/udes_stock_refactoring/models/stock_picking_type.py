@@ -55,7 +55,7 @@ class StockPickingType(models.Model):
     u_assign_refactor_constraint_value = fields.Integer(
         string="Assign Refactor Constraint Value",
         help="Constraint value used when refactoring post assign. "
-             "Currently only used for the post assign action: Maximum Quantity."
+        "Currently only used for the post assign action: Maximum Quantity.",
     )
 
     @api.constrains("u_move_key_format")

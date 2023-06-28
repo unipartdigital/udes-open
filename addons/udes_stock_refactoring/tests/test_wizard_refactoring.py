@@ -75,10 +75,7 @@ class TestDefaultRefactoringWizard(TestRefactoringWizard):
         self.assertTrue(self.pick_1.exists())
         self.assertFalse(self.pick_2.exists())
         refactored_picks = self.Picking.search(
-            [
-                ("picking_type_id", "=", self.picking_type_pick.id),
-                ("group_id", "!=", False)
-            ]
+            [("picking_type_id", "=", self.picking_type_pick.id), ("group_id", "!=", False)]
         )
         self.assertEqual(refactored_picks, self.pick_1)
         pick_moves_count = len(self.pick_1_move_ids + self.pick_2_move_ids)
@@ -177,10 +174,7 @@ class TestCustomRefactoringWizard(TestRefactoringWizard):
         self.assertFalse(self.pick_1.exists())
         self.assertFalse(self.pick_2.exists())
         refactored_picks = self.Picking.search(
-            [
-                ("picking_type_id", "=", self.picking_type_pick.id),
-                ("group_id", "!=", False)
-            ]
+            [("picking_type_id", "=", self.picking_type_pick.id), ("group_id", "!=", False)]
         )
         pick_moves_count = len(self.pick_1_move_ids + self.pick_2_move_ids)
         # Check refactored pick

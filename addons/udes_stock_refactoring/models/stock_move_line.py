@@ -24,8 +24,7 @@ class StockMoveLine(models.Model):
                     # Generating a list of fields that are in u_move_line_key_format.
                     move_line_fields = StockPickingType.get_fields_from_key_format(format_str)
                     move_line_vals = {
-                        field_name: move_line[field_name]
-                        for field_name in move_line_fields
+                        field_name: move_line[field_name] for field_name in move_line_fields
                     }
                     grouping_key = format_str.format(**move_line_vals)
 

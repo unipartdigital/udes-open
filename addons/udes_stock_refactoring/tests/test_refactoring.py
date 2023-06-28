@@ -510,7 +510,6 @@ class TestAssignRefactoring(TestRefactoringBase):
         # Verify that each picking has the correct package level for its pallet
         self._assert_package_levels(goods_out_pickings)
 
-
         # Complete each goods out picking and ensure after each one that the
         # package levels are still correct
         for picking in goods_out_pickings:
@@ -845,7 +844,7 @@ class TestConfirmRefactoring(TestRefactoringBase):
 
 class TestByDate(TestRefactoringBase):
     """Tests for grouping by date."""
-    
+
     def setUp(self):
         """
         Set post confirm action for test pick type
@@ -894,9 +893,7 @@ class TestByDate(TestRefactoringBase):
 
     def test_refactor_by_date_returns_moves(self):
         """Verify that refactoring by date returns same moves."""
-        picks = self.picks.filtered(
-            lambda x: x.picking_type_id == self.picking_type_pick
-        )
+        picks = self.picks.filtered(lambda x: x.picking_type_id == self.picking_type_pick)
         batches_before_refactoring = picks.batch_id
         self.assertEqual(len(batches_before_refactoring), 0)
         # It returns the moves sent to refactor
@@ -933,10 +930,9 @@ class TestRefactoringAssignSplittingQuantity(TestRefactoringBase):
         self.picking.action_assign()
 
         # Get pickings
-        all_pickings = Picking.search([
-            ("picking_type_id", "=", self.picking_type_pick.id),
-            ("origin", "=", "0001")
-        ])
+        all_pickings = Picking.search(
+            [("picking_type_id", "=", self.picking_type_pick.id), ("origin", "=", "0001")]
+        )
         # Check each picking is only for 2 products
         self.assertEqual(len(all_pickings), 5)
         self.assertTrue(
@@ -957,10 +953,9 @@ class TestRefactoringAssignSplittingQuantity(TestRefactoringBase):
         self.picking.action_assign()
 
         # Get pickings
-        all_pickings = Picking.search([
-            ("picking_type_id", "=", self.picking_type_pick.id),
-            ("origin", "=", "0002")
-        ])
+        all_pickings = Picking.search(
+            [("picking_type_id", "=", self.picking_type_pick.id), ("origin", "=", "0002")]
+        )
         # Check pickings are split correctly
         self.assertEqual(len(all_pickings), 4)
         quantities_per_pick = [
@@ -982,10 +977,9 @@ class TestRefactoringAssignSplittingQuantity(TestRefactoringBase):
         self.picking.action_assign()
 
         # Get pickings
-        all_pickings = Picking.search([
-            ("picking_type_id", "=", self.picking_type_pick.id),
-            ("origin", "=", "0003")
-        ])
+        all_pickings = Picking.search(
+            [("picking_type_id", "=", self.picking_type_pick.id), ("origin", "=", "0003")]
+        )
         # Check pickings are split correctly
         self.assertEqual(len(all_pickings), 5)
         quantities_ordered_and_reserved = [
@@ -1018,10 +1012,9 @@ class TestRefactoringAssignSplittingQuantity(TestRefactoringBase):
         self.picking.action_assign()
 
         # Get pickings
-        all_pickings = Picking.search([
-            ("picking_type_id", "=", self.picking_type_pick.id),
-            ("origin", "=", "0004")
-        ])
+        all_pickings = Picking.search(
+            [("picking_type_id", "=", self.picking_type_pick.id), ("origin", "=", "0004")]
+        )
         # Check each picking is only for 2 products
         self.assertEqual(len(all_pickings), 5)
         quantities_ordered_and_reserved = [
@@ -1060,10 +1053,9 @@ class TestRefactoringAssignSplittingQuantity(TestRefactoringBase):
         self.picking.action_assign()
 
         # Get pickings
-        all_pickings = Picking.search([
-            ("picking_type_id", "=", self.picking_type_pick.id),
-            ("origin", "=", "0005")
-        ])
+        all_pickings = Picking.search(
+            [("picking_type_id", "=", self.picking_type_pick.id), ("origin", "=", "0005")]
+        )
         # Check each picking has a maximum quantity of 2
         self.assertEqual(len(all_pickings), 6)
         quantities_ordered_and_reserved = [

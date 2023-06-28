@@ -8,7 +8,11 @@
     "application": True,
     "version": "14.0.2.1.0",
     "depends": [
-       "base", "stock", "udes_common", "stock_picking_batch", "udes_stock"
+        "base",
+        "stock",
+        "udes_common",
+        "stock_picking_batch",
+        "udes_stock",
     ],
     "external_dependencies": {},
     "data": [
