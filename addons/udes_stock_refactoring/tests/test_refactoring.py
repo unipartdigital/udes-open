@@ -1078,3 +1078,162 @@ class TestRefactoringAssignSplittingQuantity(TestRefactoringBase):
         move_format = [(m.product_id, m.product_uom_qty, m.reserved_availability) for m in moves]
         expected_move_format = [(self.apple, 2, 0), (self.banana, 3, 0)]
         self.assertCountEqual(move_format, expected_move_format)
+
+
+class RefactorByPickingZoneTestCase(TestRefactoringBase):
+    """Tests for refactoring by picking zone."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+
+        cls.Pick = cls.env["stock.picking"]
+
+        # Find the picking types and locations we need.
+        cls.picking_type_pick.write(
+            {
+                "u_post_assign_action": "group_by_move_line_key",
+                "u_move_line_key_format": "{move_id.picking_id.origin},{location_id.u_picking_zone_id.id}",
+            }
+        )
+
+        zone1 = cls.create_location(
+            "zone1", location_id=cls.stock_location.id, usage="view", u_is_picking_zone=True
+        )
+        zone2 = cls.create_location(
+            "zone2", location_id=cls.stock_location.id, usage="view", u_is_picking_zone=True
+        )
+        cls.zones = zone1 | zone2
+
+        cls.loc1 = cls.create_location("loc1", location_id=zone1.id)
+        cls.loc2 = cls.create_location("loc2", location_id=zone1.id)
+        cls.loc3 = cls.create_location("loc3", location_id=zone2.id)
+
+        cls.create_quant(cls.apple.id, cls.loc1.id, 2, cls.create_package().id)
+        cls.create_quant(cls.banana.id, cls.loc2.id, 2, cls.create_package().id)
+        cls.create_quant(cls.cherry.id, cls.loc3.id, 2, cls.create_package().id)
+
+    def test_refactors_by_picking_zone(self):
+        """The system will refactor by picking zone."""
+        origin = "TEST_ORIGIN"
+        # One picking, stock in each zone.
+        products_info = [{"product": self.apple, "qty": 1}, {"product": self.cherry, "qty": 1}]
+        self.create_picking(
+            self.picking_type_pick,
+            products_info=products_info,
+            origin=origin,
+            confirm=True,
+            assign=True,
+        )
+
+        pickings = self.Pick.search([("state", "=", "assigned")])
+
+        self.assertEqual(len(pickings), 2)
+
+        zs1 = pickings[0].mapped("move_line_ids.location_id.u_picking_zone_id")
+        zs2 = pickings[1].mapped("move_line_ids.location_id.u_picking_zone_id")
+
+        self.assertEqual(len(zs1), 1)
+        self.assertEqual(len(zs2), 1)
+        self.assertNotEqual(zs1, zs2)
+        self.assertEqual((zs1 | zs2), self.zones)
+
+        self.assertEqual(pickings.mapped("origin"), [origin, origin])
+
+    def test_does_not_refactor_single_zone_picking(self):
+        """The system will refactor by picking zone."""
+        origin = "TEST_ORIGIN"
+        # One picking, stock in one zone
+        products_info = [{"product": self.apple, "qty": 1}, {"product": self.banana, "qty": 1}]
+        original_picking = self.create_picking(
+            self.picking_type_pick,
+            products_info=products_info,
+            origin=origin,
+            confirm=True,
+            assign=True,
+        )
+
+        pickings = self.Pick.search([("state", "=", "assigned")])
+
+        self.assertEqual(original_picking, pickings)
+        self.assertEqual(pickings.origin, origin)
+
+    def test_refactors_by_origin_and_picking_zone(self):
+        """The system will refactor by source document as well as zone."""
+        origin1, origin2 = origins = ["TEST_ORIGIN_01", "TEST_ORIGIN_02"]
+        # Two pickings, different origins, both have stock in both zones.
+        original_pickings = self.Pick.browse()
+        products_infos = [
+            [{"product": self.apple, "qty": 1}, {"product": self.cherry, "qty": 1}],
+            [
+                {"product": self.apple, "qty": 1},
+                {"product": self.banana, "qty": 1},
+                {"product": self.cherry, "qty": 1},
+            ],
+        ]
+        for origin, products_info in zip(origins, products_infos):
+            original_picking = self.create_picking(
+                self.picking_type_pick, products_info=products_info, origin=origin, confirm=True
+            )
+            original_pickings |= original_picking
+
+        original_pickings.action_assign()
+
+        pickings = self.Pick.search([("state", "=", "assigned")])
+
+        origin1_pickings = pickings.filtered(lambda p: p.origin == origin1)
+        self.assertEqual(len(origin1_pickings), 2)
+        zs1 = origin1_pickings[0].mapped("move_line_ids.location_id.u_picking_zone_id")
+        zs2 = origin1_pickings[1].mapped("move_line_ids.location_id.u_picking_zone_id")
+
+        self.assertEqual(len(zs1), 1)
+        self.assertEqual(len(zs2), 1)
+        self.assertNotEqual(zs1, zs2)
+        self.assertEqual((zs1 | zs2), self.zones)
+
+        origin2_pickings = pickings.filtered(lambda p: p.origin == origin2)
+        self.assertEqual(len(origin2_pickings), 2)
+        zs1 = origin2_pickings[0].mapped("move_line_ids.location_id.u_picking_zone_id")
+        zs2 = origin2_pickings[1].mapped("move_line_ids.location_id.u_picking_zone_id")
+
+        self.assertEqual(len(zs1), 1)
+        self.assertEqual(len(zs2), 1)
+        self.assertNotEqual(zs1, zs2)
+        self.assertEqual((zs1 | zs2), self.zones)
+
+        self.assertEqual(set(pickings.mapped("origin")), set(origins))
+
+    def test_merges_picks_with_same_origin(self):
+        """The system will refactor picks for a single origin into a single pick per zone."""
+        origin = "TEST_ORIGIN"
+        # 2 picks, same origin for both, stock in both zones.
+        original_pickings = self.Pick.browse()
+        products_infos = [
+            [{"product": self.apple, "qty": 1}, {"product": self.cherry, "qty": 1}],
+            [
+                {"product": self.apple, "qty": 1},
+                {"product": self.banana, "qty": 1},
+                {"product": self.cherry, "qty": 1},
+            ],
+        ]
+        for products_info in products_infos:
+            original_picking = self.create_picking(
+                self.picking_type_pick, products_info=products_info, origin=origin, confirm=True
+            )
+            original_pickings |= original_picking
+
+        original_pickings.action_assign()
+
+        pickings = self.Pick.search([("state", "=", "assigned")])
+
+        self.assertEqual(len(pickings), 2)
+
+        zs1 = pickings[0].mapped("move_line_ids.location_id.u_picking_zone_id")
+        zs2 = pickings[1].mapped("move_line_ids.location_id.u_picking_zone_id")
+
+        self.assertEqual(len(zs1), 1)
+        self.assertEqual(len(zs2), 1)
+        self.assertNotEqual(zs1, zs2)
+        self.assertEqual((zs1 | zs2), self.zones)
+
+        self.assertEqual(pickings.mapped("origin"), [origin, origin])
