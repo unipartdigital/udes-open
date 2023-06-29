@@ -10,18 +10,18 @@ The module contains different ways how handles the refactoring:
 - data/picking_types.xml
     - Goods OUT (stock.picking_type_out)
     - Putaway (udes_stock.picking_type_putaway)
-    
+
 ## Requires
 - udes_common:
   Because imports RegistryMeta from models/registry used when defining refactor abstract classes
 - stock_picking_batch:
-  The reason is as in module functionalities are included refactoring of stock picking batches , 
-  and the model is defined in stock_picking_batch module. 
+  The reason is as in module functionalities are included refactoring of stock picking batches ,
+  and the model is defined in stock_picking_batch module.
 - base:
   Access rights are not defined yet but still in order to see new models, agreed to assign to System User group.
   Group is defined in base module.
-- udes_stock: 
-  Is inheriting putaway picking type which is defined in udes_stock module. 
+- udes_stock:
+  Is inheriting putaway picking type which is defined in udes_stock module.
 
 There are other modules which are required and they got added automatically by dependence hierarchy
 
@@ -34,8 +34,8 @@ Stock Picking Type is inherited to add more configurations fields in order to ha
 
 | Field Name | Type | Description |
 | ---------- | ---- | ----------- |
-| u_move_line_key_format     | Char | A field name on stock.move.line that can be used to group move lines|
-| u_move_key_format | Char | A field name on stock.move that can be to group move |
+| u_move_line_key_format     | Char | One or more field names on stock.move.line that can be used to group move lines for example `"{package_id.id}"` or `"{package_id.id}.{location_id.name}"` |
+| u_move_key_format | Char | One or more field names on stock.move that can be to group move for example `{product_id.default_code}` or `{product_id.name},{location_dest_id.id}`|
 | u_post_confirm_action | Selection | Extendable options to choose the action to be taken after confirming a picking|
 | u_post_assign_action | Selection | Extendable options to choose the action to be taken after reserving a picking|
 | u_post_validate_action | Selection | Extendable options to choose the action to be taken after validating a picking|
@@ -57,7 +57,7 @@ Model is inherited to add refactoring methods and to include the methods when co
 | ---------- | ---- | ----------- |
 
 | Helpers | Description |
-| ------- | ----------- | 
+| ------- | ----------- |
 | _get_default_new_picking_for_group_values | Return base values which can be extended for the new picking|
 | _remove_misleading_values | Updating values of the new picking to avoid misleading values|
 | _new_picking_for_group |  Find existing picking for the supplied group, if none found create a new one.|
@@ -73,7 +73,7 @@ Model is inherited to add refactoring methods and to include the methods when co
 | u_grouping_key | Char | Grouping key|
 
 | Helpers | Description |
-| ------- | ----------- | 
+| ------- | ----------- |
 | group_by_key | Check each picking type has a move line key format set and return the groupby|
 
 ### Stock Move (model: stock.move)
@@ -83,7 +83,7 @@ Model is inherited to add refactoring methods and to include the methods when co
 | u_grouping_key | Char | Grouping key|
 
 | Helpers | Description |
-| ------- | ----------- | 
+| ------- | ----------- |
 | group_by_key | Check each picking type has a move key format set and return the groupby.|
 | action_refactor | Refactor all the moves in self. May result in the moves being changed and/or their associated pickings being deleted.|
 | _action_confirm | Extend _action_assign to trigger refactor action on move confirmation.|
@@ -98,7 +98,7 @@ Model is inherited to add refactoring methods and to include the methods when co
 Group the move lines by the splitting criteria. Extending trigger action selections fields on stock picking type
 
 | Helpers | Description |
-| ------- | ----------- | 
+| ------- | ----------- |
 | do_refactor | Refactoring moves by stock move line grouping key if it is set on picking type.|
 
 Extends u_post_assign_action and u_post_validate_action with options of enabling refactoring after reservation or validation of pickings.
@@ -108,7 +108,7 @@ Extends u_post_assign_action and u_post_validate_action with options of enabling
 Group the moves by the splitting criteria. Extending trigger action selections fields on stock picking type
 
 | Helpers | Description |
-| ------- | ----------- | 
+| ------- | ----------- |
 | do_refactor | Refactoring moves by stock move grouping key if it is set on picking type.|
 
 Extends u_post_confirm_action, u_post_assign_action and u_post_validate_action with options of enabling refactoring after confirmation, reservation or validation of pickings.
@@ -118,7 +118,7 @@ Extends u_post_confirm_action, u_post_assign_action and u_post_validate_action w
 Refactor pickings by scheduled date and priority.
 
 | Helpers | Description |
-| ------- | ----------- | 
+| ------- | ----------- |
 | do_refactor | Batch pickings by date and priority.|
 
 Extends u_post_confirm_action with options of enabling refactoring after confirmation pickings.
@@ -128,7 +128,7 @@ Extends u_post_confirm_action with options of enabling refactoring after confirm
 Refactor pickings by scheduled date.
 
 | Helpers | Description |
-| ------- | ----------- | 
+| ------- | ----------- |
 | do_refactor | Batch pickings by date.|
 
 Extends u_post_confirm_action with options of enabling refactoring after confirmation pickings.
@@ -136,7 +136,7 @@ Extends u_post_confirm_action with options of enabling refactoring after confirm
 ### Refactor Abstract Class
 
 Main abstract class where all the other abstract classes will be inherited. Purpose of defining the class is
-to create commune attributes like name, description and get_selection in order to show as an option in selection fields of refactoring actions. 
+to create commune attributes like name, description and get_selection in order to show as an option in selection fields of refactoring actions.
 
 
 ### Refactor Criteria (models.TransientModel: refactor.criteria)
@@ -152,7 +152,7 @@ Class inherits from TransientModel class refactor.criteria the only difference i
 
 
 | Helpers | Description |
-| ------- | ----------- | 
+| ------- | ----------- |
 | do_refactor | Refactoring stock moves in selected batches.|
 
 ### Refactor Stock Picking (models.TransientModel: stock.picking.refactor.wizard)
@@ -160,7 +160,7 @@ Class inherits from TransientModel class refactor.criteria the only difference i
 Class inherits from TransientModel class refactor.criteria the only difference is the source model from where this wizard is opened.
 
 | Helpers | Description |
-| ------- | ----------- | 
+| ------- | ----------- |
 | do_refactor | Refactoring stock moves in selected pickings.|
 
 ### Refactor Stock Move (models.TransientModel: stock.move.refactor.wizard)
@@ -168,5 +168,5 @@ Class inherits from TransientModel class refactor.criteria the only difference i
 Class inherits from TransientModel class refactor.criteria the only difference is the source model from where this wizard is opened.
 
 | Helpers | Description |
-| ------- | ----------- | 
+| ------- | ----------- |
 | do_refactor | Refactoring stock moves in selected moves.|
