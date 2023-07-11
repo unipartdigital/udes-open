@@ -1172,7 +1172,7 @@ class StockPickingBatch(models.Model):
             )
 
         pickings = move_lines.picking_id
-        original_picking_ids = {}
+        original_pickings = {}
         if raise_stock_investigation:
             to_investigate = Picking.browse()
         for picking in pickings:
@@ -1190,7 +1190,7 @@ class StockPickingBatch(models.Model):
             # Post the messages to alert about the unpickable items
             picking.message_post(body=msg)
 
-            original_id = None
+            original_picking = None
 
             mls_to_backorder = picking.move_line_ids - move_lines
             picking_to_investigate = picking
@@ -1200,9 +1200,9 @@ class StockPickingBatch(models.Model):
                 # the picking to investigate
                 # NOTE: Added sudo() - Uses sudo() here as a user might not have the full access rights to stock.picking.batch
                 # but still needs more access rights for the flow
-                original_id = picking_to_investigate.id
+                original_picking = picking_to_investigate
                 picking_to_investigate = picking_to_investigate.sudo()._backorder_move_lines(mls_to_backorder)
-            original_picking_ids[picking_to_investigate] = original_id
+            original_pickings[picking_to_investigate] = original_picking
 
             if raise_stock_investigation:
                 to_investigate |= picking_to_investigate
@@ -1232,11 +1232,11 @@ class StockPickingBatch(models.Model):
             if not bypass_reassignment:
                 for picking in pickings_to_investigate:
                     moves = picking.move_lines
-                    original_picking_id = original_picking_ids.get(picking, None)
+                    original_picking = original_pickings.get(picking, None)
                     if (
                         picking.exists()
                         and picking.state == "assigned"
-                        and original_picking_id is not None
+                        and original_picking
                         and not picking.picking_type_id.u_post_assign_action
                         # Only if we do not do refactoring because if we do then it's wrong to
                         # move the moves back to the original picking
@@ -1245,9 +1245,12 @@ class StockPickingBatch(models.Model):
                         # available; get rid of the backorder after linking the
                         # move lines to the original picking, so it can be
                         # directly processed
-                        picking.move_line_ids.write({"picking_id": original_picking_id})
-                        picking.move_lines.write({"picking_id": original_picking_id})
+                        picking.move_line_ids.write({"picking_id": original_picking.id})
+                        picking.move_lines.write({"picking_id": original_picking.id})
                         picking.sudo().with_context(bypass_state_check=True).unlink()
+                        # Merge Moves and move lines of original picking
+                        original_picking.move_lines._merge_moves()
+                        original_picking.move_line_ids._merge_move_lines()
                     else:
                         # Moves may be part of a new picking after refactor, this should
                         # be added back to the batch

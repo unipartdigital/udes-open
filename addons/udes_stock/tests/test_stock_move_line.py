@@ -1823,3 +1823,35 @@ class TestFindMoveLines(common.BaseUDES):
         self.assertEqual(mls_fulfill, location02_mls)
         self.assertEqual(len(mls_fulfill), 1)
         self.assertFalse(new_ml)
+
+
+class TestMergeMoveLines(common.BaseUDES):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+
+    def test_merge_move_lines_by_lot(self):
+        """Merge move lines when there are 2 move lines of same lot"""
+        pick_info = [
+            {"product": self.tangerine, "uom_qty": 10},
+        ]
+        # Setting up pick and making sure the same lot is used for when reserving both picks.
+        self.create_quant(self.tangerine.id, self.test_stock_location_01.id, 5, lot_name="lot01")
+        self.create_quant(self.tangerine.id, self.test_stock_location_01.id, 5, lot_name="lot02")
+        picking = self.create_picking(
+            self.picking_type_pick, products_info=pick_info, confirm=True, assign=True
+        )
+        # Asserting that both picks are created and reserved as expected.
+        self.assertEqual(len(picking.move_line_ids), 2)
+        self.assertEqual(picking.move_line_ids.mapped("lot_id.name"), ["lot01", "lot02"])
+        self.assertEqual(picking.move_line_ids.mapped("product_uom_qty"), [5.0, 5.0])
+        # Write picking move lines to same lot, so we can test merge lots method.
+        lot = picking.move_line_ids[0].lot_id
+        picking.move_line_ids.lot_id.quant_ids.write({"quantity": 10})
+        self.assertEqual(picking.move_line_ids.lot_id.quant_ids.mapped("quantity"), [10.0, 10.0])
+        picking.move_line_ids.write({"lot_id": lot.id})
+        move_line = picking.move_line_ids._merge_move_lines()
+        self.assertEqual(len(picking.move_line_ids), 1)
+        self.assertEqual(picking.move_line_ids, move_line)
+        self.assertEqual(move_line.lot_id, lot)
+        self.assertEqual(move_line.product_uom_qty, 10.0)

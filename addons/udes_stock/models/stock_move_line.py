@@ -4,6 +4,8 @@ import logging
 
 from odoo import models, fields, api, _
 from odoo.tools.float_utils import float_compare, float_round
+from itertools import groupby
+from operator import itemgetter
 from odoo.osv import expression
 from odoo.exceptions import ValidationError, UserError
 
@@ -621,3 +623,77 @@ class StockMoveLine(models.Model):
             remaining_mls -= mls_used
             grouped_mls.append(mls_used)
         return grouped_mls
+
+    def _merge_move_lines(self):
+        """ This method will, for each move line in `self`, go up in their linked picking and try to
+        find in their existing move line a candidate into which we can merge the move.
+        :return: Recordset of move lines passed to this method.
+            If some of passed move lines were merged into another existing one, return this one and
+            not the (now unlinked) original.
+        """
+        MoveLine = self.env["stock.move.line"]
+        distinct_fields = self._prepare_merge_move_lines_distinct_fields()
+
+        candidate_move_line_list = [picking.move_line_ids for picking in self.picking_id]
+        # Move removed after merge
+        move_lines_to_unlink = MoveLine.browse()
+        move_lines_to_merge = []
+        for candidate_move_lines in candidate_move_line_list:
+            # First step find move lines to merge.
+            candidate_move_lines = candidate_move_lines.with_context(prefetch_fields=False)
+            for k, g in groupby(sorted(
+                    candidate_move_lines, key=self._prepare_merge_move_line_sort_method
+            ), key=itemgetter(*distinct_fields)):
+                move_lines = MoveLine.concat(*g).filtered(
+                    lambda m: m.state not in ("done", "cancel") and not m.qty_done
+                )
+                # If we have multiple records we will merge then in a single one.
+                if len(move_lines) > 1:
+                    move_lines_to_merge.append(move_lines)
+
+        # second step merge its move lines, initial demand, ...
+        move_lines_to_write = {}
+        for move_lines in move_lines_to_merge:
+            # built merge move line data, which will be used after unlink to write
+            # to specific move lines.
+            move_lines_to_write[move_lines[0]] = move_lines._merge_move_lines_fields()
+            # update merged moves dicts
+            move_lines_to_unlink |= move_lines[1:]
+        # Unlinking move lines first will add the available quantity (
+        # By removing already reserved quantity), when writing will reserve the merged quantity.
+        # TODO Would be better to bypass reserving on both write and unlink, but the unlink core
+        #  functionality doesnt have an option to by pass. Issue #4895
+        if move_lines_to_unlink:
+            move_lines_to_unlink.sudo().unlink()
+        for move_line, value in move_lines_to_write.items():
+            move_line.write(value)
+        return (self | MoveLine.concat(*move_lines_to_merge)) - move_lines_to_unlink
+
+    @api.model
+    def _prepare_merge_move_lines_distinct_fields(self):
+        """
+        Prepare merge move lines distinct fields
+        """
+        return [
+            "product_id", "location_id", "location_dest_id", "package_id", "lot_id", "move_id"
+        ]
+
+    @api.model
+    def _prepare_merge_move_line_sort_method(self, move_line):
+        """
+        Sort move lines depending on distinct fields prepared
+        """
+        move_line.ensure_one()
+
+        return [
+            move_line.product_id.id, move_line.location_id.id, move_line.location_dest_id.id,
+            move_line.package_id.id, move_line.lot_id.id, move_line.move_id.id
+        ]
+
+    def _merge_move_lines_fields(self):
+        """ This method will return a dict of stock move line’s values that represent the values of
+        all move lines in `self` merged. """
+
+        return {
+            "product_uom_qty": sum(self.mapped("product_uom_qty")),
+        }
