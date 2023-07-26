@@ -320,7 +320,7 @@ class StockMove(models.Model):
         # along with previously created move lines with qty_done == 0.
         total_move_qty = self.product_uom_qty
         current_move_qty = sum(mls_to_keep.mapped("product_uom_qty"))
-        new_move_qty = int(total_move_qty - current_move_qty)
+        new_move_qty = total_move_qty - current_move_qty
 
         return self._create_split_move(mls_to_move, current_move_qty, new_move_qty, **kwargs)
 

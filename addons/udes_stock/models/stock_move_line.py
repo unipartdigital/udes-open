@@ -322,6 +322,7 @@ class StockMoveLine(models.Model):
         for prod in product_ids:
             product_barcode = prod["barcode"]
             product = Product.get_or_create(product_barcode)
+            rounding = product.uom_id.rounding
             quantity = prod["uom_qty"]
             lot_names = prod.get("lot_names", [])
             lot_quantities = prod.get("lot_quantities", [])
@@ -333,7 +334,7 @@ class StockMoveLine(models.Model):
                 lot_quantities = [quantity]
             if is_serial and not lot_quantities:
                 lot_quantities = [1]*quantity
-            if is_trackable and sum(lot_quantities) != quantity:
+            if is_trackable and float_compare(sum(lot_quantities), quantity, precision_rounding=rounding) != 0:
                 raise ValidationError(
                     _("Total lot/serial quantities entered doesn't match to total quantity.")
                 )
@@ -365,7 +366,7 @@ class StockMoveLine(models.Model):
                     mls -= prod_mls
                     if new_ml:
                         mls |= new_ml
-                    if quantity_fulfilled == quantity:
+                    if float_compare(quantity_fulfilled, quantity, rounding) == 0:
                         break
             else:
                 prod_mls, new_ml = mls._find_move_lines(qty_done, product, package, None, location)

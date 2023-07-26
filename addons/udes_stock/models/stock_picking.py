@@ -83,13 +83,13 @@ class StockPicking(models.Model):
     u_quantity_done = fields.Float(
         "Quantity Done",
         compute="_compute_picking_quantities",
-        digits=(0, 0),
+        digits="Product Unit of Measure",
         help="Quantity done of the moves related to the picking in the UoM of the move(s)",
     )
     u_total_quantity = fields.Float(
         "Total Quantity",
         compute="_compute_picking_quantities",
-        digits=(0, 0),
+        digits="Product Unit of Measure",
         help="Total quantity todo of the moves related to the picking in the UoM of the move(s)",
     )
     u_has_discrepancies = fields.Boolean(
