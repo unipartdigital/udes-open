@@ -333,8 +333,11 @@ class StockMoveLine(models.Model):
             if is_lot and not lot_quantities:
                 lot_quantities = [quantity]
             if is_serial and not lot_quantities:
-                lot_quantities = [1]*quantity
-            if is_trackable and float_compare(sum(lot_quantities), quantity, precision_rounding=rounding) != 0:
+                lot_quantities = [1] * quantity
+            if (
+                is_trackable
+                and float_compare(sum(lot_quantities), quantity, precision_rounding=rounding) != 0
+            ):
                 raise ValidationError(
                     _("Total lot/serial quantities entered doesn't match to total quantity.")
                 )
@@ -626,7 +629,7 @@ class StockMoveLine(models.Model):
         return grouped_mls
 
     def _merge_move_lines(self):
-        """ This method will, for each move line in `self`, go up in their linked picking and try to
+        """This method will, for each move line in `self`, go up in their linked picking and try to
         find in their existing move line a candidate into which we can merge the move.
         :return: Recordset of move lines passed to this method.
             If some of passed move lines were merged into another existing one, return this one and
@@ -642,9 +645,10 @@ class StockMoveLine(models.Model):
         for candidate_move_lines in candidate_move_line_list:
             # First step find move lines to merge.
             candidate_move_lines = candidate_move_lines.with_context(prefetch_fields=False)
-            for k, g in groupby(sorted(
-                    candidate_move_lines, key=self._prepare_merge_move_line_sort_method
-            ), key=itemgetter(*distinct_fields)):
+            for k, g in groupby(
+                sorted(candidate_move_lines, key=self._prepare_merge_move_line_sort_method),
+                key=itemgetter(*distinct_fields),
+            ):
                 move_lines = MoveLine.concat(*g).filtered(
                     lambda m: m.state not in ("done", "cancel") and not m.qty_done
                 )
@@ -675,9 +679,7 @@ class StockMoveLine(models.Model):
         """
         Prepare merge move lines distinct fields
         """
-        return [
-            "product_id", "location_id", "location_dest_id", "package_id", "lot_id", "move_id"
-        ]
+        return ["product_id", "location_id", "location_dest_id", "package_id", "lot_id", "move_id"]
 
     @api.model
     def _prepare_merge_move_line_sort_method(self, move_line):
@@ -687,13 +689,17 @@ class StockMoveLine(models.Model):
         move_line.ensure_one()
 
         return [
-            move_line.product_id.id, move_line.location_id.id, move_line.location_dest_id.id,
-            move_line.package_id.id, move_line.lot_id.id, move_line.move_id.id
+            move_line.product_id.id,
+            move_line.location_id.id,
+            move_line.location_dest_id.id,
+            move_line.package_id.id,
+            move_line.lot_id.id,
+            move_line.move_id.id,
         ]
 
     def _merge_move_lines_fields(self):
-        """ This method will return a dict of stock move line’s values that represent the values of
-        all move lines in `self` merged. """
+        """This method will return a dict of stock move line’s values that represent the values of
+        all move lines in `self` merged."""
 
         return {
             "product_uom_qty": sum(self.mapped("product_uom_qty")),
