@@ -80,11 +80,9 @@ class StockMoveLine(models.Model):
 
             task["type"] = "package"
             task["package_id"] = info[0]
-            
+
         if picking.picking_type_id.u_reserve_pallet_per_picking:
-            task.update({
-                "reserved_pallet": picking.u_reserved_pallet
-            })
+            task.update({"reserved_pallet": picking.u_reserved_pallet})
 
         return task
 
