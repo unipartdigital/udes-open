@@ -1,8 +1,9 @@
 import html
 import logging
-
+import io
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
+from PIL import Image
 
 _logger = logging.getLogger(__name__)
 
@@ -101,7 +102,31 @@ class IrAttachment(models.Model):
         for vals in vals_list:
             if "name" in vals:
                 vals = self._check_contents(vals)
+            if "attachment" in vals and "attachment_filename" in vals:
+                processed_attachment_data = self._process_attachment_data(vals["attachment"])
+                vals["attachment"] = processed_attachment_data
         return super().create(vals_list)
+
+    def _process_attachment_data(self, attachment_data):
+        # Check if the attachment is an image based on its file extension
+        allowed_image_extensions = [".jpg", ".jpeg", ".png", ".webp"]
+
+        attachment_name = attachment_data.name.lower()
+        if any(attachment_name.endswith(ext) for ext in allowed_image_extensions):
+            processed_data = self._remove_exif_data(attachment_data)
+            return processed_data
+
+        return attachment_data
+
+    def _remove_exif_data(self, img):
+        # Load the image using PIL
+        image = Image.open(io.BytesIO(img))
+
+        # Save the image without metadata
+        output = io.BytesIO()
+        image.save(output, format=image.format)
+
+        return output.getvalue()
 
     def write(self, vals):
         """Extend to escape filename"""
