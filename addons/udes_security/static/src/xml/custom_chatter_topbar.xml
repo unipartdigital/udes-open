@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates>
+    <t t-name="ChatterTopbarExtension" t-inherit="mail.ChatterTopbar" t-inherit-mode="extension" owl="1">
+        <xpath expr="//button[hasclass('o_ChatterTopbar_buttonScheduleActivity')]" position="replace">
+        <!-- Only show this button to admin users. -->
+            <t t-if="chatter.env.session.is_admin">
+                <button class="btn btn-link o_ChatterTopbar_button o_ChatterTopbar_buttonScheduleActivity" type="button" t-att-disabled="chatter.isDisabled" t-on-click="_onClickScheduleActivity">
+                    <i class="fa fa-clock-o" /> Schedule activity 
+                </button>
+            </t>
+        </xpath>
+    </t>
+</templates>
+
