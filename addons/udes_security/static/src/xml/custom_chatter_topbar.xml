@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates>
+    <t t-name="ChatterTopbarExtension" t-inherit="mail.ChatterTopbar" t-inherit-mode="extension" owl="1">
+        <xpath expr="//button[hasclass('o_ChatterTopbar_buttonScheduleActivity')]" position="replace">
+        <!-- Remove the "Schedule activity" button for all users on all screens -->
+        </xpath>
+    </t>
+</templates>
+
