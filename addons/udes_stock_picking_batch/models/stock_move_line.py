@@ -63,6 +63,7 @@ class StockMoveLine(models.Model):
             task["pick_quantity"] = sum(self.mapped("product_qty"))
             task["initial_demand"] = sum(self.move_id.mapped("u_uom_initial_demand"))
             task["quant_ids"] = self.get_quants().get_info(level=2)
+            task["result_package"] = bool(self.result_package_id)
         else:
             package = self.package_id
             package.ensure_one()
