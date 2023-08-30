@@ -136,6 +136,24 @@ class StockPickingType(models.Model):
         help="Flag to indicate whether to copy the batch_id on a picking of "
         "this type when a backorder is created",
     )
+    u_pallet_barcode_regex = fields.Char(
+        "Pallet Barcode Format",
+        help="If is not set, pallet barcode regex will be retrieved from the warehouse"
+    )
+    u_package_barcode_regex = fields.Char(
+        "Package Barcode Format",
+        help="If is not set, package barcode regex will be retrieved from the warehouse"
+    )
+
+    def get_pallet_barcode_format(self):
+        """Getting the pallet barcode regex which enforces pallets to be on a specific format"""
+        self.ensure_one()
+        return self.u_pallet_barcode_regex or self.warehouse_id.u_pallet_barcode_regex
+
+    def get_package_barcode_format(self):
+        """Getting the package barcode regex which enforces packages to be on a specific format"""
+        self.ensure_one()
+        return self.u_package_barcode_regex or self.warehouse_id.u_package_barcode_regex
 
     def get_action_picking_tree_draft(self):
         return self._get_action("udes_stock.action_picking_tree_draft")
