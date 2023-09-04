@@ -50,14 +50,14 @@ class StockMove(models.Model):
 
     def _search_picking_for_assignation(self):
         """
-        When searching for pickings to assign moves too, the picking should have the
+        When searching for picking to assign moves too, the picking should have the
         same priority as the sales order that the move is created from
         """
-        pickings = super(StockMove, self)._search_picking_for_assignation()
-        if self.sale_line_id:
-            priority = self.sale_line_id.order_id.priority
-            pickings = pickings.filtered(lambda p: p.priority == priority)
-        return pickings
+        picking = super(StockMove, self)._search_picking_for_assignation()
+        if len(self.sale_line_id.order_id) == 1:
+            if picking and picking.priority != self.sale_line_id.order_id.priority:
+                return self.env['stock.picking']
+        return picking
 
     def _get_new_picking_values(self):
         """
@@ -65,7 +65,7 @@ class StockMove(models.Model):
         as sales order from which it is created.
         """
         values = super(StockMove, self)._get_new_picking_values()
-        if self.sale_line_id:
+        if len(self.sale_line_id.order_id) == 1:
             # Update the values dictionary with the priority of the associated sale order
             values.update({"priority": self.sale_line_id.order_id.priority})
         return values
