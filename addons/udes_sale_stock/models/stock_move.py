@@ -54,7 +54,7 @@ class StockMove(models.Model):
         same priority as the sales order that the move is created from
         """
         picking = super(StockMove, self)._search_picking_for_assignation()
-        if len(self.sale_line_id.order_id) == 1:
+        if self.sale_line_id:
             if picking and picking.priority != self.sale_line_id.order_id.priority:
                 return self.env['stock.picking']
         return picking
