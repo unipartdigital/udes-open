@@ -8,7 +8,6 @@ _logger = logging.getLogger(__name__)
 
 
 class StockMove(models.Model):
-
     _inherit = "stock.move"
 
     def _action_done(self, cancel_backorder=False):
@@ -47,4 +46,26 @@ class StockMove(models.Model):
         """
         values = super()._prepare_procurement_values()
         values["sale_line_id"] = self.sale_line_id.id
+        return values
+
+    def _search_picking_for_assignation(self):
+        """
+        When searching for picking to assign moves too, the picking should have the
+        same priority as the sales order that the move is created from
+        """
+        picking = super(StockMove, self)._search_picking_for_assignation()
+        if self.sale_line_id:
+            if picking and picking.priority != self.sale_line_id.order_id.priority:
+                return self.env['stock.picking']
+        return picking
+
+    def _get_new_picking_values(self):
+        """
+        When creating a picking from a move, the picking should have the same priority
+        as sales order from which it is created.
+        """
+        values = super(StockMove, self)._get_new_picking_values()
+        if len(self.sale_line_id.order_id) == 1:
+            # Update the values dictionary with the priority of the associated sale order
+            values.update({"priority": self.sale_line_id.order_id.priority})
         return values
