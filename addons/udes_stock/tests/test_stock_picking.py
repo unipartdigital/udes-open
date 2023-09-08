@@ -1848,6 +1848,48 @@ class TestStockPickingValidatePicking(common.BaseUDES):
         self.assertEqual(res_pick.move_line_ids, expected_backorder_mls)
         # Original picking in state done
         self.assertEqual(pick.state, "done")
+    
+    def test_correct_serial_move_lines_are_generated_on_backorder_on_button_validate(self):
+        products_info = [
+            {"product": self.apple, "uom_qty": 10},
+            {"product": self.strawberry, "uom_qty": 5},
+        ]
+        picking_goods_in = self.create_picking(
+            self.picking_type_goods_in,
+            products_info=products_info,
+            confirm=True,
+            location_dest_id=self.test_received_location_01.id,
+        )
+
+        # Partially complete the picking
+        ml_strawberry = picking_goods_in.move_line_ids.filtered(
+            lambda ml: ml.product_id.id == self.strawberry.id
+        )
+        lot = self.create_lot(self.strawberry.id, "strawberry1")
+        package = self.create_package(name="UDES1")
+        ml_strawberry[0].write(
+            {
+                "lot_id": lot.id,
+                "qty_done": 1,
+                "result_package_id": package.id,
+                "location_dest_id": self.test_received_location_01.id,
+            }
+        )
+
+        # Same as button validate through desktop
+        picking_goods_in.with_context(skip_immediate=True, skip_backorder=True).button_validate()
+
+        # Check the serial move lines on the backorder are correct
+        backorder_picking = picking_goods_in.backorder_ids
+        self.assertEqual(len(backorder_picking), 1)
+        backorder_mls = backorder_picking.move_line_ids
+        self.assertEqual(len(backorder_mls), 5)
+        strawberry_mls = backorder_mls.filtered(lambda ml: ml.product_id.id == self.strawberry.id)
+        self.assertEqual(len(strawberry_mls), 4)
+        self.assertEqual(
+            strawberry_mls.mapped("state"), ["assigned", "assigned", "assigned", "assigned"]
+        )
+        self.assertEqual(strawberry_mls.mapped("product_uom_qty"), [1.0, 1.0, 1.0, 1.0])
 
 
 class TestStockPickingPriorities(common.BaseUDES):
