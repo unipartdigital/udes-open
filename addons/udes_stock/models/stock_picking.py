@@ -1062,7 +1062,22 @@ class StockPicking(models.Model):
         user_validating.assign_picking_to_users(self)
         res = super().button_validate()
         user_validating.unassign_pickings_from_users()
+        self._unlink_reserved_mls_with_no_reserved_quantity()
         return res
+
+    def _unlink_reserved_mls_with_no_reserved_quantity(self):
+        """
+        Sometimes when pickings are validated from the desktop, the
+        backorder can be created with incorrect move lines. These move lines
+        will be in the 'assigned' state but have no quantity reserved. These
+        move lines should be deleted.
+        """
+        for picking in self.backorder_ids:
+            mls = picking.move_line_ids
+            assigned_mls_with_no_reserved_qty = mls.filtered(
+                lambda ml: ml.state == "assigned" and not ml.product_uom_qty
+            )
+            assigned_mls_with_no_reserved_qty.unlink()
 
     def unlink(self):
         """
