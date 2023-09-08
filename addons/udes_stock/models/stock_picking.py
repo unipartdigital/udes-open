@@ -5,6 +5,7 @@ from odoo import api, models, fields, _
 from odoo.exceptions import ValidationError, UserError
 from .common import get_next_name
 from odoo.addons.udes_common.models.fields import PreciseDatetime
+from odoo.addons.udes_common.tools import RelFieldOps
 from lxml import etree
 
 from ..utils import UDES_STATISTICS_LOG_FORMAT
@@ -1074,3 +1075,32 @@ class StockPicking(models.Model):
                     % ", ".join(non_draft_picks.mapped("name"))
                 )
         return super().unlink()
+
+    def write(self, vals):
+        """
+        If odoo attempts to add move line already on picking, remove the action from vals.
+        When saving a picking from the desktop odoo will attempt to re-add all move_lines
+        to the picking even when they already exist on the picking. This causes issues
+        when an order has some move lines completed (with real_time flag = True) and some
+        needing completion. In UDES we will assign any move lines needing completion
+        to the backorder picking but core Odoo will then reassign these move lines to the
+        original picking (due to the extra actions in vals).
+        """
+
+        # Only consider removing commands when validating in real time and picking is in assigned state
+        pickings_to_check = self.filtered(
+            lambda p: p.picking_type_id.u_validate_real_time and p.state == "assigned"
+        )
+        for picking in pickings_to_check:
+            move_lines_on_pick = set(picking.move_line_ids.ids)
+            actions = vals.get("move_line_ids")
+            if actions:
+                new_actions = list()
+                for action in actions:
+                    command = action[0]
+                    move_line_id = action[1]
+                    if not (command == RelFieldOps.Add and move_line_id in move_lines_on_pick):
+                        new_actions.append(action)
+                vals["move_line_ids"] = new_actions
+
+        return super().write(vals)
