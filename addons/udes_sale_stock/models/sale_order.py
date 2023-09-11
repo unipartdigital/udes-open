@@ -414,3 +414,22 @@ class SaleOrder(models.Model):
     def get_orders_to_confirm(self):
         """ Getting orders to confirm. Placing into a method in order to be easier to override"""
         return self.search(self._get_confirmation_domain())
+
+    def is_editable_by_edi(self):
+        """Order can be updated via EDI if:
+             Order is not in progress, done or cancelled.
+             Order is in progress if: it has any picking in state done (some stuff
+             have been picked) or any picking is in state assigned and inside a batch
+             (someone is already about to pick something)
+        """
+        self.ensure_one()   # TODO: needed?
+        if self.state in ("done", "cancel"): # TODO: EDI already filters out cancelled
+            return False
+        if self.state == "sale":    # In progress, check picking state too
+            # If any picking is done or assigned and inside a batch, don't edit
+            if self.picking_ids and any(
+                p.state == "done" or (p.state == "assigned" and p.batch_id)
+                for p in self.picking_ids
+            ):
+                return False
+        return True

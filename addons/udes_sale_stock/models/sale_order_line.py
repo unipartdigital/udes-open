@@ -3,6 +3,7 @@
 from datetime import datetime
 
 from odoo import api, models, fields, _
+from odoo.tools import float_compare
 from odoo.exceptions import ValidationError
 
 
@@ -134,3 +135,35 @@ class SaleOrderLine(models.Model):
             )
 
         lines_to_cancel.action_cancel()
+
+    def write(self, values):
+        """ If quantity is reduced, stock moves are not updated for them (but warning
+        issued). Update linked stock moves if those are still editable.
+        """
+        lines_qty_reduced  = self.env["sale.order.line"]
+        moves_editable = self.env["stock.move"]
+
+        if 'product_uom_qty' in values:
+            precision = self.env['decimal.precision'].precision_get('Product Unit of Measure')
+            moves_editable = self.move_ids.filtered(
+                lambda m: m.state not in ("draft", "done", "cancel")
+            ).sorted()
+            # Lines with quantity reduced and linked moves still editable
+            lines_qty_reduced = self.filtered(
+                lambda r: r.state == 'sale' and not r.is_expense and 
+                    float_compare(r.product_uom_qty, values['product_uom_qty'], precision_digits=precision) == 1 and
+                    (not r.move_ids or r.move_ids.sorted() == moves_editable)
+                    #(not r.move_ids or all(m.state not in ("draft", "done", "cancel") #TODO: 'any'?
+                    #for m in r.move_ids))
+                )
+
+        res = super(SaleOrderLine, self).write(values)  #Takes care of qty increased lines
+
+        # Update linked moves with reduced quantity
+        if len(lines_qty_reduced) and moves_editable:
+            moves_editable.write({
+                "product_uom_qty": values["product_uom_qty"],
+                "u_uom_initial_demand": values["product_uom_qty"],
+                })
+
+        return res
