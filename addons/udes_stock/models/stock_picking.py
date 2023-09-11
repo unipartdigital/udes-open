@@ -17,6 +17,8 @@ class StockPicking(models.Model):
     _inherit = "stock.picking"
 
     # Adding fields to be hidden by default from form view.
+    # NB JB: Fields added here will cause test Form class to break. Not sure
+    # on fix, will just have to not use the test Form class.
     DetailedFormViewFields = [
         "u_first_picking_ids",
         "u_prev_picking_ids",
