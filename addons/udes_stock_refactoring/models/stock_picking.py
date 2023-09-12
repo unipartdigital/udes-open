@@ -172,6 +172,9 @@ class StockPicking(models.Model):
         if len(priorities) == 1:
             values["priority"] = priorities.pop()
 
+        if len(self) == 1:
+            values["u_original_picking_id"] = self.id
+
         return values
 
     def action_assign(self):
