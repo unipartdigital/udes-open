@@ -2107,8 +2107,6 @@ class TestUnpickableItems(TestStockPickingBatch):
             all_mls = all_mvs.mapped("move_line_ids")
             self.assertCountEqual([ml.package_id for ml in all_mls], package_list)
 
-    # TODO - Enable when Chron job unlink_empty_pickings_action is implemented
-    @unittest.skip("Chron job unlink_empty_pickings_action not yet implemented")
     def test32_correctly_grouped_pickings_with_all_unpickable_items(self):
         """
         Tests that when flagging items in a batch as unpickable, stock investigations
@@ -2118,9 +2116,9 @@ class TestUnpickableItems(TestStockPickingBatch):
         Picking = self.env["stock.picking"]
         Batch = self.env["stock.picking.batch"]
         Group = self.env["procurement.group"]
-        # Chron job that deletes empty draft pickings
-        unlink_cron = self.env.ref("udes_stock.unlink_empty_pickings_action")
-        unlink_cron.active = False
+
+        # Ensure this configuration is not un-set by parent module.
+        self.picking_type_pick.write({"u_create_procurement_group": False})
 
         # Create a list of 4 packages used for the quants of each product.
         # There should be 4 quants of apples with quantities 1,2,3,4 (total 10) with
@@ -2150,12 +2148,13 @@ class TestUnpickableItems(TestStockPickingBatch):
             assign=True,
         )
         pickings = apple_picking | banana_picking
-
         # To avoid the original pickings getting the group set the grouping configuration
         # on pick picking type after the pickings are created, so they have no associated group.
+
         self.picking_type_pick.write(
             {"u_post_confirm_action": "group_by_move_key", "u_move_key_format": "{product_id.id}"}
         )
+
         group_count = Group.search_count([])
         self.assertEqual(group_count, 0)
         self.assertFalse(apple_picking.group_id)
@@ -2184,7 +2183,9 @@ class TestUnpickableItems(TestStockPickingBatch):
             pickings, 2, "assigned", [4], package_list=apple_packages[3] + banana_packages[3]
         )
         # Check the state of the investigation pickings - should not be grouped
-        inv_pickings = Picking.search([("picking_type_id", "=", self.picking_type_internal.id)])
+        inv_pickings = Picking.search(
+            [("picking_type_id", "in", self.picking_type_investigation_ids)]
+        )
         self._assert_apple_banana_pickings(
             inv_pickings,
             6,
@@ -2200,7 +2201,7 @@ class TestUnpickableItems(TestStockPickingBatch):
         pick_pickings = Picking.search([("picking_type_id", "=", self.picking_type_pick.id)])
         draft_pickings = pick_pickings.filtered(lambda p: p.state == "draft")
         self.assertGreater(len(draft_pickings), 0)
-        unlink_cron.method_direct_trigger()
+        Picking.unlink_empty()  # Calling directly in place of triggering cron, to avoid dependency
         pick_pickings = Picking.search([("picking_type_id", "=", self.picking_type_pick.id)])
         self.assertEqual(len(pick_pickings), 4)
         confirmed_pickings = pick_pickings.filtered(lambda p: p.state == "confirmed")
@@ -2220,14 +2221,16 @@ class TestUnpickableItems(TestStockPickingBatch):
             )
         self.assertEqual(batch.state, "done")
         # Check the state of the investigation pickings - should not be grouped
-        inv_pickings = Picking.search([("picking_type_id", "=", self.picking_type_internal.id)])
+        inv_pickings = Picking.search(
+            [("picking_type_id", "in", self.picking_type_investigation_ids)]
+        )
         self._assert_apple_banana_pickings(
             inv_pickings, 8, "assigned", [1, 2, 3, 4], package_list=apple_packages + banana_packages
         )
         # Check the pickings are correct - two separate ones grouped by product, it merges
         # everything into the created picking with the group.
-        # Trigger the cron job to clean up the draft pickings, and remove the backorder id
-        unlink_cron.method_direct_trigger()
+        # Simulate triggering the cron job to clean up the draft pickings, and remove the backorder id
+        Picking.unlink_empty()
         pick_pickings = Picking.search([("picking_type_id", "=", self.picking_type_pick.id)])
         self._assert_apple_banana_pickings(pick_pickings, 2, "confirmed", [1, 2, 3, 4])
         for p in pick_pickings:
