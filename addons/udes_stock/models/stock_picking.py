@@ -1041,7 +1041,7 @@ class StockPicking(models.Model):
             for *__, move_data in vals["move_ids_without_package"]:
                 move_data["partner_id"] = vals["partner_id"]
         picking = super().create(vals)
-        if not picking.backorder_id:
+        if not picking.backorder_id and "u_original_picking_id" not in vals:
             picking.write({"u_original_picking_id": picking.id})
         return picking
 
