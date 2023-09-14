@@ -1,4 +1,6 @@
-FROM unipartdigital/udes-tester:14.0
+FROM unipartdigital/udes-tester:14.0_4bee8f04
+# TODO: Replace with the following once we have it stable
+# FROM unipartdigital/udes-tester:14.0
 
 # Prerequisite module download
 ADD https://codeload.github.com/unipartdigital/odoo-package-hierarchy/zip/${ODOO_VERSION} \
