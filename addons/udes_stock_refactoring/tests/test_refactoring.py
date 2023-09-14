@@ -1,7 +1,7 @@
 from odoo.addons.udes_stock.tests import common
 from odoo.osv import expression
 import random
-
+from ..models.common import PRIORITIES
 
 class TestRefactoringBase(common.BaseUDES):
     def setUp(self):
@@ -845,51 +845,161 @@ class TestConfirmRefactoring(TestRefactoringBase):
 class TestByDate(TestRefactoringBase):
     """Tests for grouping by date."""
 
-    def setUp(self):
+    @classmethod
+    def setUpClass(cls):
         """
         Set post confirm action for test pick type
         """
-        Picking = self.env["stock.picking"]
+        super().setUpClass()
+
+        Picking = cls.env["stock.picking"]
 
         # group by package post confirm
-        self.picking_type_pick.write(
+        cls.picking_type_pick.write(
             {
                 "u_post_confirm_action": "batch_pickings_by_date",
             }
         )
-        self.today = "2023-04-13"
-        self.tomorrow = "2023-04-14"
+        cls.today = "2023-04-13"
+        cls.tomorrow = "2023-04-14"
 
         picks = [
             # Orders today.
-            (self.today, 1),
-            (self.today, 2),
+            (cls.today, 1),
+            (cls.today, 2),
             # Orders tomorrow.
-            (self.tomorrow, 1),
-            (self.tomorrow, 2),
+            (cls.tomorrow, 1),
+            (cls.tomorrow, 2),
         ]
         random.seed(42)
         random.shuffle(picks)
-        self.picks_by_key = {
-            (date, sequence): self.create_picking(
+        cls.picks_by_key = {
+            (date, sequence): cls.create_picking(
                 name="{}/{}".format(date, sequence),
-                picking_type=self.picking_type_pick,
+                picking_type=cls.picking_type_pick,
                 sequence=sequence,
                 products_info=[
                     # Set the date here because create_picking creates the picking
                     # without moves then adds the moves, overwriting the `scheduled_date`.
                     dict(product=product, qty=1, expected_date=date)
-                    for product in [self.apple, self.banana]
+                    for product in [cls.apple, cls.banana]
                 ],
             )
             for date, sequence in picks
         }
 
-        self.picks = Picking.union(*(self.picks_by_key.values()))
-        for pick in self.picks:
+        cls.picks = Picking.union(*(cls.picks_by_key.values()))
+        for pick in cls.picks:
             pick.with_context(disable_move_refactor=True).action_confirm()
 
-        super(TestByDate, self).setUp()
+    def assertFactorised(self, wrong=False):  # pylint: disable=invalid-name
+        """Assert that picks are [not] factorised as expected."""
+        assertion = self.assertNotEqual if wrong else self.assertEqual
+        picks_by_key = {
+            key: pick
+            for key, pick in self.picks_by_key.items()
+            if pick.picking_type_id == self.picking_type_pick
+        }
+        batches_by_key = {
+            (date,): picks.mapped("batch_id")
+            for (date, sequence), picks in picks_by_key.items()
+        }
+        assertion(
+            set(batches_by_key[(self.today,)].picking_ids),
+            set(
+                [
+                    picks_by_key[(self.today, 2)],
+                    picks_by_key[(self.today, 1)],
+                ]
+            ),
+        )
+        assertion(
+            set(batches_by_key[(self.today,)].picking_ids),
+            set(
+                [
+                    picks_by_key[(self.today, 2)],
+                    picks_by_key[(self.today, 1)],
+                ]
+            ),
+        )
+        assertion(
+            set(batches_by_key[(self.tomorrow,)].picking_ids),
+            set(
+                [
+                    picks_by_key[(self.tomorrow, 2)],
+                    picks_by_key[(self.tomorrow, 1)],
+                ]
+            ),
+        )
+        assertion(
+            set(batches_by_key[(self.tomorrow,)].picking_ids),
+            set(
+                [
+                    picks_by_key[(self.tomorrow, 2)],
+                    picks_by_key[(self.tomorrow, 1)],
+                ]
+            ),
+        )
+    
+    def test_setup(self):
+        """Verify that setup is as expected."""
+        self.assertEqual(len(self.picks), 4)
+        picks = self.picks.filtered(lambda x: x.picking_type_id == self.picking_type_pick)
+        picks.move_lines._action_refactor()
+        for pick in self.picks_by_key.values():
+            self.assertIn(pick, self.picks)
+            self.assertEqual(pick.state, "confirmed")
+            self.assertEqual(len(pick.move_lines), 2)
+            self.assertTrue(pick.batch_id)
+        self.assertFactorised()
+
+    def test_refactor(self):
+        """Verify that refactoring leaves batches intact."""
+        picks = self.picks.filtered(
+            lambda x: x.picking_type_id == self.picking_type_pick
+        )
+        picks.move_lines._action_refactor()
+        batches = picks.mapped("batch_id")
+        picks.mapped("move_lines").action_refactor()
+        self.assertFactorised()
+
+        picks = self.picks.filtered(
+            lambda x: x.picking_type_id == self.picking_type_pick
+        )
+        self.assertEqual(batches, picks.mapped("batch_id"))
+
+    def test_recreate(self):
+        """Verify that batches can be recreated after deletion."""
+        picks = self.picks.filtered(
+            lambda x: x.picking_type_id == self.picking_type_pick
+        )
+        picks.move_lines._action_refactor()
+        picks.mapped("batch_id").unlink()
+        picks.mapped("move_lines").action_refactor()
+        self.assertFactorised()
+
+    def test_fix(self):
+        """Verify that batches can be fixed up."""
+        PickingBatch = self.env["stock.picking.batch"]
+
+        picks = self.picks.filtered(
+            lambda x: x.picking_type_id == self.picking_type_pick
+        )
+        picks.move_lines._action_refactor()
+        picks_by_key = {
+            key: pick
+            for key, pick in self.picks_by_key.items()
+            if pick.picking_type_id == self.picking_type_pick
+        }
+        rogue = PickingBatch.create({"name": "Rogue batch"})
+        picks_by_key[(self.today, 1)].batch_id = rogue
+        picks_by_key[(self.tomorrow, 2)].batch_id = rogue
+        picks_by_key[(self.today, 2)].batch_id = False
+        picks_by_key[(self.tomorrow, 1)].batch_id.unlink()
+        self.assertFactorised(wrong=True)
+
+        picks.mapped("move_lines").action_refactor()
+        self.assertFactorised()
 
     def test_refactor_by_date_returns_moves(self):
         """Verify that refactoring by date returns same moves."""
@@ -901,6 +1011,173 @@ class TestByDate(TestRefactoringBase):
         self.assertEqual(refactored_moves, picks.move_lines)
         batches_after_refactoring = picks.batch_id
         self.assertEqual(len(batches_after_refactoring), 2)
+
+
+class TestByDatePriority(TestRefactoringBase):
+    """Tests for grouping by date and priority."""
+
+    @classmethod
+    def setUpClass(cls):
+        """Setup for test class."""
+        super().setUpClass()
+
+        Picking = cls.env["stock.picking"]
+
+        cls.today = "2023-04-13"
+        cls.tomorrow = "2023-04-14"
+
+        cls.picking_type_pick.u_post_confirm_action = "batch_pickings_by_date_priority"
+
+        picks = [
+            # Not urgent orders today.
+            (cls.today, PRIORITIES[0], 1),
+            (cls.today, PRIORITIES[0], 2),
+
+            # Normal orders today.
+            (cls.today, PRIORITIES[1], 1),
+            (cls.today, PRIORITIES[1], 2),
+
+            # Not urgent orders tomorrow.
+            (cls.tomorrow, PRIORITIES[0], 1),
+            (cls.tomorrow, PRIORITIES[0], 2),
+
+            # Normal orders tomorrow.
+            (cls.tomorrow, PRIORITIES[1], 1),
+            (cls.tomorrow, PRIORITIES[1], 2),
+
+        ]
+        random.seed(42)
+        random.shuffle(picks)
+
+        cls.picks_by_key = {
+            (date, priority, sequence): cls.create_picking(
+                name="{}/{}/{}".format(date, priority[1], sequence),
+                picking_type=cls.picking_type_pick,
+                priority=priority[0],
+                sequence=sequence,
+                products_info=[
+                    # Set the date here because cls.create_picking creates the picking
+                    # without moves then adds the moves, overwriting the `scheduled_date`.
+                    dict(product=product, qty=1, expected_date=date)
+                    for product in [cls.apple, cls.banana]
+                ],
+            )
+            for date, priority, sequence in picks
+        }
+        cls.picks = Picking.union(*(cls.picks_by_key.values()))
+        for pick in cls.picks:
+            pick.with_context(disable_move_refactor=True).action_confirm()
+
+    def assertFactorised(self, wrong=False): 
+        """Assert that picks are [not] factorised as expected."""
+        assertion = self.assertNotEqual if wrong else self.assertEqual
+        picks_by_key = {
+            key: pick
+            for key, pick in self.picks_by_key.items()
+            if pick.picking_type_id == self.picking_type_pick
+        }
+        batches_by_key = {
+            (date, priority): picks.mapped("batch_id")
+            for (date, priority, sequence), picks in picks_by_key.items()
+        }
+
+        assertion(
+            set(batches_by_key[(self.today, PRIORITIES[0])].picking_ids),
+            set(
+                [
+                    picks_by_key[(self.today, PRIORITIES[0], 2)],
+                    picks_by_key[(self.today, PRIORITIES[0], 1)],
+                ]
+            ),
+        )
+        assertion(
+            set(batches_by_key[(self.today, PRIORITIES[1])].picking_ids),
+            set(
+                [
+                    picks_by_key[(self.today, PRIORITIES[1], 2)],
+                    picks_by_key[(self.today, PRIORITIES[1], 1)],
+                ]
+            ),
+        )
+        assertion(
+            set(batches_by_key[(self.tomorrow, PRIORITIES[0])].picking_ids),
+            set(
+                [
+                    picks_by_key[(self.tomorrow, PRIORITIES[0], 2)],
+                    picks_by_key[(self.tomorrow, PRIORITIES[0], 1)],
+                ]
+            ),
+        )
+        assertion(
+            set(batches_by_key[(self.tomorrow, PRIORITIES[1])].picking_ids),
+            set(
+                [
+                    picks_by_key[(self.tomorrow, PRIORITIES[1], 2)],
+                    picks_by_key[(self.tomorrow, PRIORITIES[1], 1)],
+                ]
+            ),
+        )
+
+    def test_setup(self):
+        """Verify that setup is as expected."""
+        self.assertEqual(len(self.picks), 8)
+        picks = self.picks.filtered(lambda x: x.picking_type_id == self.picking_type_pick)
+        picks.move_lines._action_refactor()
+        for pick in self.picks_by_key.values():
+            self.assertIn(pick, self.picks)
+            self.assertEqual(pick.state, "confirmed")
+            self.assertEqual(len(pick.move_lines), 2)
+            self.assertTrue(pick.batch_id)
+        self.assertFactorised()
+
+    def test_refactor(self):
+        """Verify that refactoring leaves batches intact."""
+        picks = self.picks.filtered(
+            lambda x: x.picking_type_id == self.picking_type_pick
+        )
+        picks.move_lines._action_refactor()
+        batches = picks.mapped("batch_id")
+        picks.mapped("move_lines").action_refactor()
+        self.assertFactorised()
+
+        picks = self.picks.filtered(
+            lambda x: x.picking_type_id == self.picking_type_pick
+        )
+        picks.move_lines._action_refactor()
+        self.assertEqual(batches, picks.mapped("batch_id"))
+
+    def test_recreate(self):
+        """Verify that batches can be recreated after deletion."""
+        picks = self.picks.filtered(
+            lambda x: x.picking_type_id == self.picking_type_pick
+        )
+        picks.move_lines._action_refactor()
+        picks.mapped("batch_id").unlink()
+        picks.mapped("move_lines").action_refactor()
+        self.assertFactorised()
+
+    def test_fix(self):
+        """Verify that batches can be fixed up."""
+        PickingBatch = self.env["stock.picking.batch"]
+
+        picks = self.picks.filtered(
+            lambda x: x.picking_type_id == self.picking_type_pick
+        )
+        picks.move_lines._action_refactor()
+        picks_by_key = {
+            key: pick
+            for key, pick in self.picks_by_key.items()
+            if pick.picking_type_id == self.picking_type_pick
+        }
+        rogue = PickingBatch.create({"name": "Rogue batch"})
+        picks_by_key[(self.today, PRIORITIES[1], 1)].batch_id = rogue
+        picks_by_key[(self.tomorrow, PRIORITIES[1], 2)].batch_id = rogue
+        picks_by_key[(self.today, PRIORITIES[0], 2)].batch_id = False
+        picks_by_key[(self.tomorrow, PRIORITIES[0], 1)].batch_id.unlink()
+        self.assertFactorised(wrong=True)
+
+        picks.mapped("move_lines").action_refactor()
+        self.assertFactorised()
 
 
 class TestRefactoringAssignSplittingQuantity(TestRefactoringBase):
