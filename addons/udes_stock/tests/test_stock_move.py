@@ -1,6 +1,7 @@
 from odoo.exceptions import ValidationError
 from odoo.tools import mute_logger
-
+from odoo.fields import Datetime
+from datetime import timedelta
 from . import common
 
 
@@ -13,8 +14,9 @@ class TestStockMove(common.BaseUDES):
 
         # Create a picking
         cls._pick_info = [{"product": cls.banana, "uom_qty": 6}]
-        cls.quant1 = cls.create_quant(cls.banana.id, cls.test_stock_location_01.id, 5)
-        cls.quant2 = cls.create_quant(cls.banana.id, cls.test_stock_location_02.id, 3)
+        cls.quant1 = cls.create_quant(cls.banana.id, cls.test_stock_location_01.id, 5, **{"in_date": Datetime.now()})
+        # Force this quant to be prioritised _after_ the first, to ensure deterministic output
+        cls.quant2 = cls.create_quant(cls.banana.id, cls.test_stock_location_02.id, 3, **{"in_date": Datetime.now() + timedelta(0,1)})
         cls.pick = cls.create_picking(
             cls.picking_type_pick, products_info=cls._pick_info, assign=True
         )
@@ -1011,9 +1013,7 @@ class TestUpdateOrigIds(TestStockMove):
 
         # Complete pick backorder onto a new pallet
         pallet2 = self.create_package()
-        self.complete_picking(
-            pick_backorder, self.test_check_location_01, dest_package_id=pallet2
-        )
+        self.complete_picking(pick_backorder, self.test_check_location_01, dest_package_id=pallet2)
 
         # As the pick backorder has been completed, the Check picking should now be ready
         self.assertEqual(
