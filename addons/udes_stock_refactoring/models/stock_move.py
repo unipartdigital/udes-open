@@ -119,6 +119,13 @@ class StockMove(models.Model):
                     )
 
                     new_moves = refactor_class.do_refactor(stage_moves)
+
+                    # Merge possible moves (same group/location/destination/product...) and their
+                    # move lines. Note that _merge_moves() may return same or different move(s) after
+                    # merging other moves (no merging can happen too)
+                    new_moves = new_moves._merge_moves()
+                    new_moves.move_line_ids._merge_move_lines()
+
                     if new_moves != stage_moves:
                         moves -= stage_moves
                         moves |= new_moves
@@ -155,7 +162,7 @@ class StockMove(models.Model):
         res = super(StockMove, self)._action_assign()
 
         refactored_moves = res._action_refactor(stage="assign")
-        res |= refactored_moves
+        res = res.exists() | refactored_moves   # exists() gets rid of deleted moves on merge
         return res
 
     def _action_done(self, cancel_backorder=False):
@@ -349,3 +356,19 @@ class StockMove(models.Model):
                 current_picking = new_picking
 
         return self | new_pickings.move_lines
+
+    @api.model
+    def _prepare_merge_moves_distinct_fields(self):
+        """Remove date_deadline & procure_method from distinct field requirement to allow merging
+        related moves.
+        Scenario: create sale order -> confirm -> picking & move in waiting -> reserve stock ->
+        picking ready -> increase qty on so line -> new picking & move -> merge cannot happen
+        if date_deadline differs by any measure."""
+        distinct_fields = super()._prepare_merge_moves_distinct_fields()
+        # wrong 'procure_method' was being selected from an inactive rule,
+        # as a workaround ignore the procure_method for now & revisit later.
+        for field in ["date_deadline", "procure_method"]:
+            if field in distinct_fields:
+                distinct_fields.remove(field)
+        return distinct_fields
+
