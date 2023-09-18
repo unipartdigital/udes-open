@@ -56,7 +56,8 @@ class StockPicking(models.Model):
         but the constraint on state has not proven to work correctly.
         """
         res = super().action_assign()
-        self.batch_id._compute_state()
+        if self.exists():   # This picking can get deleted after merge
+            self.batch_id._compute_state()
         return res
 
     def _action_done(self):
