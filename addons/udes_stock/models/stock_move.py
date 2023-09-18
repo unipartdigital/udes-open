@@ -37,7 +37,8 @@ class StockMove(models.Model):
         - Include a hook to propagate cancellations when the picking
           type is configured with u_propagate_cancel set to True
         """
-        self.move_line_ids.write({"qty_done": 0})
+        if self.move_line_ids:  # Merging moves may assign move lines to another move and cancel this, skip those
+            self.move_line_ids.write({"qty_done": 0})
         # Pull out old move_dest_ids as these _can_ be removed upon cancellation
         old_dest_ids = {m.id: m.move_dest_ids for m in self}
         res = super(
