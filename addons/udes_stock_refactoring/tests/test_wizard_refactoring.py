@@ -71,7 +71,8 @@ class TestDefaultRefactoringWizard(TestRefactoringWizard):
         """Helper to check that the picks in the setup have been refactored as expected"""
 
         # Check that everything is refactored correctly, i.e. we have one picking.
-        # The pickings are merged, so pick_2 becomes empty
+        # The pickings are merged, so pick_2 becomes empty.
+        # In addition, stock moves are also merged; one of the two pick_2_move_ids becomes empty.
         self.assertTrue(self.pick_1.exists())
         self.assertFalse(self.pick_2.exists())
         refactored_picks = self.Picking.search(
@@ -81,10 +82,10 @@ class TestDefaultRefactoringWizard(TestRefactoringWizard):
         pick_moves_count = len(self.pick_1_move_ids + self.pick_2_move_ids)
         # Check refactored pick
         self.assertEqual(len(refactored_picks), 1)
-        self.assertEqual(len(refactored_picks.move_lines), pick_moves_count)
+        self.assertEqual(len(refactored_picks.move_lines), 2)   # one of the moves in pick_2 merged into pick_1
         self.assertEqual(len(refactored_picks.move_line_ids), pick_moves_count)
         self.assertEqual(
-            refactored_picks.mapped("move_lines.id"), self.pick_1_move_ids + self.pick_2_move_ids
+            refactored_picks.mapped("move_lines.id"), self.pick_1_move_ids + self.pick_2_move_ids[1:]
         )
         self.assertEqual(refactored_picks.batch_id, self.batch01)
 
@@ -170,7 +171,8 @@ class TestCustomRefactoringWizard(TestRefactoringWizard):
         """Helper to check that the picks in the setup have been refactored as expected"""
 
         # Check that everything is refactored correctly, i.e. we have one picking.
-        # The pickings are merged into a new picking, so pick_1 and pick_2 becomes empty
+        # The pickings are merged into a new picking, so pick_1 and pick_2 becomes empty.
+        # In addition, stock moves are also merged. move2 is merged into move1 and becomes empty.
         self.assertFalse(self.pick_1.exists())
         self.assertFalse(self.pick_2.exists())
         refactored_picks = self.Picking.search(
@@ -179,10 +181,10 @@ class TestCustomRefactoringWizard(TestRefactoringWizard):
         pick_moves_count = len(self.pick_1_move_ids + self.pick_2_move_ids)
         # Check refactored pick
         self.assertEqual(len(refactored_picks), 1)
-        self.assertEqual(len(refactored_picks.move_lines), pick_moves_count)
-        self.assertEqual(len(refactored_picks.move_line_ids), pick_moves_count)
+        self.assertEqual(len(refactored_picks.move_lines), 1)   # moves merged into 1
+        self.assertEqual(len(refactored_picks.move_line_ids), pick_moves_count) # move lines didn't merge
         self.assertEqual(
-            refactored_picks.mapped("move_lines.id"), self.pick_1_move_ids + self.pick_2_move_ids
+            refactored_picks.mapped("move_lines.id"), self.pick_1_move_ids + self.pick_2_move_ids[1:]
         )
 
     def test_default_refactoring_wizard_setup(self):
