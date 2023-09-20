@@ -311,18 +311,19 @@ class TestAssignRefactoring(TestRefactoringBase):
         move1 = self.create_move(pick1, pick1_products_info)
         pick2_products_info = [{"product": self.apple, "uom_qty": 15}]
         move2 = self.create_move(pick2, pick2_products_info)
-        (pick1 | pick2).action_assign()
+        (pick1 | pick2).action_assign() # refactors & merges moves: move2 & pick2 unlinked
+        move2 = move2.exists()
         pick = (move1 | move2).picking_id
         self._assert_picking_fields(pick, state="assigned", group_name=apple_pallet.name)
-        # Check we haven't mangled the moves or move_lines
+        # Check merged moves & move_lines are identical
         self.assertEqual((move1 | move2), pick.move_lines)
         move_lines = pick.move_line_ids
-        self.assertEqual(len(move_lines), 2)
+        self.assertEqual(len(move_lines), 1)    # moves merged
         self.assertFalse(pick.date_done)
         move_line1 = move_lines.filtered(lambda ml: ml.move_id == move1)
         move_line2 = move_lines - move_line1
-        self._assert_move_line_fields(move_line1, self.apple, 10, apple_pallet)
-        self._assert_move_line_fields(move_line2, self.apple, 15, apple_pallet)
+        self._assert_move_line_fields(move_line1, self.apple, 25, apple_pallet)
+        self.assertFalse(move_line2.exists())   # merged into move1; move2 unlinked
         # Check that neither pick has been reused, empty picks have been (u_is_empty = True)
         # and deleted at the very end of the action
         self.assertFalse(pick1.exists())
@@ -345,18 +346,19 @@ class TestAssignRefactoring(TestRefactoringBase):
         move2 = self.create_move(pick2, pick2_products_info)
         pick1.action_assign()
         self.assertFalse(pick1.move_line_ids.mapped("result_package_id"))
-        pick2.action_assign()
+        pick2.action_assign()  # refactors & merges moves, move2 will be unlinked
+        move2 = move2.exists()
         self.assertTrue(pick1.move_line_ids.mapped("result_package_id"))
         pick = (move1 | move2).picking_id
         self._assert_picking_fields(pick, state="assigned", group_name=apple_pallet.name)
         # Check we haven't mangled the moves or move_lines
         self.assertEqual((move1 | move2), pick.move_lines)
         move_lines = pick.move_line_ids
-        self.assertEqual(len(move_lines), 2)
+        self.assertEqual(len(move_lines), 1)    # moves merged
         move_line1 = move_lines.filtered(lambda ml: ml.move_id == move1)
         move_line2 = move_lines - move_line1
-        self._assert_move_line_fields(move_line1, self.apple, 10, apple_pallet)
-        self._assert_move_line_fields(move_line2, self.apple, 15, apple_pallet)
+        self._assert_move_line_fields(move_line1, self.apple, 25, apple_pallet)
+        self.assertFalse(move_line2.exists())
         # Check that the first pick has been reused and the second pick is empty
         # (u_is_empty = True) and deleted at the very end of the action
         self.assertTrue(pick1.exists())
