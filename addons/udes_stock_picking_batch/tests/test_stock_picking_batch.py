@@ -2205,7 +2205,8 @@ class TestUnpickableItems(TestStockPickingBatch):
         pick_pickings = Picking.search([("picking_type_id", "=", self.picking_type_pick.id)])
         self.assertEqual(len(pick_pickings), 4)
         confirmed_pickings = pick_pickings.filtered(lambda p: p.state == "confirmed")
-        self._assert_apple_banana_pickings(confirmed_pickings, 2, "confirmed", [1, 2, 3])
+        # 3 moves with qty [1,2,3] got merged into single move with qty 6
+        self._assert_apple_banana_pickings(confirmed_pickings, 2, "confirmed", [6])
         for p in confirmed_pickings:
             with self.subTest(p=p):
                 self.assertTrue(p.backorder_id)
@@ -2232,7 +2233,8 @@ class TestUnpickableItems(TestStockPickingBatch):
         # Simulate triggering the cron job to clean up the draft pickings, and remove the backorder id
         Picking.unlink_empty()
         pick_pickings = Picking.search([("picking_type_id", "=", self.picking_type_pick.id)])
-        self._assert_apple_banana_pickings(pick_pickings, 2, "confirmed", [1, 2, 3, 4])
+        # 4 moves with qty [1,2,3,4] got merged into single move with qty 10
+        self._assert_apple_banana_pickings(pick_pickings, 2, "confirmed", [10])
         for p in pick_pickings:
             with self.subTest(p=p):
                 self.assertFalse(p.backorder_id)
