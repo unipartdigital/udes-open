@@ -9,6 +9,7 @@ from odoo.addons.udes_stock.tests.common import BaseUDES
 from odoo.exceptions import UserError
 from odoo.tests import get_db_name
 import odoo
+from datetime import timedelta
 
 
 class TestStockPicking(BaseUDES):
@@ -334,7 +335,6 @@ class ReservationBase(BaseUDES, SavepointMixin):
         if cls.batched:
             batch = cls.create_batch()
             pickings.write({"batch_id": batch.id})
-            # batch.mark_as_todo()
             batch.action_confirm()
 
     def setup(self, initial_quantity):
@@ -434,3 +434,66 @@ class NumReservablePickingsTestCase(BaseUDES, SavepointMixin):
                         self.pick.reserve_stock()
 
                     self.assertEqual(quant.reserved_quantity, expected)
+
+
+class ReservationGeneralTestCase(BaseUDES):
+    """Stock reservation tests not covered by other testcases."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        Pick = cls.env["stock.picking"]
+
+        cls.pick = Pick.browse()
+
+    def test_does_not_exceed_reservation_limit(self):
+        """Do not reserve more pickings than specified by u_num_reservable_pickings."""
+        self.picking_type_pick.u_num_reservable_pickings = 2
+        self.picking_type_pick.u_reserve_batches = True
+        expected = 20
+        quant = self.create_quant(self.apple.id, self.test_stock_location_01.id, qty=30)
+        products_info = [{"product": self.apple, "qty": 10}]
+        picking1 = self.create_picking(
+            self.picking_type_pick, products_info=products_info, confirm=True
+        )
+        batch1 = self.create_batch()
+        picking1.batch_id = batch1
+        picking2 = self.create_picking(
+            self.picking_type_pick, products_info=products_info, confirm=True
+        )
+        # Ensure picking1/picking3 gets allocated first by reserve_stock by ensuring their
+        # scheduled_date is earlier than picking2. (scheduled date is part of stock.picking _order)
+        # This is to ensure batch processing order is deterministic.
+        picking2.scheduled_date += timedelta(days=1)
+        batch2 = self.create_batch()
+        picking2.batch_id = batch2
+        picking3 = self.create_picking(
+            self.picking_type_pick, products_info=products_info, confirm=True
+        )
+        picking3.batch_id = batch1
+
+        batch1.action_confirm()
+        batch2.action_confirm()
+
+        with mock.patch.object(self.pick.env.cr, "commit", return_value=None):
+            self.pick.reserve_stock()
+
+        self.assertEqual(quant.reserved_quantity, expected)
+
+    def test_does_not_let_unfulfillable_picking_block_later_reservation(self):
+        """A picking that cannot be fully reserved must affect later pickings."""
+        self.picking_type_pick.u_num_reservable_pickings = 3
+        self.picking_type_pick.u_handle_partials = False
+        self.create_quant(self.banana.id, self.test_stock_location_01.id, qty=20)
+        demand1 = [{"product": self.banana, "qty": 10}]
+        demand2 = [{"product": self.apple, "qty": 10}, {"product": self.banana, "qty": 10}]
+        picking1 = self.create_picking(self.picking_type_pick, products_info=demand1, confirm=True)
+        picking2 = self.create_picking(self.picking_type_pick, products_info=demand2, confirm=True)
+        picking3 = self.create_picking(self.picking_type_pick, products_info=demand1, confirm=True)
+
+        with mock.patch.object(self.pick.env.cr, "commit", return_value=None):
+            self.pick.reserve_stock()
+
+        self.assertEqual(picking1.state, "assigned")
+        self.assertEqual(picking2.state, "confirmed")
+        self.assertEqual(picking3.state, "assigned")
