@@ -11,6 +11,7 @@
         "sale_management",
         "sale_stock",
         "udes_stock",
+        "udes_stock_cron",
         "l10n_uk",
         "sale",
         "udes_common",
