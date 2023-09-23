@@ -2,6 +2,9 @@
 from unittest import mock
 
 import logging
+import contextlib
+import uuid
+from unittest import mock
 from odoo.addons.udes_stock.tests.common import BaseUDES
 from odoo.exceptions import UserError
 from odoo.tests import get_db_name
@@ -217,3 +220,171 @@ class FindUnreservableMovesTestCase(BaseUDES):
         self.assertEqual(
             messages, ["Checking reservability for 1 pickings.", "Checking pickings 0-0"]
         )
+
+
+# Reserve Stock tests.
+
+# The principal conditions that affect stock reservation are whether a picking
+# is in a batch, and the values of the picking type's u_reserve_batches and
+# u_handle_partial flags. The stock level conditions that affect reservation
+# are: sufficent stock, no stock, some lines are not reservable and some lines
+# are partially available.
+
+# To test this, we have a matrix of configuration options, initial stock levels
+# and expected reservations. The ReservationMixin class has tests for each of
+# the stock level conditions; the TestCase classes provide the configuration
+# for each test method.
+
+# Test configuration, stock levels and expected outputs, keyed on:
+# Pickings are in batches, PickingType.u_reserve_batches, PickingType.u_handle_partials.
+# Values order: all available, none available, partially available, line partially available
+# In-values order:
+# quantity in stock, expected reservation
+# each picking has two identical lines (2 x 10)
+# each batch has two identical pickings
+RESERVATION_MATRIX = {
+    (True, True, True): [(40, 40), (0, 0), (30, 30), (35, 35)],
+    (True, True, False): [(40, 40), (0, 0), (0, 0), (0, 0)],
+    (True, False, True): [(40, 40), (0, 0), (30, 30), (35, 35)],
+    (True, False, False): [(40, 40), (0, 0), (30, 20), (35, 20)],
+    (False, True, True): [(40, 40), (0, 0), (40, 40), (40, 40)],
+    (False, True, False): [(40, 40), (0, 0), (0, 0), (0, 0)],
+    (False, False, True): [(40, 40), (0, 0), (30, 30), (35, 35)],
+    (False, False, False): [(40, 40), (0, 0), (0, 0), (0, 0)],
+}
+
+
+class ReservationMixin(object):
+    """Tests for the criteria in the reservation matrix."""
+
+    def test_reserves_stock_in_accordance_with_picking_type_flags(self):
+        """The system will respect picking type configuration when reserving stock."""
+        messages = [
+            "Case: there is enough stock for all lines",
+            "Case: there is no stock for any lines",
+            "Case: there is no stock for one line",
+            "Case: there is partial stock for one line",
+        ]
+        for message, (initial_qty, expected) in zip(messages, self.config):
+            with self.subTest(
+                msg=message,
+                batched=self.batched,
+                reserve_batches=self.picking_type_pick.u_reserve_batches,
+                handle_partials=self.picking_type_pick.u_handle_partials,
+            ):
+                with self.savepoint():
+                    # Run inside a savepoint so that changes to pickings and quants
+                    # etc. are reversed after each subtest.
+                    self.create_quant(self.apple.id, self.test_stock_location_01.id, initial_qty)
+
+                    with mock.patch.object(self.pick.env.cr, "commit", return_value=None):
+                        self.pick.reserve_stock()
+
+                    quant = self.Quant.search([("reserved_quantity", ">", 0)])
+                    self.assertEqual(quant.reserved_quantity, expected)
+
+
+class SavepointMixin:
+    """
+    Provides a context manager that creates a savepoint and rolls back on exit.
+
+    This can be used to reverse state changes made during subtests, as there is
+    no automatic rollback after a subtest iteration completes.
+
+    (The core Cursor.savepoint() releases the savepoint on exit, and
+    doesn't expose its name so we can't roll it back ourselves.
+    """
+
+    @contextlib.contextmanager
+    def savepoint(self):
+        """A savepoint that always rolls back."""
+        # This is how Odoo core name their savepoints.
+        name = uuid.uuid1().hex
+        self.cr.execute(f'SAVEPOINT "{name}"')
+        try:
+            yield
+        finally:
+            self.cr.execute(f'ROLLBACK TO SAVEPOINT "{name}"')
+
+
+class ReservationBase(BaseUDES, SavepointMixin):
+    """Test cases for stock reservation."""
+
+    KEY = ()
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        Pick = cls.env["stock.picking"]
+        cls.Quant = cls.env["stock.quant"]
+
+        cls.picking_type_pick.u_num_reservable_pickings = 100
+        batched, reserve_batches, handle_partials = cls.KEY
+        cls.batched = batched
+        cls.config = RESERVATION_MATRIX[cls.KEY]
+        cls.picking_type_pick.u_reserve_batches = reserve_batches
+        cls.picking_type_pick.u_handle_partials = handle_partials
+        cls.Pick = Pick
+        cls.pick = Pick.browse()
+
+        # Create two pickings with two lines of 10, batch if required.
+        products_info = [{"product": cls.apple, "qty": 10}] * 2
+        pickings = cls.create_picking(cls.picking_type_pick, products_info, confirm=True)
+        pickings |= cls.create_picking(cls.picking_type_pick, products_info, confirm=True)
+        if cls.batched:
+            batch = cls.create_batch()
+            pickings.write({"batch_id": batch.id})
+            # batch.mark_as_todo()
+            batch.action_confirm()
+
+    def setup(self, initial_quantity):
+        self.create_quant(self.apple.id, self.test_stock_location_01.id, initial_quantity)
+        return
+
+
+class BatchedReserveBatchHandlePartialsTestCase(ReservationBase, ReservationMixin):
+    """Test cases for stock reservation."""
+
+    KEY = True, True, True
+
+
+class BatchedReserveBatchNoHandlePartialsTestCase(ReservationBase, ReservationMixin):
+    """Test cases for stock reservation."""
+
+    KEY = True, True, False
+
+
+class BatchedNoReserveBatchHandlePartialsTestCase(ReservationBase, ReservationMixin):
+    """Test cases for stock reservation."""
+
+    KEY = True, False, True
+
+
+class BatchedNoReserveBatchNoHandlePartialsTestCase(ReservationBase, ReservationMixin):
+    """Test cases for stock reservation."""
+
+    KEY = True, False, False
+
+
+class UnbatchedReserveBatchHandlePartialsTestCase(ReservationBase, ReservationMixin):
+    """Test cases for stock reservation."""
+
+    KEY = False, True, True
+
+
+class UnbatchedReserveBatchNoHandlePartialsTestCase(ReservationBase, ReservationMixin):
+    """Test cases for stock reservation."""
+
+    KEY = False, True, False
+
+
+class UnbatchedNoReserveBatchHandlePartialsTestCase(ReservationBase, ReservationMixin):
+    """Test cases for stock reservation."""
+
+    KEY = False, False, True
+
+
+class UnbatchedNoReserveBatchNoHandlePartialsTestCase(ReservationBase, ReservationMixin):
+    """Test cases for stock reservation."""
+
+    KEY = False, False, False
