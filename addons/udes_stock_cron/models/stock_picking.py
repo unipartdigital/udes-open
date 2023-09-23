@@ -97,7 +97,7 @@ class StockPicking(models.Model):
         assigned_moves = moves._action_assign()
         return assigned_moves.mapped("picking_id")
 
-    def reserve_stock(self):
+    def reserve_stock(self, batch_size=100):
         """
         Reserve stock according to the number of reservable pickings.
         If this method is called on an empty recordset it will attempt to
@@ -112,6 +112,11 @@ class StockPicking(models.Model):
         The number of reservable pickings is defined on the picking type.
         0 reservable pickings means this function should not reserve stock
         -1 reservable picking means all reservable stock should be reserved.
+
+        Params:
+        batch_size: (int) The number of pickings to retrieve in each fetch from
+                          the database if the number of reservable pickings is
+                          unlimited.
         """
 
         Picking = self.env["stock.picking"]
@@ -162,21 +167,30 @@ class StockPicking(models.Model):
                 ("picking_type_id", "=", picking_type.id),
                 ("state", "=", "confirmed"),
             ]
-            limit = 1
+            limit = batch_size if reserve_all else to_reserve
             processed = Picking.browse()
+
             unsatisfied_state = lambda p: p.state not in ("assigned", "cancel", "done")
 
-            while reserve_all or to_reserve > 0:
-                if self:
-                    pickings = self.filtered(lambda p: p.picking_type_id == picking_type)
-                    # Removed processed pickings from self
-                    pickings -= processed
-                else:
-                    domain = base_domain[:]
-                    if processed:
-                        domain.append(("id", "not in", processed.ids))
-                    pickings = Picking.search(domain, limit=limit)
+            def generate_pickings():
+                """Abstract iteration over fetched pickings."""
+                while True:
+                    if self:
+                        # Removed processed pickings from self
+                        yield self.filtered(lambda p: p.picking_type_id == picking_type) - processed
+                    else:
+                        domain = base_domain[:]
+                        if processed:
+                            domain.append(("id", "not in", processed.ids))
+                        pickings = Picking.search(domain, limit=batch_size)
+                        if not pickings:
+                            break
+                        yield from pickings
 
+            pickings_to_reserve = generate_pickings()
+
+            while reserve_all or to_reserve > 0:
+                pickings = next(pickings_to_reserve, Picking.browse())
                 _logger.info(f"Reserving stock for pickings {pickings}.")
                 if not pickings:
                     # No pickings left to process.
