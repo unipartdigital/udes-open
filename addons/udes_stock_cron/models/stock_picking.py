@@ -40,10 +40,10 @@ class StockPicking(models.Model):
         location = self.picking_type_id.default_location_src_id
         stock_for_products = defaultdict(int)
         skip_states = ("assigned", "done", "cancel")
-
-        _logger.info(_("Checking reservability for %d pickings."), len(self))
+        level = logging.DEBUG if len(self) == 1 else logging.INFO
+        _logger.log(level, _("Checking reservability for %d pickings."), len(self))
         for r, batch in self.batched(size=batch_size):
-            _logger.info("Checking pickings %d-%d", r[0], r[-1])
+            _logger.log(level, "Checking pickings %d-%d", r[0], r[-1])
             # Cache the needed fields and only the needed fields
             # Caching too much is expensive here because of the sheer number of
             # records processed: Odoo's field loading becomes a bottleneck and
@@ -68,7 +68,6 @@ class StockPicking(models.Model):
                 # If this code is modified, the caching above needs to be
                 # kept up to date to ensure good performance
                 for move in picking.move_lines.filtered(lambda m: m.state not in skip_states):
-
                     product = move.product_id
 
                     if product not in stock_for_products.keys():
@@ -128,6 +127,7 @@ class StockPicking(models.Model):
                 _("Unable to reserve stock for products %s for pickings %s.")
                 % (product_names, picks)
             )
+
         # Making sure that quants are merged and deleted the empty ones before starting the reserve
         # stock. No need to run with sudo as the methods inside _quant_tasks have already sudo
         # where needed.
@@ -167,7 +167,6 @@ class StockPicking(models.Model):
             unsatisfied_state = lambda p: p.state not in ("assigned", "cancel", "done")
 
             while reserve_all or to_reserve > 0:
-
                 if self:
                     pickings = self.filtered(lambda p: p.picking_type_id == picking_type)
                     # Removed processed pickings from self
@@ -222,7 +221,6 @@ class StockPicking(models.Model):
                 # MPS: mimic Odoo's retry behaviour
                 tries = 0
                 while True:
-
                     try:
                         with self.env.cr.savepoint():
                             pickings = pickings._reserve_stock_assign()
