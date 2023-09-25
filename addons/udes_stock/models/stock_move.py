@@ -449,17 +449,6 @@ class StockMove(models.Model):
                 updated_origin_moves |= previous_mls.move_id
             if quantity_todo > 0:
                 unlinked_qty_by_move[move] = quantity_todo
-            if quantity_todo < 0:
-                _logger.warning(
-                    _(
-                        """
-                    Move lines are being matched by location destination and
-                    product, this has lead to over matching of the original move ids.
-                    Relevant moves: %s
-                    """
-                    ),
-                    updated_origin_moves.ids,
-                )
             orig_moves_by_move[move] = updated_origin_moves
             used_origin_moves |= updated_origin_moves
 
