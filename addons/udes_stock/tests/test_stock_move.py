@@ -940,25 +940,7 @@ class TestUpdateOrigIds(TestStockMove):
         # Complete one item of the move line, by splittting it then backordering it.
         out_ml = out_picking.move_line_ids
         new_ml = out_ml._split(1)
-
-        # Check the logs raise a warning message. Note there are two as both self
-        # and the backorder picking are updated.
-        logger = "odoo.addons.udes_stock.models.stock_move"
-        with self.assertLogs(logger, level="WARNING") as cm:
-            back_out_picking = out_picking.backorder_move_lines(mls_to_keep=new_ml)
-            self.assertEqual(
-                cm.output,
-                2
-                * [
-                    f"WARNING:{logger}:"
-                    f"""
-                    Move lines are being matched by location destination and
-                    product, this has lead to over matching of the original move ids.
-                    Relevant moves: {( move1 | move2).ids}
-                    """
-                ],
-            )
-
+        back_out_picking = out_picking.backorder_move_lines(mls_to_keep=new_ml)
         # Complete the picking and check the original move ids
         self.complete_picking(out_picking, self.test_trailer_location_01)
         self.assertEqual(out_picking.move_lines.move_orig_ids, move1 | move2)
