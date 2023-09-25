@@ -57,9 +57,17 @@ class StockMove(models.Model):
         res = super()._do_unreserve()
         # Allow bypassing the qty reset with context
         if not self.env.context.get("bypass_set_qty_to_initial_demand"):
-            for move in self:
+            for move in self.filtered(lambda mv: mv._needs_full_product_reservation()):
                 move.write({"product_uom_qty": move.u_uom_initial_demand})
         return res
+
+    def _needs_full_product_reservation(self):
+        """
+        If picking type config is set up to full reserve the move than write product qty with
+        initial demand quantity. Method will be extended in other modules.
+        """
+        self.ensure_one()
+        return False
 
     def _prepare_move_line(self, move, uom_qty, uom_id=None, **kwargs):
         """
