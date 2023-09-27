@@ -1,0 +1,21 @@
+<odoo>
+    <data noupdate="1">
+
+        <!-- Extend Stock Manager User Template for warehouse classification permissions -->
+        <record id="udes_stock_permissions.stock_manager_template" model="user.template">
+            <field name="group_ids" eval="[
+                (4, ref('udes_warehouse_classification.group_warehouse_classification_delete')),
+            ]" />
+        </record>
+
+        <!-- Extend Inbound HHT User Template to include warehouse classification permissions.
+        Inbound HHT users need this permission otherwise they cannot check in products with
+        a warehouse classification. -->
+        <record id="udes_stock_permissions.inbound_hht_template" model="user.template">
+            <field name="group_ids" eval="[
+                (4, ref('udes_warehouse_classification.group_warehouse_classification_view')),
+            ]" />
+        </record>
+
+    </data>
+</odoo>

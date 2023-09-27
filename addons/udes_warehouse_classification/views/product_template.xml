@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<odoo>
+    <record id="view_product_template_form_view_udes" model="ir.ui.view">
+        <field name="name">Add product warehouse classification</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='inventory_udes']" position="inside">
+                <field name="u_product_warehouse_classification_ids" string="Product Warehouse Classifications" widget="many2many_tags" options="{'no_create': True, 'no_create_edit':True}"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

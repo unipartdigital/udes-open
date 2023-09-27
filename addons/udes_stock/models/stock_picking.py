@@ -1015,6 +1015,10 @@ class StockPicking(models.Model):
     def open_back_orders(self):
         """Open back orders button will redirect to created back orders"""
         return self.open_related_pickings(self.u_created_backorder_ids.ids, "Created Back Orders")
+    
+    def _get_classification_messages_for_product_picking(self):
+        """Method to be override on specific functionalities"""
+        return {}
 
     @staticmethod
     def _get_package_search_domain(package):

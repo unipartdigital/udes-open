@@ -1,0 +1,19 @@
+<odoo>
+    <data noupdate="1">
+        <!-- Give root and admin user full permissions -->
+        <record id="base.user_root" model="res.users">
+            <field name="groups_id" eval=
+            "[
+                (4, ref('udes_warehouse_classification.group_warehouse_classification_delete')),
+            ]"/>
+        </record>
+
+        <record id="base.user_admin" model="res.users">
+            <field name="groups_id" eval=
+            "[
+                (4, ref('udes_warehouse_classification.group_warehouse_classification_delete')),
+            ]"/>
+        </record>
+
+    </data>
+</odoo>
