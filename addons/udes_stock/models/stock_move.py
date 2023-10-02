@@ -133,13 +133,16 @@ class StockMove(models.Model):
         return MoveLine.create(move_line_values)
 
     def _unreserve_initial_demand(self, new_move):
-        """Override stock default function to keep the old move lines,
-        so there is no need to create them again
+        """
+        Override the odoo core hook to keep the old move lines without unreserving them.
+
+        Writing the state to the new move which will keep moves in same state and won't be needed to
+        reserve them again. Recomputing new move state at the end.
         """
         self.ensure_one()
-        self.move_line_ids.filtered(lambda ml: ml.qty_done == 0.0).write(
-            {"move_id": new_move.id, "product_uom_qty": 0}
-        )
+        self.move_line_ids.filtered(lambda ml: ml.qty_done == 0.0).write({"move_id": new_move.id})
+        new_move.write({"state": self.state})
+        new_move._recompute_state()
 
     def propagate_cancellation_to_next_picks(self, old_dest_ids):
         """
