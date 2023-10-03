@@ -1,7 +1,7 @@
 """UDES Stock stock reservation wizard."""
 import logging
 
-from odoo import api, models
+from odoo import models
 from odoo.exceptions import ValidationError
 from odoo.tools.translate import _
 
