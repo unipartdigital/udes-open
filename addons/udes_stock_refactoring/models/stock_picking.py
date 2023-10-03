@@ -1,4 +1,5 @@
 from odoo import api, models
+from odoo.osv import expression
 import logging
 
 _logger = logging.getLogger(__name__)
@@ -95,19 +96,33 @@ class StockPicking(models.Model):
         dest_loc = moves.location_dest_id
 
         group = ProcurementGroup.get_or_create(group_key, create=True)
+        picking_state = kwargs.get("picking_state", False)
+
+        picking_search_domain = [
+            ("picking_type_id", "=", picking_type.id),
+            ("location_id", "=", src_loc.id),
+            ("location_dest_id", "=", dest_loc.id),
+            ("group_id", "=", group.id),
+        ]
+        suitable_picking_states = ["assigned", "confirmed", "waiting"]
+        # Finding a suitable picking with same state as the state of moves being refactored.
+        if picking_state and picking_state in suitable_picking_states:
+            picking_search_domain = expression.AND(
+                [[("state", "=", picking_state)],
+                 picking_search_domain]
+            )
+        else:
+            # NB: only workable pickings
+            picking_search_domain = expression.AND(
+                [[("state", "in", suitable_picking_states)],
+                 picking_search_domain]
+            )
 
         # Look for an existing picking with the right group
-        picking = StockPicking.search(
-            [
-                ("picking_type_id", "=", picking_type.id),
-                ("location_id", "=", src_loc.id),
-                ("location_dest_id", "=", dest_loc.id),
-                ("group_id", "=", group.id),
-                # NB: only workable pickings
-                ("state", "in", ["assigned", "confirmed", "waiting"]),
-            ]
-        )
-
+        picking = StockPicking.search(picking_search_domain)
+        # Removing the "picking_state" key from dict as the pick will be created without state
+        # value, state will be recomputed from moves state
+        kwargs.pop("picking_state", None)
         if not picking:
             # Otherwise reuse the existing picking if all the moves
             # already belong to it and it contains no other moves
@@ -159,6 +174,10 @@ class StockPicking(models.Model):
         origins = set(self.mapped("origin"))
         if len(origins) == 1:
             values["origin"] = origins.pop()
+
+        picking_states = set(moves.picking_id.mapped("state"))
+        if len(picking_states) == 1:
+            values["picking_state"] = picking_states.pop()
 
         partners = self.partner_id
         if len(partners) == 1:
