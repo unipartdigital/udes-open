@@ -50,6 +50,5 @@
         "views/stock_location_category_views.xml",
         "views/stock_scheduler_compute_views.xml",
         "views/res_users_view.xml",
-        "wizard/reservation_views.xml",
     ],
 }
