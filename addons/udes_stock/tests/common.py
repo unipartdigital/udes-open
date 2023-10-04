@@ -116,6 +116,11 @@ class UnconfiguredBaseUDES(common.SavepointCase):
     @classmethod
     def create_lot(cls, product_id, lot_name, **kwargs):
         Lot = cls.env["stock.production.lot"]
+        if kwargs.get("create_user"):
+            Lot = Lot.with_user(
+                kwargs.get("create_user")
+            )
+            kwargs.pop("create_user")
         vals = {"name": lot_name, "product_id": product_id}
         if "company_id" not in kwargs:
             vals["company_id"] = cls.company.id
@@ -126,6 +131,11 @@ class UnconfiguredBaseUDES(common.SavepointCase):
     def create_package(self, **kwargs):
         """Create and return a new package"""
         Package = self.env["stock.quant.package"]
+        if kwargs.get("create_user"):
+            Package = Package.with_user(
+                kwargs.get("create_user")
+            )
+            kwargs.pop("create_user")
         vals = {}
         vals.update(kwargs)
         return Package.create(vals)
