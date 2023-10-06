@@ -17,5 +17,15 @@
             ]" />
         </record>
 
+        <!-- Extend Outbound HHT User Template to include warehouse classification permissions.
+        Outbound HHT users need this permission otherwise they cannot check in products with
+        a warehouse classification. Outbound admins will need this permission to view products
+        in the desktop -->
+        <record id="udes_stock_permissions.outbound_hht_template" model="user.template">
+            <field name="group_ids" eval="[
+                (4, ref('udes_warehouse_classification.group_warehouse_classification_view')),
+            ]" />
+        </record>
+
     </data>
 </odoo>
