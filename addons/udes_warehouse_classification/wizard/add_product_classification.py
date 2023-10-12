@@ -11,6 +11,7 @@ class AddProductClassification(models.TransientModel):
     """Add product classification action wizard."""
 
     _name = "udes_warehouse_classification.add_product_classification"
+    _description = "Warehouse Classification - Add product classification wizard"
 
     file_data = fields.Binary(
         string="Upload file", help="A file of product default codes, one code per line"
