@@ -96,9 +96,9 @@ class StockMove(models.Model):
 
         refactor_lam = lambda m: m.picking_type_id and m.state not in ["draft", "cancel"]
         if stage is not None:
-            refactor_lam = lambda m, lam=refactor_lam: STOCK_REFACTOR_STAGES[
+            refactor_lam = lambda m, lam=refactor_lam: lam(m) and STOCK_REFACTOR_STAGES[
                 m.state
-            ] == stage and lam(m)
+            ] == stage
 
         refactor_moves = moves.filtered(refactor_lam)
 
