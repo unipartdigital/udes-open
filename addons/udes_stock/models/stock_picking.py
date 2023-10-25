@@ -16,6 +16,10 @@ _logger = logging.getLogger(__name__)
 class StockPicking(models.Model):
     _inherit = "stock.picking"
 
+    # Set this on a model to have automated printing and desktop printing
+    # trigger audit log entries on the record.
+    AUDIT_LOG_PRINTING=True
+
     # Adding fields to be hidden by default from form view.
     # NB JB: Fields added here will cause test Form class to break. Not sure
     # on fix, will just have to not use the test Form class.
