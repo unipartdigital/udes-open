@@ -1,5 +1,7 @@
 from odoo.tests import common, tagged
-
+from odoo.fields import Datetime
+from datetime import timedelta
+from itertools import count
 
 import logging
 
@@ -24,6 +26,9 @@ class UnconfiguredBaseUDES(common.SavepointCase):
         ## Serial/Lot tracking
         cls.strawberry = cls.create_product("Strawberry", tracking="serial")
         cls.tangerine = cls.create_product("Tangerine", tracking="lot")
+
+        #Counter to ensure stock.quant are created in order
+        cls.quant_counter = count()
 
     @classmethod
     def setup_default_warehouse(cls):
@@ -111,6 +116,8 @@ class UnconfiguredBaseUDES(common.SavepointCase):
             lot = cls.create_lot(product_id, lot_name)
             vals["lot_id"] = lot.id
         vals.update(kwargs)
+        #Ensure quants are reserved in order of creation
+        vals.setdefault("in_date", Datetime.now() + timedelta(0, next(cls.quant_counter)))
         return Quant.create(vals)
 
     @classmethod
