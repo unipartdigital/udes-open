@@ -207,9 +207,15 @@ class TestStockQuantFIFO(BaseUDES):
         cls.pack3 = cls.create_package(name="1003")
 
         # Create three quants in the same location
-        cls.quant1 = cls.create_quant(cls.apple.id, cls.test_stock_location_01.id, 1.0)
-        cls.quant2 = cls.create_quant(cls.apple.id, cls.test_stock_location_01.id, 1.0)
-        cls.quant3 = cls.create_quant(cls.apple.id, cls.test_stock_location_01.id, 1.0)
+        cls.quant1 = cls.create_quant(
+            cls.apple.id, cls.test_stock_location_01.id, 1.0, in_date=False
+        )
+        cls.quant2 = cls.create_quant(
+            cls.apple.id, cls.test_stock_location_01.id, 1.0, in_date=False
+        )
+        cls.quant3 = cls.create_quant(
+            cls.apple.id, cls.test_stock_location_01.id, 1.0, in_date=False
+        )
 
     def test_fifo_without_nones(self):
         """Check that the FIFO strategies are correctly applied"""
