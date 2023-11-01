@@ -1254,17 +1254,18 @@ class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
         """
         Quant = self.env["stock.quant"]
         self.picking_type_pick.u_allow_swapping_tracked_products = True
-        self.create_quant(
-            self.strawberry.id,
-            location_id=self.test_received_location_01.id,
-            qty=1,
-            lot_name="1",
-        )
+        # Create quant_two first to ensure it gets reserved on Pick, as lots are reserved in the order of in_date
         quant_two = self.create_quant(
             self.strawberry.id,
             location_id=self.test_stock_location_01.id,
             qty=1,
             lot_name="2",
+        )
+        self.create_quant(
+            self.strawberry.id,
+            location_id=self.test_received_location_01.id,
+            qty=1,
+            lot_name="1",
         )
 
         product_info = [{"product": self.strawberry, "uom_qty": 1}]
