@@ -1,10 +1,18 @@
 """Common code for testing get_info methods."""
 from odoo.tests import common, tagged
-
+from odoo.fields import Datetime
+from datetime import timedelta
+from itertools import count
 
 @tagged("post_install", "-at_install")
 class BaseTestCase(common.SavepointCase):
     """Helper methods for get_info unit tests."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        # Counter to ensure stock.quant are created in order
+        cls.quant_counter = count()
 
     @classmethod
     def create_location(cls, name, **kwargs):
@@ -51,6 +59,8 @@ class BaseTestCase(common.SavepointCase):
             lot = cls.create_lot(product_id, serial_number)
             vals["lot_id"] = lot.id
         vals.update(kwargs)
+        #Ensure quants are reserved in order of creation
+        vals.setdefault("in_date", Datetime.now() + timedelta(0, next(cls.quant_counter)))
         return Quant.create(vals)
 
     @classmethod
