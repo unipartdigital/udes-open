@@ -1,7 +1,7 @@
 """Common code for password configuration and testing."""
 
 from odoo.exceptions import UserError
-
+import werkzeug
 
 class PasswordMixin:
     """Methods for testing and configuring passwords."""
@@ -36,3 +36,47 @@ class PasswordMixin:
             if value is not None
         }
         cls.company.write(vals)
+
+
+class RedirectMixin:
+    """Methods for testing redirects"""
+
+    def _get_url(self, url):
+        # With these versions and higher, response history headers "Location"
+        # key does not contain the base url.
+        # Still support people on older versions of python & werkzeug.
+        if werkzeug.__version__ == "2.3.7":
+            return url
+        else:
+            return werkzeug.urls.url_join(self.base_url, url)
+
+    def assertFailedRedirect(self, response):
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Bad Request", response.text)
+        self.assertIn("Invalid redirection attempted", response.text)
+
+    def assertNotFound(self, response, redirect_url):
+        """ODOO internal redirection to page not found"""
+        self.assertEqual(response.status_code, 404)
+        self.assertIn("We couldn't find the page you're looking for!", response.text)
+        # Look for redirect
+        for resp in response.history:
+            if (
+                resp.status_code == 303
+                and resp.headers["Location"] == redirect_url
+            ):
+                break
+        else:
+            raise AssertionError("Redirect not found")
+
+    def assertSuccessfulRedirect(self, response, redirect_url):
+        self.assertEqual(response.status_code, 200)
+        # Look for redirect
+        for resp in response.history:
+            if (
+                resp.status_code == 303
+                and resp.headers["Location"] == redirect_url
+            ):
+                break
+        else:
+            raise AssertionError("Redirect not found")
