@@ -1,9 +1,9 @@
 from odoo.tests import common
 from odoo.tools import mute_logger
-from werkzeug.urls import url_join
+from ..tests.common import RedirectMixin
 
 
-class TestRedirect(common.HttpCase):
+class TestRedirect(common.HttpCase, RedirectMixin):
     """Tests for password complexity"""
 
     @classmethod
@@ -13,42 +13,6 @@ class TestRedirect(common.HttpCase):
     def setUp(self):
         super().setUp()
         self.base_url = self.env["ir.config_parameter"].sudo().get_param("web.base.url")
-
-    def _get_url(self, url):
-        return url_join(self.base_url, url)
-
-    def assertFailedRedirect(self, response):
-        self.assertEqual(response.status_code, 400)
-        self.assertIn("Bad Request", response.text)
-        self.assertIn("Invalid redirection attempted", response.text)
-
-    def assertNotFound(self, response, redirect_url):
-        """ODOO internal redirection to page not found"""
-        self.assertEqual(response.status_code, 404)
-        self.assertIn("We couldn't find the page you're looking for!", response.text)
-        # Look for redirect
-        for resp in response.history:
-            if (
-                resp.status_code == 303
-                and resp.headers["Location"].replace("127.0.0.1", "localhost")
-                == redirect_url
-            ):
-                break
-        else:
-            raise AssertionError("Redirect not found")
-
-    def assertSuccessfulRedirect(self, response, redirect_url):
-        self.assertEqual(response.status_code, 200)
-        # Look for redirect
-        for resp in response.history:
-            if (
-                resp.status_code == 303
-                and resp.headers["Location"].replace("127.0.0.1", "localhost")
-                == redirect_url
-            ):
-                break
-        else:
-            raise AssertionError("Redirect not found")
 
     @mute_logger("odoo.addons.udes_security.controllers.redirect")
     def test_absolute_throws_bad_request(self):
@@ -81,6 +45,7 @@ class TestRedirect(common.HttpCase):
             redirect_url=self._get_url("/baddomain.com"),
         )
 
+    @mute_logger("odoo.addons.udes_security.controllers.redirect")
     def test_allow_listed_domain_redirects(self):
         DomainAllowlist = self.env["udes_security.domain.allowlist"]
 
@@ -94,17 +59,14 @@ class TestRedirect(common.HttpCase):
             redirect_url="http://google.com",
         )
 
+    @mute_logger("odoo.addons.udes_security.controllers.redirect")
     def test_allow_listed_wildcarded_domain_redirects(self):
         DomainAllowlist = self.env["udes_security.domain.allowlist"]
 
         self.authenticate("admin", "admin")
 
-        allowed_domain = DomainAllowlist.create(
-            {"name": "Google", "domain": "google.com"}
-        )
-        self.assertFailedRedirect(
-            self.url_open("/web?redirect=https://support.google.com/")
-        )
+        allowed_domain = DomainAllowlist.create({"name": "Google", "domain": "google.com"})
+        self.assertFailedRedirect(self.url_open("/web?redirect=https://support.google.com/"))
 
         allowed_domain.domain = "*.google.com"
         self.assertSuccessfulRedirect(

@@ -2,10 +2,10 @@ from odoo.tests import common
 from odoo.tools import mute_logger, config
 from odoo import http
 
-from ..tests.common import PasswordMixin
+from ..tests.common import RedirectMixin, PasswordMixin
 
 
-class DesktopAccessBase(common.HttpSavepointCase, PasswordMixin):
+class DesktopAccessBase(common.HttpSavepointCase, PasswordMixin, RedirectMixin):
     @classmethod
     def setUpClass(cls):
         """
@@ -64,8 +64,13 @@ class DesktopAccessBase(common.HttpSavepointCase, PasswordMixin):
         wizard.change_password_button()
 
     def log_in_as(self, user, password):
-        """Helper function to reset auth, then hit the /web/login controller
-        as a particular user and return the result"""
+        """
+        Helper function to reset auth, then hit the /web/login controller
+        as a particular user and return the result
+
+        NOTE: If running locally with multiple databases, this may redirect to /web/database/selector.
+        To avoid this, remove dbfilter and list_db keys from ~/.odoorc. CI runs with a single database.
+        """
         self.authenticate(None, None)  # Reset & make it possible to get a csrf token
         return self.url_open(
             url=f"{self.base_url}/web/login",
@@ -87,18 +92,18 @@ class TestDesktopAccess(DesktopAccessBase):
     def test_user_with_group_can_access_desktop(self):
         """Ensure that users with the group can log in via the desktop and
         get redirected to /web as normal"""
-        result = self.log_in_as(self.user_1, "password")
-        self.assertEqual(result.status_code, 200)
-        self.assertEqual(result.url, f"{self.base_url}/web")
-        self.assertNotIn("Access Denied", result.text)
+        self.assertSuccessfulRedirect(
+            self.log_in_as(self.user_1, "password"),
+            redirect_url=self._get_url("/web"),
+        )
 
     def test_user_without_group_cannot_access_desktop(self):
         """Ensure that users without the group can not log in via the desktop
         and get redirected to /no_desktop_access"""
-        result = self.log_in_as(self.user_2, "password")
-        self.assertEqual(result.status_code, 200)
-        self.assertEqual(result.url, f"{self.base_url}/no_desktop_access")
-        self.assertIn("Access Denied", result.text)
+        self.assertSuccessfulRedirect(
+            self.log_in_as(self.user_2, "password"),
+            redirect_url=self._get_url("/no_desktop_access"),
+        )
 
     def test_all_users_can_access_database(self):
         """Ensure that restricted desktop access does not affect backend/database access"""
