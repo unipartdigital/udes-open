@@ -262,12 +262,9 @@ class StockMoveLine(models.Model):
                     )
                 else:
                     ml_values["qty_done"] = ml.product_qty
+                if loc_dest_instance is not None:
+                    ml_values["location_dest_id"] = loc_dest_instance.id
                 mls_done |= ml._mark_as_done(ml_values)
-
-            if loc_dest_instance is not None:
-                # HERE(ale): updating the dest loc here to have a single
-                # invocation of its constraint handler (see below)
-                mls_done.write({"location_dest_id": loc_dest_instance.id})
 
             # TODO: at this point products_info_by_product should be with qty_todo = 0?
             #       No necessarily, can we have add unexpected parts and not enough stock?
@@ -652,6 +649,8 @@ class StockMoveLine(models.Model):
             )
 
         if split:
+            if values.get("location_dest_id"):
+                self.location_dest_id = values["location_dest_id"]
             self.qty_done = values["qty_done"]
             self._split()
 
@@ -697,6 +696,7 @@ class StockMoveLine(models.Model):
                     "result_package_id": False,
                     "u_result_parent_package_id": False,
                     "lot_name": False,
+                    "location_dest_id": self.move_id.location_dest_id.id
                 }
             )
             # updated ordered_qty otherwise odoo will use product_uom_qty
