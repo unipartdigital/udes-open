@@ -4,11 +4,11 @@ FROM unipartdigital/udes-tester
 #
 ADD https://codeload.github.com/unipartdigital/odoo-blocked-locations/zip/HEAD \
     /opt/odoo-blocked-locations.zip
-ADD https://codeload.github.com/unipartdigital/odoo-package-hierarchy/zip/HEAD \
+ADD https://codeload.github.com/unipartdigital/odoo-package-hierarchy/zip/master \
     /opt/odoo-package-hierarchy.zip
-ADD https://codeload.github.com/unipartdigital/odoo-print/zip/HEAD \
+ADD https://codeload.github.com/unipartdigital/odoo-print/zip/master \
     /opt/odoo-print.zip
-ADD https://codeload.github.com/unipartdigital/odoo-edi/zip/HEAD \
+ADD https://codeload.github.com/unipartdigital/odoo-edi/zip/master \
     /opt/odoo-edi.zip
 ADD https://codeload.github.com/OCA/server-auth/zip/11.0 \
     /opt/server-auth.zip
@@ -19,9 +19,9 @@ RUN unzip -q -d /opt /opt/odoo-blocked-locations.zip ; \
     unzip -q -d /opt /opt/odoo-edi.zip ; \
     unzip -q -d /opt /opt/server-auth.zip ; \
     ln -s /opt/odoo-blocked-locations-HEAD/addons/* \
-          /opt/odoo-package-hierarchy-HEAD/addons/* \
-          /opt/odoo-print-HEAD/addons/* \
-          /opt/odoo-edi-HEAD/addons/* \
+          /opt/odoo-package-hierarchy-master/addons/* \
+          /opt/odoo-print-master/addons/* \
+          /opt/odoo-edi-master/addons/* \
           /opt/server-auth-11.0/password_security \
           /opt/server-auth-11.0/auth_brute_force \
           /opt/server-auth-11.0/auth_session_timeout \
