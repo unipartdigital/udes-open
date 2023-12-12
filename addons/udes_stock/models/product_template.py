@@ -52,17 +52,8 @@ class ProductTemplate(models.Model):
 
     @api.onchange("tracking")
     def onchange_tracking(self):
-        Picking = self.env["stock.picking"]
-        picking_type = self.env.ref("stock.picking_type_in")
         for product in self:
-            stock_pickings = Picking.search(
-                [
-                    ("move_lines.product_id", "in", product.product_variant_ids.ids),
-                    ("state", "=", "assigned"),
-                    ("picking_type_id", "=", picking_type.id),
-                ]
-            )
-            if product.qty_available > 0 or bool(stock_pickings):
+            if product.product_variant_ids.has_goods_in_transit_or_stock():
                 # If there is stock, raise an error to prevent changing the tracking
                 raise ValidationError(
                     "Cannot change tracking for a product with stock or move lines in ready state."
