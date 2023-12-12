@@ -85,6 +85,4 @@ class ProductProduct(models.Model):
             ]
         )
 
-        if self.get_quant_counts() > 0 or bool(stock_pickings):
-            return True
-        return False
+        return bool(stock_pickings) or self.get_quant_counts() > 0
