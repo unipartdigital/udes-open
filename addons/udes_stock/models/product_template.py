@@ -49,16 +49,8 @@ class ProductTemplate(models.Model):
     def unlink(self):
         """Override superclass to prevent deletion."""
         raise ValidationError(_("Products may not be deleted. Please archive them instead."))
-
+            
     @api.onchange("tracking")
-    def onchange_tracking(self):
-        for product in self:
-            if product.product_variant_ids.has_goods_in_transit_or_stock():
-                # If there is stock, raise an error to prevent changing the tracking
-                raise ValidationError(
-                    "Cannot change tracking for a product with stock or move lines in ready state."
-                )
-
     @api.constrains("tracking")
     def constrain_tracking(self):
         for product in self:
