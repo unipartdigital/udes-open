@@ -1,4 +1,4 @@
-from odoo import fields, models, _
+from odoo import fields, models, _, api
 from odoo.exceptions import ValidationError
 
 
@@ -7,7 +7,7 @@ class ProductTemplate(models.Model):
 
     def _domain_product_category(self, category):
         """Domain for product categories, not including category itself"""
-        return [('id', 'child_of', category.id), ('id', '!=', category.id)]
+        return [("id", "child_of", category.id), ("id", "!=", category.id)]
 
     def _domain_speed_category(self):
         """Domain for speed product category"""
@@ -49,3 +49,16 @@ class ProductTemplate(models.Model):
     def unlink(self):
         """Override superclass to prevent deletion."""
         raise ValidationError(_("Products may not be deleted. Please archive them instead."))
+            
+    @api.onchange("tracking")
+    @api.constrains("tracking")
+    def constrain_tracking(self):
+        for product in self:
+            if product.product_variant_ids.has_goods_in_transit_or_stock():
+                # If there is stock, raise an error to prevent changing the tracking
+                raise ValidationError(
+                    _(
+                        "Cannot change tracking for product '%s' with stock or move lines in ready state."
+                    )
+                    % product.name
+                )

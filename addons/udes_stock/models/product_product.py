@@ -63,3 +63,26 @@ class ProductProduct(models.Model):
         """Override superclass to prevent deletion."""
         raise ValidationError(_("Products may not be deleted. Please archive them instead."))
 
+    def get_quant_counts(self):
+        warehouse = self.env.ref("stock.warehouse0")
+        Quant = self.env["stock.quant"]
+        quants = Quant.search_count(
+            [
+                ("product_id", "in", self.ids),
+                ("location_id", "child_of", warehouse.view_location_id.id),
+            ]
+        )
+        return quants
+
+    def has_goods_in_transit_or_stock(self):
+        Picking = self.env["stock.picking"]
+        picking_type = self.env.ref("stock.picking_type_in")
+        stock_pickings = Picking.search(
+            [
+                ("move_lines.product_id", "in", self.ids),
+                ("state", "=", "assigned"),
+                ("picking_type_id", "=", picking_type.id),
+            ]
+        )
+
+        return bool(stock_pickings) or self.get_quant_counts()
