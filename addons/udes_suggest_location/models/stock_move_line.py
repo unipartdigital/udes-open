@@ -115,7 +115,7 @@ class StockMoveLine(models.Model):
                     # Allow view destination locations on create
                     continue
                 # Get the suggested locations for comparison
-                suggested_locations = mls_validation_grp.suggest_locations()
+                suggested_locations = mls_validation_grp.suggest_locations(limit=None)
                 if not suggested_locations:
                     raise ValidationError(_("There are no valid locations to drop stock"))
 
