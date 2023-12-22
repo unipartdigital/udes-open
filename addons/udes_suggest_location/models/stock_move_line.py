@@ -26,6 +26,16 @@ class StockMoveLine(models.Model):
         except KeyError:
             raise ValueError(_("Policy with name=%s could not be found") % policy_type)
 
+    def is_in_suggested_locations(self, location, picking=None, values=None):
+        """
+        Checking if the location is one of suggested location of the self move lines.
+        """
+        suggested_locations = self.suggest_locations(picking, values=values, limit=None)
+        if location in suggested_locations:
+            return True
+        else:
+            return False
+
     def suggest_locations(self, picking=None, values=None, limit=30):
         """
         Suggest locations for move line, either by self or picking_type and values
@@ -115,7 +125,7 @@ class StockMoveLine(models.Model):
                     # Allow view destination locations on create
                     continue
                 # Get the suggested locations for comparison
-                suggested_locations = mls_validation_grp.suggest_locations()
+                suggested_locations = mls_validation_grp.suggest_locations(limit=None)
                 if not suggested_locations:
                     raise ValidationError(_("There are no valid locations to drop stock"))
 
