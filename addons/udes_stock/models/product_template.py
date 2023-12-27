@@ -62,3 +62,37 @@ class ProductTemplate(models.Model):
                     )
                     % product.name
                 )
+         
+    @api.depends('product_variant_ids', 'product_variant_ids.default_code')
+    def _compute_default_code(self):
+        """
+        Override _compute_default_code to include inactive variants in its computation.
+
+        Instead of using super(ProductTemplate, self.with_context(dict(active_test=False)))
+        we have to use a hard domain search to include inactive variants,
+        else odd caching issues happen _after_ this compute bubbles up to `compute_value()`
+        in fields.py which leads to the field being set to False when being archived via EDI.
+        """
+        Product = self.env["product.product"]
+        inactive_variants = Product.search([
+            ("active", "=", False),
+            ("product_tmpl_id", "in", self.ids),
+        ])
+        # Include inactive variants in this filter
+        unique_variants = self.filtered(
+            lambda template: len(
+                template.product_variant_ids |
+                inactive_variants.filtered(
+                    lambda inactive_variant: inactive_variant.product_tmpl_id == template
+                )
+            ) == 1
+        )
+        for template in unique_variants:
+            # Include inactive variants in this filter
+            variant = template.product_variant_ids | inactive_variants.filtered(
+                lambda inactive_variant: inactive_variant.product_tmpl_id == template
+            )
+            template.default_code = variant.default_code
+
+        for template in (self - unique_variants):
+            template.default_code = ''
