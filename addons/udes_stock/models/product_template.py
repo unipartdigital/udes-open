@@ -49,7 +49,7 @@ class ProductTemplate(models.Model):
     def unlink(self):
         """Override superclass to prevent deletion."""
         raise ValidationError(_("Products may not be deleted. Please archive them instead."))
-            
+
     @api.onchange("tracking")
     @api.constrains("tracking")
     def constrain_tracking(self):
@@ -62,8 +62,8 @@ class ProductTemplate(models.Model):
                     )
                     % product.name
                 )
-         
-    @api.depends('product_variant_ids', 'product_variant_ids.default_code')
+
+    @api.depends("product_variant_ids", "product_variant_ids.default_code")
     def _compute_default_code(self):
         """
         Override _compute_default_code to include inactive variants in its computation.
@@ -74,18 +74,21 @@ class ProductTemplate(models.Model):
         in fields.py which leads to the field being set to False when being archived via EDI.
         """
         Product = self.env["product.product"]
-        inactive_variants = Product.search([
-            ("active", "=", False),
-            ("product_tmpl_id", "in", self.ids),
-        ])
+        inactive_variants = Product.search(
+            [
+                ("active", "=", False),
+                ("product_tmpl_id", "in", self.ids),
+            ]
+        )
         # Include inactive variants in this filter
         unique_variants = self.filtered(
             lambda template: len(
-                template.product_variant_ids |
-                inactive_variants.filtered(
+                template.product_variant_ids
+                | inactive_variants.filtered(
                     lambda inactive_variant: inactive_variant.product_tmpl_id == template
                 )
-            ) == 1
+            )
+            == 1
         )
         for template in unique_variants:
             # Include inactive variants in this filter
@@ -94,5 +97,5 @@ class ProductTemplate(models.Model):
             )
             template.default_code = variant.default_code
 
-        for template in (self - unique_variants):
-            template.default_code = ''
+        for template in self - unique_variants:
+            template.default_code = ""
