@@ -117,7 +117,7 @@ class StockMoveLine(models.Model):
 
         for ml in mls:
             result |= ml
-            extra_qty = ml.product_uom_qty - uom_qty
+            extra_qty = self._round_qty(ml.product_uom_qty - uom_qty)
             if extra_qty > 0:
                 new_ml = ml._split(uom_qty=extra_qty)
                 uom_qty = 0
@@ -369,7 +369,7 @@ class StockMoveLine(models.Model):
                     mls -= prod_mls
                     if new_ml:
                         mls |= new_ml
-                    if float_compare(quantity_fulfilled, quantity, rounding) == 0:
+                    if float_compare(quantity_fulfilled, quantity, precision_rounding=rounding) == 0:
                         break
             else:
                 prod_mls, new_ml = mls._find_move_lines(qty_done, product, package, None, location)
