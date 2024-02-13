@@ -278,7 +278,7 @@ class StockPickingBatch(models.Model):
             [pick.is_valid_location_dest_id(location=location) for pick in all_done_pickings]
         )
 
-    def add_extra_pickings(self, picking_type_id, limit=1):
+    def add_extra_pickings(self, picking_type_id, limit=1, **kwargs):
         """Get the next possible available pickings and add them to the current users batch
 
         Parameters
@@ -297,7 +297,9 @@ class StockPickingBatch(models.Model):
             raise ValidationError(_("Can only add work to ephemeral batches"))
 
         picking_priorities = self.get_batch_priority_group()
-        pickings = Picking.search_for_pickings(picking_type_id, picking_priorities, limit=limit)
+        pickings = Picking.search_for_pickings(
+            picking_type_id, picking_priorities, limit=limit, **kwargs
+        )
 
         if not pickings:
             raise ValidationError(_("No more work to do."))
@@ -888,7 +890,9 @@ class StockPickingBatch(models.Model):
         assert batches, "Expects a non-empty batches recordset"
         return batches.sorted(key=lambda b: b.name)[0]
 
-    def create_batch(self, picking_type_id, picking_priorities, user_id=None, picking_id=None):
+    def create_batch(
+            self, picking_type_id, picking_priorities, user_id=None, picking_id=None, **kwargs
+    ):
         """
         Create and return a batch for the specified user if pickings
         exist. Return None otherwise. Pickings are filtered based on
@@ -905,7 +909,7 @@ class StockPickingBatch(models.Model):
         self._check_user_batch_in_progress(user_id)
 
         return self._create_batch(
-            user_id, picking_type_id, picking_priorities, picking_id=picking_id
+            user_id, picking_type_id, picking_priorities, picking_id=picking_id, **kwargs
         )
 
     def _check_user_batch_in_progress(self, user_id=None):
@@ -925,7 +929,9 @@ class StockPickingBatch(models.Model):
                 ).format(picks_txt)
             )
 
-    def _create_batch(self, user_id, picking_type_id, picking_priorities=None, picking_id=None, limit=1):
+    def _create_batch(
+        self, user_id, picking_type_id, picking_priorities=None, picking_id=None, limit=1, **kwargs
+    ):
         """
         Create a batch for the specified user by including only the picking(s) with the specified
         picking_type_id and picking priorities (optional) or a specific picking_id.
@@ -954,7 +960,9 @@ class StockPickingBatch(models.Model):
         if picking_id:
             picking = Picking.browse(picking_id)
         else:
-            picking = Picking.search_for_pickings(picking_type_id, picking_priorities, limit=limit)
+            picking = Picking.search_for_pickings(
+                picking_type_id, picking_priorities, limit=limit, **kwargs
+            )
 
         if not picking:
             return None

@@ -136,7 +136,9 @@ class StockPicking(models.Model):
 
         return valid_locations.exists()
 
-    def search_for_pickings(self, picking_type_id, picking_priorities, limit=1, domain=None):
+    def search_for_pickings(
+            self, picking_type_id, picking_priorities, limit=1, domain=None, **kwargs
+    ):
         """Search for next available pickings based on picking type and priorities
         Parameters
         ----------
