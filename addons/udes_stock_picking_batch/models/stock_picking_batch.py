@@ -71,6 +71,17 @@ class StockPickingBatch(models.Model):
         required=False,
         help="Name of the batch from which this batch was derived",
     )
+    u_picking_zone_id = fields.Many2one(
+        "stock.location", "Picking Zone Location", readonly=True,
+        states={
+            "draft": [("readonly", False)],
+        },
+        help="If picking zone location is set pickings added in the batch will be reserved from "
+             "children of selected picking zone",
+    )
+    u_location_src_id = fields.Many2one(
+        "stock.location", "Location", related="picking_type_id.default_location_src_id"
+    )
 
     @api.constrains("user_id")
     def _compute_state(self):
@@ -975,8 +986,10 @@ class StockPickingBatch(models.Model):
                 raise ValidationError(
                     "Only %d pallets may be reserved at a time." % max_reservable_pallets
                 )
-
-        batch = PickingBatch.sudo().create({"user_id": user_id})
+        batch_create_vals = {"user_id": user_id}
+        if kwargs.get("pick_zone", False):
+            batch_create_vals.update({"u_picking_zone_id": kwargs["pick_zone"]})
+        batch = PickingBatch.sudo().create(batch_create_vals)
         picking.write({"batch_id": batch.id})
         batch.check_same_picking_priority(picking)
         batch.write({"u_ephemeral": True})
