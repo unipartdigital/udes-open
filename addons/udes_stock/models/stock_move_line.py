@@ -185,8 +185,19 @@ class StockMoveLine(models.Model):
         return self.sorted(key=sort_key)
 
     def _round_qty(self, value):
+        # Ensure float rounding is correctly handled. A series of subtractions by small units
+        # could cause rounding errors when using "UP" rounding method. A concrete example:
+        #   >>> split_qty = 1.2 - 0.1
+        #   >>> split_qty
+        #   1.0999999999999999
+        #   >>> float_round(1.2 - split_qty, precision_rounding=0.01, rounding_method="DOWN")
+        #   0.1
+        #   >>> float_round(1.2 - split_qty, precision_rounding=0.01, rounding_method="HALF-UP")
+        #   0.1
+        #   >>> float_round(1.2 - split_qty, precision_rounding=0.01, rounding_method="UP")
+        #   0.11
         return float_round(
-            value, precision_rounding=self.product_uom_id.rounding, rounding_method="UP"
+            value, precision_rounding=self.product_uom_id.rounding, rounding_method="HALF-UP"
         )
 
     def _split(self, uom_qty=None):
