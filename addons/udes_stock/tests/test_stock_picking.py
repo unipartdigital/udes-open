@@ -2088,3 +2088,42 @@ class TestStockPickingPartnerId(TestStockPickingCommon):
 
         self.assertEqual(len(new_test_picking_pick.move_lines), 2)
         self.assertEqual(new_test_picking_pick.mapped("move_lines.partner_id"), partner)
+
+class TestStockPickingFloatQty(TestStockPickingCommon):
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestStockPickingCommon, cls).setUpClass()
+        # Product lot tracked in meters
+        uom_meter = cls.env.ref("uom.product_uom_meter")
+        cls.cable = cls.create_product("Cable", tracking="lot", uom_id=uom_meter.id, uom_po_id=uom_meter.id)
+
+    def test_multiple_receive_in_fractional_qty(self):
+        """ Receive a lot tracked product in fractional quantities to ensure no rounding error
+        occurs.
+        Scenario: Goods in for 1.2 m. Product received in 12 batches of 0.1 m. Rounding error could
+        change 0.1 to 0.11 and split to extra move line with qty 0.01 and block validating the pick
+        """
+        product_info = [{"product": self.cable, "uom_qty": 1.2}]
+        picking = self.create_picking(
+            self.picking_type_goods_in, products_info=product_info, assign=True
+        )
+        
+        lot_names = [f"{l:02}" for l in range(1,13)]     #["01", "02",..., "12"]
+        lot_quantities = [0.1] * 12     #[0.1, x 12] receive in units of 0.1 m
+        product_ids = [{"barcode": "productCable", "uom_qty": 1.2,
+                        "lot_names": lot_names, 
+                        "lot_quantities": lot_quantities}]   
+        location = self.test_received_location_01
+        pallet_to_pick_onto = self.create_package(name="UDES1")
+
+        res = picking.move_line_ids.prepare(
+            product_ids=product_ids, location_dest=location, result_package=pallet_to_pick_onto
+        )
+        for mls, mls_values in res.items():
+            mls.mark_as_done(mls_values)
+        picking.button_validate()   #Ensure all quantity received correctly
+        self.assertEqual(len(picking.move_line_ids), 12)
+        self.assertEqual(sorted(picking.move_line_ids.mapped("lot_name")), lot_names)
+        self.assertEqual(picking.move_line_ids.mapped("product_uom_qty"), [0.0] * 12) #0.0 
+        self.assertEqual(picking.move_line_ids.mapped("qty_done"), lot_quantities)    #0.1
