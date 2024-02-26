@@ -65,6 +65,7 @@ class StockPicking(models.Model):
                     product = move.product_id
 
                     if product not in stock_for_products.keys():
+                        # TODO: does not take into account stock in blocked locations
                         stock_for_products[product] = Quant.get_available_quantity(
                             product,
                             location,
@@ -214,7 +215,7 @@ class StockPicking(models.Model):
                 raise_usererrors=using_wizard,
             )()
             tries = data.get("tries")
-            processed |= data.get("newly_processed")
+            processed |= data.get("newly_processed", pickings)
             if tries == -1:
                 continue
             if tries >= MAX_TRIES_ON_CONCURRENCY_FAILURE:
