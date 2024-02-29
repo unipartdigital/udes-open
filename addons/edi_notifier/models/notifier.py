@@ -158,7 +158,7 @@ class EdiNotifier(models.Model):
     def action_view_cron(self):
         """View scheduled jobs"""
         self.ensure_one()
-        action = self.env.ref("edi.cron_action").read()[0]
+        action = self.env["ir.actions.actions"]._for_xml_id("edi.cron_action")
         action["domain"] = [
             ("state", "=", "edi_notifier"),
             ("edi_notifier_id", "=", self.id),
