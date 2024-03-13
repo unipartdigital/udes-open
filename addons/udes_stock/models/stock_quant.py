@@ -115,3 +115,34 @@ class StockQuant(models.Model):
             quants.mapped("reserved_quantity")
         )
         return available_quantity
+
+    def get_move_lines(self, aux_domain=None):
+        """Get the move lines associated with a quant
+        :param aux_domain: Extra domain arguments to add to the search
+        :returns: Associated move lines
+        """
+        self.ensure_one()
+        MoveLine = self.env["stock.move.line"]
+        domain = self.get_move_lines_domain(aux_domain=aux_domain)
+        return MoveLine.search(domain)
+
+    def get_move_lines_domain(self, aux_domain=None):
+        """
+        Getting the domain in its own method, would be easier to reuse it when we need just domain
+        and example to execute search_read or search method.
+        It can be easier even if is needed to extend it with super without having to extend with
+        aux_domain optional parameter
+        """
+        self.ensure_one()
+        
+        domain = [
+            ("product_id", "=", self.product_id.id),
+            ("package_id", "=", self.package_id.id),
+            ("location_id", "=", self.location_id.id),
+            ("lot_id", "=", self.lot_id.id),
+            ("owner_id", "=", self.owner_id.id),
+        ]
+        if aux_domain is not None:
+            domain.extend(aux_domain)
+        return domain
+
