@@ -839,10 +839,15 @@ class StockPicking(models.Model):
             raise ValidationError(_("Wrong state %s for %s") % (self.state, self.log_name()))
 
     def add_unexpected_parts(self, product_quantities):
-        """TODO not needed for now, add to readme when implemented
-        return new mls?
-        """
-        raise ValidationError(_("Cannot handle over receiving!"))
+        """Create a new move"""
+        old_mls = self.move_line_ids
+        move_values = self._prepare_move(self, product_quantities)
+        new_moves = self._create_move(move_values)
+        new_moves._action_confirm()
+        if self.picking_type_id.code != "incoming":
+            new_moves._action_assign()
+        new_mls = self.move_line_ids - old_mls
+        return new_mls
 
     def _create_own_procurement_group(self):
         """Create a procurement group for self with the same name as self."""
