@@ -272,7 +272,7 @@ class StockMoveLine(models.Model):
             domain += aux_domain
         return StockMoveLine.search(domain, order=order)
 
-    def _find_move_lines(self, uom_qty, product, package=None, lot_name=None, location=None):
+    def _find_move_lines(self, uom_qty, product, package=None, lot_name=None, location=None, picking=None):
         """Find a subset of move lines from self matching the subset of the key:
         product, package, lot and location.
         """
@@ -290,7 +290,11 @@ class StockMoveLine(models.Model):
         mls_fulfill, new_ml, uom_qty = mls.move_lines_for_qty(uom_qty)
         if uom_qty > 0:
             # TODO: when implementing add_unexpected_parts() review if this is the best place
-            mls_fulfill |= self.picking_id.add_unexpected_parts(uom_qty)
+            products_quantities = [[{"product":product, "uom_qty": uom_qty},],]
+            if picking: 
+                mls_fulfill |= picking.add_unexpected_parts(products_quantities)
+            else:
+                mls_fulfill |= self.picking_id.add_unexpected_parts(products_quantities)
         return mls_fulfill, new_ml
 
     def prepare(
@@ -383,7 +387,7 @@ class StockMoveLine(models.Model):
                     if float_compare(quantity_fulfilled, quantity, precision_rounding=rounding) == 0:
                         break
             else:
-                prod_mls, new_ml = mls._find_move_lines(qty_done, product, package, None, location)
+                prod_mls, new_ml = mls._find_move_lines(qty_done, product, package, None, location, picking=self.picking_id)
                 prod_dict = {"qty_done": qty_done}
                 prod_dict.update(vals)
                 res[prod_mls] = prod_dict

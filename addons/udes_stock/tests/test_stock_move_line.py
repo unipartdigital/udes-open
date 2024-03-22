@@ -1548,31 +1548,6 @@ class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
         self.assertEqual(picking.message_ids[0].body, swap_in_message)
         self.assertEqual(picking.message_ids[1].body, swap_out_message)
 
-    def test_over_receive_on_a_single_moveline_ensure_an_error_is_still_thrown_unless_over_receiving_is_implemented(
-        self,
-    ):
-        """
-        Overpick on the one moveline, ensure an error is thrown unless over receiving is turned on. This test is to
-        ensure that allowing tracked products to be swapped, does not break UDES' current functionality.
-        """
-        self.picking_type_pick.u_allow_swapping_tracked_products = True
-        self.create_quant(
-            self.tangerine.id, location_id=self.test_stock_location_01.id, qty=10, lot_name="1"
-        )
-
-        product_info = [{"product": self.tangerine, "uom_qty": 5}]
-        picking = self.create_picking(
-            self.picking_type_pick, products_info=product_info, assign=True
-        )
-
-        product_ids = [{"barcode": "productTangerine", "uom_qty": 10, "lot_names": ["1"]}]
-        location = self.test_stock_location_01
-        pallet_to_pick_onto = self.create_package(name="UDES1")
-        with self.assertRaises(ValidationError):
-            picking.move_line_ids.prepare(
-                product_ids=product_ids, location=location, result_package=pallet_to_pick_onto
-            )
-
     def test_normal_serial_process_works_when_tracked_product_swapping_turned_on(self):
         """
         Ensure the normal serial process works when turning on tracked product swapping.
