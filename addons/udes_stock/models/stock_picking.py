@@ -627,6 +627,38 @@ class StockPicking(models.Model):
         PickingBatch = self.env["stock.picking.batch"]
         PickingBatch.create({"picking_ids": [(6, 0, pickings.ids)]})
 
+    def _prepare_individual_move_values(self, product_info, **kwargs):
+        """
+        Return values for an individual move. This can be extended to provide
+        additional mappings from product_info to move values when calling create_picking()
+        :args:
+            - product_info: dict of move data.
+        :returns:
+            Move values dict
+        """
+        self.ensure_one()
+        product = product_info.get("product")
+        uom_qty = product_info.get("uom_qty") or product_info.get("qty")
+        uom_id = product_info.get("uom_id") or product.uom_id.id
+        expected_date = product_info.get("expected_date")
+        vals = {
+            "product_id": product.id,
+            "name": product.name,
+            "product_uom": uom_id,
+            "product_uom_qty": uom_qty,
+            "location_id": self.location_id.id,
+            "location_dest_id": self.location_dest_id.id,
+            "picking_id": self.id,
+            "priority": self.priority,
+            "picking_type_id": self.picking_type_id.id,
+            "description_picking": product._get_description(self.picking_type_id),
+        }
+        if expected_date:
+            vals.update({"date": expected_date})
+        vals.update(kwargs)
+        return vals
+
+
     def _prepare_move(self, pickings, products_info, **kwargs):
         """Return a list of the move details to be used later in creation of the move(s).
         The purpose of this is to allow for multiple moves to be created at once.
@@ -642,30 +674,9 @@ class StockPicking(models.Model):
         move_values = []
         for i, picking in enumerate(pickings):
             for product_info in products_info[i]:
-                product = product_info.get("product")
-                uom_qty = product_info.get("uom_qty") or product_info.get("qty")
-                uom_id = product_info.get("uom_id") or product.uom_id.id
-                expected_date = product_info.get("expected_date")
-                vals = {
-                    "product_id": product.id,
-                    "name": product.name,
-                    "product_uom": uom_id,
-                    "product_uom_qty": uom_qty,
-                    "location_id": picking.location_id.id,
-                    "location_dest_id": picking.location_dest_id.id,
-                    "picking_id": picking.id,
-                    "priority": picking.priority,
-                    "picking_type_id": picking.picking_type_id.id,
-                    "description_picking": product._get_description(picking.picking_type_id),
-                }
-                if expected_date:
-                    vals.update(
-                        {
-                            "date": expected_date,
-                        }
-                    )
-                vals.update(kwargs)
-                move_values.append(vals)
+                move_values.append(
+                    picking._prepare_individual_move_values(product_info, **kwargs)
+                )
         return move_values
 
     @api.model
