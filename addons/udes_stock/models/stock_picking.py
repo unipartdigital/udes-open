@@ -547,6 +547,7 @@ class StockPicking(models.Model):
         group_id=None,
         confirm=False,
         assign=False,
+        validate=False,
         create_batch=False,
         **kwargs,
     ):
@@ -586,6 +587,9 @@ class StockPicking(models.Model):
 
         if assign:
             pickings.action_assign()
+
+        if validate:
+            pickings.validate_picking(create_backorder=False, force_validate=True)
 
         if create_batch:
             self._create_batch(pickings)
