@@ -10,9 +10,12 @@ class StockPicking(models.Model):
         return self.env.ref("udes_priorities.normal").reference
 
     priority = fields.Selection(selection="get_priorities_for_selection", default=_default_priority)
+    u_priority_id = fields.Many2one(comodel_name="udes_priorities.priority")
+    u_priority_sequence = fields.Integer(
+        string="Priority Sequence", compute="_compute_priority_sequence", store=False
+    )
 
     def _priority_and_priority_group_domain(self, picking_type_ids=None):
-
         domain = []
         if picking_type_ids is None:
             picking_type_ids = []
@@ -44,6 +47,12 @@ class StockPicking(models.Model):
         # _priority_domain and _priority_group_domain may diverge in certain circumstances
         # To allow for this they are proxies to the default function
         return self._priority_and_priority_group_domain(picking_type_ids=picking_type_ids)
+
+    @api.depends("u_priority_id.sequence")
+    def _compute_priority_sequence(self):
+        """Set the sequence associated with a picking's priority."""
+        for record in self.filtered(lambda r: r.state not in ["cancel", "done"]):
+            record.u_priority_sequence = record.u_priority_id.sequence
 
     @api.model
     def get_priorities_for_selection(self):
@@ -158,9 +167,23 @@ class StockPicking(models.Model):
 
     @api.model
     def create(self, values):
+        Priority = self.env["udes_priorities.priority"]
+
         context = {}
         picking_type_id = values.get("picking_type_id", None)
         if picking_type_id:
             context = {"default_picking_type_id": picking_type_id}
+        if "priority" in values:
+            priority = Priority.search([("reference", "=", values["priority"])])
+            values["u_priority_id"] = priority.id
         res = super(StockPicking, self.with_context(**context)).create(values)
         return res
+
+    @api.model
+    def write(self, values):
+        Priority = self.env["udes_priorities.priority"]
+
+        if "priority" in values:
+            priority = Priority.search([("reference", "=", values["priority"])])
+            values["u_priority_id"] = priority.id
+        return super().write(values)
