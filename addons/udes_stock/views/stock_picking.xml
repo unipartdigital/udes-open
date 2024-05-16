@@ -148,7 +148,9 @@
                 Origin also set to readonly unless the picking is in draft state
             -->
             <xpath expr="//field[@name='origin']" position="attributes">
-                <attribute name="attrs">{'readonly': [('state', '!=', 'draft')],  'required': [('picking_type_code', '=', 'incoming')]}</attribute>
+                <attribute name="attrs">{'readonly': [('state', '!=', 'draft')],
+                    'required': [('picking_type_code', '=', 'incoming'), ('state', '=', 'draft')]}
+                </attribute>
             </xpath>
 
             <xpath expr="//field[@name='date_done']" position="attributes">
