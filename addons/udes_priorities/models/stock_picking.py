@@ -12,7 +12,7 @@ class StockPicking(models.Model):
     priority = fields.Selection(selection="get_priorities_for_selection", default=_default_priority)
     u_priority_id = fields.Many2one(comodel_name="udes_priorities.priority")
     u_priority_sequence = fields.Integer(
-        string="Priority Sequence", compute="_compute_priority_sequence", store=False
+        string="Priority Sequence", compute="_compute_priority_sequence", store=True
     )
 
     def _priority_and_priority_group_domain(self, picking_type_ids=None):
