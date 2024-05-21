@@ -1,6 +1,9 @@
 from odoo import fields, models, api, _
 from collections import defaultdict, OrderedDict
 
+# N.B. Custom field.
+from ..fields import Integer
+
 
 class StockPicking(models.Model):
     _inherit = "stock.picking"
@@ -11,7 +14,7 @@ class StockPicking(models.Model):
 
     priority = fields.Selection(selection="get_priorities_for_selection", default=_default_priority)
     u_priority_id = fields.Many2one(comodel_name="udes_priorities.priority")
-    u_priority_sequence = fields.Integer(
+    u_priority_sequence = Integer(
         string="Priority Sequence", compute="_compute_priority_sequence", store=True
     )
 
