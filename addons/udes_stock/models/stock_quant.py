@@ -108,7 +108,7 @@ class StockQuant(models.Model):
         Quant = self.env["stock.quant"]
 
         product.ensure_one()
-        domain = [("product_id", "=", product.id), ("location_id", "child_of", locations.ids)]
+        domain = self.get_available_qty_domain(product, locations)
         quants = self.search(domain).with_context(prefetch_fields=False)
         quants.read(["quantity", "reserved_quantity"], load="_classic_write")
         available_quantity = sum(quants.mapped("quantity")) - sum(
@@ -146,3 +146,6 @@ class StockQuant(models.Model):
             domain.extend(aux_domain)
         return domain
 
+    @api.model
+    def get_available_qty_domain(self, product, locations):
+        return [("product_id", "=", product.id), ("location_id", "child_of", locations.ids)]
