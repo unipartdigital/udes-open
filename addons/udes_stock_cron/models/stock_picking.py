@@ -65,7 +65,6 @@ class StockPicking(models.Model):
                     product = move.product_id
 
                     if product not in stock_for_products.keys():
-                        # TODO: does not take into account stock in blocked locations
                         stock_for_products[product] = Quant.get_available_quantity(
                             product,
                             location,
