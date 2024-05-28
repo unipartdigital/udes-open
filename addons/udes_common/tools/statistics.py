@@ -49,7 +49,7 @@ class Statistics(object):
             for field, records in self.env.cache._data.items():
                 ids[field.model_name].update(k for k, v in records.items() if v)
         cache = CacheMetrics(self.env[k].browse(v) for k, v in ids.items())
-        return Metrics(time=time.time(), count=self.env.cr.sql_log_count, cache=cache)
+        return Metrics(time=time.perf_counter(), count=self.env.cr.sql_log_count, cache=cache)
 
     def start(self):
         """Start profiling"""
