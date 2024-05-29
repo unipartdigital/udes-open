@@ -13,7 +13,9 @@ class StockPicking(models.Model):
         return self.env.ref("udes_priorities.normal").reference
 
     priority = fields.Selection(selection="get_priorities_for_selection", default=_default_priority)
-    u_priority_id = fields.Many2one(comodel_name="udes_priorities.priority")
+    u_priority_id = fields.Many2one(
+        comodel_name="udes_priorities.priority", compute="_compute_priority_id", store=True
+    )
     u_priority_sequence = Integer(
         string="Priority Sequence", compute="_compute_priority_sequence", store=True
     )
@@ -50,6 +52,14 @@ class StockPicking(models.Model):
         # _priority_domain and _priority_group_domain may diverge in certain circumstances
         # To allow for this they are proxies to the default function
         return self._priority_and_priority_group_domain(picking_type_ids=picking_type_ids)
+
+    @api.depends('priority')
+    def _compute_priority_id(self):
+        Priorities = self.env["udes_priorities.priority"]
+
+        for record in self:
+            priority = Priorities.search([('reference', '=', record.priority)])
+            record.u_priority_id = priority
 
     @api.depends("u_priority_id.sequence")
     def _compute_priority_sequence(self):
@@ -176,17 +186,5 @@ class StockPicking(models.Model):
         picking_type_id = values.get("picking_type_id", None)
         if picking_type_id:
             context = {"default_picking_type_id": picking_type_id}
-        if "priority" in values:
-            priority = Priority.search([("reference", "=", values["priority"])])
-            values["u_priority_id"] = priority.id
         res = super(StockPicking, self.with_context(**context)).create(values)
         return res
-
-    @api.model
-    def write(self, values):
-        Priority = self.env["udes_priorities.priority"]
-
-        if "priority" in values:
-            priority = Priority.search([("reference", "=", values["priority"])])
-            values["u_priority_id"] = priority.id
-        return super().write(values)
