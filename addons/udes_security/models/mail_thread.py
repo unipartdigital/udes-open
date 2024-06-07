@@ -17,7 +17,7 @@ class MailThread(models.AbstractModel):
             values_list = [values_list]
 
         for vals in values_list:
-            body_content = vals.get('body', False)
+            body_content = str(vals.get("body", ""))
             #NOTE: not easy to distinguish email/Send message/Log note
             #Strip prevented html tags before storing to DB
             if '<' in body_content and '>' in body_content:
