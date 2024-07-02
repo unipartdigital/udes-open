@@ -167,6 +167,20 @@ class UdesPriority(models.Model):
                 raise UserError(message)
 
     @api.multi
+    def propagate_sequence_to_pickings(self, sequence):
+        """
+        Propagate sequence changes to all relevant stock transfers with the current priority.
+        Done and Cancelled transfers are excluded for audit traceability.
+        """
+        StockPicking = self.env["stock.picking"]
+        for priority in self:
+            pickings_to_update = StockPicking.search([
+                ("priority", "=", priority.reference),
+                ("state", "in", ["assigned", "confirmed", "draft", "waiting"])
+            ])
+            pickings_to_update.write({"u_priority_sequence": sequence})
+
+    @api.multi
     def write(self, values):
         if any(k in FORBIDDEN_FIELDS for k in values):
             if self._is_install_mode():
@@ -178,6 +192,8 @@ class UdesPriority(models.Model):
         else:
             if any(k in PROTECTED_FIELDS for k in values):
                 raise UserError("You do not have the rights for making changes.")
+        if "sequence" in values:
+            self.propagate_sequence_to_pickings(values["sequence"])
         return super().write(values)
 
     @api.multi

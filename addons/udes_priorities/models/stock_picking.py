@@ -1,5 +1,5 @@
 from odoo import fields, models, api, _
-from collections import defaultdict, OrderedDict
+from collections import OrderedDict
 
 # N.B. Custom field.
 from ..fields import Integer
@@ -13,12 +13,7 @@ class StockPicking(models.Model):
         return self.env.ref("udes_priorities.normal").reference
 
     priority = fields.Selection(selection="get_priorities_for_selection", default=_default_priority)
-    u_priority_id = fields.Many2one(
-        comodel_name="udes_priorities.priority", compute="_compute_priority_id", store=True
-    )
-    u_priority_sequence = Integer(
-        string="Priority Sequence", compute="_compute_priority_sequence", store=True
-    )
+    u_priority_sequence = Integer(string="Priority Sequence")
 
     def _priority_and_priority_group_domain(self, picking_type_ids=None):
         domain = []
@@ -52,20 +47,6 @@ class StockPicking(models.Model):
         # _priority_domain and _priority_group_domain may diverge in certain circumstances
         # To allow for this they are proxies to the default function
         return self._priority_and_priority_group_domain(picking_type_ids=picking_type_ids)
-
-    @api.depends('priority')
-    def _compute_priority_id(self):
-        Priorities = self.env["udes_priorities.priority"]
-
-        for record in self:
-            priority = Priorities.search([('reference', '=', record.priority)])
-            record.u_priority_id = priority
-
-    @api.depends("u_priority_id.sequence")
-    def _compute_priority_sequence(self):
-        """Set the sequence associated with a picking's priority."""
-        for record in self.filtered(lambda r: r.state not in ["cancel", "done"]):
-            record.u_priority_sequence = record.u_priority_id.sequence
 
     @api.model
     def get_priorities_for_selection(self):
@@ -181,10 +162,20 @@ class StockPicking(models.Model):
     @api.model
     def create(self, values):
         Priority = self.env["udes_priorities.priority"]
-
         context = {}
         picking_type_id = values.get("picking_type_id", None)
         if picking_type_id:
             context = {"default_picking_type_id": picking_type_id}
+        if "priority" in values:
+            priority = Priority.search([('reference', '=', values["priority"])])
+            values["u_priority_sequence"] = priority.sequence
         res = super(StockPicking, self.with_context(**context)).create(values)
         return res
+
+    @api.multi
+    def write(self, values):
+        Priority = self.env["udes_priorities.priority"]
+        if "priority" in values:
+            priority = Priority.search([('reference', '=', values["priority"])])
+            values["u_priority_sequence"] = priority.sequence
+        return super().write(values)
