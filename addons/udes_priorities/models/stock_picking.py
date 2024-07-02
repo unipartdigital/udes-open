@@ -1,9 +1,6 @@
 from odoo import fields, models, api, _
 from collections import OrderedDict
 
-# N.B. Custom field.
-from ..fields import Integer
-
 
 class StockPicking(models.Model):
     _inherit = "stock.picking"
@@ -13,7 +10,7 @@ class StockPicking(models.Model):
         return self.env.ref("udes_priorities.normal").reference
 
     priority = fields.Selection(selection="get_priorities_for_selection", default=_default_priority)
-    u_priority_sequence = Integer(string="Priority Sequence")
+    u_priority_sequence = fields.Integer(string="Priority Sequence")
 
     def _priority_and_priority_group_domain(self, picking_type_ids=None):
         domain = []
