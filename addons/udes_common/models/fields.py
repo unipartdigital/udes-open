@@ -10,7 +10,7 @@ DATETIME_LENGTH = len(datetime.now().strftime(DATETIME_FORMAT))
 class PreciseDatetime(fields.Datetime):
     """Store microsecond-precision timestamps."""
 
-    type = "datetime"
+    type = "precise_datetime"
     column_type = ("timestamp", "timestamp")
     column_cast_from = ("date",)
 

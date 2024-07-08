@@ -6,7 +6,9 @@
     "website": "http://github/unipartdigital/udes-open",
     "category": "UDES",
     "version": "0.1",
-    "depends": ["base"],
-    "data": [],
+    "depends": ["base", "web"],
+    "data": [
+        "views/assets.xml",
+    ],
     "demo": [],
 }
