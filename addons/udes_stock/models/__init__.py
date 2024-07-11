@@ -26,3 +26,4 @@ from . import stock_quant_package
 from . import stock_warehouse
 from . import stock_warehouse_orderpoint
 from . import models
+from . import fields

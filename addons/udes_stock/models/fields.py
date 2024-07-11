@@ -1,0 +1,62 @@
+"""Custom field types for the UDES Kafka Events package."""
+
+import datetime as dt
+
+from odoo import fields
+
+
+DATE_LENGTH = fields.DATE_LENGTH
+DATETIME_FORMAT = fields.DATETIME_FORMAT + ".%f"
+DATETIME_LENGTH = len(dt.datetime.now().strftime(DATETIME_FORMAT))
+
+
+class PreciseDatetime(fields.Datetime):
+    """Store microsecond-precision timestamps."""
+
+    type = "precise_datetime"
+    column_type = ("timestamp", "timestamp")
+    column_cast_from = ("date",)
+
+    @staticmethod
+    def now(*args):
+        """ Return the current day and time in the format expected by the ORM.
+            This function may be used to compute default values.
+        """
+        return dt.datetime.now().strftime(DATETIME_FORMAT)
+
+    @staticmethod
+    def from_string(value):
+        """ Convert an ORM ``value`` into a :class:`datetime` value. """
+        if not value:
+            return None
+        value = value[:DATETIME_LENGTH]
+        if len(value) == DATE_LENGTH:
+            value += " 00:00:00.000000"
+        return dt.datetime.strptime(value, DATETIME_FORMAT)
+
+    @staticmethod
+    def to_string(value):
+        """ Convert a :class:`datetime` value into the format expected by the ORM. """
+        return value.strftime(DATETIME_FORMAT) if value else False
+
+    def convert_to_column(self, value, record, values=None):
+        return super(PreciseDatetime, self).convert_to_column(value or None, record, values)
+
+    def convert_to_cache(self, value, record, validate=True):
+        if not value:
+            return False
+        if isinstance(value, fields.pycompat.string_types):
+            if validate:
+                # force parsing for validation
+                self.from_string(value)
+            value = value[:DATETIME_LENGTH]
+            if len(value) == DATE_LENGTH:
+                value += " 00:00:00.000000"
+            return value
+        return self.to_string(value)
+
+    def convert_to_display_name(self, value, record):
+        assert record, "Record expected"
+        return PreciseDatetime.to_string(
+            PreciseDatetime.context_timestamp(record, PreciseDatetime.from_string(value))
+        )

@@ -2,6 +2,7 @@
 
 from odoo.exceptions import ValidationError
 from odoo.tools.translate import _
+from .datetime import format_iso_datetime
 
 
 def get_printer_by_barcode(env, barcode):

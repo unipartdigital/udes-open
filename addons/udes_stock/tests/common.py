@@ -1,4 +1,6 @@
 from odoo.tests import common
+from ..tools.datetime import format_iso_datetime
+from ..models.fields import PreciseDatetime
 
 SECURITY_GROUPS = [
     ('inbound', 'udes_stock.group_inbound_user'),
@@ -215,7 +217,8 @@ class UnconfiguredBaseUDES(common.SavepointCase):
         }
         cls.stock_manager = cls.create_user_with_group(**stock_manager_params)
 
-
+    def datetime_format(self, date):
+        return format_iso_datetime(PreciseDatetime.from_string(date))
 
     @classmethod
     def create_inventory_line(cls, inventory, product, **kwargs):
