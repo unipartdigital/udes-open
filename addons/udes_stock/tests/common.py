@@ -4,6 +4,7 @@ from datetime import timedelta
 from itertools import count
 
 import logging
+from unittest.mock import patch
 
 _logger = logging.getLogger(__name__)
 
@@ -563,7 +564,15 @@ class UnconfiguredBaseUDES(common.SavepointCase):
 class BaseUDES(UnconfiguredBaseUDES):
     @classmethod
     def setUpClass(cls):
+        """
+        Patching the cursor in order not to commit if in code there are cr.commit()
+        """
         super().setUpClass()
+        patch_cr = patch.object(
+            cls.env.cr, "commit", autospec=True, return_value=None
+        )
+        patch_cr.start()
+        cls.addClassCleanup(patch_cr.stop)
         cls.setup_default_warehouse()
 
 
