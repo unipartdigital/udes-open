@@ -1,28 +1,16 @@
 """Unit tests for stock reservation."""
-from unittest import mock
-
 import logging
 import contextlib
 import uuid
 from unittest import mock
 from odoo.addons.udes_stock.tests.common import BaseUDES
 from odoo.exceptions import UserError
-from odoo.tests import get_db_name
-import odoo
 from datetime import timedelta
 
 
 class TestStockPicking(BaseUDES):
     @classmethod
     def setUpClass(cls):
-        """
-        Need to include methods enter_test_mode() and leave_test_mode()
-        This will allow for the database to be rolled back after the tests are finished
-        Without these methods the database can't be rolledback due to a cr.commit() in the method in test (reserve_stock)
-        """
-        cls.registry = odoo.registry(get_db_name())
-        cls.cr = cls.registry.cursor()
-        cls.registry.enter_test_mode(cls.cr)
         super(TestStockPicking, cls).setUpClass()
 
         Location = cls.env["stock.location"]
@@ -74,11 +62,6 @@ class TestStockPicking(BaseUDES):
             "_find_unreservable_moves",
             return_value=cls.Move.browse(),
         )
-
-    @classmethod
-    def tearDownClass(cls):
-        super(TestStockPicking, cls).tearDownClass()
-        cls.registry.leave_test_mode()
 
     def test_reserve_available_stock(self):
         """
@@ -277,9 +260,7 @@ class ReservationMixin(object):
                     # Run inside a savepoint so that changes to pickings and quants
                     # etc. are reversed after each subtest.
                     self.create_quant(self.apple.id, self.test_stock_location_01.id, initial_qty)
-
-                    with mock.patch.object(self.pick.env.cr, "commit", return_value=None):
-                        self.pick.reserve_stock()
+                    self.pick.reserve_stock()
 
                     quant = self.Quant.search([("reserved_quantity", ">", 0)])
                     self.assertEqual(quant.reserved_quantity, expected)
@@ -429,9 +410,7 @@ class NumReservablePickingsTestCase(BaseUDES, SavepointMixin):
                 # etc. are reversed after each subtest.
                 with self.savepoint():
                     self.picking_type_pick.u_num_reservable_pickings = value
-
-                    with mock.patch.object(self.pick.env.cr, "commit", return_value=None):
-                        self.pick.reserve_stock()
+                    self.pick.reserve_stock()
 
                     self.assertEqual(quant.reserved_quantity, expected)
 
@@ -474,9 +453,7 @@ class ReservationGeneralTestCase(BaseUDES):
 
         batch1.action_confirm()
         batch2.action_confirm()
-
-        with mock.patch.object(self.pick.env.cr, "commit", return_value=None):
-            self.pick.reserve_stock()
+        self.pick.reserve_stock()
 
         self.assertEqual(quant.reserved_quantity, expected)
 
@@ -491,8 +468,7 @@ class ReservationGeneralTestCase(BaseUDES):
         picking2 = self.create_picking(self.picking_type_pick, products_info=demand2, confirm=True)
         picking3 = self.create_picking(self.picking_type_pick, products_info=demand1, confirm=True)
 
-        with mock.patch.object(self.pick.env.cr, "commit", return_value=None):
-            self.pick.reserve_stock()
+        self.pick.reserve_stock()
 
         self.assertEqual(picking1.state, "assigned")
         self.assertEqual(picking2.state, "confirmed")
