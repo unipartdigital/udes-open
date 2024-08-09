@@ -568,9 +568,12 @@ class BaseUDES(UnconfiguredBaseUDES):
         Patching the cursor in order not to commit if in code there are cr.commit()
         """
         super().setUpClass()
-        patcher = patch("odoo.sql_db.Cursor.commit", autospec=True, return_value=None)
-        patcher.start()
-        cls.addClassCleanup(patcher.stop)
+        # Patching the cursor in order not to commit if in code there are cr.commit()
+        patch_cr = patch.object(
+            cls.env.cr, "commit", autospec=False, return_value=None
+        )
+        patch_cr.start()
+        cls.addClassCleanup(patch_cr.stop)
         cls.setup_default_warehouse()
 
 
