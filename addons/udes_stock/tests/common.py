@@ -568,8 +568,9 @@ class BaseUDES(UnconfiguredBaseUDES):
         Patching the cursor in order not to commit if in code there are cr.commit()
         """
         super().setUpClass()
+        # Patching the cursor in order not to commit if in code there are cr.commit()
         patch_cr = patch.object(
-            cls.env.cr, "commit", autospec=True, return_value=None
+            cls.env.cr, "commit", autospec=False, return_value=None
         )
         patch_cr.start()
         cls.addClassCleanup(patch_cr.stop)
