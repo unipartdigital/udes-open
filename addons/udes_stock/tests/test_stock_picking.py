@@ -1962,10 +1962,12 @@ class TestStockPickingPriorities(common.BaseUDES):
         pick.unlink()
         self.assertFalse(pick.exists())
 
-    def test_picking_cannot_be_deleted_outside_draft(self):
+    def test_picking_cannot_be_deleted_outside_draft_for_non_trusted_users(self):
         """
-        Test that a picking cannot be deleted in states: confirmed, waiting, assigned, done, cancel
+        Test that a picking cannot be deleted in states: confirmed, waiting, assigned, done,
+        cancel for non-trusted users.
         """
+        self.env.user.groups_id -= self.env.ref("udes_security.group_trusted_user")
         pick = self.create_picking(
             picking_type=self.picking_type_pick,
             products_info=[{"product": self.fig, "uom_qty": 10}],
@@ -2005,10 +2007,30 @@ class TestStockPickingPriorities(common.BaseUDES):
         with self.assertRaises(UserError):
             pick.unlink()
 
+    def test_picking_can_be_deleted_with_trusted_users(self):
+        """
+        Test that a picking can be deleted with trusted users
+        """
+        self.env.user.groups_id += self.env.ref("udes_security.group_trusted_user")
+        pick = self.create_picking(
+            picking_type=self.picking_type_pick,
+            products_info=[{"product": self.fig, "uom_qty": 10}],
+            location_id=self.test_stock_location_02.id,
+            confirm=False,
+            assign=False,
+            priority="0",
+        )
+        pick.action_cancel()
+        self.assertEqual(pick.state, "cancel")
+        pick.unlink()
+        self.assertFalse(pick.exists())
+
     def test_picking_can_be_deleted_with_bypass_state_check(self):
         """
         Test that a picking can be deleted with context variable
         """
+        # Making sure is not a trusted user
+        self.env.user.groups_id -= self.env.ref("udes_security.group_trusted_user")
         pick = self.create_picking(
             picking_type=self.picking_type_pick,
             products_info=[{"product": self.fig, "uom_qty": 10}],

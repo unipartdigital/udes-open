@@ -1104,6 +1104,9 @@ class StockPicking(models.Model):
         Override unlink to ensure that if bypass_state_check context isn't set and there are
         transfers in state different from draft to raise  error with appropriate message.
         """
+        # Set always the bypass_state_check to True if is a trusted user.
+        if self.env.user.u_is_trusted_user:
+            self = self.with_context(bypass_state_check=True)
         if not self._context.get("bypass_state_check"):
             non_draft_picks = self.filtered(lambda p: p.state != "draft")
             if non_draft_picks:
