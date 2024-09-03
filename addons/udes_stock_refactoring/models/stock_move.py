@@ -117,7 +117,9 @@ class StockMove(models.Model):
                         f"Refactoring {picking_type.name} at {stage} "
                         f"using {refactor_class.name()}: {stage_moves.ids}",
                     )
-
+                    # Setting remove_related_moves context to True, used when unlinking the
+                    # refactored moves in order to remove the previous and next pickings unlinking.
+                    stage_moves = stage_moves.with_context(remove_related_moves=True)
                     new_moves = refactor_class.do_refactor(stage_moves)
 
                     # Merge possible moves (same group/location/destination/product...) and their

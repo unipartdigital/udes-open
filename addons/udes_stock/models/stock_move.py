@@ -386,6 +386,20 @@ class StockMove(models.Model):
 
         return new_move
 
+    def _clean_merged(self):
+        """
+        Remove related moves of the moves that will be cancelled and unlinked after to not
+        propagate cancellation on the related moves.
+
+        Remove related moves if method is triggered by refactoring.
+        """
+        super()._clean_merged()
+        if self._context.get("remove_related_moves"):
+            self.write({
+                "move_dest_ids": [(5,)],
+                "move_orig_ids": [(5,)],
+            })
+
     def _make_mls_comparison_lambda(self, move_line):
         """
         This makes the lambda for checking the move_line against move_origin_ids
