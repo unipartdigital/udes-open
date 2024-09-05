@@ -3,7 +3,7 @@ from datetime import datetime
 import logging
 
 from odoo import models, fields, api, _
-from odoo.tools.float_utils import float_compare, float_round
+from odoo.tools.float_utils import float_compare, float_round, float_is_zero
 from itertools import groupby
 from operator import itemgetter
 from odoo.osv import expression
@@ -77,19 +77,25 @@ class StockMoveLine(models.Model):
         """Return the move lines in self that are not completed,
         i.e., 0 < quantity done < quantity to do
         """
-        return self.filtered(lambda ml: 0 < ml.qty_done < ml.product_uom_qty)
+        return self.filtered(
+            lambda ml: ml.qty_done > 0
+            and float_compare(
+                ml.qty_done, ml.product_uom_qty, precision_rounding=ml.product_uom_id.rounding
+            )
+            < 0
+        )
 
     def get_lines_incomplete(self):
         """Return the move lines in self that are not completed,
         i.e., quantity done < quantity to do
         """
-        return self.filtered(lambda ml: ml.qty_done < ml.product_uom_qty)
+        return self.filtered(lambda ml: float_compare(ml.qty_done, ml.product_uom_qty, precision_rounding=ml.product_uom_id.rounding) < 0)
 
     def get_lines_done(self):
         """Return the move lines in self that are completed,
         i.e., quantity done >= quantity to do
         """
-        return self.filtered(lambda ml: ml.qty_done >= ml.product_uom_qty)
+        return self.filtered(lambda ml: float_compare(ml.qty_done, ml.product_uom_qty, precision_rounding=ml.product_uom_id.rounding) >= 0)
 
     def move_lines_for_qty(self, uom_qty, sort=True):
         """
@@ -109,7 +115,7 @@ class StockMoveLine(models.Model):
 
         if sort:
             sorted_mls = self.sorted(lambda ml: ml.product_uom_qty, reverse=True)
-            greater_equal_mls = sorted_mls.filtered(lambda ml: ml.product_uom_qty >= uom_qty)
+            greater_equal_mls = sorted_mls.filtered(lambda ml: float_compare(ml.product_uom_qty, uom_qty, precision_rounding=ml.product_uom_id.rounding) >= 0)
             # last one will be at least equal
             mls = greater_equal_mls[-1] if greater_equal_mls else sorted_mls
         else:
@@ -123,7 +129,7 @@ class StockMoveLine(models.Model):
                 uom_qty = 0
             else:
                 uom_qty -= ml.product_uom_qty
-            if uom_qty == 0:
+            if float_is_zero(uom_qty, precision_rounding=ml.product_uom_id.rounding):
                 break
 
         return result, new_ml, uom_qty
