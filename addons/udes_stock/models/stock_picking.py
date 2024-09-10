@@ -465,17 +465,8 @@ class StockPicking(models.Model):
         when the button is clicked.
         Normally should not be any move lines, adding extra safety just in case in an
         unknown scenario there are move lines.
-        Additionally, Ensures that the Delivery Control process is completed before setting the picking to draft. 
-        This is triggered if there is a linked delivery control and its state is not "done".
         """
         self.ensure_one()
-
-        if (
-            self.u_delivery_control_picking_id
-            and self.u_delivery_control_picking_id.state != "done"
-        ):
-            raise UserError("Complete the delivery control process first.")
-
         if self.state in ("waiting", "confirmed") and not self.move_line_ids:
             self.move_lines.write({"state": "draft"})
 
