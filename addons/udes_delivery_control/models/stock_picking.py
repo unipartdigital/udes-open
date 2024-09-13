@@ -1,5 +1,6 @@
 from odoo import fields, models, api
 from odoo.addons.udes_stock import utils
+from odoo.exceptions import UserError
 
 EXTRA_FIELDS = {
     "u_user_id",
@@ -383,3 +384,21 @@ class StockPicking(models.Model):
                     "Lane", self.u_delivery_control_picking_id.u_lane_number
                 )
         return pick_details
+
+    def button_draft(self):
+        """
+        Ensures that the Delivery Control process is completed before setting the picking to draft. 
+        This is triggered if there is a linked delivery control and its state is not "done".
+        """
+        self.ensure_one()
+
+        if (
+            self.u_delivery_control_picking_id
+            and self.u_delivery_control_picking_id.state != "done"
+        ):
+            raise UserError(
+                "Complete the delivery control process for '%s' first." 
+                % self.u_delivery_control_picking_id.name
+            )
+        
+        return super(StockPicking, self).button_draft()
