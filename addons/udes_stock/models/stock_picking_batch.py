@@ -1125,7 +1125,7 @@ class StockPickingBatch(models.Model):
         if raise_stock_investigation:
             # By default the pick is unreserved
             to_investigate.with_context(
-                lock_batch_state=True, allow_partial=allow_partial
+                lock_batch_state=True, allow_partial=allow_partial,disable_move_refactor=True
             ).raise_stock_inv(reason=reason, quants=quants, location=location)
             # Trigger refactor here to allow grouping of pickings by move key on confirm
             # Need to loop over the pickings from the refactored moves as they might be
