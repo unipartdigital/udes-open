@@ -1525,7 +1525,8 @@ class StockPicking(models.Model):
             if text:
                 pick.message_post(body=text)
 
-            pick.do_unreserve()
+            pick.with_context(disable_move_refactor=True).do_unreserve()
+
 
     def action_confirm(self):
         """
