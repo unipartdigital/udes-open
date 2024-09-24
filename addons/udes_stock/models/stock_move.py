@@ -545,3 +545,25 @@ class StockMove(models.Model):
         """
         super()._action_assign()
         return self
+
+    def _action_confirm(self, merge=True, merge_into=False):
+        """
+        Assign procurement group for moves where picking type create procurement groups is enabled
+        """
+        Procurement = self.env["procurement.group"]
+
+        for move in self.filtered(
+            lambda mv: mv.picking_type_id.u_create_procurement_group and not mv.group_id
+        ):
+            procurement_name = move.prepare_procurement_name()
+            if procurement_name:
+                group = Procurement.get_or_create(procurement_name, create=True)
+                move.group_id = group.id
+        return super()._action_confirm(merge=merge, merge_into=merge_into)
+
+    def prepare_procurement_name(self):
+        """
+        Preparing the procurement name from the move
+        """
+        self.ensure_one()
+        return self.picking_id.name

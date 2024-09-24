@@ -860,29 +860,10 @@ class StockPicking(models.Model):
         new_mls = self.move_line_ids - old_mls
         return new_mls
 
-    def _create_own_procurement_group(self):
-        """Create a procurement group for self with the same name as self."""
-        Procurement = self.env["procurement.group"]
-
-        self.ensure_one()
-        group = Procurement.create({"name": self.name})
-        self.move_lines.write({"group_id": group.id})
-
     def action_cancel(self):
         """Extend to set date_done field when cancelling transfers"""
         res = super().action_cancel()
         self.write({"date_done": fields.Datetime.now()})
-        return res
-
-    def action_confirm(self):
-        """
-        Extend action_confirm to create procurement groups if needed
-        """
-        for pick in self.filtered(
-            lambda p: p.picking_type_id.u_create_procurement_group and not p.group_id
-        ):
-            pick._create_own_procurement_group()
-        res = super().action_confirm()
         return res
 
     def _action_done(self):
