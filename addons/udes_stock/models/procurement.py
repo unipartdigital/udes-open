@@ -18,7 +18,7 @@ class ProcurementGroup(models.Model):
             domain += [('id', 'in', orderpoints)]
         return domain
 
-        
+
 class StockWarehouseOrderPoint(models.Model):
     _inherit = 'stock.warehouse.orderpoint'
 
