@@ -11,12 +11,12 @@ _logger = logging.getLogger(__name__)
 class IrAttachment(models.Model):
     _inherit = "ir.attachment"
 
-    @api.depends("name")
+    @api.depends("mimetype")
     def _compute_file_type(self):
-        """Set file type from filename"""
+        """Set file type from mimetype"""
         for attachment in self:
-            filename = attachment.name or ""
-            attachment.u_file_type = self._get_file_type(filename)
+            mimetype = attachment.mimetype or ""
+            attachment.u_file_type = self._get_file_type(mimetype)
 
     u_file_type = fields.Char("File Type", compute="_compute_file_type", store=True)
     active = fields.Boolean(
@@ -29,12 +29,12 @@ class IrAttachment(models.Model):
     )
 
     @api.model
-    def _get_file_type(self, filename):
-        """Get file type from supplied filename"""
+    def _get_file_type(self, mimetype):
+        """Get file type from supplied mimetype"""
         file_type = ""
 
-        if "." in filename:
-            file_type = filename.split(".")[-1].lower()
+        if "/" in mimetype:
+            file_type = mimetype.split("/")[-1].lower()
 
         return file_type
 
