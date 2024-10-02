@@ -5,6 +5,8 @@ from odoo import api, fields, models, _
 from odoo.exceptions import UserError
 from PIL import Image
 import base64
+import mimetypes
+from odoo.tools.mimetypes import guess_mimetype # Uses python-magic to guess mimetype
 
 _logger = logging.getLogger(__name__)
 
@@ -169,3 +171,29 @@ class IrAttachment(models.Model):
 
         attachments_to_set_inactive = self.search(attachment_domain)
         attachments_to_set_inactive.write({"active": False})
+
+    def _compute_mimetype(self, values):
+        """
+        Override core _compute_mimetype by checking first the content, if not found from file
+        content checking from name or url as in odoo core _compute_mimetype method.
+        """
+        # Compute mimetype from content of the file
+        raw = None
+        mimetype = False
+        if values.get('raw'):
+            raw = values['raw']
+        elif values.get('datas'):
+            raw = base64.b64decode(values['datas'])
+        if raw:
+            mimetype = guess_mimetype(raw)
+        # guess_mimetype checks the content of the file by using python-magic library.
+        if not mimetype or mimetype == "application/octet-stream":
+            # In general python-magic finds the file format, if not found try finding from filename.
+            mimetype = False
+            if values.get("mimetype"):
+                mimetype = values['mimetype']
+            if not mimetype and values.get("name"):
+                mimetype = mimetypes.guess_type(values["name"])[0]
+            if not mimetype and values.get("url"):
+                mimetype = mimetypes.guess_type(values["url"])[0]
+        return mimetype or "application/octet-stream"
