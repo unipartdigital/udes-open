@@ -4,6 +4,7 @@ import io
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
 from PIL import Image
+import base64
 
 _logger = logging.getLogger(__name__)
 
@@ -98,45 +99,47 @@ class IrAttachment(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
-        """Extend to escape filename"""
+        """Extend to escape filename and remove exif data from images"""
+        allowed_image_file_types = ["jpg", "jpeg", "png", "webp"]
+        checked_vals_list = []
         for vals in vals_list:
             if "name" in vals:
                 vals = self._check_contents(vals)
-            if "attachment" in vals and "attachment_filename" in vals:
-                processed_attachment_data = self._process_attachment_data(vals["attachment"])
-                vals["attachment"] = processed_attachment_data
-        return super().create(vals_list)
+            checked_vals_list.append(vals)
+        attachments = super().create(checked_vals_list)
+        for attachment in attachments.filtered(
+                lambda att: att.u_file_type in allowed_image_file_types
+        ):
+            attachment.datas = attachment.with_context(skip_remove_exif=True)._remove_exif_data(
+                attachment.datas
+            )
+        return attachments
 
-    def _process_attachment_data(self, attachment_data):
-        # Check if the attachment is an image based on its file extension
-        allowed_image_extensions = [".jpg", ".jpeg", ".png", ".webp"]
-
-        attachment_name = attachment_data.name.lower()
-        if any(attachment_name.endswith(ext) for ext in allowed_image_extensions):
-            processed_data = self._remove_exif_data(attachment_data)
-            return processed_data
-
-        return attachment_data
-
-    def _remove_exif_data(self, img):
+    def _remove_exif_data(self, datas):
         # Load the image using PIL
-        image = Image.open(io.BytesIO(img))
+        image = Image.open(io.BytesIO(base64.b64decode(datas)))
 
         # Save the image without metadata
         output = io.BytesIO()
         image.save(output, format=image.format)
-
-        return output.getvalue()
+        return base64.b64encode(output.getvalue())
 
     def write(self, vals):
         """Extend to escape filename"""
+        allowed_image_mimetypes = ["image/jpg", "image/jpeg", "image/png", "image/webp"]
         if "name" in vals:
             vals = self._check_contents(vals)
 
         if "active" in vals and not self.env.context.get("skip_active_check"):
             # Prevent user from manually setting attachment to active/inactive
             del vals["active"]
-
+        if (
+            "datas" in vals
+            and "mimetype" in vals
+            and vals["mimetype"] in allowed_image_mimetypes
+            and not self.env.context.get("skip_remove_exif")
+        ):
+            vals["datas"] = self._remove_exif_data(vals["datas"])
         return super().write(vals)
 
     @api.model
