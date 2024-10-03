@@ -4,6 +4,9 @@ import io
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
 from PIL import Image
+import base64
+import mimetypes
+from odoo.tools.mimetypes import guess_mimetype # Uses python-magic to guess mimetype
 
 _logger = logging.getLogger(__name__)
 
@@ -11,12 +14,12 @@ _logger = logging.getLogger(__name__)
 class IrAttachment(models.Model):
     _inherit = "ir.attachment"
 
-    @api.depends("name")
+    @api.depends("mimetype")
     def _compute_file_type(self):
-        """Set file type from filename"""
+        """Set file type from mimetype"""
         for attachment in self:
-            filename = attachment.name or ""
-            attachment.u_file_type = self._get_file_type(filename)
+            mimetype = attachment.mimetype or ""
+            attachment.u_file_type = self._get_file_type(mimetype)
 
     u_file_type = fields.Char("File Type", compute="_compute_file_type", store=True)
     active = fields.Boolean(
@@ -29,12 +32,12 @@ class IrAttachment(models.Model):
     )
 
     @api.model
-    def _get_file_type(self, filename):
-        """Get file type from supplied filename"""
+    def _get_file_type(self, mimetype):
+        """Get file type from supplied mimetype"""
         file_type = ""
 
-        if "." in filename:
-            file_type = filename.split(".")[-1].lower()
+        if "/" in mimetype:
+            file_type = mimetype.split("/")[-1].lower()
 
         return file_type
 
@@ -98,45 +101,47 @@ class IrAttachment(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
-        """Extend to escape filename"""
+        """Extend to escape filename and remove exif data from images"""
+        allowed_image_file_types = ["jpg", "jpeg", "png", "webp"]
+        checked_vals_list = []
         for vals in vals_list:
             if "name" in vals:
                 vals = self._check_contents(vals)
-            if "attachment" in vals and "attachment_filename" in vals:
-                processed_attachment_data = self._process_attachment_data(vals["attachment"])
-                vals["attachment"] = processed_attachment_data
-        return super().create(vals_list)
+            checked_vals_list.append(vals)
+        attachments = super().create(checked_vals_list)
+        for attachment in attachments.filtered(
+                lambda att: att.u_file_type in allowed_image_file_types
+        ):
+            attachment.datas = attachment.with_context(skip_remove_exif=True)._remove_exif_data(
+                attachment.datas
+            )
+        return attachments
 
-    def _process_attachment_data(self, attachment_data):
-        # Check if the attachment is an image based on its file extension
-        allowed_image_extensions = [".jpg", ".jpeg", ".png", ".webp"]
-
-        attachment_name = attachment_data.name.lower()
-        if any(attachment_name.endswith(ext) for ext in allowed_image_extensions):
-            processed_data = self._remove_exif_data(attachment_data)
-            return processed_data
-
-        return attachment_data
-
-    def _remove_exif_data(self, img):
+    def _remove_exif_data(self, datas):
         # Load the image using PIL
-        image = Image.open(io.BytesIO(img))
+        image = Image.open(io.BytesIO(base64.b64decode(datas)))
 
         # Save the image without metadata
         output = io.BytesIO()
         image.save(output, format=image.format)
-
-        return output.getvalue()
+        return base64.b64encode(output.getvalue())
 
     def write(self, vals):
         """Extend to escape filename"""
+        allowed_image_mimetypes = ["image/jpg", "image/jpeg", "image/png", "image/webp"]
         if "name" in vals:
             vals = self._check_contents(vals)
 
         if "active" in vals and not self.env.context.get("skip_active_check"):
             # Prevent user from manually setting attachment to active/inactive
             del vals["active"]
-
+        if (
+            "datas" in vals
+            and "mimetype" in vals
+            and vals["mimetype"] in allowed_image_mimetypes
+            and not self.env.context.get("skip_remove_exif")
+        ):
+            vals["datas"] = self._remove_exif_data(vals["datas"])
         return super().write(vals)
 
     @api.model
@@ -166,3 +171,29 @@ class IrAttachment(models.Model):
 
         attachments_to_set_inactive = self.search(attachment_domain)
         attachments_to_set_inactive.write({"active": False})
+
+    def _compute_mimetype(self, values):
+        """
+        Override core _compute_mimetype by checking first the content, if not found from file
+        content checking from name or url as in odoo core _compute_mimetype method.
+        """
+        # Compute mimetype from content of the file
+        raw = None
+        mimetype = False
+        if values.get('raw'):
+            raw = values['raw']
+        elif values.get('datas'):
+            raw = base64.b64decode(values['datas'])
+        if raw:
+            mimetype = guess_mimetype(raw)
+        # guess_mimetype checks the content of the file by using python-magic library.
+        if not mimetype or mimetype == "application/octet-stream":
+            # In general python-magic finds the file format, if not found try finding from filename.
+            mimetype = False
+            if values.get("mimetype"):
+                mimetype = values['mimetype']
+            if not mimetype and values.get("name"):
+                mimetype = mimetypes.guess_type(values["name"])[0]
+            if not mimetype and values.get("url"):
+                mimetype = mimetypes.guess_type(values["url"])[0]
+        return mimetype or "application/octet-stream"

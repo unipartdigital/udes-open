@@ -24,7 +24,7 @@ class TestStrippedExifData(common.SavepointCase):
         return file_path
 
     @classmethod
-    def create_attachment(cls, filename):
+    def get_attachment_datas(cls, filename):
         file_path = cls._get_file_path(filename)
 
         attachment = base64.b64encode(file_path.read_bytes())
@@ -32,13 +32,17 @@ class TestStrippedExifData(common.SavepointCase):
         return attachment
 
     def test_remove_exif_data(self):
-        attachment = self.create_attachment("image_with_exif_data.jpg")
+        attachment_datas = self.get_attachment_datas("image_with_exif_data.jpg")
 
-        original_data = base64.b64decode(attachment)
+        original_data = base64.b64decode(attachment_datas)
         original_image = Image.open(io.BytesIO(original_data))
-
-        processed_data = self.IrAttachment._remove_exif_data(original_data)
-        processed_image = Image.open(io.BytesIO(processed_data))
-
         self.assertIsNotNone(original_image._getexif())
+        # On attachment create automatically removes the exif data
+        attachment = self.IrAttachment.create({
+            "name": "image_with_exif_data.jpg",
+            "datas": attachment_datas,
+        })
+
+        processed_image = Image.open(io.BytesIO(base64.b64decode(attachment.datas)))
+
         self.assertIsNone(processed_image._getexif())

@@ -118,6 +118,12 @@
       <field name="active" eval="True"/>
     </record>
 
+    <record id="udes_allowed_file_type_plain" model="udes.allowed_file_type">
+      <field name="name">plain</field>
+      <field name="description">Plain Text File</field>
+      <field name="active" eval="True"/>
+    </record>
+
   </data>
 
   <data>
