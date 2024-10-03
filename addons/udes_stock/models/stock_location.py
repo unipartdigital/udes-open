@@ -279,22 +279,23 @@ class StockLocation(models.Model):
         Location = self.env["stock.location"]
 
         for record in self:
-            if record.u_is_picking_zone:
-                record.u_picking_zone_id = record.id
-            else:
-                result = Location.search_read(
-                    [("u_is_picking_zone", "=", True), ("id", "parent_of", record.id)], ["id"]
-                )
-                if len(result) == 1:
-                    record.u_picking_zone_id = result[0]["id"]
-                elif len(result) > 1:
-                    # The query result is ordered by name and id, which doesn't
-                    # help us find the closest zone in the hierarchy.
-                    path_ids = list(map(int, filter(None, record.parent_path.split("/"))))
-                    result_ids = [x["id"] for x in result]
-                    record.u_picking_zone_id = max(result_ids, key=path_ids.index)
+            if not isinstance(record.id, models.NewId):
+                if record.u_is_picking_zone:
+                    record.u_picking_zone_id = record.id
                 else:
-                    record.u_picking_zone_id = False
+                    result = Location.search_read(
+                        [("u_is_picking_zone", "=", True), ("id", "parent_of", record.id)], ["id"]
+                    )
+                    if len(result) == 1:
+                        record.u_picking_zone_id = result[0]["id"]
+                    elif len(result) > 1:
+                        # The query result is ordered by name and id, which doesn't
+                        # help us find the closest zone in the hierarchy.
+                        path_ids = list(map(int, filter(None, record.parent_path.split("/"))))
+                        result_ids = [x["id"] for x in result]
+                        record.u_picking_zone_id = max(result_ids, key=path_ids.index)
+                    else:
+                        record.u_picking_zone_id = False
         return
 
     def _set_countable_state(self):
