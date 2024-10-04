@@ -112,9 +112,10 @@ class IrAttachment(models.Model):
         for attachment in attachments.filtered(
                 lambda att: att.u_file_type in allowed_image_file_types
         ):
-            attachment.datas = attachment.with_context(skip_remove_exif=True)._remove_exif_data(
-                attachment.datas
-            )
+            if attachment.datas:
+                attachment.datas = attachment.with_context(skip_remove_exif=True)._remove_exif_data(
+                    attachment.datas
+                )
         return attachments
 
     def _remove_exif_data(self, datas):
