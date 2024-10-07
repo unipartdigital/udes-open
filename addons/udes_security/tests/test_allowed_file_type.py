@@ -121,7 +121,7 @@ class TestAllowedFileType(common.SavepointCase):
         """Assert that creating a file type unblocks those files"""
         self.assertFalse(self.atch_html_file.active)
         # Create HTML allowed file type record, unblocking HTML files
-        self.create_allowed_file_type("svg+xml")
+        self.create_allowed_file_type("html")
         self.assertTrue(self.atch_html_file.active)
 
     def test_attachments_get_blocked_with_inactive_file_types(self):
