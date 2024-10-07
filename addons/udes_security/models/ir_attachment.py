@@ -178,7 +178,16 @@ class IrAttachment(models.Model):
         Override core _compute_mimetype by checking first the content, if not found from file
         content checking from name or url as in odoo core _compute_mimetype method.
         """
-        # Compute mimetype from content of the file
+
+        # If is superuser compute mimetype as it was computed on core odoo, checking the extension
+        # before, for the reason that odoo core js and css files where created with mimetype
+        # text/plain which was bringing error on load of udes. With this change trying to check for
+        # file contents first when uploaded files are done from users and not when are uploaded from
+        # superusers.
+        if self.env.user._is_superuser():
+            return super()._compute_mimetype(values)
+        # Compute mimetype from content of the file when is not ran by superuser first,
+        # later extension if not found from contents.
         raw = None
         mimetype = False
         if values.get('raw'):
