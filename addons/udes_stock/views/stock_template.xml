@@ -6,5 +6,23 @@
                 <strong>The quantity has been updated.</strong>
             </xpath>
         </template>
+        <template id="message_body" inherit_id="stock.message_body">
+            <xpath expr="//li[contains(text(), 'Quantity :')]" position="replace">
+                <t t-if="move.state != 'done'">
+                    <t t-if="'product_uom_qty' in vals">
+                        <li>
+                            Quantity : 
+                            <t t-esc="round(move.product_uom_qty, move.product_uom.u_decimal_places)"/> -&gt; 
+                            <t t-esc="round(vals.get('product_uom_qty'), move.product_uom.u_decimal_places)"/>
+                        </li>
+                    </t>
+                </t>
+                <t t-if="'qty_done' in vals">
+                    <li>
+                        Quantity : <t t-esc="move.qty_done"/> -&gt; <t t-esc="round(vals.get('qty_done'), move.product_uom.u_decimal_places)"/>
+                    </li>
+                </t>
+            </xpath>
+        </template>
     </data>
 </odoo>
