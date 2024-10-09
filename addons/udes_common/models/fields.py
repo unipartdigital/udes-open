@@ -19,7 +19,7 @@ class PreciseDatetime(fields.Datetime):
         """ Return the current day and time in the format expected by the ORM.
             This function may be used to compute default values.
         """
-        return datetime.now().strftime(DATETIME_FORMAT)
+        return datetime.now()
 
     @staticmethod
     def to_datetime(value):
@@ -37,6 +37,9 @@ class PreciseDatetime(fields.Datetime):
         if len(value) == DATE_LENGTH:
             value += " 00:00:00.000000"
         return datetime.strptime(value, DATETIME_FORMAT)
+
+    # Odoo have deprecated from_string in favour of to_datetime
+    from_string = to_datetime
 
     @staticmethod
     def to_string(value):
