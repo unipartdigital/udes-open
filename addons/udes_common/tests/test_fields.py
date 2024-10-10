@@ -38,3 +38,12 @@ class PreciseDatetimeTestCase(SavepointCase):
 
         # Expose the registry model to test methods.
         cls.TestModel = cls.env["udes_common.test_model"]
+
+
+    def test_now_returns_datetime_instance(self):
+        """Our class should return type as the superclass."""
+        imprecise_now = Datetime.now()
+        precise_now = PreciseDatetime.now()
+
+        self.assertTrue(isinstance(imprecise_now, dt.datetime))
+        self.assertTrue(isinstance(precise_now, dt.datetime))

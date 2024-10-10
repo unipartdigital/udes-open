@@ -19,7 +19,7 @@ class PreciseDatetime(fields.Datetime):
         """ Return the current day and time in the format expected by the ORM.
             This function may be used to compute default values.
         """
-        return datetime.now().strftime(DATETIME_FORMAT)
+        return datetime.now()
 
     @staticmethod
     def to_datetime(value):
