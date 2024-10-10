@@ -39,7 +39,6 @@ class PreciseDatetimeTestCase(SavepointCase):
         # Expose the registry model to test methods.
         cls.TestModel = cls.env["udes_common.test_model"]
 
-
     def test_now_returns_datetime_instance(self):
         """Our class should return type as the superclass."""
         imprecise_now = Datetime.now()
@@ -47,3 +46,12 @@ class PreciseDatetimeTestCase(SavepointCase):
 
         self.assertTrue(isinstance(imprecise_now, dt.datetime))
         self.assertTrue(isinstance(precise_now, dt.datetime))
+
+    def test_from_string_can_handle_microseconds(self):
+        """The from string method should handle microseconds."""
+        date_string = '2024-10-10 09:15:05.123'
+        datetime_value = Datetime.from_string(date_string[:4])
+        precise_datetime_value = PreciseDatetime.from_string(date_string)
+
+        self.assertTrue(isinstance(datetime_value, dt.datetime))
+        self.assertTrue(isinstance(precise_datetime_value, dt.datetime))

@@ -38,6 +38,9 @@ class PreciseDatetime(fields.Datetime):
             value += " 00:00:00.000000"
         return datetime.strptime(value, DATETIME_FORMAT)
 
+    # Odoo have deprecated from_string in favour of to_datetime
+    from_string = to_datetime
+
     @staticmethod
     def to_string(value):
         """ Convert a :class:`datetime` value into the format expected by the ORM. """
