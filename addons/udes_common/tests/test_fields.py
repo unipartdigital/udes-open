@@ -23,7 +23,7 @@ class PreciseDatetimeTestCase(SavepointCase):
 
     def test_from_string_can_handle_microseconds(self):
         """The from string method should handle microseconds."""
-        date_string = '2024-10-10 09:15:05.123'
+        date_string = "2024-10-10 09:15:05.123"
         datetime_value = Datetime.from_string(date_string[:4])
         precise_datetime_value = PreciseDatetime.from_string(date_string)
 
