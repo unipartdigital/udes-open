@@ -8,12 +8,12 @@ class EdiSaleRequestDocument(models.AbstractModel):
 
     _inherit = "edi.sale.request.document"
 
-    def report_invalid_records(self, doc):
+    def exist_invalid_records(self, doc):
         """Generate a suffix for the notifier to use if it is a partial success
 
         This function is only called if fail_fast is disabled.
         """
-        res = super().report_invalid_records(doc)
+        res = super().exist_invalid_records(doc)
         if res:
             doc.notifier_subject_suffix = " - with issues"
         else:
