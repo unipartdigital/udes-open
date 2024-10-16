@@ -11,11 +11,11 @@
             <!-- Add Draft option to right panel-->
             <xpath expr="//div[@t-if='record.count_picking_waiting.raw_value > 0']" position="before">
                 <div t-if="record.count_picking_draft.raw_value > 0" class="row">
-                    <div class="col-9">
-                        <a name="get_action_picking_tree_draft" type="object">Draft</a>
-                    </div>
-                    <div class="col-3">
-                        <field name="count_picking_draft"/>
+                    <div class="col-12">
+                        <a name="get_action_picking_tree_draft" type="object">
+                            <field name="count_picking_draft"/>
+                            Draft
+                        </a>
                     </div>
                 </div>
             </xpath>
