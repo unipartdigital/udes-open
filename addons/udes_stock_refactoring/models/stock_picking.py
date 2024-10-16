@@ -158,7 +158,7 @@ class StockPicking(models.Model):
             # After moving move lines check entire packages again just in case
             # some of the move lines are completing packages
             if picking.state != "done":
-                picking._check_entire_pack()
+                picking.with_context(check_mls=move_lines.ids)._check_entire_pack()
 
         return picking
 
