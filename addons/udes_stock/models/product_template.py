@@ -53,6 +53,7 @@ class ProductTemplate(models.Model):
     @api.onchange("tracking")
     @api.constrains("tracking")
     def constrain_tracking(self):
+        return
         for product in self:
             if product.product_variant_ids.has_goods_in_transit_or_stock():
                 # If there is stock, raise an error to prevent changing the tracking
