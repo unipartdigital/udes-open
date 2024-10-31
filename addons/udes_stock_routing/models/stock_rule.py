@@ -36,7 +36,9 @@ class StockRule(models.Model):
             ]
         )
         if push_steps:
-            return push_steps.sorted(key=lambda p: p.location_src_id.parent_path.strip("/").split("/")[-1], reverse=True)[0]
+            to_order = push_steps.filtered(lambda p: p.location_src_id.parent_path)
+            ordered_steps =  to_order.sorted(key=lambda p: p.location_src_id.parent_path.strip("/").split("/")[-1], reverse=True)
+            return ordered_steps[0] if ordered_steps else push_steps[0]
         return self.browse()
 
     def _run_push(self, move):
