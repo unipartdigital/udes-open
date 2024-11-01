@@ -240,9 +240,8 @@ class StockPickingBatch(models.Model):
         if not unready_picks:
             # Nothing to do
             return
-
         # Remove unready pick, if configured.
-        unready_picks.filtered(lambda p: p.picking_type_id.u_remove_unready_batch)
+        unready_picks = unready_picks.filtered(lambda p: p.picking_type_id.u_remove_unready_batch)
         unready_picks.write({"batch_id": False, "u_reserved_pallet": False})
 
     @api.depends("picking_ids.priority")
