@@ -1,5 +1,6 @@
 from odoo import api, models
 from odoo.osv import expression
+from odoo.addons.udes_stock.utils import UDES_STATISTICS_LOG_FORMAT
 import logging
 
 _logger = logging.getLogger(__name__)
@@ -158,7 +159,21 @@ class StockPicking(models.Model):
             # After moving move lines check entire packages again just in case
             # some of the move lines are completing packages
             if picking.state != "done":
-                picking._check_entire_pack()
+                with self.statistics() as stats:
+                    picking.with_context(check_mls=move_lines.ids)._check_entire_pack()
+
+                package_names = ",".join(move_lines.mapped("package_id.name"))
+                # Write the log about checking entire pack time statistics
+                _logger.info(
+                    UDES_STATISTICS_LOG_FORMAT,
+                    move_lines._name,
+                    move_lines.ids,
+                    package_names,
+                    "check_entire_pack",
+                    stats.elapsed,
+                    stats.count,
+                    stats.count / stats.elapsed,
+                )
 
         return picking
 
