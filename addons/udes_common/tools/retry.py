@@ -47,6 +47,9 @@ def odoo_retry(self, func, max_tries, raise_usererrors=True):
             try:
                 with self.env.cr.savepoint():
                     func_data = func(*args, **kwargs)
+                    # TODO a list of tuples would also be acceptable
+                    if not isinstance(func_data, dict):
+                        func_data = {'XXX_result': func_data}
                     all_data.update(func_data)
                     break
             except UserError as e:
@@ -56,7 +59,12 @@ def odoo_retry(self, func, max_tries, raise_usererrors=True):
                 tries = -1
                 break
             except OperationalError as e:
-                self.invalidate_cache()
+                try:
+                    self.invalidate_cache()
+                except AttributeError:
+                    # "self" isin't a model, maybe it's an http request
+                    # maybe this is too heavy?
+                    self.env.cache.invalidate()
                 if e.pgcode not in PG_CONCURRENCY_ERRORS_TO_RETRY:
                     raise
                 if tries >= max_tries:
