@@ -1,6 +1,7 @@
 import html
 import logging
 import io
+import requests
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
 from PIL import Image
@@ -102,15 +103,30 @@ class IrAttachment(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         """Extend to escape filename and remove exif data from images"""
-        allowed_image_file_types = ["jpg", "jpeg", "png", "webp"]
+        allowed_image_mimetypes = ["image/jpg", "image/jpeg", "image/png", "image/webp"]
+
         checked_vals_list = []
         for vals in vals_list:
             if "name" in vals:
                 vals = self._check_contents(vals)
             checked_vals_list.append(vals)
+            if vals.get("url", False):
+                # Restrict URLs to relative paths (starting with "/") or HTTPS (starting with "https://")
+                # This ensures only safe URL types are allowed, preventing schemes like "file://" or "sftp://"
+                # from bypassing security checks.
+                if not (vals["url"].startswith("/") or vals["url"].startswith("https://")):
+                    # Raise an error if URL is not a valid type
+                    raise UserError("Invalid URL: Only secure HTTPS links or relative URLs (starting with '/') are allowed for images. Please update the URL format and try again.")
+                if "mimetype" in vals and vals["mimetype"] in allowed_image_mimetypes:
+                    # Process URL-based image, convert to binary and remove EXIF data
+                    vals["datas"] = self._process_url_image(vals["url"])
+                    vals["name"] = self._extract_filename_from_url(vals["url"])
+                    vals["url"] = False  # Set URL to False as it's now stored in binary
+                    vals["type"] = "binary"  # Change type to 'binary' to reflect new storage format
+
         attachments = super().create(checked_vals_list)
         for attachment in attachments.filtered(
-                lambda att: att.u_file_type in allowed_image_file_types
+                lambda att: att.mimetype in allowed_image_mimetypes
         ):
             if attachment.datas:
                 attachment.datas = attachment.with_context(skip_remove_exif=True)._remove_exif_data(
@@ -127,15 +143,45 @@ class IrAttachment(models.Model):
         image.save(output, format=image.format)
         return base64.b64encode(output.getvalue())
 
+    def _process_url_image(self, url):
+        """Fetch an image from the URL and convert it to binary"""
+        response = requests.get(url, stream=True)
+        response.raise_for_status()
+
+        image_data = base64.b64encode(response.raw.read())
+        return image_data
+
+    def _extract_filename_from_url(self, url):
+        """Extract a filename from the URL"""
+        filename = url.split("/")[-1]
+        return filename if filename else "image.jpg"
+
     def write(self, vals):
         """Extend to escape filename"""
         allowed_image_mimetypes = ["image/jpg", "image/jpeg", "image/png", "image/webp"]
-        if "name" in vals:
+        # If we update the url - recompute the mimetype,
+        # as we may need to download it to sanitise if it has been changed to an image.
+        if "name" in vals or "url" in vals:
             vals = self._check_contents(vals)
 
         if "active" in vals and not self.env.context.get("skip_active_check"):
             # Prevent user from manually setting attachment to active/inactive
             del vals["active"]
+
+        if vals.get("url", False):
+            # Restrict URLs to relative paths (starting with "/") or HTTPS (starting with "https://")
+            # This ensures only safe URL types are allowed, preventing schemes like "file://" or "sftp://"
+            # from bypassing security checks.
+            if not (vals["url"].startswith("/") or vals["url"].startswith("https://")):
+                # Raise an error if URL is not a valid type
+                raise UserError("Invalid URL: Only secure HTTPS links or relative URLs are allowed. Please update the URL format and try again.")
+            if "mimetype" in vals and vals["mimetype"] in allowed_image_mimetypes:
+                # Process URL-based image, convert to binary and remove EXIF data
+                vals["datas"] = self._process_url_image(vals["url"])
+                vals["name"] = self._extract_filename_from_url(vals["url"])
+                vals["url"] = False  # Set URL to False as it's now stored in binary
+                vals["type"] = "binary"  # Change type to 'binary' to reflect new storage format
+
         if (
             "datas" in vals
             and "mimetype" in vals
