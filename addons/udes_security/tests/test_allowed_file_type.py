@@ -8,9 +8,10 @@ from odoo.exceptions import UserError
 from odoo.modules.module import get_resource_from_path, get_resource_path
 from odoo.tests import common, tagged
 from odoo.tools import mute_logger
+from odoo.tools.mimetypes import guess_mimetype
 
 
-@tagged("post_install")
+@tagged("post_install", "-at_install")
 class TestAllowedFileType(common.SavepointCase):
     """
     Check that only the admin user can manage allowed file types and that downloads are blocked
