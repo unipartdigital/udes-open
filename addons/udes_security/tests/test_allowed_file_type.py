@@ -61,9 +61,9 @@ class TestAllowedFileType(common.SavepointCase):
         return user
 
     @classmethod
-    def _get_file_path(self, filename):
+    def _get_file_path(cls, filename):
         """Get file path from supplied filename"""
-        module_file = sys.modules[self.__module__].__file__
+        module_file = sys.modules[cls.__module__].__file__
         module = get_resource_from_path(module_file)[0]
         files_path_str = get_resource_path(module, "tests", "files")
         files_path = pathlib.Path(files_path_str)
@@ -72,18 +72,18 @@ class TestAllowedFileType(common.SavepointCase):
         return file_path
 
     @classmethod
-    def create_attachment(self, filename, user=None, **kwargs):
+    def create_attachment(cls, filename, user=None, **kwargs):
         """
         Create attachment from supplied filename.
 
         Optionally specify user and additional values for the attachment.
         """
-        IrAttachment = self.env["ir.attachment"]
+        IrAttachment = cls.env["ir.attachment"]
 
         if user:
             IrAttachment = IrAttachment.with_user(user)
 
-        file_path = self._get_file_path(filename)
+        file_path = cls._get_file_path(filename)
 
         attachment = IrAttachment.create(
             {"name": file_path.name, "datas": base64.b64encode(file_path.read_bytes())}
@@ -91,13 +91,13 @@ class TestAllowedFileType(common.SavepointCase):
         return attachment
 
     @classmethod
-    def update_attachment(self, attachment, filename, user=None, **kwargs):
+    def update_attachment(cls, attachment, filename, user=None, **kwargs):
         """
         Update attachment data from supplied filename.
 
         Optionally specify user and additional values for the attachment.
         """
-        file_path = self._get_file_path(filename)
+        file_path = cls._get_file_path(filename)
         if user:
             attachment = attachment.with_user(user)
         res = attachment.write(
@@ -108,12 +108,12 @@ class TestAllowedFileType(common.SavepointCase):
         return res
 
     @classmethod
-    def create_allowed_file_type(self, file_type, **kwargs):
+    def create_allowed_file_type(cls, file_type, **kwargs):
         """Create allowed file type record from supplied file type"""
         allowed_file_type_vals = {"name": file_type}
         allowed_file_type_vals.update(kwargs)
 
-        allowed_file_type = self.AllowedFileType.create(allowed_file_type_vals)
+        allowed_file_type = cls.AllowedFileType.create(allowed_file_type_vals)
 
         return allowed_file_type
 
