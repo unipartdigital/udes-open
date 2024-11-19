@@ -2,6 +2,24 @@ from odoo import api, fields, models, SUPERUSER_ID, _
 from odoo.exceptions import UserError
 
 
+class MimeType(models.Model):
+    """Store mime types related to allowed file types."""
+
+    _name = "udes.mimetypes"
+    _description = "Mimetypes related to allowed file types."
+
+    mimetype = fields.Char(
+        string="Name",
+        required=True,
+        help="Name Of a Mime Type",
+    )
+    active = fields.Boolean("Active?", default=True)
+
+    def name_get(self):
+        """Return values for display."""
+        return [(record.id, record.mimetype) for record in self]
+
+
 class AllowedFileType(models.Model):
     """
     Allowed file type which the user can upload and download
@@ -21,6 +39,9 @@ class AllowedFileType(models.Model):
     )
     description = fields.Char("Description")
     active = fields.Boolean("Active?", default=True)
+    mimetype_ids = fields.Many2many(
+        comodel_name="udes.mimetypes",
+    )
 
     def _format_name(self, name):
         """Convert supplied name to lowercase if needed"""
@@ -133,3 +154,17 @@ class AllowedFileType(models.Model):
         self._set_attachments_inactive_from_file_types(file_types)
 
         return res
+
+    def is_allowed(self, name):
+        """Return True if name matches an allowed file type."""
+        allowed_file_type_domain = [("name", "=", name)]
+        return bool(self.search_count(allowed_file_type_domain))
+
+    def exists_mimetype_association(self, file_type, mimetype):
+        """Return True if type / mime type combination exists."""
+        association_domain = [("name", "=", file_type), ("mimetype_ids.mimetype", "=", mimetype)]
+        return bool(self.search(association_domain))
+
+    def get_type_name_from_file_name(self, filename):
+        """Extract type name from a file name, if possible."""
+        return filename.split(".")[-1].lower() if "." in filename else ""

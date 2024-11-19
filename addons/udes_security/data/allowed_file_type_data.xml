@@ -4,118 +4,224 @@
 
   <data noupdate="1">
 
+    <!-- Mimetypes -->
+
+    <record id="udes_mimetype_image_bmp" model="udes.mimetypes">
+      <field name="mimetype">image/bmp</field>
+    </record>
+
+    <!-- GitLab CI associates this mimetype with the .csv extension -->
+    <record id="udes_mimetype_application_csv" model="udes.mimetypes">
+      <field name="mimetype">application/csv</field>
+    </record>
+
+    <record id="udes_mimetype_text_csv" model="udes.mimetypes">
+      <field name="mimetype">text/csv</field>
+    </record>
+
+    <record id="udes_mimetype_application_msword" model="udes.mimetypes">
+      <field name="mimetype">application/msword</field>
+    </record>
+
+    <record id="udes_mimetype_application/vnd_openxmlformats_officedocument_wordprocessingml_document" model="udes.mimetypes">
+      <field name="mimetype">application/vnd.openxmlformats-officedocument.wordprocessingml.document</field>
+    </record>
+
+    <record id="udes_mimetype_image_gif" model="udes.mimetypes">
+      <field name="mimetype">image/gif</field>
+    </record>
+
+    <record id="udes_mimetype_image_jpeg" model="udes.mimetypes">
+      <field name="mimetype">image/jpeg</field>
+    </record>
+
+    <record id="udes_mimetype_application_json" model="udes.mimetypes">
+      <field name="mimetype">application/json</field>
+    </record>
+
+    <record id="udes_mimetype_application_vnd_oasis_opendocument_spreadsheet" model="udes.mimetypes">
+      <field name="mimetype">application/vnd.oasis.opendocument.spreadsheet</field>
+    </record>
+
+    <record id="udes_mimetype_application_vnd_oasis_opendocument_text" model="udes.mimetypes">
+      <field name="mimetype">application/vnd.oasis.opendocument.text</field>
+    </record>
+
+    <record id="udes_mimetype_application_pdf" model="udes.mimetypes">
+      <field name="mimetype">application/pdf</field>
+    </record>
+
+    <record id="udes_mimetype_image_png" model="udes.mimetypes">
+      <field name="mimetype">image/png</field>
+    </record>
+
+    <!-- Our two test rtf files' mimetypes are detected differently -->
+    <record id="udes_mimetype_application_rtf" model="udes.mimetypes">
+      <field name="mimetype">application/rtf</field>
+    </record>
+
+    <record id="udes_mimetype_text_rtf" model="udes.mimetypes">
+      <field name="mimetype">text/rtf</field>
+    </record>
+
+    <record id="udes_mimetype_image_tiff" model="udes.mimetypes">
+      <field name="mimetype">image/tiff</field>
+    </record>
+
+    <record id="udes_mimetype_text_plain" model="udes.mimetypes">
+      <field name="mimetype">text/plain</field>
+    </record>
+
+    <record id="udes_mimetype_application_vnd_ms_excel" model="udes.mimetypes">
+      <field name="mimetype">application/vnd.ms-excel</field>
+    </record>
+
+    <record id="udes_mimetype_application_vnd_openxmlformats_officedocument_spreadsheetml_sheet" model="udes.mimetypes">
+      <field name="mimetype">application/vnd.openxmlformats-officedocument.spreadsheetml.sheet</field>
+    </record>
+
+    <!-- GitHub CI associates this mimetype with the .xml extension -->
+    <record id="udes_mimetype_image_svg_xml" model="udes.mimetypes">
+      <field name="mimetype">image/svg+xml</field>
+    </record>
+
+    <record id="udes_mimetype_text_xml" model="udes.mimetypes">
+      <field name="mimetype">text/xml</field>
+    </record>
+
+    <!-- Allowed File Types -->
+
     <record id="udes_allowed_file_type_bmp" model="udes.allowed_file_type">
       <field name="name">bmp</field>
       <field name="description">Bitmap Image File</field>
       <field name="active" eval="True"/>
+      <field name="mimetype_ids" eval="[(6, False, [ref('udes_mimetype_image_bmp')])]"/>
     </record>
-    
+
     <record id="udes_allowed_file_type_csv" model="udes.allowed_file_type">
       <field name="name">csv</field>
       <field name="description">Comma-Separated Values</field>
       <field name="active" eval="True"/>
+      <field name="mimetype_ids" eval="[(6, False, [ref('udes_mimetype_application_csv'), ref('udes_mimetype_text_csv')]),]"/>
     </record>
 
     <record id="udes_allowed_file_type_doc" model="udes.allowed_file_type">
       <field name="name">doc</field>
       <field name="description">Microsoft Word Document (97-2003)</field>
       <field name="active" eval="True"/>
+      <field name="mimetype_ids" eval="[(6, False, [ref('udes_mimetype_application_msword')])]"/>
     </record>
 
     <record id="udes_allowed_file_type_docx" model="udes.allowed_file_type">
       <field name="name">docx</field>
       <field name="description">Microsoft Word Document (2007+)</field>
       <field name="active" eval="True"/>
+      <field name="mimetype_ids" eval="[(6, False, [ref('udes_mimetype_application/vnd_openxmlformats_officedocument_wordprocessingml_document')])]"/>
     </record>
 
     <record id="udes_allowed_file_type_gif" model="udes.allowed_file_type">
       <field name="name">gif</field>
       <field name="description">Graphics Interchange Format</field>
       <field name="active" eval="True"/>
+      <field name="mimetype_ids" eval="[(6, False, [ref('udes_mimetype_image_gif')])]"/>
     </record>
 
     <record id="udes_allowed_file_type_jpeg" model="udes.allowed_file_type">
       <field name="name">jpeg</field>
       <field name="description">Joint Photographic Experts Group</field>
       <field name="active" eval="True"/>
+      <field name="mimetype_ids" eval="[(6, False, [ref('udes_mimetype_image_jpeg')])]"/>
     </record>
 
     <record id="udes_allowed_file_type_jpg" model="udes.allowed_file_type">
       <field name="name">jpg</field>
       <field name="description">Joint Photographic Experts Group</field>
       <field name="active" eval="True"/>
+      <field name="mimetype_ids" eval="[(6, False, [ref('udes_mimetype_image_jpeg')])]"/>
     </record>
 
     <record id="udes_allowed_file_type_json" model="udes.allowed_file_type">
       <field name="name">json</field>
       <field name="description">JavaScript Object Notation</field>
       <field name="active" eval="True"/>
+      <field name="mimetype_ids" eval="[(6, False, [ref('udes_mimetype_application_json')])]"/>
     </record>
 
     <record id="udes_allowed_file_type_ods" model="udes.allowed_file_type">
       <field name="name">ods</field>
       <field name="description">OpenDocument Spreadsheet</field>
       <field name="active" eval="True"/>
+      <field name="mimetype_ids" eval="[(6, False, [ref('udes_mimetype_application_vnd_oasis_opendocument_spreadsheet')])]"/>
     </record>
 
     <record id="udes_allowed_file_type_odt" model="udes.allowed_file_type">
       <field name="name">odt</field>
       <field name="description">OpenDocument Text</field>
       <field name="active" eval="True"/>
+      <field name="mimetype_ids" eval="[(6, False, [ref('udes_mimetype_application_vnd_oasis_opendocument_text')])]"/>
     </record>
 
     <record id="udes_allowed_file_type_pdf" model="udes.allowed_file_type">
       <field name="name">pdf</field>
       <field name="description">Portable Document Format</field>
       <field name="active" eval="True"/>
+      <field name="mimetype_ids" eval="[(6, False, [ref('udes_mimetype_application_pdf')])]"/>
     </record>
 
     <record id="udes_allowed_file_type_png" model="udes.allowed_file_type">
       <field name="name">png</field>
       <field name="description">Portable Network Graphics</field>
       <field name="active" eval="True"/>
+      <field name="mimetype_ids" eval="[(6, False, [ref('udes_mimetype_image_png')])]"/>
     </record>
 
     <record id="udes_allowed_file_type_rtf" model="udes.allowed_file_type">
       <field name="name">rtf</field>
       <field name="description">Rich Text Format</field>
       <field name="active" eval="True"/>
+      <field name="mimetype_ids" eval="[(6, False, [ref('udes_mimetype_application_rtf'), ref('udes_mimetype_text_rtf')])]"/>
     </record>
 
     <record id="udes_allowed_file_type_tif" model="udes.allowed_file_type">
       <field name="name">tif</field>
       <field name="description">Tagged Image File</field>
       <field name="active" eval="True"/>
+      <field name="mimetype_ids" eval="[(6, False, [ref('udes_mimetype_image_tiff')])]"/>
     </record>
 
     <record id="udes_allowed_file_type_tiff" model="udes.allowed_file_type">
       <field name="name">tiff</field>
       <field name="description">Tagged Image File</field>
       <field name="active" eval="True"/>
+      <field name="mimetype_ids" eval="[(6, False, [ref('udes_mimetype_image_tiff')])]"/>
     </record>
 
     <record id="udes_allowed_file_type_txt" model="udes.allowed_file_type">
       <field name="name">txt</field>
       <field name="description">Text File</field>
       <field name="active" eval="True"/>
+      <field name="mimetype_ids" eval="[(6, False, [ref('udes_mimetype_text_plain')])]"/>
     </record>
 
     <record id="udes_allowed_file_type_xls" model="udes.allowed_file_type">
       <field name="name">xls</field>
       <field name="description">Microsoft Excel Workbook (97-2003)</field>
       <field name="active" eval="True"/>
+      <field name="mimetype_ids" eval="[(6, False, [ref('udes_mimetype_application_vnd_ms_excel')])]"/>
     </record>
 
     <record id="udes_allowed_file_type_xlsx" model="udes.allowed_file_type">
       <field name="name">xlsx</field>
       <field name="description">Microsoft Excel Workbook (2007+)</field>
       <field name="active" eval="True"/>
+      <field name="mimetype_ids" eval="[(6, False, [ref('udes_mimetype_application_vnd_openxmlformats_officedocument_spreadsheetml_sheet')])]"/>
     </record>
 
     <record id="udes_allowed_file_type_xml" model="udes.allowed_file_type">
       <field name="name">xml</field>
       <field name="description">Extensible Markup Language</field>
       <field name="active" eval="True"/>
+      <field name="mimetype_ids" eval="[(6, False, [ref('udes_mimetype_image_svg_xml'), ref('udes_mimetype_text_xml')])]"/>
     </record>
 
     <record id="udes_allowed_file_type_plain" model="udes.allowed_file_type">
