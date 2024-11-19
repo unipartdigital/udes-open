@@ -182,19 +182,21 @@ class SecureAction(Action):
 class BinaryExtension(Binary):
     def _get_file_type(self, filename):
         """Get file type from supplied filename"""
-        file_type = ""
-        if "." in filename:
-            file_type = filename.split(".")[-1].lower()
-        return file_type
+        AllowedFileType = request.env["udes.allowed_file_type"]
+
+        return AllowedFileType.get_type_name_from_file_name(filename)
 
     def _get_file_type_allowed(self, file_type):
         """Return true if the file type is allowed, otherwise false"""
         AllowedFileType = request.env["udes.allowed_file_type"].sudo()
 
-        search_args = [("name", "=", file_type)]
-        allowed_file_type_count = AllowedFileType.search_count(search_args)
+        return AllowedFileType.is_allowed(file_type)
 
-        return bool(allowed_file_type_count)
+    def _is_mimetype_recognised(self, file_type, mimetype):
+        """Return true if the mime type is allowed, otherwise false"""
+        AllowedFileType = request.env["udes.allowed_file_type"].sudo()
+
+        return AllowedFileType.exists_mimetype_association(file_type, mimetype)
 
     def _get_file_type_blocked_error_message(self, action, file_type):
         """Return an error message stating that the file type has been blocked"""
@@ -207,6 +209,10 @@ class BinaryExtension(Binary):
 
         return message
 
+    def _get_mimetype_unrecognised_error_message(self, action, file_type, mimetype):
+        """Return an error message stating that the mime type is not associated with the file type."""
+        return _("Mimetype %r is not associated with file type %r") % (mimetype, file_type)
+
     def _log_user_file_action_blocked(self, action, filename, user_id):
         """Log a message when a user is blocked trying to upload/download a file"""
         ResUsers = request.env["res.users"].sudo()
@@ -215,6 +221,22 @@ class BinaryExtension(Binary):
 
         message = "Blocked attempt to %s file '%s' by user '%s'" % (action, filename, user.login)
         _logger.info(message)
+
+        return True
+
+    def _log_unrecognised_mimetype(self, action, filename, mimetype, user_id):
+        """Log a message when a user tries to upload a file with an unrecognised file type / mime type combination."""
+        ResUsers = request.env["res.users"].sudo()
+
+        user = ResUsers.browse(user_id)
+
+        _logger.info(
+            _("Blocked attempt to %s file %r with unassociated mimetype %r by user %r"),
+            action,
+            filename,
+            mimetype,
+            user.login,
+        )
 
         return True
 
@@ -304,6 +326,25 @@ class BinaryExtension(Binary):
             **kw,
         )
 
+    UPLOAD_NOTIFICATION_SCRIPT = """<script language="javascript" type="text/javascript">
+                var odoo = window.top.odoo;
+                odoo.define("udes_security.%s", function (require) {
+                    "use strict";
+
+                    var Notification = require("web.NotificationService");
+                    var notification = new Notification();
+
+                    var params = {
+                        type: "danger",
+                        title: "File Upload",
+                        message: "%s"
+                    };
+
+                    notification.start();
+                    notification.notify(params);
+                });
+            </script>"""
+
     @http.route("/web/binary/upload_attachment", type="http", auth="user")
     @serialize_exception
     def upload_attachment(self, model, id, ufile, callback=None):
@@ -328,35 +369,37 @@ class BinaryExtension(Binary):
                     if not file_type_allowed:
                         self._log_user_file_action_blocked("upload", filename, user_id)
 
-                        out = """<script language="javascript" type="text/javascript">
-                                    var odoo = window.top.odoo;
-                                    odoo.define("udes_security.%s", function (require) {
-                                        "use strict";
+                        # Need to create a unique callback ref incase the user re-attempts
+                        # to upload a blocked file type
+                        blocked_file_callback = (
+                            f"o_FileUploader_fileupload{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
+                        )
+                        res = self.UPLOAD_NOTIFICATION_SCRIPT % (
+                            blocked_file_callback,
+                            self._get_file_type_blocked_error_message("upload", file_type),
+                        )
 
-                                        var Notification = require("web.NotificationService");
-                                        var notification = new Notification();
+                        return res
+                    # If the file type is allowed, check that mimetype is
+                    # allowed.
+                    mimetype = upload_file.content_type
+                    mimetype_allowed = self._is_mimetype_recognised(file_type, mimetype)
 
-                                        var params = {
-                                            type: "danger",
-                                            title: "File Upload",
-                                            message: "%s"
-                                        };
-
-                                        notification.start();
-                                        notification.notify(params);
-                                    });
-                                </script>"""
+                    # If the user is trying to upload a blocked file type then
+                    # prevent upload and generate a notification
+                    if not mimetype_allowed:
+                        self._log_unrecognised_mimetype("upload", filename, mimetype, user_id)
 
                         # Need to create a unique callback ref incase the user re-attempts
                         # to upload a blocked file type
                         blocked_file_callback = (
                             f"o_FileUploader_fileupload{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
                         )
-                        res = out % (
+                        return self.UPLOAD_NOTIFICATION_SCRIPT % (
                             blocked_file_callback,
-                            self._get_file_type_blocked_error_message("upload", file_type),
+                            self._get_mimetype_unrecognised_error_message(
+                                "upload", file_type, mimetype
+                            ),
                         )
-
-                        return res
 
         return super(BinaryExtension, self).upload_attachment(model, id, ufile, callback=callback)

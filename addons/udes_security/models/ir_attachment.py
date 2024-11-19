@@ -15,12 +15,14 @@ _logger = logging.getLogger(__name__)
 class IrAttachment(models.Model):
     _inherit = "ir.attachment"
 
-    @api.depends("mimetype")
+    @api.depends("name")
     def _compute_file_type(self):
         """Set file type from mimetype"""
+        AllowedFileType = self.env["udes.allowed_file_type"]
+
         for attachment in self:
-            mimetype = attachment.mimetype or ""
-            attachment.u_file_type = self._get_file_type(mimetype)
+            filename = attachment.name or ""
+            attachment.u_file_type = AllowedFileType.get_type_name_from_file_name(filename)
 
     u_file_type = fields.Char("File Type", compute="_compute_file_type", store=True)
     active = fields.Boolean(
@@ -31,16 +33,6 @@ class IrAttachment(models.Model):
         An attachment can only be set to active if its file type is allowed.
         """,
     )
-
-    @api.model
-    def _get_file_type(self, mimetype):
-        """Get file type from supplied mimetype"""
-        file_type = ""
-
-        if "/" in mimetype:
-            file_type = mimetype.split("/")[-1].lower()
-
-        return file_type
 
     @api.model
     def _get_file_type_allowed(self, file_type):
@@ -55,7 +47,6 @@ class IrAttachment(models.Model):
         if file_type:
             allowed_file_type_domain = [("name", "=", file_type)]
             allowed_file_type_count = AllowedFileType.search_count(allowed_file_type_domain)
-
             if not allowed_file_type_count:
                 allowed = False
 
@@ -69,13 +60,15 @@ class IrAttachment(models.Model):
 
         return super()._check_contents(vals)
 
-    @api.constrains("u_file_type", "active")
+    @api.constrains("u_file_type", "active", "mimetype")
     def _check_file_type(self):
         """
         If file type is blocked raise an error, if the user isn't superuser or admin.
 
         Active field watched to ensure that blocked files cannot manually be made active.
         """
+        AllowedFileType = self.env["udes.allowed_file_type"]
+
         for attachment in self:
             active = self._get_file_type_allowed(attachment.u_file_type)
             # If the attachment would not be active then the file type is blocked
@@ -95,6 +88,24 @@ class IrAttachment(models.Model):
                         )
                         % (attachment.u_file_type)
                     )
+            if (
+                active
+                and attachment.u_file_type
+                and not AllowedFileType.exists_mimetype_association(
+                    attachment.u_file_type, attachment.mimetype
+                )
+            ):
+                _logger.info(
+                    _(
+                        "User %d tried to upload file %r with file type %r and unrelated mimetype %r"
+                    ),
+                    self.env.uid,
+                    attachment.name,
+                    attachment.u_file_type,
+                    attachment.mimetype,
+                )
+                error_msg = "Mimetype %r is not associated with file type %r"
+                raise UserError(_(error_msg) % (attachment.mimetype, attachment.u_file_type))
 
             if active != attachment.active:
                 # Set file to active/inactive depending on file type
