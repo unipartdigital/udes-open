@@ -88,5 +88,4 @@ class SavepointMixin:
             yield
         finally:
             self.cr.execute(f'ROLLBACK TO SAVEPOINT "{name}"')
-            # TODO: should we clear the env here (or run with
-            # env.clear_on_failure)?
+            self.env.clear()
