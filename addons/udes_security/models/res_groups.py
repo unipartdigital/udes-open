@@ -18,13 +18,13 @@ class Groups(models.Model):
     )
 
     def write(self, vals):
-        """ Override to ensure active user has permission to change users in group """
+        """Override to ensure active user has permission to change users in group"""
         if not self.env.user._is_superuser_or_admin():
             self._check_user_group_modify(vals)
         return super(Groups, self).write(vals)
 
     def _check_user_group_modify(self, vals):
-        """ Raise error if active user does not have permission to modify group users """
+        """Raise error if active user does not have permission to modify group users"""
         users = vals.get("users")
 
         if not self.env.su and users:

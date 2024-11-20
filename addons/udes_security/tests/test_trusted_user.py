@@ -97,17 +97,13 @@ class TestTrustedUser(common.SavepointCase):
 
     def test04_group_user_add_remove_root(self):
         """Test that the root user can add and remove users"""
-        self._test_group_user_add_remove(
-            self.env.user, self.group_trusted_user, self.user_2
-        )
+        self._test_group_user_add_remove(self.env.user, self.group_trusted_user, self.user_2)
 
     def test05_group_user_add_remove_non_root(self):
         """Test that a non-root user cannot modify the Trusted User group's
         users"""
         # Check that user_1 can modify the users of a different group
-        self._test_group_user_add_remove(
-            self.user_1, self.group_access_rights, self.user_2
-        )
+        self._test_group_user_add_remove(self.user_1, self.group_access_rights, self.user_2)
 
         # Check that user_1 cannot modify the users of the Trusted User group
 
@@ -123,7 +119,7 @@ class TestTrustedUser(common.SavepointCase):
         self.assertNotIn(test_user, test_group.users)
 
         # Add user made change from 4 to 3 for testing
-        test_group.users = [(4, test_user.id)] 
+        test_group.users = [(4, test_user.id)]
         self.assertIn(test_user, test_group.users)
 
         # Remove user

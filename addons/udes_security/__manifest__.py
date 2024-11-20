@@ -25,8 +25,6 @@
         "data/setup_default_domains.xml",
         "views/domain_allowlist_view.xml",
     ],
-    "qweb": [
-         "static/src/xml/custom_chatter_topbar.xml"
-     ],
+    "qweb": ["static/src/xml/custom_chatter_topbar.xml"],
     "demo": [],
 }

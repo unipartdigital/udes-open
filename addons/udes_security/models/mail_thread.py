@@ -4,9 +4,11 @@ from odoo.exceptions import AccessError, UserError, ValidationError
 from lxml.html.clean import Cleaner
 
 import logging
+
 _logger = logging.getLogger(__name__)
 
-HTML_TAGS_PREVENTED = ['a', 'script']
+HTML_TAGS_PREVENTED = ["a", "script"]
+
 
 class MailThread(models.AbstractModel):
     _inherit = "mail.thread"
@@ -18,10 +20,10 @@ class MailThread(models.AbstractModel):
 
         for vals in values_list:
             body_content = str(vals.get("body", ""))
-            #NOTE: not easy to distinguish email/Send message/Log note
-            #Strip prevented html tags before storing to DB
-            if '<' in body_content and '>' in body_content:
-                vals['body'] = self._strip_prevented_html_tags(body_content)
+            # NOTE: not easy to distinguish email/Send message/Log note
+            # Strip prevented html tags before storing to DB
+            if "<" in body_content and ">" in body_content:
+                vals["body"] = self._strip_prevented_html_tags(body_content)
 
         return super(MailThread, self)._message_create(values_list)
 

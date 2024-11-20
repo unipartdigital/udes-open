@@ -66,7 +66,9 @@ class DomainAllowlist(models.Model):
 
         Note: this is only `onchange` so doesn't contrain the value
         """
-        if self.domain and (WILDCARD_PART_CHECK.search(self.domain) or WILDCARD_ENDING_CHECK.search(self.domain)):
+        if self.domain and (
+            WILDCARD_PART_CHECK.search(self.domain) or WILDCARD_ENDING_CHECK.search(self.domain)
+        ):
             msg = "\n".join(
                 [
                     "%s contains a potentially risky wildcard",

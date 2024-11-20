@@ -3,6 +3,7 @@
 from odoo.exceptions import UserError
 import werkzeug
 
+
 class PasswordMixin:
     """Methods for testing and configuring passwords."""
 
@@ -61,10 +62,7 @@ class RedirectMixin:
         self.assertIn("We couldn't find the page you're looking for!", response.text)
         # Look for redirect
         for resp in response.history:
-            if (
-                resp.status_code == 303
-                and resp.headers["Location"] == redirect_url
-            ):
+            if resp.status_code == 303 and resp.headers["Location"] == redirect_url:
                 break
         else:
             raise AssertionError("Redirect not found")
@@ -73,10 +71,7 @@ class RedirectMixin:
         self.assertEqual(response.status_code, 200)
         # Look for redirect
         for resp in response.history:
-            if (
-                resp.status_code == 303
-                and resp.headers["Location"] == redirect_url
-            ):
+            if resp.status_code == 303 and resp.headers["Location"] == redirect_url:
                 break
         else:
             raise AssertionError("Redirect not found")
