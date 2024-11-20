@@ -7,7 +7,7 @@ from odoo.exceptions import UserError
 from PIL import Image
 import base64
 import mimetypes
-from odoo.tools.mimetypes import guess_mimetype # Uses python-magic to guess mimetype
+from odoo.tools.mimetypes import guess_mimetype  # Uses python-magic to guess mimetype
 
 _logger = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ class IrAttachment(models.Model):
     active = fields.Boolean(
         string="Active?",
         default=True,
-        help="""If not set, the attachment is hidden from searches, 
+        help="""If not set, the attachment is hidden from searches,
         attachment widgets on other records etc.
         An attachment can only be set to active if its file type is allowed.
         """,
@@ -116,7 +116,9 @@ class IrAttachment(models.Model):
                 # from bypassing security checks.
                 if not (vals["url"].startswith("/") or vals["url"].startswith("https://")):
                     # Raise an error if URL is not a valid type
-                    raise UserError("Invalid URL: Only secure HTTPS links or relative URLs (starting with '/') are allowed for images. Please update the URL format and try again.")
+                    raise UserError(
+                        "Invalid URL: Only secure HTTPS links or relative URLs (starting with '/') are allowed for images. Please update the URL format and try again."
+                    )
                 if "mimetype" in vals and vals["mimetype"] in allowed_image_mimetypes:
                     # Process URL-based image, convert to binary and remove EXIF data
                     vals["datas"] = self._process_url_image(vals["url"])
@@ -125,9 +127,7 @@ class IrAttachment(models.Model):
                     vals["type"] = "binary"  # Change type to 'binary' to reflect new storage format
 
         attachments = super().create(checked_vals_list)
-        for attachment in attachments.filtered(
-                lambda att: att.mimetype in allowed_image_mimetypes
-        ):
+        for attachment in attachments.filtered(lambda att: att.mimetype in allowed_image_mimetypes):
             if attachment.datas:
                 attachment.datas = attachment.with_context(skip_remove_exif=True)._remove_exif_data(
                     attachment.datas
@@ -174,7 +174,9 @@ class IrAttachment(models.Model):
             # from bypassing security checks.
             if not (vals["url"].startswith("/") or vals["url"].startswith("https://")):
                 # Raise an error if URL is not a valid type
-                raise UserError("Invalid URL: Only secure HTTPS links or relative URLs are allowed. Please update the URL format and try again.")
+                raise UserError(
+                    "Invalid URL: Only secure HTTPS links or relative URLs are allowed. Please update the URL format and try again."
+                )
             if "mimetype" in vals and vals["mimetype"] in allowed_image_mimetypes:
                 # Process URL-based image, convert to binary and remove EXIF data
                 vals["datas"] = self._process_url_image(vals["url"])
@@ -236,10 +238,10 @@ class IrAttachment(models.Model):
         # later extension if not found from contents.
         raw = None
         mimetype = False
-        if values.get('raw'):
-            raw = values['raw']
-        elif values.get('datas'):
-            raw = base64.b64decode(values['datas'])
+        if values.get("raw"):
+            raw = values["raw"]
+        elif values.get("datas"):
+            raw = base64.b64decode(values["datas"])
         if raw:
             mimetype = guess_mimetype(raw)
         # guess_mimetype checks the content of the file by using python-magic library.
@@ -247,7 +249,7 @@ class IrAttachment(models.Model):
             # In general python-magic finds the file format, if not found try finding from filename.
             mimetype = False
             if values.get("mimetype"):
-                mimetype = values['mimetype']
+                mimetype = values["mimetype"]
             if not mimetype and values.get("name"):
                 mimetype = mimetypes.guess_type(values["name"])[0]
             if not mimetype and values.get("url"):

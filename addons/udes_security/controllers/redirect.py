@@ -90,7 +90,11 @@ class Home(main.Home):
         """
         user = request.env.user.browse(request.session.uid)
 
-        if not request.session.uid or not user._is_superuser_or_admin() and not user.u_is_trusted_user:
+        if (
+            not request.session.uid
+            or not user._is_superuser_or_admin()
+            and not user.u_is_trusted_user
+        ):
             self._disable_debug(request)
 
     @http.route()

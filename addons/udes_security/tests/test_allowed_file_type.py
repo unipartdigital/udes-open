@@ -1,4 +1,3 @@
-
 import base64
 import pathlib
 import sys
@@ -75,7 +74,7 @@ class TestAllowedFileType(common.SavepointCase):
     def create_attachment(self, filename, user=None, **kwargs):
         """
         Create attachment from supplied filename.
-        
+
         Optionally specify user and additional values for the attachment.
         """
         IrAttachment = self.env["ir.attachment"]

@@ -38,10 +38,12 @@ class TestStrippedExifData(common.SavepointCase):
         original_image = Image.open(io.BytesIO(original_data))
         self.assertIsNotNone(original_image._getexif())
         # On attachment create automatically removes the exif data
-        attachment = self.IrAttachment.create({
-            "name": "image_with_exif_data.jpg",
-            "datas": attachment_datas,
-        })
+        attachment = self.IrAttachment.create(
+            {
+                "name": "image_with_exif_data.jpg",
+                "datas": attachment_datas,
+            }
+        )
 
         processed_image = Image.open(io.BytesIO(base64.b64decode(attachment.datas)))
 
