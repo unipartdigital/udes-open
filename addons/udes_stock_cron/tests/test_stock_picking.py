@@ -1,8 +1,7 @@
 """Unit tests for stock reservation."""
 import logging
-import contextlib
-import uuid
 from unittest import mock
+from odoo.addons.udes_common.tests.common import SavepointMixin
 from odoo.addons.udes_stock.tests.common import BaseUDES
 from odoo.exceptions import UserError
 from datetime import timedelta
@@ -264,29 +263,6 @@ class ReservationMixin(object):
 
                     quant = self.Quant.search([("reserved_quantity", ">", 0)])
                     self.assertEqual(quant.reserved_quantity, expected)
-
-
-class SavepointMixin:
-    """
-    Provides a context manager that creates a savepoint and rolls back on exit.
-
-    This can be used to reverse state changes made during subtests, as there is
-    no automatic rollback after a subtest iteration completes.
-
-    (The core Cursor.savepoint() releases the savepoint on exit, and
-    doesn't expose its name so we can't roll it back ourselves.
-    """
-
-    @contextlib.contextmanager
-    def savepoint(self):
-        """A savepoint that always rolls back."""
-        # This is how Odoo core name their savepoints.
-        name = uuid.uuid1().hex
-        self.cr.execute(f'SAVEPOINT "{name}"')
-        try:
-            yield
-        finally:
-            self.cr.execute(f'ROLLBACK TO SAVEPOINT "{name}"')
 
 
 class ReservationBase(BaseUDES, SavepointMixin):
