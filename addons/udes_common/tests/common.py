@@ -1,3 +1,6 @@
+import contextlib
+import uuid
+
 from odoo.tests import common
 
 
@@ -62,3 +65,28 @@ class CommonBase(common.SavepointCase):
             contacts += cls.create_partner(contact_name, **contact_vals)
 
         return contacts
+
+
+class SavepointMixin:
+    """
+    Provides a context manager that creates a savepoint and rolls back on exit.
+
+    This can be used to reverse state changes made during subtests, as there is
+    no automatic rollback after a subtest iteration completes.
+
+    (The core Cursor.savepoint() releases the savepoint on exit, and
+    doesn't expose its name so we can't roll it back ourselves.
+    """
+
+    @contextlib.contextmanager
+    def savepoint(self):
+        """A savepoint that always rolls back."""
+        # This is how Odoo core name their savepoints.
+        name = uuid.uuid1().hex
+        self.cr.execute(f'SAVEPOINT "{name}"')
+        try:
+            yield
+        finally:
+            self.cr.execute(f'ROLLBACK TO SAVEPOINT "{name}"')
+            # TODO: should we clear the env here (or run with
+            # env.clear_on_failure)?
