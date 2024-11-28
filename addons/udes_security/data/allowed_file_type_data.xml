@@ -102,7 +102,7 @@
       <field name="name">csv</field>
       <field name="description">Comma-Separated Values</field>
       <field name="active" eval="True"/>
-      <field name="mimetype_ids" eval="[(6, False, [ref('udes_mimetype_application_csv'), ref('udes_mimetype_text_csv')]),]"/>
+      <field name="mimetype_ids" eval="[(6, False, [ref('udes_mimetype_application_csv'), ref('udes_mimetype_text_csv'), ref('udes_mimetype_text_plain')]),]"/>
     </record>
 
     <record id="udes_allowed_file_type_doc" model="udes.allowed_file_type">
