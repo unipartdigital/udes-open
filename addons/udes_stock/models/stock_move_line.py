@@ -347,6 +347,7 @@ class StockMoveLine(models.Model):
             quantity = prod["uom_qty"]
             lot_names = prod.get("lot_names", [])
             lot_quantities = prod.get("lot_quantities", [])
+            lot_expiry_dates = prod.get("lot_expiry_dates", [])
             product_tracking = product.tracking
             is_trackable = product_tracking != "none"
             is_serial = product_tracking == "serial"
@@ -384,6 +385,9 @@ class StockMoveLine(models.Model):
                         qty_done, product, package, lot_name, location
                     )
                     prod_dict = {"qty_done": qty_done, "lot_name": lot_name_val}
+                    if lot_expiry_dates:
+                        # TODO: hidden dep to product_expiry
+                        prod_dict["expiration_date"] = lot_expiry_dates[idx]
                     prod_dict.update(vals)
                     res[prod_mls] = prod_dict
                     quantity_fulfilled += qty_done
