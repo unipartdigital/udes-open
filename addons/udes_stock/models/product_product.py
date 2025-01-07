@@ -1,5 +1,8 @@
 from odoo import fields, models, _
 from odoo.exceptions import ValidationError
+import logging
+
+_logger = logging.getLogger(__name__)
 
 
 class ProductProduct(models.Model):
@@ -24,7 +27,8 @@ class ProductProduct(models.Model):
                 [("product_id", "=", self.id), ("name", "in", serial_numbers)]
             )
             if lots:
-                raise ValidationError(
+                _logger.info(
+                # raise ValidationError(
                     _("%s numbers %s already in use for product %s")
                     % (self.tracking.capitalize(), " ".join(lots.mapped("name")), self.name)
                 )
