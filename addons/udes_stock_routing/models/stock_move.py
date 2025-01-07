@@ -101,3 +101,16 @@ class StockMove(models.Model):
                 values["partner_id"] = previous_partner.id
 
         return values
+
+    def _action_assign(self):
+        """
+        Extend action_assign to include the two stage hook.
+        This is done at the move level incase refactoring splits picks after assigning stock.
+        This way, we don't lose any moves which need to be split to 2 stage but got refactored out.
+        """
+        res = super()._action_assign()
+        for move in self:
+            if move.exists() and (picking := move.picking_id):
+                if picking.should_two_stage_initiate():
+                    move.picking_id.initiate_two_stage_split()
+        return res

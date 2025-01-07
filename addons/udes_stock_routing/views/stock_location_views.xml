@@ -1,0 +1,19 @@
+<odoo>
+    <record id="view_stock_location_form" model="ir.ui.view">
+        <field name="name">stock.location.form.udes_routing</field>
+        <field name="model">stock.location</field>
+        <field name="inherit_id" ref="udes_stock.view_location_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='barcode']" position="before">
+                <field name="u_requires_two_stage_when_stock_reserved" />
+                <field name="u_two_stage_intermediate_location"
+                    attrs="{'invisible': [('u_requires_two_stage_when_stock_reserved', '=', False)], 'required': [('u_requires_two_stage_when_stock_reserved', '=', True)]}" />
+                <field name="u_two_stage_intermediate_dest_location"
+                    attrs="{'invisible': [('u_requires_two_stage_when_stock_reserved', '=', False)]}" />
+                <field name="u_two_stage_intermediate_operation_type"
+                    attrs="{'invisible': [('u_requires_two_stage_when_stock_reserved', '=', False)]}" />
+            </xpath>
+
+        </field>
+    </record>
+</odoo>
