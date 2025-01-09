@@ -29,6 +29,9 @@ class StockMove(models.Model):
             push_step = Push.get_path_from_location(location)
             if not push_step:
                 continue
+            # If the move lines corresponding moves have any followup moves, don't apply the push rule
+            if loc_mls.move_id.move_dest_ids:
+                continue
             if push_step not in move_lines_by_push:
                 move_lines_by_push[push_step] = MoveLine.browse()
             move_lines_by_push[push_step] |= loc_mls
