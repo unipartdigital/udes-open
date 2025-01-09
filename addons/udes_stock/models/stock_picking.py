@@ -369,6 +369,19 @@ class StockPicking(models.Model):
                 )
             )
 
+    def split_move_lines_to_backorder(self, move_lines, **kwargs):
+        """
+        Loosely based on backorder_move_lines, but useful when we know the move lines we want to split
+        to a backorder rather than the lines to keep (kind of the inverse of what that function does).
+        """
+        Move = self.env["stock.move"]
+        new_moves = Move.browse()
+        for move_line in move_lines:
+            new_moves |= move_line.move_id.split_out_move_lines(move_line)
+        if new_moves:
+            return self._create_backorder_picking(new_moves, **kwargs)
+        return self.browse()
+
     def _backorder_move_lines(self, mls_to_keep=None):
         """
         Create a backorder picking from self (expects a singleton)
