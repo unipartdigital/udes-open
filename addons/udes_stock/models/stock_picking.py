@@ -475,7 +475,7 @@ class StockPicking(models.Model):
             return self._backorder_move_lines(mls_to_keep=mls_to_keep)
         return Picking.browse()
 
-    def _create_backorder_picking(self, moves):
+    def _create_backorder_picking(self, moves, **kwargs):
         """
         Helper to create a backorder picking from the given moves
         NOTE: function uses sudo to override permissions. This is because creating
@@ -489,15 +489,15 @@ class StockPicking(models.Model):
         if self.picking_type_id.u_preserve_backorder_batch:
             # If the picking has no batch, batch_id will be False.
             batch_id = self.batch_id.id
-        bk_picking = self.sudo().copy(
-            {
-                "name": "/",
-                "move_lines": [(6, 0, moves.ids)],
-                "move_line_ids": [(6, 0, moves.move_line_ids.ids)],
-                "backorder_id": self.id,
-                "batch_id": batch_id,
-            }
-        )
+        vals = {
+            "name": "/",
+            "move_lines": [(6, 0, moves.ids)],
+            "move_line_ids": [(6, 0, moves.move_line_ids.ids)],
+            "backorder_id": self.id,
+            "batch_id": batch_id,
+        }
+        vals.update(kwargs)
+        bk_picking = self.sudo().copy(vals)
         return bk_picking
 
     def _requires_backorder(self, mls=None):
