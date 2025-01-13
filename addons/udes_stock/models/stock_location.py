@@ -266,7 +266,7 @@ class StockLocation(models.Model):
 
             location.u_countable_state = state
 
-    @api.depends("u_picking_zone_id", "location_id", "u_is_picking_zone")
+    @api.depends("u_picking_zone_id", "location_id", "u_is_picking_zone", "location_id.u_picking_zone_id")
     def _compute_picking_zone_id(self):
         """Set the location that is the picking zone for the location in self.
 
