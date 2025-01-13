@@ -32,6 +32,7 @@
         "report/external_layout_standard.xml",
         "wizard/stock_backorder_confirmation_views.xml",
         "wizard/stock_immediate_transfer_views.xml",
+        "wizard/stock_picking_mark_todo_views.xml",
         "views/assets.xml",
         "views/product_views.xml",
         "views/stock_picking.xml",
