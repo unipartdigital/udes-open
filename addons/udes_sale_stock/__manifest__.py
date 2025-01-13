@@ -15,6 +15,7 @@
         "l10n_uk",
         "sale",
         "udes_common",
+        "udes_suggest_location",
     ],
     "category": "Warehouse",
     "sequence": 12,
