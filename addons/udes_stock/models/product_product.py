@@ -1,5 +1,8 @@
 from odoo import fields, models, _
 from odoo.exceptions import ValidationError
+import logging
+
+_logger = logging.getLogger(__name__)
 
 
 class ProductProduct(models.Model):
@@ -24,10 +27,12 @@ class ProductProduct(models.Model):
                 [("product_id", "=", self.id), ("name", "in", serial_numbers)]
             )
             if lots:
-                raise ValidationError(
-                    _("%s numbers %s already in use for product %s")
-                    % (self.tracking.capitalize(), " ".join(lots.mapped("name")), self.name)
-                )
+                msg = _(("%s numbers %s already in use for product %s")
+                    % (self.tracking.capitalize(), " ".join(lots.mapped("name")), self.name))
+                _logger.info(msg)
+                # Only raise to avoid duplicate serials, but allow the same lot
+                if self.tracking == "serial":
+                    raise ValidationError(msg)
 
     def sync_active_to_templates(
         self, activate_templates=True, deactivate_templates=True

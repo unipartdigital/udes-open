@@ -1,8 +1,10 @@
 from .common import BaseUDES
 from odoo.exceptions import ValidationError
+from unittest import skip
 
 
 class TestProductMethods(BaseUDES):
+    @skip("We allow multiple lots")
     def test_assert_tracking_unique(self):
         self.starwberry_lot = self.create_lot(self.strawberry.id, "strawberry_lot")
 
