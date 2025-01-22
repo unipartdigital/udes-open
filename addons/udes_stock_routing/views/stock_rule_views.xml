@@ -3,12 +3,17 @@
     <record id="view_stock_rule_form" model="ir.ui.view">
         <field name="name">stock.rule.form.udes_routing</field>
         <field name="model">stock.rule</field>
-        <field name="inherit_id" ref="stock.view_stock_rule_form"/>
+        <field name="inherit_id" ref="stock.view_stock_rule_form" />
         <field name="arch" type="xml">
 
             <!-- Add u_push_on_drop -->
             <xpath expr="//field[@name='procure_method']" position="after">
-                <field name="u_push_on_drop"/>
+                <field name="u_push_on_drop" />
+                <field name="u_run_on_assign" />
+                <field name="u_run_on_assign_applicable_to"
+                    attrs="{'invisible': [('u_run_on_assign', '=', False)], 'required': [('u_run_on_assign', '=', True)]}" />
+                <field name="u_run_on_assign_reservation_type"
+                    attrs="{'invisible': [('u_run_on_assign', '=', False)]}" />
             </xpath>
 
         </field>
