@@ -1,4 +1,5 @@
 """UDES core picking functionality."""
+
 import logging
 
 from odoo import api, models, fields, _
@@ -166,11 +167,15 @@ class StockPicking(models.Model):
 
         Backorders have a naming pattern of adding `-001` to it,
         so they are more visible to users.
+
+        Do not customise name generation when the picking type differs.
         """
         if vals.get("backorder_id"):
-            ir_sequence = picking_type.sequence_id
-            # Specify sequence as it is picking type specific
-            return get_next_name(self, "stock.picking", sequence=ir_sequence)
+            backorder = self.browse(vals["backorder_id"])
+            if backorder.picking_type_id == picking_type:
+                ir_sequence = picking_type.sequence_id
+                # Specify sequence as it is picking type specific
+                return get_next_name(self, "stock.picking", sequence=ir_sequence)
         return super().get_next_picking_name(vals, picking_type=picking_type)
 
     @api.depends("move_lines", "move_lines.move_orig_ids", "move_lines.move_orig_ids.picking_id")
