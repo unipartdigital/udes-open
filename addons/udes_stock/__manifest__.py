@@ -46,6 +46,7 @@
         "views/stock_template.xml",
         "views/stock_scrap_views.xml",
         "views/stock_warehouse.xml",
+        "views/product_category.xml",
         "views/product_template.xml",
         "views/stock_warehouse.xml",
         "views/stock_location_category_views.xml",
