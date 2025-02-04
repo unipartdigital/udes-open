@@ -80,4 +80,24 @@
 
     <!-- Move Locations menu item outside of config menu -->
     <menuitem id="stock.menu_action_location_form" parent="stock.menu_stock_root" sequence="5" name="Locations"/>
+
+
+
+    <!-- Hierarchical Tree View -->
+    <record id="stock_location_hierarchical_tree" model="ir.ui.view">
+        <field name="name">stock.location.hierarchical.tree</field>
+        <field name="model">stock.location</field>
+        <field name="arch" type="xml">
+            <hierarchical_tree count_field="child_ids" disable_drag_drop="1" show_form_button="1"/>
+        </field>
+    </record>
+
+    <!-- Action window -->
+    <record id="stock.action_location_form" model="ir.actions.act_window">
+        <field name="view_mode">tree,hierarchical_tree,form</field>
+        <field name="view_ids" eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('stock.view_location_tree2')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('stock.view_location_form')})]" />
+    </record>
 </odoo>
