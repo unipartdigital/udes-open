@@ -6,8 +6,10 @@
     "website": "http://github/unipartdigital/udes-open",
     "category": "UDES",
     "version": "0.1",
-    "depends": ["uom", "stock", "package_hierarchy", "udes_stock"],
+    "depends": ["uom", "stock", "package_hierarchy", "udes_stock", "udes_get_info"],
     "data": [
+        "security/ir.model.access.csv",
+        "views/container_type_views.xml",
         "views/stock_picking_type.xml",
         "views/stock_warehouse.xml",
     ],
