@@ -217,5 +217,10 @@ class StockQuantPackage(models.Model):
             # when result storage format is products
             if result_package_name:
                 raise ValidationError(_("Invalid parameters for products target storage format."))
+            # We never want to have a package set here. Return an empty
+            # recordset to signal to StockMoveLine.prepare that the package
+            # must be discarded.
+            if package:
+                result_package = Package.browse()
 
         return result_package, result_parent_package

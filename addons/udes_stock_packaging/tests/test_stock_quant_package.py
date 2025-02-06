@@ -170,3 +170,28 @@ class PackageCreationTestCase(BaseUDES):
 
         with self.assertRaises(ValidationError):
             parent_package.write({"child_ids": [(6, 0, child_package.ids)]})
+
+
+class ResultPackagePreparationTestCase(BaseUDES):
+    """Tests for result package preparation."""
+
+    def test_returns_empty_result_package_recordset_for_product_format(self):
+        Package = self.env["stock.quant.package"]
+
+        product_ids = None
+        package = self.create_package()
+        result_package_name = None
+        result_parent_package_name = None
+        scan_parent_package_end = False
+
+        result_package, _ = Package.prepare_result_packages(
+            product_ids,
+            package,
+            result_package_name,
+            result_parent_package_name,
+            "product",
+            scan_parent_package_end,
+        )
+
+        self.assertIsInstance(result_package, type(Package))
+        self.assertFalse(result_package)
