@@ -494,6 +494,30 @@ class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
         self.assertFalse(apple_ml.result_package_id)
         self.assertEqual(apple_ml.location_dest_id, original_location_dest)
 
+    def test_returns_result_package_value_for_empty_result_package_recordset(self):
+        """The system will return a result package value if an empty recordset is passed as result package."""
+        # Setup data with source package, so better use picking_type_pick
+        Package = self.env["stock.quant.package"]
+
+        package = self.create_package()
+        self.create_quant(self.apple.id, self.test_stock_location_01.id, 10, package_id=package.id)
+        pick_info = [{"product": self.apple, "uom_qty": 5}]
+        pick = self.create_picking(
+            picking_type=self.picking_type_pick, products_info=pick_info, confirm=True, assign=True
+        )
+        mls = pick.move_line_ids
+        self.assertEqual(mls.package_id, package)
+        # Prepare extra parameters for prepare
+        result_package = Package.browse()
+        location_dest = self.test_goodsout_location_01
+
+        # When other parameters, the move lines are returned with a dict and them
+        res = mls.prepare(
+            package=package, result_package=result_package, location_dest=location_dest
+        )
+        self.assertFalse(res[mls]["result_package_id"])
+        self.assertEqual(res[mls]["location_dest_id"], location_dest.id)
+
     def test_by_product_ids(self):
         """Combinations having product_ids.
         [{"barcode": "PROD01", "uom_qty":1}]

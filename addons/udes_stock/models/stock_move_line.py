@@ -315,10 +315,18 @@ class StockMoveLine(models.Model):
         Example: [{"barcode": "PROD01", "uom_qty":1}]
 
         """
+        Package = self.env["stock.quant.package"]
         Product = self.env["product.product"]
 
         vals = {}
-        if result_package:
+        # result_package may be:
+        # a Package: this will overwrite the result package on the target move
+        # line
+        # an empty Package recordset: this will clear the result package on the
+        # target move line
+        # Some other false-y value: this will leave the result package on the
+        # target move line unchanged.
+        if isinstance(result_package, type(Package)):
             vals["result_package_id"] = result_package.id
         if location_dest:
             vals["location_dest_id"] = location_dest.id
