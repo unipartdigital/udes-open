@@ -208,7 +208,6 @@ class StockMove(models.Model):
         pickings = self.picking_id
 
         for key, move_group in groups:
-
             if len(move_group.location_id) > 1 or len(move_group.location_dest_id) > 1:
                 raise UserError(
                     _(
@@ -359,6 +358,37 @@ class StockMove(models.Model):
 
         return self | new_pickings.move_lines
 
+    def _refactor_action_by_maximum_weight(self, maximum_weight):
+        """
+        Split move_line_ids out into pickings with a maximum weight
+        This first tries to create pickings with a single move_line_id with the maximum allowed
+        Then combines the remaining move_line_ids into pickings with maximum allowed
+        """
+        Picking = self.env["stock.picking"]
+
+        if maximum_weight < 1:
+            raise ValidationError(_("Cannot split quants into weight: %i") % maximum_weight)
+
+        new_pickings = Picking.browse()
+        for picking, moves in self.groupby("picking_id"):
+            mls = moves.move_line_ids
+
+            grouped_mls = mls._split_and_group_mls_by_weight(maximum_weight)
+            # If there are un-reserved moves then keep them in the original picking
+            max_range = len(grouped_mls)
+            if not any([move.product_uom_qty > move.reserved_availability for move in moves]):
+                max_range = -1
+            # Split out move lines to their own pickings,
+            current_picking = picking
+            for mls_to_keep in grouped_mls[:max_range]:
+                # Move all other move lines to the new picking, on next iteration do the same
+                # for the new_picking created in previous iteration.
+                new_picking = current_picking._backorder_move_lines(mls_to_keep)
+                new_pickings += new_picking
+                current_picking = new_picking
+
+        return self | new_pickings.move_lines
+
     @api.model
     def _prepare_merge_moves_distinct_fields(self):
         """Remove date_deadline & procure_method from distinct field requirement to allow merging
@@ -373,4 +403,3 @@ class StockMove(models.Model):
             if field in distinct_fields:
                 distinct_fields.remove(field)
         return distinct_fields
-
