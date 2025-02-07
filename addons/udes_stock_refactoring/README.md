@@ -39,7 +39,7 @@ Stock Picking Type is inherited to add more configurations fields in order to ha
 | u_post_confirm_action              | Selection | Extendable options to choose the action to be taken after confirming a picking                                                                            |
 | u_post_assign_action               | Selection | Extendable options to choose the action to be taken after reserving a picking                                                                             |
 | u_post_validate_action             | Selection | Extendable options to choose the action to be taken after validating a picking                                                                            |
-| u_assign_refactor_constraint_value | Integer   | Constraint value used when refactoring post assign. Currently only used for the post assign action: Maximum Quantity.                                     |
+| u_assign_refactor_constraint_value | Integer   | Constraint value used when refactoring post assign. Currently only used for the post confirm/assign actions: Maximum Quantity, Maximum Weight             |
 
 ### Stock Picking Batch (model: stock.picking.batch)
 

@@ -1,5 +1,6 @@
-from odoo import api, models, fields, _
+from odoo import api, models, fields, _, tools
 from odoo.exceptions import UserError, ValidationError
+from odoo.tools.float_utils import float_compare, float_is_zero
 from ..registry.refactor import REFACTOR_REGISTRY
 import logging
 
@@ -208,7 +209,6 @@ class StockMove(models.Model):
         pickings = self.picking_id
 
         for key, move_group in groups:
-
             if len(move_group.location_id) > 1 or len(move_group.location_dest_id) > 1:
                 raise UserError(
                     _(
@@ -359,6 +359,140 @@ class StockMove(models.Model):
 
         return self | new_pickings.move_lines
 
+    def _refactor_action_by_maximum_weight(self, maximum_weight):
+        """
+        Split move_lines out into pickings with a maximum weight
+        This first tries to create pickings with a single move with the maximum allowed
+        Then combines the remaining moves into pickings with maximum allowed
+        """
+        Picking = self.env["stock.picking"]
+        StockMove = self.env["stock.move"]
+
+        if maximum_weight < 1:
+            raise ValidationError(_("Cannot split quants into weight: %i") % maximum_weight)
+
+        all_moves = StockMove.browse()
+
+        for picking, moves in self.groupby("picking_id"):
+            moves_to_refactor = []
+            grouped_moves = moves._split_and_group_by_weight(maximum_weight)
+            max_range = len(grouped_moves)
+            # Build iterable of grouped moves to refactor, which can be passed into refactor_by_move_groups
+            for idx, moves_to_keep in enumerate(grouped_moves[:max_range]):
+                group_name = f"{picking.name}-{str(idx).zfill(3)}"
+                moves_to_refactor.insert(0, (group_name, moves_to_keep))
+                all_moves |= moves_to_keep
+
+            moves.refactor_by_move_groups(moves_to_refactor)
+        return all_moves
+
+    def _split_and_group_by_weight(self, maximum_weight):
+        """
+        Split moves into groups of up to a maximum weight
+        :param maximum_weight: float weight to split and group moves
+        :returns: list of grouped moves
+        """
+        grouped_moves = []
+
+        remaining_moves = self
+
+        # See if any moves are equal to the maximum and add them as individual groups
+        exact_moves = self.filtered(
+            lambda l: (l.product_id.weight * l.product_uom_qty) == maximum_weight
+        )
+        remaining_moves -= exact_moves
+        for move in exact_moves:
+            grouped_moves.append(move)
+
+        # Split and group remaining moves by using moves_for_weight method, where if
+        # a move is split we add the split move to be split again and remove the move
+        # used from moves to be split. Add the moves to the grouped moves.
+        while remaining_moves:
+            moves_used, new_move, _weight = remaining_moves._moves_for_weight(maximum_weight)
+            if new_move:
+                remaining_moves |= new_move
+            remaining_moves -= moves_used
+            grouped_moves.append(moves_used)
+        return grouped_moves
+
+    def _moves_for_weight(self, weight, sort=True):
+        """
+        Return a subset of moves from self where their sum of the weight
+        to do is equal to parameter weight.
+        In case that a move needs to be split, the new move is
+        also returned (this happens when total weight * quantity in the move is
+        greater than weight parameter).
+        If there is not enough to do in the moves,
+        also return the remaining weight.
+        """
+        StockMove = self.env["stock.move"]
+        new_move = None
+        result = StockMove.browse()
+        if weight == 0:
+            return result, new_move, weight
+
+        if sort:
+            sorted_moves = self.sorted(
+                lambda m: m.product_id.weight * m.product_uom_qty, reverse=True
+            )
+            greater_equal_moves = sorted_moves.filtered(
+                lambda m: float_compare(
+                    (m.product_id.weight * m.product_uom_qty),
+                    weight,
+                    precision_rounding=m.product_uom.rounding,
+                )
+                >= 0
+            )
+            # Work backwards through moves that are greater or equal to the weight (one by one)
+            # which will get split off to new moves.
+            # Do this until there are only moves which are less than the weight, which can be solved together.
+            moves = greater_equal_moves[-1] if greater_equal_moves else sorted_moves
+        else:
+            moves = self
+
+        for move in moves:
+            result |= move
+            extra_weight = (move.product_id.weight * move.product_uom_qty) - weight
+            if extra_weight > 0:
+                if move.product_id.weight > weight:
+                    # In cases where the product weight exceeds the weight,
+                    # split so a single qty remains. This assumes only whole units can be moved.
+                    # In cases where extra_qty would get set to 0, fallback to 1 instead.
+                    extra_qty = move.product_uom_qty - 1 or 1
+                else:
+                    # Determine the quantity to split off so that we will be
+                    # left with a quantity which the products uom supports.
+                    extra_qty = tools.float_round(
+                        extra_weight / move.product_id.weight,
+                        precision_rounding=move.product_id.uom_id.rounding,
+                    )
+
+                remaining_qty = move.product_uom_qty - extra_qty
+                # Don't split if extra_qty is zero and there are no sibling moves
+                if float_is_zero(extra_qty, precision_rounding=move.product_id.uom_id.rounding) or (
+                    move.product_qty <= extra_qty and len(moves) == 1
+                ):
+                    weight = 0
+                else:
+                    # The move just needs to be given a new pick rather than being split.
+                    # Checking the move length reduces optimisation but guards against
+                    # accidentally splitting a move to leave 1 behind when there are other
+                    # moves already in the group which would push its weight over the limit.
+                    if remaining_qty == 0 or len(moves) != 1:
+                        new_move = move
+                        result -= move
+                    # The move has qty remaining, so should be split in two.
+                    else:
+                        new_move = move._create_split_move(
+                            move.move_line_ids, remaining_qty, extra_qty, picking_id=move.picking_id.id
+                        )
+                    weight = 0
+            else:
+                weight -= move.product_uom_qty * move.product_id.weight
+            if weight == 0:
+                break
+        return result, new_move, weight
+
     @api.model
     def _prepare_merge_moves_distinct_fields(self):
         """Remove date_deadline & procure_method from distinct field requirement to allow merging
@@ -373,4 +507,3 @@ class StockMove(models.Model):
             if field in distinct_fields:
                 distinct_fields.remove(field)
         return distinct_fields
-

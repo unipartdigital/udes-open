@@ -5,4 +5,5 @@ from . import (
     refactor_group_by_move_key,
     refactor_group_by_move_line_key,
     refactor_by_maximum_quantity,
+    refactor_by_maximum_weight,
 )
