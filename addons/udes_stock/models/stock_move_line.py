@@ -2,7 +2,7 @@ from collections import defaultdict
 from datetime import datetime
 import logging
 
-from odoo import models, fields, api, _
+from odoo import models, fields, api, _, tools
 from odoo.tools.float_utils import float_compare, float_round, float_is_zero
 from itertools import groupby
 from operator import itemgetter
@@ -133,6 +133,73 @@ class StockMoveLine(models.Model):
                 break
 
         return result, new_ml, uom_qty
+
+    def move_lines_for_weight(self, weight, sort=True):
+        """
+        Return a subset of move lines from self where their sum of the weight
+        to do is equal to parameter weight.
+        In case that a move line needs to be split, the new move line is
+        also returned (this happens when total weight * quantity in the move lines is
+        greater than weight parameter).
+        If there is not enough to do in the move lines,
+        also return the remaining weight.
+        """
+        MoveLine = self.env["stock.move.line"]
+        new_ml = None
+        result = MoveLine.browse()
+        if weight == 0:
+            return result, new_ml, weight
+
+        if sort:
+            sorted_mls = self.sorted(
+                lambda ml: ml.product_id.weight * ml.product_uom_qty, reverse=True
+            )
+            greater_equal_mls = sorted_mls.filtered(
+                lambda ml: float_compare(
+                    (ml.product_id.weight * ml.product_uom_qty),
+                    weight,
+                    precision_rounding=ml.product_uom_id.rounding,
+                )
+                >= 0
+            )
+            # last one will be at least equal
+            mls = greater_equal_mls[-1] if greater_equal_mls else sorted_mls
+        else:
+            mls = self
+
+        for ml in mls:
+            result |= ml
+            extra_weight = (ml.product_id.weight * ml.product_uom_qty) - weight
+            if extra_weight > 0:
+                if ml.product_id.weight > weight:
+                    # In cases where the product weight exceeds the weight,
+                    # split so a single qty remains
+                    extra_qty = ml.product_uom_qty - 1
+                else:
+                    extra_qty = extra_weight / ml.product_id.weight
+                # Raise if extra_qty is not supported by the uom. This should never happen,
+                # but it would be better to raise than to end up with bad qtys of products to be picked
+                rounded_uom_amount = tools.float_round(
+                    extra_qty,
+                    precision_rounding=ml.product_id.uom_id.rounding,
+                    rounding_method="UP",
+                )
+                if rounded_uom_amount != extra_qty:
+                    raise ValidationError(
+                        _(
+                            "Refactor by weight attempted to split a line in a way which the uom (%s) of the product does not support. "
+                            "Wanted to split off %s, the uom would only support splitting off %s"
+                        )
+                        % (ml.product_id.uom_id.name, extra_qty, rounded_uom_amount)
+                    )
+                new_ml = ml._split(uom_qty=extra_qty)
+                weight = 0
+            else:
+                weight -= ml.product_uom_qty * ml.product_id.weight
+            if weight == 0:
+                break
+
+        return result, new_ml, weight
 
     def _get_search_domain(self, strict=False):
         """Generate search domain for a given move line"""
@@ -655,6 +722,40 @@ class StockMoveLine(models.Model):
         # used from move lines to be split. Add the move lines to the grouped move lines.
         while remaining_mls:
             mls_used, new_ml, _uom_qty = remaining_mls.move_lines_for_qty(maximum_qty)
+            if new_ml:
+                remaining_mls |= new_ml
+            remaining_mls -= mls_used
+            grouped_mls.append(mls_used)
+        return grouped_mls
+
+    def _split_and_group_mls_by_weight(self, maximum_weight):
+        """
+        Split move lines into groups of up to a maximum weight
+        :param maximum_weight: float weight to split and group move lines
+        :returns: list of grouped move lines
+        """
+        grouped_mls = []
+
+        # Group all (partially) done and cancelled moves first
+        remaining_mls = self
+        excluded_move_lines = self.filtered(lambda m: m.qty_done or m.state == "done")
+        if excluded_move_lines:
+            grouped_mls.append(excluded_move_lines)
+            remaining_mls -= excluded_move_lines
+
+        # See if any mls are equal to the maximum and add them as individual groups
+        exact_mls = self.filtered(
+            lambda l: (l.product_id.weight * l.product_uom_qty) == maximum_weight
+        )
+        remaining_mls -= exact_mls
+        for ml in exact_mls:
+            grouped_mls.append(ml)
+
+        # Splitting and grouping remaining move lines by using move_lines_for_weight method, where if
+        # a move line is split we add the split move line to be split again and remove the move line
+        # used from move lines to be split. Add the move lines to the grouped move lines.
+        while remaining_mls:
+            mls_used, new_ml, _weight = remaining_mls.move_lines_for_weight(maximum_weight)
             if new_ml:
                 remaining_mls |= new_ml
             remaining_mls -= mls_used
