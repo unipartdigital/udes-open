@@ -12,12 +12,23 @@ Module to handle suggested locations
 
 Policies are based on a metaclass that enforces the methods needed for suggested locations to work. Essentially they are used to govern how stock is moved within a warehouse, along with the u_drop_location_constaint.
 
-| Policy | Description |
-| - | - |
-| ByEmpty | Suggest empty locations |
-| ExactlyMatchMoveLine | Suggest the destination that matches the move line's destination location |
-| ByProduct | Match drop locations to locations which are already store the product being dropped off |
-| ByOrigin  | Match drop locations to the origin of the picking |
+| Policy                      | Description                                                                                                                                                                                                                                                                                |
+|-----------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ByEmpty                     | Suggest empty locations                                                                                                                                                                                                                                                                    |
+| ExactlyMatchMoveLine        | Suggest the destination that matches the move line's destination location                                                                                                                                                                                                                  |
+| ByProduct                   | Match drop locations to locations which are already store the product being dropped off                                                                                                                                                                                                    |
+| ByOrigin                    | Match drop locations to the origin of the picking                                                                                                                                                                                                                                          |
+| ByProductCategory           | Match drop locations to locations which already store the product being dropped off and order point locations of the product for locations that are linked with product category                                                                                                           |
+| ByProductCategoryOrderpoint | Same as ByProductCategory, the only difference is on suggesting empty locations. ByProductCategory suggests empty locations of other products order points locations that are empty and of locations linked in product category, and ByProductCategoryOrderpoint excludes those locations  |
+
+ByProductCategory: Allows stock to be dropped in an empty location with the correct product 
+category, even if the location has an orderpoint for a different product.
+
+ByProductCategoryOrderpoint: Allows stock to be dropped in a location with the correct product 
+category that: has stock for the product already, or has an orderpoint for the product, 
+or an empty location with no orderpoints.
+
+
 
 # Drop Configurations (u_drop_location_constaint)
 

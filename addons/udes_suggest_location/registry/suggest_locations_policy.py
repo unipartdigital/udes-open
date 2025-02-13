@@ -24,6 +24,13 @@ class SuggestLocationPolicy(metaclass=SuggestRegistryMeta):
         """Find values based on the dict passed from stock.move._prepare_move_line_vals"""
         return dict()
 
+    def get_policy_empty_location_domain(self, **values):
+        """Find domain of specific policies about empty locations"""
+        if suggested_locations := values.get("suggested_locations"):
+            return [("id", "not in", suggested_locations.ids)]
+        else:
+            return []
+
     @abstractmethod
     def get_locations(self, **values):
         """Logic to find the locations based on values provided"""

@@ -8,6 +8,7 @@ from .common import get_next_name
 from odoo.addons.udes_common.models.fields import PreciseDatetime
 from odoo.addons.udes_common.tools import RelFieldOps
 from lxml import etree
+from odoo.osv import expression
 
 from ..utils import UDES_STATISTICS_LOG_FORMAT
 
@@ -251,13 +252,16 @@ class StockPicking(models.Model):
         for picking in self:
             picking.u_num_pallets = len(picking.move_line_ids.result_package_id)
 
-    def get_empty_location_domain(self):
+    def get_empty_location_domain(self, policy_domain=None):
         """
         Return the domain for searching empty locations
         """
-        return [("barcode", "!=", False), ("quant_ids", "=", False)]
+        empty_location_domain = [("barcode", "!=", False), ("quant_ids", "=", False)]
+        if policy_domain is not None:
+            empty_location_domain = expression.AND([policy_domain, empty_location_domain])
+        return empty_location_domain
 
-    def get_empty_locations(self, limit=None, sort=True):
+    def get_empty_locations(self, limit=None, sort=True, policy_domain=None):
         """Returns the recordset of locations that are child of the
         instance dest location and are empty.
         Expects a singleton instance.
@@ -271,7 +275,9 @@ class StockPicking(models.Model):
                 (and when the limit has been applied, if set)
         :returns: Move lines of picking
         """
-        locations = self._get_child_dest_locations(self.get_empty_location_domain(), limit=limit)
+        locations = self._get_child_dest_locations(
+            self.get_empty_location_domain(policy_domain=policy_domain), limit=limit
+        )
 
         if sort:
             return locations.sorted(lambda l: l.name)
