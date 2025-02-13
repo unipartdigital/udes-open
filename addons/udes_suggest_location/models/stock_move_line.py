@@ -47,6 +47,22 @@ class StockMoveLine(models.Model):
         - limit: Integer
             If set then the location recordset returned will be less than or equal to the limit.
         """
+        suggested, empty = self.split_suggested_locations(picking=picking, values=values, limit=limit)
+        return suggested | empty
+
+
+    def split_suggested_locations(self, picking=None, values=None, limit=30):
+        """
+        Suggest locations for move line, either by self or picking_type and values
+
+        - picking: {stock.picking}
+            If not set, it will be determined from the picking for the stock move line in self
+        - values: Dictionary
+            Used to determine values to use when self is an empty recordset
+        - limit: Integer
+            If set then the location recordset returned will be less than or equal to the limit.
+        """
+        Location = self.env["stock.location"]
         # Validate preconditions
         if not self and (not picking or not values):
             raise ValueError(
@@ -75,6 +91,10 @@ class StockMoveLine(models.Model):
             values = policy.get_values_from_dict(values)
         # Get locations
         locations = policy.get_locations(**values)
+        if limit:
+            locations = locations[:limit]
+        empty_locations = Location.browse()
+        values["suggested_locations"] = locations
 
         if picking_type.u_drop_location_constraint in WITH_EMPTY_LOCATIONS:
             empty_locations_limit = None
@@ -84,12 +104,11 @@ class StockMoveLine(models.Model):
                 empty_locations_limit = limit - location_count
 
             if empty_locations_limit is None or empty_locations_limit > 0:
-                locations |= picking.get_empty_locations(limit=empty_locations_limit)
-
-        if limit:
-            locations = locations[:limit]
-
-        return locations
+                policy_domain = policy.get_policy_empty_location_domain(**values)
+                empty_locations = picking.get_empty_locations(
+                    limit=empty_locations_limit, policy_domain=policy_domain
+                )
+        return locations, empty_locations
 
     @api.constrains("location_dest_id")
     @api.onchange("location_dest_id")
