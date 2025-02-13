@@ -45,6 +45,7 @@
     <record id="product_category_pallet_categorisation" model="product.category">
       <field name="name">Pallet Categorisation</field>
       <field name="parent_id" ref="product.product_category_all"/>
+      <field name="u_category_suggest_locations" eval="True"/>
     </record>
 
   </data>

@@ -9,6 +9,20 @@
             <field name="parent_id" position="before">
                 <field name="active" widget="boolean_toggle" />
             </field>
+            <field name="parent_id" position="after">
+                <field name="u_category_suggest_locations"/>
+                <field name="u_suggest_locations"/>
+            </field>
+            <sheet position="inside">
+                <notebook attrs="{'invisible': [('u_suggest_locations', '=', False)]}">
+                    <page string="Suggested Locations" name="suggested_locations">
+                        <separator string="Category Suggested Locations"/>
+                        <field name="u_category_suggest_location_ids" widget="many2many_tags"/>
+                        <separator string="Suggested Locations"/>
+                        <field name="u_suggest_location_ids" widget="many2many_tags"/>
+                    </page>
+                </notebook>
+            </sheet>
         </field>
     </record>
 
