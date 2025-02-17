@@ -2,12 +2,14 @@ import html
 import logging
 import io
 import requests
+from collections import deque
 from odoo import api, fields, models, _
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 from PIL import Image
 import base64
 import mimetypes
 from odoo.tools.mimetypes import guess_mimetype  # Uses python-magic to guess mimetype
+import csv
 
 _logger = logging.getLogger(__name__)
 
@@ -60,6 +62,39 @@ class IrAttachment(models.Model):
 
         return super()._check_contents(vals)
 
+    def _check_valid_csv(self, attachment_datas):
+        """Validates if the provided attachment data is a valid CSV file.
+
+        This function attempts to parse the provided attachment data as a CSV file.
+        It checks for common CSV errors like invalid delimiters, missing headers,
+        and parsing issues.  If the data parses successfully as a multi-row CSV, it's
+        considered valid.
+
+        Args:
+            attachment_datas (str): Base64 encoded attachment data.
+
+        Returns:
+            bool: True if the attachment data is a valid multi-row CSV, False otherwise.
+
+        Raises:
+            ValidationError: If the attachment data cannot be parsed as a CSV.
+        """
+        try:
+            data_str = base64.b64decode(attachment_datas).decode('utf-8')
+            sniffer = csv.Sniffer()
+            dialect = sniffer.sniff(data_str, delimiters=",|")
+            has_header = sniffer.has_header(data_str)
+            reader = csv.reader(data_str.splitlines(), dialect=dialect)
+            deque(reader, maxlen=0)
+            if reader.line_num > 1 and has_header:
+                # File is most likely a genuine CSV so allow it to be attached
+                _logger.info(f"User {self.env.uid} bypassing CSV upload")
+                return True
+        except csv.Error as e:
+            _logger.error(f"CSV validation failed: {e}")
+        raise ValidationError(_("Invalid CSV."))
+
+
     @api.constrains("u_file_type", "active", "mimetype")
     def _check_file_type(self):
         """
@@ -104,6 +139,10 @@ class IrAttachment(models.Model):
                     attachment.u_file_type,
                     attachment.mimetype,
                 )
+                user_is_trusted = self.env.user.u_is_trusted_user or self.env.user._is_superuser_or_admin()
+                if attachment.res_model == 'edi.document' and user_is_trusted and attachment.u_file_type == 'csv':
+                    if self._check_valid_csv(attachment.datas):
+                        continue
                 error_msg = "Mimetype %r is not associated with file type %r"
                 raise UserError(_(error_msg) % (attachment.mimetype, attachment.u_file_type))
 
