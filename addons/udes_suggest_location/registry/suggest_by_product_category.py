@@ -69,11 +69,11 @@ class ByProductCategory(SuggestLocationPolicy):
 
         # Add order="id" for performance as we don't care about the order
         product_orderpoints = OrderPoint.search(product_category_locations_domain, order="id")
-        orderpoint_locations = product_orderpoints.location_id
+        orderpoint_locations = product_orderpoints.location_id.sorted("name")
 
         # Add order="id" for performance as we don't care about the order
         product_quants = Quant.search(product_category_locations_domain, order="id")
-        quant_locations = product_quants.location_id
+        quant_locations = product_quants.location_id.sorted("name")
 
         locations = orderpoint_locations | quant_locations
         return locations
