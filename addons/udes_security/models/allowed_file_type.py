@@ -14,10 +14,7 @@ class MimeType(models.Model):
         help="Name Of a Mime Type",
     )
     active = fields.Boolean("Active?", default=True)
-
-    def name_get(self):
-        """Return values for display."""
-        return [(record.id, record.mimetype) for record in self]
+    name = fields.Char(string="Name", related="mimetype")
 
 
 class AllowedFileType(models.Model):
