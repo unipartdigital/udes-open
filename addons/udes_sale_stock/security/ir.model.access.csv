@@ -1,0 +1,2 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_udes_carrier,access_udes_carrier,model_udes_carrier,udes_security.group_trusted_user,1,1,1,1

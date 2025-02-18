@@ -59,6 +59,9 @@ class SaleOrder(models.Model):
         readonly=True, related="warehouse_id.u_allow_manual_sale_order_line_cancellation",
     )
 
+    u_carrier_id = fields.Many2one("udes.carrier", string="Carrier")
+
+
     @api.depends("order_line.move_ids.picking_id")
     def _compute_picking_ids_by_line(self):
         self.mapped("order_line.move_ids.picking_id")
