@@ -21,6 +21,7 @@
     "sequence": 12,
     "demo": [],
     "data": [
+        "security/ir.model.access.csv",
         "data/stock_config.xml",
         "data/branding_digest_tip_data.xml",
         "data/ir_cron.xml",
