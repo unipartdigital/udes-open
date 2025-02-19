@@ -1,9 +1,31 @@
 from odoo import fields, models, _, api
-from odoo.exceptions import ValidationError
+from odoo.exceptions import ValidationError, UserError
 
 
 class ProductTemplate(models.Model):
     _inherit = "product.template"
+
+    NON_NEGATIVE_FIELDS = [
+        "weight",
+        "volume",
+        "list_price",
+        "standard_price",
+        "u_height",
+        "u_length",
+        "u_width",
+        "sale_delay",
+    ]
+
+    @api.constrains(*NON_NEGATIVE_FIELDS)
+    def _constrain_non_negative_values(self):
+        for record in self:
+            for field in record.NON_NEGATIVE_FIELDS:
+                if getattr(record, field) < 0:
+                    raise UserError(
+                        _("Negative values for %s on %s are not allowed")
+                        % (field, record.name)
+                    )
+
 
     def _domain_product_category(self, category):
         """Domain for product categories, not including category itself"""
