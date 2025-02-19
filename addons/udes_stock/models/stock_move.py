@@ -2,7 +2,7 @@ import logging
 import math
 
 from odoo import models, fields, api, _
-from odoo.exceptions import ValidationError
+from odoo.exceptions import ValidationError, UserError
 from odoo.tools import float_compare
 
 
@@ -12,15 +12,31 @@ _logger = logging.getLogger(__name__)
 class StockMove(models.Model):
     _inherit = "stock.move"
 
+    NON_NEGATIVE_FIELDS = [
+        "product_uom_qty",
+    ]
+
     u_uom_initial_demand = fields.Float(
         "Initial Demand",
         digits="Product Unit of Measure",
         help="The original quantity when the move was created",
     )
 
+
     # Override product_uom_qty to change string from "Demand" to "Quantity", because of
     # how we are now tracking initial demand in u_uom_initial_demand.
     product_uom_qty = fields.Float(string="Quantity")
+
+    @api.constrains(*NON_NEGATIVE_FIELDS)
+    def _constrain_non_negative_values(self):
+        for record in self:
+            for field in record.NON_NEGATIVE_FIELDS:
+                if getattr(record, field) < 0:
+                    raise UserError(
+                        _("Negative values for %s on %s are not allowed")
+                        % (field, record.name)
+                    )
+
 
     @api.model
     def create(self, vals):
