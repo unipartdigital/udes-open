@@ -184,13 +184,17 @@ class StockMove(models.Model):
                             new_moves = assigned_move.split_out_move_lines(assigned_move.move_line_ids)
                             # The picking id can be cleared by split_out_move_lines, this hacks it back in.
                             new_moves.write({"picking_id": picking.id})
+                            new_moves.move_line_ids.write({"picking_id": picking.id})
                             moves_to_split_by_rule[rule] |= new_moves
 
         # Now we have split the lines and built the information on which rule each move is related to
         # we can split those into backorders. Doing it this way prevents us from having picks with multiple
         # products (moves which cannot be _merged) backorder to several separate pickings.
         for rule, assigned_moves in moves_to_split_by_rule.items():
+            original_picking = assigned_moves.picking_id
             res |= assigned_moves._split_pick_for_rule(assigned_moves, rule)
+            if not original_picking.move_lines:
+                original_picking.u_is_empty = True
 
         return res
 
