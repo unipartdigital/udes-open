@@ -408,9 +408,9 @@ class StockMove(models.Model):
         # a move is split we add the split move to be split again and remove the move
         # used from moves to be split. Add the moves to the grouped moves.
         while remaining_moves:
-            moves_used, new_move, _weight = remaining_moves._moves_for_weight(maximum_weight)
-            if new_move:
-                remaining_moves |= new_move
+            moves_used, move_for_excess, _weight = remaining_moves._moves_for_weight(maximum_weight)
+            if move_for_excess:
+                remaining_moves |= move_for_excess
             remaining_moves -= moves_used
             grouped_moves.append(moves_used)
         return grouped_moves
@@ -426,10 +426,10 @@ class StockMove(models.Model):
         also return the remaining weight.
         """
         StockMove = self.env["stock.move"]
-        new_move = None
-        result = StockMove.browse()
+        move_for_excess = None
+        moves_used = StockMove.browse()
         if weight == 0:
-            return result, new_move, weight
+            return moves_used, move_for_excess, weight
 
         if sort:
             sorted_moves = self.sorted(
@@ -451,26 +451,26 @@ class StockMove(models.Model):
             moves = self
 
         for move in moves:
-            result |= move
-            extra_weight = (move.product_id.weight * move.product_uom_qty) - weight
-            if extra_weight > 0:
+            moves_used |= move
+            excess_weight = (move.product_id.weight * move.product_uom_qty) - weight
+            if excess_weight > 0:
                 if move.product_id.weight > weight:
                     # In cases where the product weight exceeds the weight,
                     # split so a single qty remains. This assumes only whole units can be moved.
-                    # In cases where extra_qty would get set to 0, fallback to 1 instead.
-                    extra_qty = move.product_uom_qty - 1 or 1
+                    # In cases where excess_qty would get set to 0, fallback to 1 instead.
+                    excess_qty = move.product_uom_qty - 1 or 1
                 else:
                     # Determine the quantity to split off so that we will be
                     # left with a quantity which the products uom supports.
-                    extra_qty = tools.float_round(
-                        extra_weight / move.product_id.weight,
+                    excess_qty = tools.float_round(
+                        excess_weight / move.product_id.weight,
                         precision_rounding=move.product_id.uom_id.rounding,
                     )
 
-                remaining_qty = move.product_uom_qty - extra_qty
-                # Don't split if extra_qty is zero and there are no sibling moves
-                if float_is_zero(extra_qty, precision_rounding=move.product_id.uom_id.rounding) or (
-                    move.product_qty <= extra_qty and len(moves) == 1
+                remaining_qty = move.product_uom_qty - excess_qty
+                # Don't split if excess_qty is zero and there are no sibling moves
+                if float_is_zero(excess_qty, precision_rounding=move.product_id.uom_id.rounding) or (
+                    move.product_qty <= excess_qty and len(moves) == 1
                 ):
                     weight = 0
                 else:
@@ -479,19 +479,21 @@ class StockMove(models.Model):
                     # accidentally splitting a move to leave 1 behind when there are other
                     # moves already in the group which would push its weight over the limit.
                     if remaining_qty == 0 or len(moves) != 1:
-                        new_move = move
-                        result -= move
+                        move_for_excess = move
+                        moves_used -= move
                     # The move has qty remaining, so should be split in two.
                     else:
-                        new_move = move._create_split_move(
-                            move.move_line_ids, remaining_qty, extra_qty, picking_id=move.picking_id.id
+                        # TODO palabaster: The move lines which we pass in here as move.move_line_ids
+                        # need to be split for refactoring by weight to work post assign.
+                        move_for_excess = move._create_split_move(
+                            move.move_line_ids, remaining_qty, excess_qty, picking_id=move.picking_id.id
                         )
                     weight = 0
             else:
                 weight -= move.product_uom_qty * move.product_id.weight
             if weight == 0:
                 break
-        return result, new_move, weight
+        return moves_used, move_for_excess, weight
 
     @api.model
     def _prepare_merge_moves_distinct_fields(self):
