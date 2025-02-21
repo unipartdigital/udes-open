@@ -97,9 +97,9 @@ class StockMove(models.Model):
 
         refactor_lam = lambda m: m.picking_type_id and m.state not in ["draft", "cancel"]
         if stage is not None:
-            refactor_lam = lambda m, lam=refactor_lam: lam(m) and STOCK_REFACTOR_STAGES[
-                m.state
-            ] == stage
+            refactor_lam = (
+                lambda m, lam=refactor_lam: lam(m) and STOCK_REFACTOR_STAGES[m.state] == stage
+            )
 
         refactor_moves = moves.filtered(refactor_lam)
 
@@ -165,7 +165,7 @@ class StockMove(models.Model):
         res = super(StockMove, self)._action_assign()
 
         refactored_moves = res._action_refactor(stage="assign")
-        res = res.exists() | refactored_moves   # exists() gets rid of deleted moves on merge
+        res = res.exists() | refactored_moves  # exists() gets rid of deleted moves on merge
         return res
 
     def _action_done(self, cancel_backorder=False):
@@ -469,9 +469,9 @@ class StockMove(models.Model):
 
                 remaining_qty = move.product_uom_qty - excess_qty
                 # Don't split if excess_qty is zero and there are no sibling moves
-                if float_is_zero(excess_qty, precision_rounding=move.product_id.uom_id.rounding) or (
-                    move.product_qty <= excess_qty and len(moves) == 1
-                ):
+                if float_is_zero(
+                    excess_qty, precision_rounding=move.product_id.uom_id.rounding
+                ) or (move.product_qty <= excess_qty and len(moves) == 1):
                     weight = 0
                 else:
                     # The move just needs to be given a new pick rather than being split.
