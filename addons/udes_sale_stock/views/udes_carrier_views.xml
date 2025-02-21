@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <!-- Tree View for udes.carrier model -->
+    <record id="view_udes_carrier_tree" model="ir.ui.view">
+        <field name="name">udes.carrier.tree</field>
+        <field name="model">udes.carrier</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name" />
+            </tree>
+        </field>
+    </record>
+
+    <!-- Form View for udes.carrier model -->
+    <record id="view_udes_carrier_form" model="ir.ui.view">
+        <field name="name">udes.carrier.form</field>
+        <field name="model">udes.carrier</field>
+        <field name="arch" type="xml">
+            <form string="carrier">
+                <sheet>
+                    <group>
+                        <field name="name" />
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+
+    <!-- Action to open the carrier list -->
+    <record id="action_udes_carrier" model="ir.actions.act_window">
+        <field name="name">carriers</field>
+        <field name="res_model">udes.carrier</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="menu_udes_carrier_action"
+        name="Carriers"
+        parent="sale.menu_sale_config"
+        action="action_udes_carrier"
+        sequence="3" />
+</odoo>

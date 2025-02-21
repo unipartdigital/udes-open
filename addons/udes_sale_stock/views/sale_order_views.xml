@@ -10,6 +10,7 @@
       <field name="arch" type="xml">
         <xpath expr="//field[@name='payment_term_id']" position="after">
           <field name="priority"/>
+          <field name="u_carrier_id" readonly="1"/>        
         </xpath>
         <xpath expr="//field[@name='order_line']" position="before">
           <field name="u_allow_manual_sale_order_line_cancellation" invisible="1"/>
