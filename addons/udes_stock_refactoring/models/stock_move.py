@@ -483,11 +483,19 @@ class StockMove(models.Model):
                         moves_used -= move
                     # The move has qty remaining, so should be split in two.
                     else:
-                        # TODO palabaster: The move lines which we pass in here as move.move_line_ids
-                        # need to be split for refactoring by weight to work post assign.
-                        move_for_excess = move._create_split_move(
-                            move.move_line_ids, remaining_qty, excess_qty, picking_id=move.picking_id.id
+                        result_mls, new_ml, _uom_qty = move.move_line_ids.move_lines_for_qty(
+                            excess_qty
                         )
+                        move_for_excess = move._create_split_move(
+                            result_mls,
+                            remaining_qty,
+                            excess_qty,
+                            picking_id=move.picking_id.id,
+                        )
+                        # TODO palabaster: We should not split the move if it has no mls and running post assign
+                        # TODO palabaster: If result_mls can not fulfill move.product_uom_qty any more,
+                        # we need to split the move and line further
+                        # but only when it's running post assign vs post confirm.
                     weight = 0
             else:
                 weight -= move.product_uom_qty * move.product_id.weight
