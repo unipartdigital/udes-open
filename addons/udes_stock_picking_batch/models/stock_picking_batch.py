@@ -71,13 +71,13 @@ class StockPickingBatch(models.Model):
         required=False,
         help="Name of the batch from which this batch was derived",
     )
-    u_picking_zone_id = fields.Many2one(
-        "stock.location", "Picking Zone Location", readonly=True,
+    u_picking_zone_ids = fields.Many2many(
+        "stock.location", 'batch_picking_zone_locations', string="Picking Zone Locations", readonly=True,
         states={
             "draft": [("readonly", False)],
         },
-        help="If picking zone location is set pickings added in the batch will be reserved from "
-             "children of selected picking zone",
+        help="If picking zones location are set, pickings added in the batch will be reserved from "
+             "children of selected picking zones",
     )
     u_location_src_id = fields.Many2one(
         "stock.location", "Location", related="picking_type_id.default_location_src_id"
@@ -479,7 +479,6 @@ class StockPickingBatch(models.Model):
         """Get all the move lines from available pickings"""
         self.ensure_one()
         available_pickings = self.picking_ids.filtered(lambda p: p.state == "assigned")
-
         return available_pickings.get_move_lines_ordered_by()
 
     def get_next_tasks(
@@ -917,7 +916,6 @@ class StockPickingBatch(models.Model):
         self = self.sudo()
         user_id = self._check_user_id(user_id)
         self._check_user_batch_in_progress(user_id)
-
         return self._create_batch(
             user_id, picking_type_id, picking_priorities, picking_id=picking_id, **kwargs
         )
@@ -986,8 +984,12 @@ class StockPickingBatch(models.Model):
                     "Only %d pallets may be reserved at a time." % max_reservable_pallets
                 )
         batch_create_vals = {"user_id": user_id}
-        if kwargs.get("pick_zone", False):
-            batch_create_vals.update({"u_picking_zone_id": kwargs["pick_zone"]})
+        if picking_zones := kwargs.get("pick_zones", False):
+            if isinstance(picking_zones, int):
+                picking_zones = [picking_zones]
+            batch_create_vals.update({"u_picking_zone_ids": [(6, 0, picking_zones)]})
+        if package_name := kwargs.get("package_name", False):
+            batch_create_vals.update({"u_last_reserved_pallet_name": package_name})
         batch = PickingBatch.sudo().create(batch_create_vals)
         picking.write({"batch_id": batch.id})
         batch.check_same_picking_priority(picking)
