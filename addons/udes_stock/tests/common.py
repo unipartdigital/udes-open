@@ -171,7 +171,8 @@ class UnconfiguredBaseUDES(common.SavepointCase):
         cls.stock_location = cls.env.ref("stock.stock_location_stock")
         cls.stock_location.write({"name":"TEST_STOCK"})
 
-        cls.received_location = cls.stock_location.copy({"name": "TEST_INPUT"})
+       # Reset the location storage format so we default to picking type
+        cls.received_location = cls.stock_location.copy({"name": "TEST_INPUT", "u_location_storage_format": False})
         cls.test_received_locations = Location.create(
             [
                 {
@@ -219,7 +220,7 @@ class UnconfiguredBaseUDES(common.SavepointCase):
             cls.test_stock_location_04,
         ) = cls.test_stock_locations
 
-        cls.check_location = cls.stock_location.copy({"name": "TEST_CHECK"})
+        cls.check_location = cls.stock_location.copy({"name": "TEST_CHECK", "u_location_storage_format": False})
         cls.test_check_locations = Location.create(
             [
                 {
@@ -236,7 +237,7 @@ class UnconfiguredBaseUDES(common.SavepointCase):
         )
         cls.test_check_location_01, cls.test_check_location_02 = cls.test_check_locations
 
-        cls.out_location = cls.stock_location.copy({"name": "TEST_GOODS_OUT"})
+        cls.out_location = cls.stock_location.copy({"name": "TEST_GOODS_OUT", "u_location_storage_format": False})
         cls.test_goodsout_locations = Location.create(
             [
                 {
@@ -253,7 +254,7 @@ class UnconfiguredBaseUDES(common.SavepointCase):
         )
         cls.test_goodsout_location_01, cls.test_goodsout_location_02 = cls.test_goodsout_locations
 
-        cls.trailer_location = cls.stock_location.copy({"name": "TEST_TRAILER_DISPATCH"})
+        cls.trailer_location = cls.stock_location.copy({"name": "TEST_TRAILER_DISPATCH", "u_location_storage_format": False})
         cls.test_trailer_locations = Location.create(
             [
                 {
