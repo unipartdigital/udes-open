@@ -9,3 +9,4 @@ from . import stock_warehouse
 from . import stock_picking
 from . import stock_picking_type
 from . import udes_carrier
+from . import stock_quant_package
