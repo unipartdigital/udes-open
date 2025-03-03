@@ -10,6 +10,7 @@ import base64
 import mimetypes
 from odoo.tools.mimetypes import guess_mimetype  # Uses python-magic to guess mimetype
 import csv
+import json
 
 _logger = logging.getLogger(__name__)
 
@@ -94,6 +95,26 @@ class IrAttachment(models.Model):
             _logger.error(f"CSV validation failed: {e}")
         raise ValidationError(_("Invalid CSV."))
 
+    @api.model
+    def _check_valid_json(self, attachment_datas):
+        """Validates if the provided attachment data is a valid JSON file.
+
+        This function attempts to parse the provided attachment data as a JSON file.
+        Using json.loads to convert into a json type.
+
+        Args:
+            attachment_datas (str): Base64 encoded attachment data.
+
+        Returns:
+            bool: True if the attachment data is a valid json, False otherwise.
+        """
+        try:
+            data_str = base64.b64decode(attachment_datas).decode('utf-8')
+            json.loads(data_str)
+            return True
+        except Exception as e:
+            _logger.error(f"JSON validation failed: {e}")
+            return False
 
     @api.constrains("u_file_type", "active", "mimetype")
     def _check_file_type(self):
@@ -140,8 +161,11 @@ class IrAttachment(models.Model):
                     attachment.mimetype,
                 )
                 user_is_trusted = self.env.user.u_is_trusted_user or self.env.user._is_superuser_or_admin()
-                if attachment.res_model == 'edi.document' and user_is_trusted and attachment.u_file_type == 'csv':
+                if attachment.res_model == 'edi.document' and user_is_trusted and attachment.u_file_type == '"csv"':
                     if self._check_valid_csv(attachment.datas):
+                        continue
+                if attachment.res_model == 'edi.transfer' and user_is_trusted and attachment.u_file_type == "json":
+                    if self._check_valid_json(attachment.datas):
                         continue
                 error_msg = "Mimetype %r is not associated with file type %r"
                 raise UserError(_(error_msg) % (attachment.mimetype, attachment.u_file_type))
