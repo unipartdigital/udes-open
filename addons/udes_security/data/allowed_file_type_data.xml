@@ -89,6 +89,10 @@
       <field name="mimetype">text/xml</field>
     </record>
 
+    <record id="udes_mimetype_application_xml" model="udes.mimetypes">
+      <field name="mimetype">application/xml</field>
+    </record>
+
     <!-- Allowed File Types -->
 
     <record id="udes_allowed_file_type_bmp" model="udes.allowed_file_type">
@@ -221,7 +225,7 @@
       <field name="name">xml</field>
       <field name="description">Extensible Markup Language</field>
       <field name="active" eval="True"/>
-      <field name="mimetype_ids" eval="[(6, False, [ref('udes_mimetype_image_svg_xml'), ref('udes_mimetype_text_xml')])]"/>
+      <field name="mimetype_ids" eval="[(6, False, [ref('udes_mimetype_image_svg_xml'), ref('udes_mimetype_text_xml'), ref('udes_mimetype_application_xml')])]"/>
     </record>
 
     <record id="udes_allowed_file_type_plain" model="udes.allowed_file_type">
