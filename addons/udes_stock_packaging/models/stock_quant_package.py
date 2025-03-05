@@ -9,10 +9,11 @@ A pallet is a containers which contains only quants.
 
 A container may not contain a mix of packages and quants.
 """
+
 import logging
 import re
 
-from odoo import api, models, _
+from odoo import api, models, fields, _
 from odoo.exceptions import ValidationError
 
 _logger = logging.getLogger(__name__)
@@ -24,6 +25,15 @@ class StockQuantPackage(models.Model):
     _inherit = ["stock.quant.package", "mixin.stock.model"]
     _name = "stock.quant.package"
     _sql_constraints = [("name_unique", "unique (name)", "This name has already been used")]
+
+    u_tracking_id = fields.Char(
+        string="Tracking Id",
+        help="Tracking Id",
+    )
+    u_container_type = fields.Many2one(
+        "container.type",
+        string="Container Type",
+    )
 
     @api.constrains("name")
     def _check_name(self):
