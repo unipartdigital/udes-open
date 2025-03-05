@@ -29,7 +29,8 @@
         "views/sale_order_views.xml",
         "views/stock_warehouse.xml",
         "views/branding_res_config_settings.xml",
-        "views/udes_carrier_views.xml"
+        "views/udes_carrier_views.xml",
+        "views/stock_picking_type_views.xml",
     ],
     "qweb": [],
     "test": [],

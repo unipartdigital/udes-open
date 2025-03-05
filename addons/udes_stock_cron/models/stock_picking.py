@@ -30,54 +30,55 @@ class StockPicking(models.Model):
 
         # Create empty record sets for moves.
         unreservable_moves = Move.browse()
-
-        location = self.picking_type_id.default_location_src_id
         stock_for_products = defaultdict(int)
         skip_states = ("assigned", "done", "cancel")
-        level = logging.DEBUG if len(self) == 1 else logging.INFO
-        _logger.log(level, _("Checking reservability for %d pickings."), len(self))
-        for r, batch in self.batched(size=batch_size):
-            _logger.log(level, "Checking pickings %d-%d", r[0], r[-1])
-            # Cache the needed fields and only the needed fields
-            # Caching too much is expensive here because of the sheer number of
-            # records processed: Odoo's field loading becomes a bottleneck and
-            # memory usage skyrockets.
-            # Caching too little is also expensive since:
-            #  * cache misses cause unused fields to be loaded in due to
-            #    prefetching, which leads to overcaching, described above
-            #  * cache misses for stock move fields result in hundreds of small
-            #    loads per batch, which is inefficient due to overheads
-            # For non-relational fields, read() is used instead of mapped()
-            # because it allows for loading of specific fields, whereas
-            # mapped() will load in as many fields as it can due to prefetching.
-            # with_context(prefetch_fields=False) could be used with mapped()
-            # but is limited to a single column at a time.
-            batched_pickings = batch.with_context(prefetch_fields=False)
-            batched_pickings.move_lines.read(
-                ["product_id", "product_uom_qty", "state"], load="_classic_write"
-            )
+        for picking_type, pickings in self.groupby(lambda p: p.picking_type_id):
 
-            for picking in batched_pickings:
-                # Loop moves and deduct from stock_for_products dict
-                # If this code is modified, the caching above needs to be
-                # kept up to date to ensure good performance
-                for move in picking.move_lines.filtered(lambda m: m.state not in skip_states):
-                    product = move.product_id
+            location = picking_type.default_location_src_id
+            level = logging.DEBUG if len(pickings) == 1 else logging.INFO
+            _logger.log(level, _("Checking reservability for %d pickings."), len(pickings))
+            for r, batch in pickings.batched(size=batch_size):
+                _logger.log(level, "Checking pickings %d-%d", r[0], r[-1])
+                # Cache the needed fields and only the needed fields
+                # Caching too much is expensive here because of the sheer number of
+                # records processed: Odoo's field loading becomes a bottleneck and
+                # memory usage skyrockets.
+                # Caching too little is also expensive since:
+                #  * cache misses cause unused fields to be loaded in due to
+                #    prefetching, which leads to overcaching, described above
+                #  * cache misses for stock move fields result in hundreds of small
+                #    loads per batch, which is inefficient due to overheads
+                # For non-relational fields, read() is used instead of mapped()
+                # because it allows for loading of specific fields, whereas
+                # mapped() will load in as many fields as it can due to prefetching.
+                # with_context(prefetch_fields=False) could be used with mapped()
+                # but is limited to a single column at a time.
+                batched_pickings = batch.with_context(prefetch_fields=False)
+                batched_pickings.move_lines.read(
+                    ["product_id", "product_uom_qty", "state"], load="_classic_write"
+                )
 
-                    if product not in stock_for_products.keys():
-                        stock_for_products[product] = Quant.get_available_quantity(
-                            product,
-                            location,
-                        )
-                    qty_ordered = move.product_uom_qty
-                    if stock_for_products[product] <= 0 or (
-                        stock_for_products[product] < qty_ordered
-                        and not picking.picking_type_id.u_handle_partials
-                    ):
-                        unreservable_moves |= move
-                        if return_fast:
-                            return unreservable_moves
-                    stock_for_products[product] -= qty_ordered
+                for picking in batched_pickings:
+                    # Loop moves and deduct from stock_for_products dict
+                    # If this code is modified, the caching above needs to be
+                    # kept up to date to ensure good performance
+                    for move in picking.move_lines.filtered(lambda m: m.state not in skip_states):
+                        product = move.product_id
+
+                        if product not in stock_for_products.keys():
+                            stock_for_products[product] = Quant.get_available_quantity(
+                                product,
+                                location,
+                            )
+                        qty_ordered = move.product_uom_qty
+                        if stock_for_products[product] <= 0 or (
+                            stock_for_products[product] < qty_ordered
+                            and not picking.picking_type_id.u_handle_partials
+                        ):
+                            unreservable_moves |= move
+                            if return_fast:
+                                return unreservable_moves
+                        stock_for_products[product] -= qty_ordered
 
         return unreservable_moves
 
@@ -176,14 +177,13 @@ class StockPicking(models.Model):
             if not pickings:
                 break  # No pickings left to process. Exit the loop.
 
-            if pickings.batch_id:
-                if pickings.batch_id.state == "draft":
-                    # Continue the loop (skip batch and don't process its pickings).
-                    processed |= pickings.batch_id.picking_ids
-                    continue
-                if picking_type.u_reserve_batches:
-                    # Process the batches pickings
-                    pickings = pickings.batch_id.picking_ids
+            pickings = pickings.add_more_pickings_to_reserve(picking_type)
+
+            extended_processed_pickings = pickings.add_processed_pickings(processed)
+            # If have been added more processed pickings, continue the loop without trying to reserve the pickings
+            if extended_processed_pickings != processed:
+                processed = extended_processed_pickings
+                continue
 
             # Pre-pass to remove unprocessable pickings
             unreservable_moves = pickings._find_unreservable_moves(return_fast=bool(using_wizard))
@@ -237,12 +237,15 @@ class StockPicking(models.Model):
         This is a function so it can be extended and/or overriden.
         """
         # Assign at the move level disabling refactoring
+        StockMove = self.env["stock.move"]
         moves = self.move_lines
-        assigned_moves = moves._action_assign()
+        assigned_moves = StockMove.browse()
+        for _picking_type, grouped_moves in moves.groupby(lambda mv: mv.picking_type_id):
+            assigned_moves |= grouped_moves._action_assign()
         return assigned_moves.picking_id
 
     def raise_insufficiency_error(self, moves):
-        """Helper function to raise error for insufficent stock."""
+        """Helper function to raise error for insufficient stock."""
         products = moves.product_id.name_get()
         picks = moves.mapped("picking_id.name")
         product_names = ", ".join(sorted({p[1] for p in products}))
@@ -265,9 +268,51 @@ class StockPicking(models.Model):
         if unsatisfied:
             # Unreserve if the picking type cannot handle partials or it
             # can but there is nothing allocated (no stock.move.lines)
-            if not self.picking_type_id.u_handle_partials or not mls:
+            # If there are several picking types, they should have all same handle_partials,
+            # raise error in case that they don't have same value
+            handle_partials = set(self.picking_type_id.mapped("u_handle_partials"))
+            if len(handle_partials) > 1:
+                raise UserError(
+                    _("Unable to reserve stock because picking types %s have different handle partials configurations %s.")
+                    % (",".join(self.picking_type_id.mapped("name")), ",".join(list(handle_partials)))
+                )
+            handle_partial = list(handle_partials)[0]
+            if not handle_partial or not mls:
                 # construct error message, report only products
                 # that are unreservable.
                 moves = unsatisfied.move_lines.filtered(unsatisfied_state)
                 self.raise_insufficiency_error(moves)
         return {"newly_processed": newly_processed, "mls": mls}
+
+    def add_more_pickings_to_reserve(self, picking_type):
+        """
+        Checking different configuration of the picking type, and add more pickings to reserve when applied.
+        Method can be override on specific implementations to extend pickings to reserve.
+
+        Args:
+            picking_type (recordset): Stock picking type recordset.
+        Returns:
+            pickings (recordset): Picking to reserve recordset
+        """
+        pickings = self
+        if self.batch_id:
+
+            if self.u_reserve_batches or picking_type.u_reserve_batches:
+                # Process the batches pickings
+                pickings = pickings.batch_id.picking_ids
+
+        return pickings
+
+    def add_processed_pickings(self, processed_pickings):
+        """
+        Checking different configuration of the picking type, and add processed pickings to be skipped when reserving.
+        Method can be override on specific implementations to extend pickings that are skipped.
+
+        Args:
+            processed_pickings  (recordset): Stock picking recordset.
+        Returns:
+            processed_pickings  (recordset): Stock picking recordset.
+        """
+        if self.batch_id.state == "draft":
+            processed_pickings |= self.batch_id.picking_ids
+        return processed_pickings

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_picking_type_form_udes_sale_stock_inherit" model="ir.ui.view">
+        <field name="name">stock.picking.type.form.udes_sale_stock.inherit</field>
+        <field name="model">stock.picking.type</field>
+        <field name="inherit_id" ref="udes_stock.view_picking_type_form_inherit" />
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='udes_config']/field[@name='u_preserve_backorder_batch']" position="after">
+                <field name="u_full_sale_reservation" />
+            </xpath>
+        </field>
+    </record>
+</odoo>
