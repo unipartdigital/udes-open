@@ -1,6 +1,7 @@
 from datetime import datetime, date, time
 from odoo import fields
-
+import logging
+_logger = logging.getLogger(__name__)
 
 DATE_LENGTH = fields.DATE_LENGTH
 DATETIME_FORMAT = fields.DATETIME_FORMAT + ".%f"
@@ -54,3 +55,26 @@ class PreciseDatetime(fields.Datetime):
         return PreciseDatetime.to_string(
             PreciseDatetime.context_timestamp(record, PreciseDatetime.from_string(value))
         )
+
+class UDESChar(fields.Char):
+    """Custom Char field with truncation support."""
+    def _truncate_field(value, max_length, field_name):
+        """Truncate a field if it exceeds max_length and log a warning."""
+        if value and len(value) > max_length:
+            if field_name == "email" and "@" in value:
+                # Handle email separately
+                local_part, domain_part = value.split("@", 1)
+                max_local_length = max_length - len(domain_part) - 1  # -1 for '@'
+                truncated_value = f"{local_part[:max_local_length]}@{domain_part}"
+            else:
+                truncated_value = value[:max_length]
+            _logger.warning(
+                "Truncated field '%s' from %s to %s characters. Original: '%s'",
+                field_name,
+                len(value),
+                max_length,
+                value,
+                truncated_value,
+            )
+            return truncated_value
+        return value
