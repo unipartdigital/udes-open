@@ -61,6 +61,11 @@ class SaleOrder(models.Model):
 
     u_carrier_id = fields.Many2one("udes.carrier", string="Carrier")
 
+    u_comments = fields.Char(
+        string="Special Instructions",
+        readonly=False,
+        help="Special instructions associated with the order.",
+    )
 
     @api.depends("order_line.move_ids.picking_id")
     def _compute_picking_ids_by_line(self):
