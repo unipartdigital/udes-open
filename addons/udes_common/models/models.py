@@ -255,3 +255,23 @@ class Base(models.AbstractModel):
             )
 
         return self.parent_path in child_record.parent_path
+
+    def _truncate_field(self, value, max_length, is_email=False):
+        """Truncate a field if it exceeds max_length and log a warning."""
+        if value and len(value) > max_length:
+            if is_email and "@" in value:
+                # Handle email separately
+                local_part, domain_part = value.split("@", 1)
+                max_local_length = max_length - len(domain_part) - 1  # -1 for '@'
+                truncated_value = f"{local_part[:max_local_length]}@{domain_part}"
+            else:
+                truncated_value = value[:max_length]
+            _logger.warning(
+                "Truncated field from %d to %d characters. Original: '%s', Truncated: '%s'",
+                len(value),
+                max_length,
+                value,
+                truncated_value,
+            )
+            return truncated_value
+        return value
