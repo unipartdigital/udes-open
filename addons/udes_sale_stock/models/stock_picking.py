@@ -33,3 +33,21 @@ class StockPicking(models.Model):
                 lambda p: p.picking_type_id.u_full_sale_reservation and p.state == "confirmed"
             )
         return pickings
+
+    def get_pallet_move_details_extra_info(self, result, package, container_id=None):
+        """Extend to include information from the sale"""
+        res = super().get_pallet_move_details_extra_info(result, package, container_id=container_id)
+        # Replace the picking name with the sales order name.
+        sale = package.get_sale_order()
+        res["title"] = f"Order: {sale.name}"
+        # This pair should be at the top, hence insert(0), but name should be first, hence inserting afterwards.
+        res["extra_summary"].insert(0, f"**Customer Address:** \n{sale.partner_id._display_address()}")
+        res["extra_summary"].insert(0, f"**Customer Name:** {sale.partner_id.name}")
+        res["courier_info"] = {
+            "id": sale.u_carrier_id.id,
+            "name": sale.u_carrier_id.name,
+        }
+        if sale.u_comments:
+            # Show at the bottom.
+            res["extra_summary"].append(f"**Special Instructions:** {sale.u_comments}")
+        return res
