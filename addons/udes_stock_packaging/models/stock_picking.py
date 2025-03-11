@@ -2,6 +2,7 @@ from collections import defaultdict
 
 from odoo import models, _
 from odoo.exceptions import ValidationError
+from odoo.tools.float_utils import float_round, float_repr
 
 
 class StockPicking(models.Model):
@@ -101,3 +102,27 @@ class StockPicking(models.Model):
             ("move_line_ids.package_id", "child_of", package.id),
             ("move_line_ids.result_package_id", "child_of", package.id),
         ]
+
+    def get_pallet_move_details_extra_info(self, result, package, container_id=None):
+        """
+        Extend to include weight and dimensions details of the package.
+        """
+        ContainerType = self.env["container.type"]
+        IrSequence = self.env["ir.sequence"]
+        res = super().get_pallet_move_details_extra_info(result, package, container_id=container_id)
+
+        if container_id is None:
+            raise ValidationError(_("A container_id must be provided."))
+        container = ContainerType.browse(container_id)
+        weight_kg = sum(
+            package_quant.product_id.weight * package_quant.quantity
+            for package_quant in package.x_aggregated_quant_ids
+        )
+        res["extra_summary"] = [
+            f"**Weight:** {float_repr(float_round(weight_kg + container.weight, 2), 2)}kg",
+            f"**Dimensions:** Length {container.length}mm x Width {container.width}mm x Height {container.height}mm",
+        ]
+        result_package_name = IrSequence.next_by_code("stock.quant.package.parcel")
+        # Add the resulting package name to context, so it can be marked on the picked lines later.
+        res["result_package_name"] = result_package_name
+        return res
