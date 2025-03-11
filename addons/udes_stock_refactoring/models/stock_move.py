@@ -118,6 +118,24 @@ class StockMove(models.Model):
                         f"Refactoring {picking_type.name} at {stage} "
                         f"using {refactor_class.name()}: {stage_moves.ids}",
                     )
+                     # Only split partial moves when refactoring post assign.
+                    if stage == "assign":
+                        # Group the moves by picking, and split all covered move lines to a backorder.
+                        # This simplifies refactoring strategies as they do not need to consider
+                        # partially reserved moves.
+                        # The unreserved stock will stay on the original picking.
+                        for picking, stage_moves_for_picking in stage_moves.groupby("picking_id"):
+                            mls = stage_moves_for_picking.move_line_ids
+                            if stage_moves_for_picking.get_uncovered_moves(mls=mls):
+                                backorder = picking.split_move_lines_to_backorder(
+                                    mls,
+                                    name=picking_type.sequence_id.next_by_id()
+                                )
+                                # No longer consider any of the original moves for refactoring
+                                # as they had their move lines (any reserved quantities) split to the backorder
+                                stage_moves -= stage_moves_for_picking
+                                # Instead, consider the moves on the backorder.
+                                stage_moves |= backorder.move_lines
                     # Setting remove_related_moves context to True, used when unlinking the
                     # refactored moves in order to remove the previous and next pickings unlinking.
                     stage_moves = stage_moves.with_context(remove_related_moves=True)
@@ -492,10 +510,6 @@ class StockMove(models.Model):
                             excess_qty,
                             picking_id=move.picking_id.id,
                         )
-                        # TODO palabaster: We should not split the move if it has no mls and running post assign
-                        # TODO palabaster: If result_mls can not fulfill move.product_uom_qty any more,
-                        # we need to split the move and line further
-                        # but only when it's running post assign vs post confirm.
                     weight = 0
             else:
                 weight -= move.product_uom_qty * move.product_id.weight
