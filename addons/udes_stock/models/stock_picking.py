@@ -1149,3 +1149,7 @@ class StockPicking(models.Model):
                 vals["move_line_ids"] = new_actions
 
         return super().write(vals)
+
+    def get_pallet_move_details_extra_info(self, result, package, container_id=None):
+        """Placeholder function to allow sibling modules to extend"""
+        return result
