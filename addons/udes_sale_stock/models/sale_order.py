@@ -418,3 +418,11 @@ class SaleOrder(models.Model):
     def get_orders_to_confirm(self):
         """ Getting orders to confirm. Placing into a method in order to be easier to override"""
         return self.search(self._get_confirmation_domain())
+
+    def get_shipment_package(self):
+        """
+        Getting shipment package from a sale order, Needs to be reviewed as we think there should be exactly
+        one shipment package.
+        """
+        self.ensure_one()
+        return self.picking_ids.move_line_ids.result_package_id
