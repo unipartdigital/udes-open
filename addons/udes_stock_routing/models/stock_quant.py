@@ -37,9 +37,15 @@ class StockQuant(models.Model):
             sum_qty = sum(package_quants.mapped("quantity"))
             # This pallet is part reserved somehow already.
             # Maybe manual moves? Log it and skip it, we can't use it here.
-            if sum_available != sum_qty:
+            if sum_available and sum_available != sum_qty:
                 _logger.warning(
                     "Whole pallet reservation attempted on pallet %s but it was skipped as pallet is already partially reserved somewhere.",
+                    package.name,
+                )
+                continue
+            if not sum_available:
+                _logger.debug(
+                    "Whole pallet reservation attempted on pallet %s but it was skipped as pallet is fully reserved somewhere.",
                     package.name,
                 )
                 continue
