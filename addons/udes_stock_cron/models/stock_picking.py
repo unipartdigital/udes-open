@@ -214,7 +214,10 @@ class StockPicking(models.Model):
                 raise_usererrors=using_wizard,
             )()
             tries = data.get("tries")
-            processed |= data.get("newly_processed", pickings)
+            newly_processed = data.get("newly_processed")
+            if newly_processed:
+                processed |= newly_processed
+            processed |= pickings
             if tries == -1:
                 continue
             if tries >= MAX_TRIES_ON_CONCURRENCY_FAILURE:
