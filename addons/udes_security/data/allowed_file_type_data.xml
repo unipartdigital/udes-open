@@ -93,6 +93,12 @@
       <field name="mimetype">application/xml</field>
     </record>
 
+    <!-- GitLab CI does not recognise EDIFACT files as plain text -->
+
+    <record id="udes_mimetype_application_octet_stream" model="udes.mimetypes">
+      <field name="mimetype">application/octet-stream</field>
+    </record>
+
     <!-- Allowed File Types -->
 
     <record id="udes_allowed_file_type_bmp" model="udes.allowed_file_type">
