@@ -2,6 +2,7 @@
 
 import logging
 import itertools
+import re
 from operator import itemgetter
 from .. import tools
 
@@ -255,3 +256,27 @@ class Base(models.AbstractModel):
             )
 
         return self.parent_path in child_record.parent_path
+
+    def _truncate_field(self, value, max_length):
+        """Truncate a field if it exceeds max_length and log a warning."""
+        if value and len(value) > max_length:
+            truncated_value = value[:max_length]
+            _logger.warning(
+                "Truncated field from %d to %d characters. Original: '%s', Truncated: '%s'",
+                len(value),
+                max_length,
+                value,
+                truncated_value,
+            )
+            return truncated_value
+        return value
+    
+
+    def is_valid_email(self, email, max_length=None):
+        """Validate email format and optionally check max length."""
+        EMAIL_REGEX = r"^[\w\.-]+@[\w\.-]+\.\w+$"
+        if not re.match(EMAIL_REGEX, email):
+            return False
+        if max_length and len(email) > max_length:
+            return False
+        return True
