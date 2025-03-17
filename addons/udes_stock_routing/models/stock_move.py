@@ -164,9 +164,6 @@ class StockMove(models.Model):
         # Split pick hook (different to two stage split!)
         for move in self:
             move_qty = move.product_uom_qty
-            # Post assign actions could change the picking of assigned moves, so use move instead.
-            picking = move.picking_id
-
             for rule in applicable_rules.sorted("sequence"):
                 # Iterate on the rules applicable to this picking type, attempting to reserve
                 # stock as per the configured rules strategy defines,
@@ -177,6 +174,7 @@ class StockMove(models.Model):
                         move.with_context(split_pick_rule=rule, split_pick_qty=move_qty),
                     )._action_assign()
                     for assigned_move in assigned_moves:
+                        picking = assigned_move.picking_id
                         # We only need to determine split characteristics if stock was assigned
                         if assigned_move.move_line_ids:
                             # Deduct the quantity we need to consider, for any lower sequenced rules
