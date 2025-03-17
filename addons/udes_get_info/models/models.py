@@ -40,7 +40,7 @@ def get_info(self, level=1, info_fields=frozenset(), extra_fields=frozenset(), *
 
 
 @add_if_not_exists(models.BaseModel)
-def _get_info(self, level, info_fields, extra_fields):
+def _get_info(self, level, info_fields=frozenset(), extra_fields=frozenset(), **kwargs):
     self.ensure_one()
 
     fields_to_fetch = (
