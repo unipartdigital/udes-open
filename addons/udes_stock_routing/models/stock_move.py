@@ -202,6 +202,7 @@ class StockMove(models.Model):
         This is done at the move level incase refactoring splits picks after assigning stock.
         This way, we don't lose any moves which need to be split to 2 stage but got refactored out.
         """
+        StockPicking = self.env["stock.picking"]
         applicable_rules = self.get_split_pick_applicable_rules()
         if applicable_rules:
             # _action_assign() _will_ be called inside here, possibly multiple times.
@@ -210,11 +211,16 @@ class StockMove(models.Model):
             # Call super as normal
             res = super()._action_assign()
 
+        processed = StockPicking.browse()
         # Two stage split hook
         for move in self:
             if move.exists() and (picking := move.picking_id):
                 if picking.should_two_stage_initiate():
+                    processed |= move.picking_id
                     move.picking_id.initiate_two_stage_split()
+        # Unlink any empty pickings left by two stage split immediately.
+        if processed:
+            processed.unlink_empty()
         return res
 
     def get_split_pick_applicable_rules(self):
