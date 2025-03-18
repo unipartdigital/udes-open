@@ -100,6 +100,7 @@ class StockPicking(models.Model):
         original_priority = self.priority
         original_origin = self.origin
         original_location = self.location_id
+        original_partner = self.partner_id
 
         configuration_move_line_mapping = self._get_two_stage_configuration_move_line_mapping()
         for configuration, move_lines in configuration_move_line_mapping.items():
@@ -131,6 +132,7 @@ class StockPicking(models.Model):
                     "scheduled_date": fields.Datetime.now(),
                     "priority": original_priority,
                     "origin": original_origin,
+                    "partner_id": original_partner.id,
                     "u_from_two_stage_split": True,
                 }
             )
