@@ -159,3 +159,6 @@ class StockPicking(models.Model):
                         "location_dest_id": configuration.intermediate_location_id,
                     }
                 )
+            # Flag fully emptied pickings as empty.
+            if not self.move_lines:
+                self.u_is_empty = True
