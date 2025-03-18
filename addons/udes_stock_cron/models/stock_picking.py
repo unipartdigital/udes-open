@@ -300,7 +300,7 @@ class StockPicking(models.Model):
         pickings = self
         if self.batch_id:
 
-            if self.u_reserve_batches or picking_type.u_reserve_batches:
+            if picking_type.u_reserve_batches:
                 # Process the batches pickings
                 pickings = pickings.batch_id.picking_ids
 
