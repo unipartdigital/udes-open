@@ -114,6 +114,7 @@ class StockMove(models.Model):
                 refactor_class = self._get_refactor_class(picking_type, stage, refactor_action)
 
                 if refactor_class:
+                    has_split_partial_moves = False
                     _logger.info(
                         f"Refactoring {picking_type.name} at {stage} "
                         f"using {refactor_class.name()}: {stage_moves.ids}",
@@ -136,6 +137,7 @@ class StockMove(models.Model):
                                 stage_moves -= stage_moves_for_picking
                                 # Instead, consider the moves on the backorder.
                                 stage_moves |= backorder.move_lines
+                                has_split_partial_moves = True
                     # Setting remove_related_moves context to True, used when unlinking the
                     # refactored moves in order to remove the previous and next pickings unlinking.
                     stage_moves = stage_moves.with_context(remove_related_moves=True)
@@ -147,7 +149,7 @@ class StockMove(models.Model):
                     new_moves = new_moves._merge_moves()
                     new_moves.move_line_ids._merge_move_lines()
 
-                    if new_moves != stage_moves:
+                    if new_moves != stage_moves or has_split_partial_moves:
                         moves -= stage_moves
                         moves |= new_moves
 
