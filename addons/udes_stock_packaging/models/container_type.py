@@ -45,6 +45,11 @@ class ContainerType(models.Model):
         tracking=True,
         help="The weight of the container type in kg.",
     )
+    use_product_dims = fields.Boolean(
+        string="Use Product Dimensions",
+        default=False,
+        help="If checked, the package will use product dimensions instead of box dimensions."
+    )
 
     _sql_constraints = [
         (
