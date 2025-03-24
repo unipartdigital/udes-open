@@ -161,7 +161,7 @@ class IrAttachment(models.Model):
                     attachment.mimetype,
                 )
                 user_is_trusted = self.env.user.u_is_trusted_user or self.env.user._is_superuser_or_admin()
-                if attachment.res_model == 'edi.document' and user_is_trusted and attachment.u_file_type == '"csv"':
+                if attachment.res_model == 'edi.document' and user_is_trusted and attachment.u_file_type == 'csv':
                     if self._check_valid_csv(attachment.datas):
                         continue
                 if attachment.res_model == 'edi.transfer' and user_is_trusted and attachment.u_file_type == "json":
