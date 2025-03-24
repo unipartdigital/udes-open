@@ -612,9 +612,11 @@ class StockMoveLine(models.Model):
         """
         if values is None:
             values = {}
+        total_qty_done = values.get("qty_done", None)
         for ml in self:
             ml_vals = values.copy()
-            new_uom_qty = ml_vals.get("qty_done", None)
+            ml_vals["qty_done"] = total_qty_done
+            new_uom_qty = total_qty_done
             current_uom_qty = ml.product_uom_qty
             if new_uom_qty is None:
                 ml_vals["qty_done"] = current_uom_qty
@@ -625,6 +627,10 @@ class StockMoveLine(models.Model):
                     _("Move line %i for product %s does not have enough quantity: %i vs %i")
                     % (ml.id, ml.product_id.name, new_uom_qty, current_uom_qty)
                 )
+            elif new_uom_qty > current_uom_qty:
+                ml_vals["qty_done"] = current_uom_qty
+            if total_qty_done:
+                total_qty_done -= current_uom_qty
             ml.write(ml_vals)
 
         return True
