@@ -122,6 +122,25 @@ class StockQuantPackage(models.Model):
             res[quant.product_id] += quant.quantity
         return res
 
+    def check_package_contains_single_item(self, raise_error=True):
+        """
+        Check if package has one item only.
+        Raise Error if raise_error boolean optional parameter is True.
+        """
+        self.ensure_one()
+        product_qtys = self._get_product_quantities()
+        if len(product_qtys) != 1 or sum(product_qtys.values()) != 1:
+            if raise_error:
+                raise ValidationError(
+                    _(
+                        "This container can only be used if there is a single product with quantity 1."
+                    )
+                )
+            else:
+                return False
+        else:
+            return True
+
     def assert_reserved_full_package(self, move_lines):
         """Check that a package is fully reserved at move_lines."""
         self.ensure_one()
