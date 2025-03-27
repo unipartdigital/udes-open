@@ -484,8 +484,11 @@ class TestSplitPick(SplitPickBase):
         self.assertTrue(bulk_pick.move_line_ids.package_id)
         self.assertEqual(bulk_pick.state, "assigned")
 
-        # Pick has been deleted because after split there weren't any moves and u_is_empty is set to True.
-        self.assertFalse(pick_pick.exists())
+        # Depending on the modules installed pick_pick could have been deleted because after split
+        # there weren't any moves and u_is_empty is set to True.
+        if pick_pick.exists():
+            self.assertTrue(pick_pick.u_is_empty)
+            self.assertFalse(pick_pick.move_lines)
 
         self.assertEqual(len(standard_pick), 1)
         standard_move_lines = standard_pick.move_line_ids
