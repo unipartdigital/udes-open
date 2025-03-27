@@ -498,3 +498,48 @@ class TestSplitPick(SplitPickBase):
         self.assertEqual(standard_banana_line.product_uom_qty, 15)
         self.assertEqual(standard_apple_line.state, "assigned")
         self.assertEqual(standard_banana_line.state, "assigned")
+
+    def test_other_route_rules_ignored(self):
+        """Ensure even though another loose product rule exists in another route, whole pallet rule
+        is still used.
+        This test borrows test_split_whole_pallet_rule_used structure, only difference is a new
+        route and rule with more priority are added just before calling action assign.
+        """
+
+        # Set up 100 apples on a pallet in bulk, 100 apples loose in standard.
+        self.create_quant(
+            self.apple.id, self.bulk_location_01.id, 100, package_id=self.create_package().id
+        )
+        self.create_quant(self.apple.id, self.standard_location_01.id, 100)
+        # Need for 100 apples. The first sequenced rule of whole pallets should find a suitable quant.
+        self.procure_products([{"product": self.apple, "qty": 100}])
+        all_picks = self.Picking.search([])
+        pick_pick = all_picks.filtered(lambda p: p.picking_type_id == self.pick_operation_type)
+        # Create new route and a new rule in it with more priority than bulk_rule
+        route_out_new = self.route_out.copy({"name": f"{self.route_out.name} NEW"})
+        standard_rule_new = self.standard_rule.copy({
+            "name": f"{self.standard_rule.name} NEW",
+            "sequence": self.bulk_rule.sequence-1,
+            "route_id": route_out_new.id,
+        })
+        # After calling action_assign all checks should still pass, since new rule is ignored
+        pick_pick.action_assign()
+        # The split pick rule should have just run, and ripped off the moves to the Bulk picking type.
+        self.assertEqual(len(pick_pick.move_lines), 0)
+        all_picks = self.Picking.search([])
+        bulk_pick = all_picks.filtered(lambda p: p.picking_type_id == self.bulk_operation_type)
+        self.assertEqual(len(bulk_pick), 1)
+        goodsout_pick = all_picks.filtered(
+            lambda p: p.picking_type_id == self.goodsout_operation_type
+        )
+        self.assertEqual(len(bulk_pick.move_lines), 1)
+        self.assertEqual(len(bulk_pick.move_line_ids), 1)
+        self.assertEqual(bulk_pick.move_lines.move_dest_ids, goodsout_pick.move_lines)
+        self.assertEqual(len(bulk_pick.move_lines.move_orig_ids), 0)
+        self.assertEqual(bulk_pick.move_lines.product_uom_qty, 100)
+        self.assertEqual(bulk_pick.move_line_ids.product_uom_qty, 100)
+        # No standard pick should have been created.
+        standard_pick = all_picks.filtered(
+            lambda p: p.picking_type_id == self.standard_operation_type
+        )
+        self.assertEqual(len(standard_pick), 0)
