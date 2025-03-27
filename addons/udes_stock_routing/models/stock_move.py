@@ -226,12 +226,16 @@ class StockMove(models.Model):
     def get_split_pick_applicable_rules(self):
         # Look up stock.rule applicable to the picking type in self
         Rule = self.env["stock.rule"]
-        applicable_rules = Rule.search(
-            [
-                ("u_run_on_assign", "=", True),
-                ("u_run_on_assign_applicable_to", "in", self.picking_type_id.ids),
-            ]
-        )
+        domain = [
+            ("u_run_on_assign", "=", True),
+            ("u_run_on_assign_applicable_to", "in", self.picking_type_id.ids),
+        ]
+        route_ids = self.rule_id.route_id.ids
+        if route_ids:
+            # Only find rules related to current route
+            domain.append(("route_id", "in", route_ids))
+
+        applicable_rules = Rule.search(domain)
         # We know we need to take the alternative reservation strategy if any exist.
         return applicable_rules
 
