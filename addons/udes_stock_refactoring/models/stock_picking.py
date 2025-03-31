@@ -99,28 +99,33 @@ class StockPicking(models.Model):
         group = ProcurementGroup.get_or_create(group_key, create=True)
         picking_state = kwargs.get("picking_state", False)
 
-        picking_search_domain = [
-            ("picking_type_id", "=", picking_type.id),
-            ("location_id", "=", src_loc.id),
-            ("location_dest_id", "=", dest_loc.id),
-            ("group_id", "=", group.id),
-        ]
-        suitable_picking_states = ["assigned", "confirmed", "waiting"]
-        # Finding a suitable picking with same state as the state of moves being refactored.
-        if picking_state and picking_state in suitable_picking_states:
-            picking_search_domain = expression.AND(
-                [[("state", "=", picking_state)],
-                 picking_search_domain]
-            )
-        else:
-            # NB: only workable pickings
-            picking_search_domain = expression.AND(
-                [[("state", "in", suitable_picking_states)],
-                 picking_search_domain]
-            )
+        if picking_state != "done":
+            picking_search_domain = [
+                ("picking_type_id", "=", picking_type.id),
+                ("location_id", "=", src_loc.id),
+                ("location_dest_id", "=", dest_loc.id),
+                ("group_id", "=", group.id),
+            ]
+            suitable_picking_states = ["assigned", "confirmed", "waiting"]
+            # Finding a suitable picking with same state as the state of moves being refactored.
+            if picking_state and picking_state in suitable_picking_states:
+                picking_search_domain = expression.AND(
+                    [[("state", "=", picking_state)],
+                     picking_search_domain]
+                )
+            else:
+                # NB: only workable pickings
+                picking_search_domain = expression.AND(
+                    [[("state", "in", suitable_picking_states)],
+                     picking_search_domain]
+                )
 
-        # Look for an existing picking with the right group
-        picking = StockPicking.search(picking_search_domain)
+            # Look for an existing picking with the right group
+            picking = StockPicking.search(picking_search_domain)
+        else:
+            # If the state of the picking is done, merging is not allowed, therefore
+            # the original picking should be reused or a new one get created
+            picking = None
         # Removing the "picking_state" key from dict as the pick will be created without state
         # value, state will be recomputed from moves state
         kwargs.pop("picking_state", None)
