@@ -51,3 +51,11 @@ class StockPicking(models.Model):
             # Show at the bottom.
             res["extra_summary"].append(f"**Special Instructions:** {sale.u_comments}")
         return res
+
+    def get_all_related_move_lines(self):
+        """ Return all the move lines related to the same sale order for the picking type in the picking in self"""
+        all_mls = super().get_all_related_move_lines()
+        order = self.move_lines.sale_line_id.order_id
+        if order:
+            all_mls |= order.picking_ids.filtered(lambda p: p.picking_type_id == self.picking_type_id).move_line_ids
+        return all_mls

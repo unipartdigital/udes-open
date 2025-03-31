@@ -344,6 +344,12 @@ class StockPicking(models.Model):
             domain += aux_domain
         return StockMoveLine.get_move_lines_ordered_by(domain=domain, order=order)
 
+    def get_all_related_move_lines(self):
+        """ Return all the related move lines of the pickings in self. This can be extended to include related
+            move lines by other criteria like other pickings of the same picking type of the same sale order.
+        """
+        return self.move_line_ids
+
     def _check_backorder_allowed(self, mls_to_keep, moves_to_move):
         """
         Assert that a backorder is allowed to be generated from self
