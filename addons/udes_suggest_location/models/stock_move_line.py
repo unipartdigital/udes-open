@@ -51,7 +51,7 @@ class StockMoveLine(models.Model):
         return suggested | empty
 
 
-    def split_suggested_locations(self, picking=None, values=None, limit=30):
+    def split_suggested_locations(self, picking=None, values=None, include_empty_locations=True, limit=30):
         """
         Suggest locations for move line, either by self or picking_type and values
 
@@ -59,8 +59,13 @@ class StockMoveLine(models.Model):
             If not set, it will be determined from the picking for the stock move line in self
         - values: Dictionary
             Used to determine values to use when self is an empty recordset
+        include_empty_locations: Boolean
+            If True will add suggested empty locations to the suggested locations.
         - limit: Integer
             If set then the location recordset returned will be less than or equal to the limit.
+
+        For performance, we can call suggested locations with or without empty locations.
+
         """
         Location = self.env["stock.location"]
         # Validate preconditions
@@ -96,7 +101,7 @@ class StockMoveLine(models.Model):
         empty_locations = Location.browse()
         values["suggested_locations"] = locations
 
-        if picking_type.u_drop_location_constraint in WITH_EMPTY_LOCATIONS:
+        if picking_type.u_drop_location_constraint in WITH_EMPTY_LOCATIONS and include_empty_locations:
             empty_locations_limit = None
             if limit:
                 # Only get the number of empty locations needed to reach the limit
