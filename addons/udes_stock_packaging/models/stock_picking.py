@@ -122,7 +122,8 @@ class StockPicking(models.Model):
             f"**Weight:** {float_repr(float_round(weight_kg + container.weight, 2), 2)}kg",
             f"**Dimensions:** Length {container.length}mm x Width {container.width}mm x Height {container.height}mm",
         ]
-        result_package_name = IrSequence.next_by_code("stock.quant.package.parcel")
-        # Add the resulting package name to context, so it can be marked on the picked lines later.
-        res["result_package_name"] = result_package_name
+        if "result_package_name" not in res:
+            result_package_name = IrSequence.next_by_code("stock.quant.package.parcel")
+            # Add the resulting package name to context, so it can be marked on the picked lines later.
+            res["result_package_name"] = result_package_name
         return res
