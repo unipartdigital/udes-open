@@ -94,7 +94,7 @@
                             <th style="padding-top: 40px"><strong>Pallet No.</strong></th>
                             <th style="padding-top: 40px"><strong>Product</strong></th>
                             <th name="lot_serial" t-if="has_serial_number">
-                                Lot/Serial Number
+                                <strong>Lot/Serial Number</strong>
                             </th>
                             <th style="padding-top: 40px"><strong>Ordered Qty.</strong></th>
                             <th style="padding-top: 40px"><strong>Sent Qty.</strong></th>
@@ -139,8 +139,9 @@
                                                     <span t-field="move_line.lot_name"/>
                                                 </t>
                                             </td>
+
                                             <td name="lot_qty">
-                                                <t t-if="move_line.product_qty">
+                                                <t t-if="move_line.lot_id and move_line.product_qty">
                                                     <span t-field="move_line.product_qty"/>
                                                 </t>
                                             </td>
@@ -164,3 +165,4 @@
         </t>
     </template>
 </odoo>
+
