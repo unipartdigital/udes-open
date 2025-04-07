@@ -88,8 +88,6 @@
                 <table class="table table-condensed">
                     <t t-set="has_serial_number" t-value="o.move_line_ids.mapped('lot_id')"
                        groups="stock.group_production_lot"/>
-                    <t t-set="has_expiry_date" t-value="o.move_line_ids.mapped('lot_id.expiration_date')"
-                       groups="stock.group_production_lot"/>
                     <thead>
                         <tr>
                             <th style="padding-top: 40px"><strong>Order Ref.</strong></th>
@@ -97,9 +95,6 @@
                             <th style="padding-top: 40px"><strong>Product</strong></th>
                             <th name="lot_serial" t-if="has_serial_number">
                                 <strong>Lot/Serial Number</strong>
-                            </th>
-                            <th name="expiry_date" t-if="has_expiry_date">
-                                <strong>Expiry date</strong>
                             </th>
                             <th style="padding-top: 40px"><strong>Ordered Qty.</strong></th>
                             <th style="padding-top: 40px"><strong>Sent Qty.</strong></th>
@@ -111,7 +106,6 @@
                             <td></td>
                             <td><span t-field="move.product_id"/></td>
                             <td t-if="has_serial_number"></td>
-                            <td t-if="has_expiry_date"></td>
                             <td><span t-field="move.product_uom_qty"/></td>
                             <td><span t-field="move.quantity_done"/></td>
                         </tr>
@@ -153,13 +147,6 @@
                                             </td>
                                         </tr>
                                     </table>
-                                </td>
-                            </t>
-                            <t t-if="has_expiry_date">
-                                <td>
-                                    <t t-if="move_line.lot_id.expiration_date">
-                                        <span t-field="move_line.lot_id.expiration_date"/>
-                                    </t>
                                 </td>
                             </t>
                             <td><span t-esc="round(move_line.move_id.u_uom_initial_demand)"/></td>
