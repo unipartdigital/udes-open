@@ -1,4 +1,4 @@
-from odoo import fields, models, _
+from odoo import fields, api, models, _
 from odoo.exceptions import ValidationError
 
 
@@ -55,6 +55,39 @@ class StockWarehouse(models.Model):
         string="Stock Investigation Picking Type",
         help="Picking type used to create stock investigation pickings.",
     )
+    u_max_reservable_serials = fields.Integer(
+        "Maximum Reservable Serial Products",
+        default=1000,
+        help=(
+            "Maximum reservable serial products. I.e. value would limit to reserve serial products because "
+            "if the number is very high is taking a lot time to create move lines."
+        ),
+    )
+    u_allowed_tracking_types = fields.Char(
+        string="Allowed Tracking Types",
+        default="none,lot,serial",
+        help="Allowed tracking types on product level, values are comma separated and can use any combination of 3 "
+             "possible options none, lot,serial."
+    )
+
+    @api.constrains("u_allowed_tracking_types")
+    def _constrain_allowed_tracking_types(self):
+        Product = self.env["product.product"]
+        for warehouse in self:
+            allowed_tracking_types_list = warehouse.u_allowed_tracking_types.split(",")
+            not_allowed_tracking_types = [
+                tracking for tracking in ("none", "lot", "serial") if tracking not in allowed_tracking_types_list
+            ]
+            if not_allowed_tracking_types:
+                # Find active products that have already the tracking not in allowed tracking types.
+                products = Product.search([("tracking", "in", not_allowed_tracking_types)])
+                # Raise validation error to archive or delete those products, in order to be able to change
+                # the warehouse config.
+                if products:
+                    raise ValidationError(
+                        _("In order to change allowed tracking types configuration, archive the following products:"
+                          " \n %s") % ", ".join(products.mapped("display_name"))
+                    )
 
     def get_picking_types(self):
         """Returns a recordset with the picking_types of the warehouse"""

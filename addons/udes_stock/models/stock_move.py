@@ -554,8 +554,8 @@ class StockMove(models.Model):
         """
         Assign moves and return all moves to the caller.
 
-        Technically this is a LSP violation, as Odoo core coes not return the
-        moves. However we want to ensure that we capture all assigned moves in
+        Technically this is a LSP violation, as Odoo core does not return the
+        moves, however we want to ensure that we capture all assigned moves in
         the event that some are added or removed, for example through
         refactoring.
         """
@@ -583,3 +583,12 @@ class StockMove(models.Model):
         """
         self.ensure_one()
         return self.picking_id.name
+
+    def _prepare_serial_tracking_move_line_vals(self, quantity):
+        self.ensure_one()
+        warehouse = self.location_id.get_warehouse() or self.env.ref("stock.warehouse0")
+        if quantity > warehouse.u_max_reservable_serials:
+            raise ValidationError(_("Cannot reserve product %s as the quantity needs reserving %s is more than the allowed quantity %s.")
+                             % (self.product_id.display_name, quantity, warehouse.u_max_reservable_serials))
+        else:
+            return super()._prepare_serial_tracking_move_line_vals(quantity)
