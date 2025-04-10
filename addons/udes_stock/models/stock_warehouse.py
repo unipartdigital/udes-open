@@ -32,19 +32,6 @@ class StockWarehouse(models.Model):
         string="PI Count Picking Type",
         help="Picking type used to create PI Count move pickings.",
     )
-
-    u_damaged_location_id = fields.Many2one(
-        comodel_name="stock.location",
-        string="Default Damage Location",
-        help="The damaged location is a location outside Stock (it cannot be a"
-        " location under Stock/), because we do not want damaged stock to"
-        " be picked",
-    )
-    u_good_location_id = fields.Many2one(
-        comodel_name="stock.location",
-        string="Default Goods Location",
-        help="Goods receive location used by mobile client",
-    )
     u_missing_stock_location_id = fields.Many2one(
         comodel_name="stock.location",
         string="Default Missing Stock Location",
