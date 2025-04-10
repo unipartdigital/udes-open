@@ -1842,12 +1842,13 @@ class TestStockPickingValidatePicking(common.BaseUDES):
         # Validate picking
         pick.move_line_ids.location_dest_id = self.test_goodsout_location_01
         res_pick = self.picking.validate_picking()
-        # Backorder created with the uncompleted move line and move line done by other_user
-        self.assertNotEqual(res_pick, pick)
+        backorder_pick = res_pick.u_created_backorder_ids
+        # Backorder created with the picked items done by other_user, original pick stays with items that needs to be done.
+        self.assertEqual(res_pick, pick)
         self.assertEqual(res_pick.state, "assigned")
         self.assertEqual(res_pick.move_line_ids, expected_backorder_mls)
-        # Original picking in state done
-        self.assertEqual(pick.state, "done")
+        # Backorder picking in state done
+        self.assertEqual(backorder_pick.state, "done")
     
     def test_correct_serial_move_lines_are_generated_on_backorder_on_button_validate(self):
         products_info = [

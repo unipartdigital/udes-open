@@ -508,11 +508,31 @@ class StockPicking(models.Model):
         to create backorders when pickings are validated regardless of the user's generic
         permissions.
         """
+        multi_users_enabled = self.picking_type_id.u_multi_users_enabled
         # If configuration is enabled, copy the batch to the backorder too.
         batch_id = False
         if self.picking_type_id.u_preserve_backorder_batch:
             # If the picking has no batch, batch_id will be False.
             batch_id = self.batch_id.id
+        # If multi users config is enabled, moves to keep will stay in the existing picking and others will be
+        # transferred in the new pick.
+        if multi_users_enabled:
+            # Finding all moves of existing picking and moves which might be created during split moves when moves have
+            # been partially done.
+            all_moves = self.move_lines | moves
+            # Instead of moving moves to the backorder, when multi users is enabled we want to keep same picking as
+            # another user might be working on same time. That's why we let the moves that needs picking in the original
+            # picking and moving all the others to the backorder picking.
+            moves = all_moves - moves
+            # It might be that moves has been partially done, and when creating the backorder it splits the moves by
+            # creating new moves which are added to the existing picking, so that other users continue picking with
+            # what is left.
+            new_moves = all_moves - self.move_lines
+            if new_moves:
+                self.write({
+                    "move_lines": [(4, move.id) for move in new_moves],
+                    "move_line_ids": [(4, move_line.id) for move_line in new_moves.move_line_ids]
+                })
         vals = {
             "name": "/",
             "move_lines": [(6, 0, moves.ids)],
@@ -919,6 +939,7 @@ class StockPicking(models.Model):
         Picking = self.env["stock.picking"]
 
         new_picking = Picking.browse()
+        picking_to_validate = self
         requires_backorder = False
         mls_to_keep = None
         with self.statistics() as stats:
@@ -952,11 +973,16 @@ class StockPicking(models.Model):
                 # NOTE: Added sudo() - Uses sudo() here as a user might not have the full access rights to stock.picking
                 # but still needs more access rights for the flow
                 new_picking = self.sudo().backorder_move_lines(mls_to_keep=mls_to_keep)
+                # Backorder finished moves rather than unfinished moves by swapping the pickings when this config is
+                # enabled, to allow other users to continue picking.
+                if multi_users_enabled:
+                    picking_to_validate = new_picking
+                    new_picking = self
 
             # NOTE: Added sudo() - Uses sudo() here as a user might not have the full access rights to stock.picking
             # but still needs more access rights for the flow
             # We don't want odoo stock module to create backorders. That is handed in UDES layer.
-            self.sudo().with_context(cancel_backorder=True)._action_done()
+            picking_to_validate.sudo().with_context(cancel_backorder=True)._action_done()
         # Write the log
         # It should never happen but ensure when multiple picking types
         # are involved that the names are combined
