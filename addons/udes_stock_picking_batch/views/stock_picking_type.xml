@@ -17,6 +17,9 @@
           <field name="u_auto_batch_pallet" />
           <field name="u_create_batch_for_user" />
           <field name="u_assign_batch_to_user" />
+          <field name="u_prioritise_matrix_small_items" />
+          <field name="u_small_orders_volume_threshold" attrs="{'invisible': [('u_prioritise_matrix_small_items', '=', False)]}"/>
+          <field name="u_max_small_reservable_pallets" attrs="{'invisible': [('u_prioritise_matrix_small_items', '=', False)]}"/>
         </group>
       </xpath>
     </field>

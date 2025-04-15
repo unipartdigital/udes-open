@@ -1,6 +1,7 @@
 from odoo import models, fields, api, _
 from .common import PRIORITY_GROUPS
 from odoo.exceptions import ValidationError
+from odoo.osv import expression
 
 
 class StockPicking(models.Model):
@@ -21,6 +22,34 @@ class StockPicking(models.Model):
         copy=False,
         help="If reserving pallets per picking is enabled, this field stores the pallet reserved for this picking.",
     )
+    u_total_volume = fields.Float(
+        "Total Volume (m3)", compute="_compute_volume", digits=(16, 6), store=True
+    )
+    # Adding related field from picking type to handle the visibility of Total volume field.
+    u_prioritise_matrix_small_items = fields.Boolean(
+        string="Prioritise Matrix Pick Small Items",
+        related="picking_type_id.u_prioritise_matrix_small_items",
+        store=True,
+    )
+
+    @api.depends(
+        "move_lines.product_id",
+        "move_lines.product_uom_qty",
+        "move_lines.product_id.u_volume",
+        "u_prioritise_matrix_small_items",
+    )
+    def _compute_volume(self):
+        """
+        Compute volume of pickings when anyone of api.depends changes and store the total volume.
+        """
+        picking_with_total_volume = self.filtered(lambda p: p.u_prioritise_matrix_small_items)
+        for picking in picking_with_total_volume:
+            total_volume = 0.0
+            for move in picking.move_lines:
+                total_volume += move.product_uom_qty * move.product_id.u_volume
+            picking.u_total_volume = total_volume
+        for picking in (self - picking_with_total_volume):
+            picking.u_total_volume = 0.0
 
     @api.constrains("batch_id")
     def _trigger_batch_confirm_and_remove(self):
@@ -154,6 +183,9 @@ class StockPicking(models.Model):
         Users = self.env["res.users"]
         PickingType = self.env["stock.picking.type"]
 
+        # Getting the value of small volume orders, value which is set from the user before creating the batch from
+        # mobile.
+        small_volume_orders = kwargs.get("small_volume_orders", False)
         search_domain = [] if domain is None else domain
         # Extra search parameters
         search_domain.extend(
@@ -174,6 +206,14 @@ class StockPicking(models.Model):
             categories = Users.get_user_location_categories()
             if categories:
                 search_domain.append(("u_location_category_id", "child_of", categories.ids))
+        # Append the existing domain to filter pickings with total volume less or equal than the
+        # threshold configured on picking type. Domain is extended when the configuration about prioritising picking
+        # small items is enabled, and user wants to pick small volume orders.
+        if picking_type.u_prioritise_matrix_small_items and small_volume_orders:
+            search_domain = expression.AND([
+                search_domain,
+                [("u_total_volume", "<=", picking_type.u_small_orders_volume_threshold)]
+            ])
         # Note: order should be determined by stock.picking._order
         pickings = self.search(search_domain, limit=limit)
         if not pickings:

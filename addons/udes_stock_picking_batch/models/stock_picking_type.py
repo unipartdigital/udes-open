@@ -72,3 +72,20 @@ class StockPickingType(models.Model):
         help='Flag to indicate whether to assign a "ready" batch to the '
         "user, if he does not have one already assigned.",
     )
+    u_prioritise_matrix_small_items = fields.Boolean(
+        string="Prioritise Matrix Pick Small Items",
+        default=False,
+        help="Flag to indicate that during matrix pick orders with small volume will be picked first after existing "
+             "ordering applied like date and priority.",
+    )
+    u_small_orders_volume_threshold = fields.Float(
+        "Threshold Volume (m3)",
+        digits=(16, 6),
+        help="When Prioritise Matrix Pick Small Items is enabled, pick threshold volume which will define small orders, "
+             "and will be picked orders same or lower volume."
+    )
+    u_max_small_reservable_pallets = fields.Integer(
+        string="Maximum Small Pallets That May Be Simultaneously Reserved in a Batch",
+        default=20,
+        help="This setting is only applied when u_prioritise_matrix_small_items is True",
+    )
