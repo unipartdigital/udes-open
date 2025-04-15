@@ -87,6 +87,18 @@ class ProductTemplate(models.Model):
     u_height = fields.Float(string="Height (m)", help="Product height in metres", default=0.0)
     u_length = fields.Float(string="Length (m)", help="Product length in metres", default=0.0)
     u_width = fields.Float(string="Width (m)", help="Product width in metres", default=0.0)
+    # Adding a new field to calculate product volume, there is an existing field for product template in the core
+    # modules, avoided to use that field as that is on both models product.template and product.product and is 0 if
+    # there are product variants otherwise is volume of the unique product variant. The fields we depend on computing
+    # the volume are on product.template, thought to use a new one and to let the core field without changing.
+    u_volume = fields.Float(
+        "Volume (m3)", compute="_compute_udes_volume", digits=(16, 6), store=True
+    )
+
+    @api.depends("u_height", "u_length", "u_width")
+    def _compute_udes_volume(self):
+        for template in self:
+            template.u_volume = template.u_height * template.u_length * template.u_width
 
     def unlink(self):
         """Override superclass to prevent deletion."""

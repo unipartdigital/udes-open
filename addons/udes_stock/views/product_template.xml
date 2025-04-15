@@ -12,6 +12,7 @@
                     <field name="u_height" />
                     <field name="u_length" />
                     <field name="u_width" />
+                    <field name="u_volume" />
                 </group>
             </xpath>
         </field>
