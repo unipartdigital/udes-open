@@ -24,6 +24,8 @@
           <field name="u_ephemeral"/>
           <field name="priority"/>
           <field name="u_last_reserved_pallet_name" groups="udes_security.group_trusted_user"/>
+          <field name="u_prioritise_matrix_small_items" invisible="1"/>
+          <field name="u_small_volume_orders" groups="udes_security.group_trusted_user" attrs="{'invisible': [('u_prioritise_matrix_small_items','=', False)]}"/>
         </xpath>
 
         <!-- Hide Put in Pack button -->

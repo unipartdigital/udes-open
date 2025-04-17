@@ -82,6 +82,17 @@ class StockPickingBatch(models.Model):
     u_location_src_id = fields.Many2one(
         "stock.location", "Location", related="picking_type_id.default_location_src_id"
     )
+    u_small_volume_orders = fields.Boolean(
+        string="Small Volume Orders",
+        default=False,
+        help="Flag to indicate that in the specific batch will be only small volume orders.",
+    )
+    # Adding related field from picking type to handle the visibility of Small Volume Orders field.
+    u_prioritise_matrix_small_items = fields.Boolean(
+        string="Prioritise Matrix Pick Small Items",
+        related="picking_type_id.u_prioritise_matrix_small_items",
+        store=True,
+    )
 
     @api.constrains("user_id")
     def _compute_state(self):
@@ -319,7 +330,13 @@ class StockPickingBatch(models.Model):
             active_pickings = self.picking_ids.filtered(
                 lambda p: p.state not in ["draft", "done", "cancel"]
             )
-            if len(active_pickings) + len(pickings) > picking_type.u_max_reservable_pallets:
+            # There are 2 configuration on picking type for number of max reservable pallets, which is picked depending
+            # on the value of small_volume_orders.
+            if kwargs.get("small_volume_orders", False):
+                max_reservable_pallets = picking_type.u_max_small_reservable_pallets
+            else:
+                max_reservable_pallets = picking_type.u_max_reservable_pallets
+            if len(active_pickings) + len(pickings) > max_reservable_pallets:
                 raise ValidationError(
                     "Only %d pallets may be reserved at a time."
                     % picking_type.u_max_reservable_pallets
@@ -990,6 +1007,11 @@ class StockPickingBatch(models.Model):
             batch_create_vals.update({"u_picking_zone_ids": [(6, 0, picking_zones)]})
         if package_name := kwargs.get("package_name", False):
             batch_create_vals.update({"u_last_reserved_pallet_name": package_name})
+        # By default small volume orders is False, create the batch with its value True when user has selected to
+        # pick small volume orders. Saving the value into the batch, so when user refreshes we know the specific
+        # batch is created to pick small volume orders.
+        if small_volume_orders := kwargs.get("small_volume_orders", False):
+            batch_create_vals.update({"u_small_volume_orders": small_volume_orders})
         batch = PickingBatch.sudo().create(batch_create_vals)
         picking.write({"batch_id": batch.id})
         batch.check_same_picking_priority(picking)
