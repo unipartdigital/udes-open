@@ -66,10 +66,10 @@ class IrAttachment(models.Model):
     def _check_valid_csv(self, attachment_datas):
         """Validates if the provided attachment data is a valid CSV file.
 
-        This function attempts to parse the provided attachment data as a CSV file.
-        It checks for common CSV errors like invalid delimiters, missing headers,
-        and parsing issues.  If the data parses successfully as a multi-row CSV, it's
-        considered valid.
+        This function attempts to parse the provided attachment data as a CSV
+        file. It checks for common CSV errors like invalid delimiters and
+        parsing issues.  If the data parses successfully as a multi-row CSV,
+        it's considered valid.
 
         Args:
             attachment_datas (str): Base64 encoded attachment data.
@@ -84,10 +84,9 @@ class IrAttachment(models.Model):
             data_str = base64.b64decode(attachment_datas).decode('utf-8')
             sniffer = csv.Sniffer()
             dialect = sniffer.sniff(data_str, delimiters=",|")
-            has_header = sniffer.has_header(data_str)
             reader = csv.reader(data_str.splitlines(), dialect=dialect)
             deque(reader, maxlen=0)
-            if reader.line_num > 1 and has_header:
+            if reader.line_num > 1:
                 # File is most likely a genuine CSV so allow it to be attached
                 _logger.info(f"User {self.env.uid} bypassing CSV upload")
                 return True
