@@ -33,7 +33,7 @@ class MixinStockModel(models.AbstractModel):
         return domain
 
     def get_or_create(
-        self, identifier, create=False, create_sudo=False, aux_domain=None, return_empty=False
+        self, identifier, create=False, create_sudo=False, aux_domain=None, return_empty=False, **kwargs
     ):
         """Gets an object of the model from the identifier. In case that no results
             are found, creates a new object of the model depending on the create
@@ -51,6 +51,8 @@ class MixinStockModel(models.AbstractModel):
                 An additional domain to add to the search
             - return_empty: Boolean
                 Allow empty/False results to be returned without raising an exception
+            - kwargs: Dictionary of vals that are needed in case that record is not found with identifier, and the
+            option create is True.
         :returns:
             Object of the model queried
         """
@@ -73,7 +75,10 @@ class MixinStockModel(models.AbstractModel):
                 model_instance = self
                 if self.MSM_CREATE_SUDO and create_sudo:
                     model_instance = model_instance.sudo()
-                results = model_instance.create({"name": identifier})
+                create_vals = {"name": identifier}
+                if kwargs:
+                    create_vals.update(kwargs)
+                results = model_instance.create(create_vals)
             elif self.MSM_CREATE and create:
                 raise ValidationError(
                     _("Cannot create a new %s for %s with identifier of type %s")
