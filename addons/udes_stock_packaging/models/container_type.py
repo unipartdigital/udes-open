@@ -59,14 +59,21 @@ class ContainerType(models.Model):
         ),
     ]
 
-    @api.constrains("length", "width", "height", "weight")
+    @api.constrains("length", "width", "height", "weight", "use_product_dims")
     def _check_dimensions_and_weight(self):
         """
         Ensure these fields do not contain negative quantities else
         it could impact calculations when the container types are used.
+
+        Exception is made for no box (use_product_dims = True)
         """
+
         non_negative_fields = ["length", "width", "height", "weight"]
-        violating_records = self.filtered(lambda ct: any([getattr(ct, f) <= 0 for f in non_negative_fields]))
+        violating_records = self.filtered(
+            lambda ct: not ct.use_product_dims and any(
+                getattr(ct, f) <= 0 for f in non_negative_fields
+                )
+            )
         if violating_records:
             raise ValidationError(
                 _(
