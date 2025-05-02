@@ -89,3 +89,21 @@ class StockPickingType(models.Model):
         default=20,
         help="This setting is only applied when u_prioritise_matrix_small_items is True",
     )
+    u_off_system_auto_pick = fields.Boolean(
+        string="Off System Auto Pick",
+        default=False,
+        help="Flag to indicate that during matrix pick orders if some of items are picked automatically off system, "
+             "and those need to be picked before picking manually the rest. On generic module will be by default off "
+             "and the check that are automatically picked the items will be True, on specific implementations config "
+             "will be enabled and are automatically picked will be override.",
+    )
+    u_off_system_timeout_attempts = fields.Integer(
+        string="Off System Timeout attempts",
+        required=False, copy=False,
+        help="Number of attempts to check for a batch that all off system items are picked"
+    )
+    u_off_system_waiting_sleep_time = fields.Integer(
+        string="Waiting Sleep Time",
+        required=False, copy=False,
+        help="Time interval (in seconds)."
+    )
