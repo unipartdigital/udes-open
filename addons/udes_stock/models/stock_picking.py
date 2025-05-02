@@ -162,6 +162,13 @@ class StockPicking(models.Model):
         copy=True,
     )
 
+    u_total_weight = fields.Float(
+        string="Total Weight",
+        compute="_compute_total_weight",
+        store=False,
+        help="Total weight based on moves and product weight",
+    )
+
     def get_next_picking_name(self, vals, picking_type=None):
         """
         Override the method in core stock to customise the name generation.
@@ -178,6 +185,14 @@ class StockPicking(models.Model):
                 # Specify sequence as it is picking type specific
                 return get_next_name(self, "stock.picking", sequence=ir_sequence)
         return super().get_next_picking_name(vals, picking_type=picking_type)
+
+    @api.depends("move_lines.product_id", "move_lines.product_uom_qty")
+    def _compute_total_weight(self):
+        for picking in self:
+            picking.u_total_weight = sum(
+                move.product_uom_qty * move.product_id.weight
+                for move in picking.move_lines
+            )
 
     @api.depends("move_lines", "move_lines.move_orig_ids", "move_lines.move_orig_ids.picking_id")
     def _compute_first_picking_ids(self):
@@ -702,7 +717,6 @@ class StockPicking(models.Model):
         vals.update(kwargs)
         return vals
 
-
     def _prepare_move(self, pickings, products_info, **kwargs):
         """Return a list of the move details to be used later in creation of the move(s).
         The purpose of this is to allow for multiple moves to be created at once.
@@ -1062,7 +1076,7 @@ class StockPicking(models.Model):
     def open_back_orders(self):
         """Open back orders button will redirect to created back orders"""
         return self.open_related_pickings(self.u_created_backorder_ids.ids, "Created Back Orders")
-    
+
     def _get_classification_messages_for_product_picking(self):
         """Method to be override on specific functionalities"""
         return {}
