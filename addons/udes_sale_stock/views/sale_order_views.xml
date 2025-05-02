@@ -45,6 +45,7 @@
       <field name="arch" type="xml">
         <xpath expr="//field[@name='payment_term_id']" position="before">
           <field name="requested_date"/>
+          <field name="u_done_date"/>
         </xpath>
       </field>
     </record>
@@ -81,9 +82,13 @@
         <xpath expr="//field[@name='order_line']" position="after">
           <field name="priority"/>
         </xpath>
+        <xpath expr="//filter[@name='my_sale_orders_filter']" position="after">
+          <filter string="Done Date" name="filter_done_date" date="u_done_date"/>
+        </xpath>
         <xpath expr="//group" position="inside">
           <filter name="by_priority" string="Priority"
             domain="[]" context="{'group_by':'priority'}"/>
+          <filter string="Done Date" name="group_by_done_date" context="{'group_by':'u_done_date'}"/>
         </xpath>
       </field>
     </record>

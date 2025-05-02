@@ -1,5 +1,7 @@
 from odoo.addons.udes_stock.tests import common
 from odoo import fields
+from datetime import datetime
+import freezegun
 
 
 class TestSaleOrder(common.BaseUDESPullOutboundRoute):
@@ -63,7 +65,16 @@ class TestSaleOrder(common.BaseUDESPullOutboundRoute):
 
         second_sale_order.action_cancel()
         self.assertEqual(second_move.state, "cancel")
-    
+
+    @freezegun.freeze_time("2025-04-28 15:30:00", tz_offset=0)
+    def test_done_date_set_when_sale_marked_done(self):
+        """Test that u_done_date is set when Sale Order is marked as done and is close to now."""
+        sale_order = self._create_sale_order(self.apple.id, 10)
+        sale_order.action_confirm()
+        self.assertFalse(sale_order.u_done_date, "Done Date should not be set initially.")
+        sale_order.action_done()
+        self.assertEqual(sale_order.u_done_date, datetime.strptime("2025-04-28 15:30:00", "%Y-%m-%d %H:%M:%S"))
+
     def _create_sale_order(self, product_id, product_uom_qty):
         """
         Create a sale order for a product_id
@@ -82,8 +93,10 @@ class TestSaleOrder(common.BaseUDESPullOutboundRoute):
             }
         )
         SaleOrderLine.create(
-            {"order_id": sale_order.id, "product_id": product_id, "product_uom_qty": product_uom_qty}
+            {
+                "order_id": sale_order.id,
+                "product_id": product_id,
+                "product_uom_qty": product_uom_qty,
+            }
         )
         return sale_order
-
-

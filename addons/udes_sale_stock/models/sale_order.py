@@ -3,7 +3,7 @@
 from collections import defaultdict
 from odoo import api, fields, models, tools, _
 import logging
-from datetime import timedelta, date
+from datetime import timedelta, date, datetime
 import time
 import traceback
 from odoo.addons.udes_common import exceptions
@@ -66,6 +66,7 @@ class SaleOrder(models.Model):
         readonly=False,
         help="Special instructions associated with the order.",
     )
+    u_done_date = fields.Datetime(string="Done Date", readonly=True)
 
     @api.depends("order_line.move_ids.picking_id")
     def _compute_picking_ids_by_line(self):
@@ -423,3 +424,19 @@ class SaleOrder(models.Model):
     def get_orders_to_confirm(self):
         """ Getting orders to confirm. Placing into a method in order to be easier to override"""
         return self.search(self._get_confirmation_domain())
+
+    def action_done(self):
+        """
+        Mark the sale order as 'done' and set the Done Date.
+
+        This method overrides the standard 'action_done' to automatically set
+        the 'u_done_date' field when the sale order is completed.
+        The 'u_done_date' represents the timestamp when the sale order is
+        marked as 'done', allowing for easier reporting and tracking of
+        completed sales orders.
+        """
+        res = super(SaleOrder, self).action_done()
+        for order in self:
+            if not order.u_done_date:
+                order.u_done_date = datetime.now()
+        return res
