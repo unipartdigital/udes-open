@@ -1310,3 +1310,10 @@ class StockPickingBatch(models.Model):
             # to be able to recompute the state of the batch
             self.sudo()._compute_state()
         return True
+
+    def check_off_system_pick_finished(self, **kwargs):
+        """
+        Method to be override in specific implementations which will check if off system pick items are done.
+        """
+        self.ensure_one()
+        return True

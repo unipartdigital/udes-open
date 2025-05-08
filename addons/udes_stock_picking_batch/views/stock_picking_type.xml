@@ -20,6 +20,9 @@
           <field name="u_prioritise_matrix_small_items" />
           <field name="u_small_orders_volume_threshold" attrs="{'invisible': [('u_prioritise_matrix_small_items', '=', False)]}"/>
           <field name="u_max_small_reservable_pallets" attrs="{'invisible': [('u_prioritise_matrix_small_items', '=', False)]}"/>
+          <field name="u_off_system_auto_pick" />
+          <field name="u_off_system_timeout_attempts" attrs="{'invisible': [('u_off_system_auto_pick', '=', False)]}"/>
+          <field name="u_off_system_waiting_sleep_time" attrs="{'invisible': [('u_off_system_auto_pick', '=', False)]}"/>
         </group>
       </xpath>
     </field>
