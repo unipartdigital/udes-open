@@ -267,6 +267,22 @@ class StockPicking(models.Model):
         for picking in self:
             picking.u_num_pallets = len(picking.move_line_ids.result_package_id)
 
+    def reset_move_lines_from_pack(self):
+        """Resets move lines from location destination, quantity done, completed 
+         datetime and done status in the packing process to default or Null values
+         from self recordset
+        """
+        done_move_lines = self.move_line_ids.filtered(
+            lambda ml: ml.location_dest_id 
+            and ml.qty_done 
+            and ml.u_done_datetime
+            and ml.u_done_by_id
+        )
+        if done_move_lines:
+            done_move_lines.reset_move_line_data()
+        return True
+
+
     def get_empty_location_domain(self, policy_domain=None):
         """
         Return the domain for searching empty locations

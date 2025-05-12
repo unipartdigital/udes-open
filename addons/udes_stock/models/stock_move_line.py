@@ -173,6 +173,18 @@ class StockMoveLine(models.Model):
 
         return quants
 
+    def reset_move_line_data(self):
+        """Resets the move_line data for location destination, quantity done, done datetime and
+         done status to default values."""
+        self.u_picking_type_id.ensure_one()
+        default_location_dest = self.u_picking_type_id.default_location_dest_id
+        self.write({
+            "location_dest_id": default_location_dest,
+            "qty_done": 0.00,
+            "u_done_datetime": False,
+            "u_done_by_id": False
+        })
+
     def get_quantities_by_key(self, get_key=lambda ml: ml.product_id):
         """This function computes the different product quantities for the given move lines
         :kwargs:
