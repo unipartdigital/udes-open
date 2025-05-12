@@ -68,8 +68,7 @@ class ResUsers(models.Model):
 
         if (
             "groups_id" in unreified_group_vals
-            and not self.env.user._is_superuser_or_admin()
-            and not self.env.su
+            and not self._is_superuser_or_admin()
         ):
             current_user_group_ids = self.groups_id.ids
 

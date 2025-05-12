@@ -129,7 +129,7 @@ class IrAttachment(models.Model):
             # If the attachment would not be active then the file type is blocked
             # Log message and raise exception if not superuser or admin
             if not active:
-                if not self.env.user._is_superuser_or_admin():
+                if not self.env.user._is_superuser_or_admin() and not self.env.su:
                     _logger.info(
                         f"User {self.env.uid} tried to upload file '{attachment.name}' "
                         "which has a blocked file type"
@@ -159,7 +159,7 @@ class IrAttachment(models.Model):
                     attachment.u_file_type,
                     attachment.mimetype,
                 )
-                user_is_trusted = self.env.user.u_is_trusted_user or self.env.user._is_superuser_or_admin()
+                user_is_trusted = self.env.user.u_is_trusted_user or self.env.user._is_superuser_or_admin() or self.env.su
                 if attachment.res_model == 'edi.document' and user_is_trusted and attachment.u_file_type == 'csv':
                     if self._check_valid_csv(attachment.datas):
                         continue
