@@ -13,6 +13,9 @@
                     <field name="u_length" />
                     <field name="u_width" />
                     <field name="u_volume" />
+                    <field name="u_pack_qty" />
+                    <field name="u_carton_qty" />
+                    <field name="u_pallet_qty" />
                 </group>
             </xpath>
         </field>
