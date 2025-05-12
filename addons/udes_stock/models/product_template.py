@@ -26,6 +26,37 @@ class ProductTemplate(models.Model):
                         % (field, record.name)
                     )
 
+    u_pack_qty = fields.Integer(
+        "Quantity Per Pack",
+        default=1,
+        help=_("Quantity of products per pack.")
+    )
+    u_carton_qty = fields.Integer(
+        "Quantity Per Carton",
+        default=1,
+        help=_("Quantity of products per Carton.")
+    )
+    u_pallet_qty = fields.Integer(
+        "Quantity Per Pallet",
+        default=1,
+        help=_("Quantity of products per pallet.")
+    )
+
+    POSITIVE_FIELDS = [
+        "u_pack_qty",
+        "u_carton_qty",
+        "u_pallet_qty",
+    ]
+    @api.constrains(*POSITIVE_FIELDS)
+    def _constrain_positive_values(self):
+        for record in self:
+            for field in record.POSITIVE_FIELDS:
+                if getattr(record, field) < 1:
+                    raise UserError(
+                        _("Only positive values for %s on %s are allowed")
+                        % (field, record.name)
+                    )
+
     @api.constrains("tracking", "active")
     def _constrain_tracking_in_allowed_tracking_values(self):
         for product_template in self:
