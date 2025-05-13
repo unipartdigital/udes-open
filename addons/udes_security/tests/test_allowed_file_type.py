@@ -206,7 +206,10 @@ class TestIrAttachment(common.SavepointCase, SavepointMixin):
         # Also try manually setting the attachment to active
         with self.assertRaises(UserError):
             self.update_attachment(
-                self.atch_csv_file, "web_page.html", user=self.new_user, active=True
+                self.atch_csv_file.with_env(self.env(user=self.new_user)),
+                "web_page.html",
+                user=self.new_user,
+                active=True,
             )
 
         # Ensure file is still csv
