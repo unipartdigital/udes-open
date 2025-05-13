@@ -11,7 +11,7 @@ class ResUsers(models.Model):
               not just any user with permission to edit settings.
         """
         
-        if self._is_superuser():
+        if self and self._is_superuser():
             return True
 
         try:
