@@ -26,6 +26,12 @@ class StockQuantPackage(models.Model):
     _name = "stock.quant.package"
     _sql_constraints = [("name_unique", "unique (name)", "This name has already been used")]
 
+    _get_info_field_names = {
+        "u_tracking_id",
+        "u_container_type",
+        "u_package_type",
+    }
+
     u_tracking_id = fields.Char(
         string="Tracking Id",
         help="Tracking Id",
@@ -34,39 +40,32 @@ class StockQuantPackage(models.Model):
         "container.type",
         string="Container Type",
     )
+    u_package_type = fields.Many2one(
+        "package.type",
+        string="Package Type",
+    )
+    # Changing the label to Product Packaging as it logs warning for 2 fields with same name Package Type
+    packaging_id = fields.Many2one(string="Product Packaging",)
+    # Default to / and will get the name from package type sequence.
+    name = fields.Char(default=lambda self: _("New"))
 
-    @api.constrains("name")
+    @api.constrains("name", "u_package_type")
     def _check_name(self):
-        Package = self.env["stock.quant.package"]
-        User = self.env["res.users"]
-
-        warehouse = User.get_user_warehouse()
-        self.ensure_one()
-        # Prevent renaming pallet to package if pallet contains packages.
-        if Package.search_count([("parent_id", "=", self.id)]) > 0:
-            pattern = warehouse.u_pallet_barcode_regex
-            type_ = "pallet"
-        else:
-            # Absent any other information, we don't know if a package is a package
-            # of quants or a package of packages (pallet), so the name may match
-            # either.
-            pattern = f"{warehouse.u_package_barcode_regex}|{warehouse.u_pallet_barcode_regex}"
-            type_ = "package"
-        if not re.match(pattern, self.name):
-            _logger.debug("%s name %r does not match pattern %r", type_.title(), self.name, pattern)
-            raise ValidationError(_(f"Invalid {type_} name %r." % self.name))
+        for record in self:
+            pattern, type_ = record.get_package_regex_pattern()
+            if pattern and not re.match(pattern, record.name):
+                _logger.debug("%s name %r does not match pattern %r", type_.title(), record.name, pattern)
+                raise ValidationError(_(f"Invalid {type_} name %r." % record.name))
 
     def validate_parent_name(self, vals):
         """Raise an exception for parent names that don't match the pallet barcode regex."""
         Package = self.env["stock.quant.package"]
-        User = self.env["res.users"]
 
         # The desktop package creation UI will pass `False` for the parent
         # field if it isn't populated.
         if "parent_id" in vals and vals["parent_id"]:
-            warehouse = User.get_user_warehouse()
-            pattern = warehouse.u_pallet_barcode_regex
             pallet = Package.browse(vals["parent_id"])
+            pattern, type_ = pallet.get_package_regex_pattern(pallet=True)
             if not re.match(pattern, pallet.name):
                 _logger.debug("Pallet name %r does not match pattern %r", pallet.name, pattern)
                 raise ValidationError(_("Invalid pallet name %r.") % pallet.name)
@@ -80,13 +79,10 @@ class StockQuantPackage(models.Model):
         The parent's name must match the pallet regex.
         Children's names must match the package regex.
         """
-        User = self.env["res.users"]
-
         self.ensure_one()
 
-        warehouse = User.get_user_warehouse()
-        pattern = warehouse.u_package_barcode_regex
         for child in self.child_ids:
+            pattern, type_ = child.get_package_regex_pattern(package=True)
             if not re.match(pattern, child.name):
                 raise ValidationError(_("Invalid package name %r") % child.name)
         return
@@ -99,6 +95,17 @@ class StockQuantPackage(models.Model):
         Attempts to create an instance with invalid `name`, or a parent
         which is not a pallet will raise an exception.
         """
+        PackageType = self.env["package.type"]
+        Sequence = self.env["ir.sequence"]
+        if vals.get("name", _("New")) == _("New"):
+            if vals.get("u_package_type"):
+                package_type = PackageType.browse(vals["u_package_type"])
+                if package_type.sequence_id:
+                    vals["name"] = package_type.sequence_id.next_by_id() or _('New')
+                else:
+                    raise ValidationError(_("Please enter the name of the %s.") % package_type.name)
+            else:
+                vals["name"] = Sequence.next_by_code("stock.quant.package")
         self.validate_parent_name(vals)
         return super().create(vals)
 
@@ -111,6 +118,40 @@ class StockQuantPackage(models.Model):
         """
         self.validate_parent_name(vals)
         return super().write(vals)
+
+    def get_package_regex_pattern(self, pallet=False, package=False):
+        """
+        Method to return pattern of a package, will first look into the package type,
+        if regex is not set on package type will get the package regex pattern in the same way was getting before
+        package types.
+        """
+        User = self.env["res.users"]
+        Package = self.env["stock.quant.package"]
+
+        warehouse = User.get_user_warehouse()
+        self.ensure_one()
+        if self.u_package_type.package_type_regex:
+            pattern = self.u_package_type.package_type_regex
+            type_ = self.u_package_type.name
+        else:
+            # TODO , this maybe can be removed if we rely in the future only on package type. At the moment this block
+            #  is to have the previous checks before using package type.
+            if package:
+                pattern = warehouse.u_package_barcode_regex
+                type_ = "package"
+            elif pallet:
+                pattern = warehouse.u_pallet_barcode_regex
+                type_ = "pallet"
+            elif Package.search_count([("parent_id", "=", self.id)]) > 0:
+                pattern = warehouse.u_pallet_barcode_regex
+                type_ = "pallet"
+            else:
+                # Absent any other information, we don't know if a package is a package
+                # of quants or a package of packages (pallet), so the name may match
+                # either.
+                pattern = f"{warehouse.u_package_barcode_regex}|{warehouse.u_pallet_barcode_regex}"
+                type_ = "package"
+        return pattern, type_
 
     def _get_all_products_quantities(self):
         """This function computes the different product quantities for the given package"""
@@ -170,23 +211,28 @@ class StockQuantPackage(models.Model):
         result_parent_package_name,
         target_storage_format,
         scan_parent_package_end,
+        package_type=None,
     ):
         """
         Compute result_package and result_parent_package based on the target_storage_format supplied
         and the input parameters.
         """
         Package = self.env["stock.quant.package"]
+        package_package_type = self.env.ref("udes_stock_packaging.package_package_type")
 
         result_package = None
         result_parent_package = None
+        kwargs ={}
+        if package_type:
+            kwargs["u_package_type"] = package_type.id
 
         if target_storage_format == "pallet_packages":
 
             # CASE A: both package names given
             if result_package_name and result_parent_package_name:
-                result_package = Package.get_or_create(result_package_name, create=True)
+                result_package = Package.get_or_create(result_package_name, create=True, **kwargs)
                 result_parent_package = Package.get_or_create(
-                    result_parent_package_name, create=True
+                    result_parent_package_name, create=True, **kwargs
                 )
             # CASE B: only one of the package names is given as result_package
             elif result_package_name or scan_parent_package_end:
@@ -194,12 +240,12 @@ class StockQuantPackage(models.Model):
                 # to be the result_parent_package of the move_line
                 # It might be a new pallet id
                 if not scan_parent_package_end:
-                    result_parent_package = Package.get_or_create(result_package_name, create=True)
+                    result_parent_package = Package.get_or_create(result_package_name, create=True, **kwargs)
                 # MPS: maybe this if is not needed
                 if not package:
                     if product_ids:
                         # Products are being packed
-                        result_package = Package.create({})
+                        result_package = Package.create({"u_package_type": package_package_type.id})
                     elif not all([ml.result_package_id for ml in self]):
                         # Setting result_parent_package expects to have
                         # result_package for all the move lines
@@ -217,7 +263,7 @@ class StockQuantPackage(models.Model):
                     # Products are being packed into a new package
                     result_package = None
                     if product_ids:
-                        result_package = Package.create({})
+                        result_package = Package.create({"u_package_type": package_package_type.id})
             # CASE C: wrong combination of package names given
             elif product_ids:
                 raise ValidationError(
@@ -228,7 +274,7 @@ class StockQuantPackage(models.Model):
             if result_package_name:
                 # Moving stock into a pallet of products, result_package
                 # might be new pallet id
-                result_package = Package.get_or_create(result_package_name, create=True)
+                result_package = Package.get_or_create(result_package_name, create=True, **kwargs)
             elif product_ids and not result_package_name and not scan_parent_package_end:
                 raise ValidationError(
                     _("Invalid parameters for target storage format, expecting result package.")
@@ -239,7 +285,7 @@ class StockQuantPackage(models.Model):
                 # Mark_as_done products without package or result_package
                 # Create result_package when packing products without
                 # result_package being set
-                result_package = Package.create({})
+                result_package = Package.create({"u_package_type": package_package_type.id})
 
         elif target_storage_format == "product":
             # Error when trying to mark_as_done a full package or setting result package

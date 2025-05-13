@@ -1,2 +1,4 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_container_type,container.type,model_container_type,base.group_user,1,1,1,1
+access_package_type,package.type,model_package_type,base.group_user,1,0,0,0
+access_package_type_stock_manager,package.type stock.manager,model_package_type,stock.group_stock_manager,1,1,1,1
