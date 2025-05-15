@@ -1,0 +1,79 @@
+<?xml version="1.0"?>
+<odoo>
+  <data>
+    <!--Pallet package type-->
+    <record id="sequence_pallet" model="ir.sequence">
+      <field name="name">Package Type Pallet</field>
+      <field name="prefix">UDES</field>
+      <field name="padding" eval="5"/>
+      <field name="code">stock.quant.package.pallet</field>
+    </record>
+
+    <record id="pallet_package_type" model="package.type">
+      <field name="name">Pallet</field>
+      <field name="sequence">1</field>
+      <field name="sequence_id" ref="sequence_pallet"/>
+      <field name="package_type_regex">^UDES[0-9]+$</field>
+    </record>
+
+    <!--Package package type-->
+    <record id="sequence_package" model="ir.sequence">
+     <field name="name">Package Type Package</field>
+     <field name="prefix"/>
+     <field name="padding" eval="6"/>
+      <field name="code">stock.quant.package.package</field>
+    </record>
+
+    <record id="package_package_type" model="package.type">
+      <field name="name">Package</field>
+      <field name="sequence">2</field>
+      <field name="sequence_id" ref="sequence_package"/>
+      <field name="package_type_regex">^[0-9]+$</field>
+    </record>
+
+    <!--Trolley package type-->
+    <record id="sequence_trolley" model="ir.sequence">
+      <field name="name">Package Type Trolley</field>
+      <field name="prefix">TROLLEY</field>
+      <field name="padding" eval="5"/>
+      <field name="code">stock.quant.package.trolley</field>
+    </record>
+
+    <record id="trolley_package_type" model="package.type">
+      <field name="name">Trolley</field>
+      <field name="sequence">3</field>
+      <field name="sequence_id" ref="sequence_trolley"/>
+      <field name="package_type_regex">^.*</field>
+    </record>
+
+    <!--Tote package type-->
+    <record id="sequence_tote" model="ir.sequence">
+      <field name="name">Package Type Tote</field>
+      <field name="prefix">TOTE</field>
+      <field name="padding" eval="5"/>
+      <field name="code">stock.quant.package.tote</field>
+    </record>
+
+    <record id="tote_package_type" model="package.type">
+      <field name="name">Tote</field>
+      <field name="sequence">4</field>
+      <field name="package_type_regex">^[A-Z]+$</field>
+    </record>
+
+    <!--Parcel package type-->
+    <record id="sequence_parcel" model="ir.sequence">
+      <field name="name">Package Type Parcel</field>
+      <field name="prefix">PAR</field>
+      <field name="padding" eval="5"/>
+      <field name="code">stock.quant.package.parcel</field>
+    </record>
+
+    <record id="parcel_package_type" model="package.type">
+      <field name="name">Parcel</field>
+      <field name="sequence">5</field>
+      <field name="sequence_id" ref="sequence_parcel"/>
+      <field name="package_type_regex">^PAR(?:[0-9])+$</field>
+    </record>
+
+  </data>
+</odoo>

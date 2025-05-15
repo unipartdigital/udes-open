@@ -172,6 +172,107 @@ class PackageCreationTestCase(BaseUDES):
             parent_package.write({"child_ids": [(6, 0, child_package.ids)]})
 
 
+class PackageWithPackageType(BaseUDES):
+
+    @classmethod
+    def setUpClass(cls):
+        """Set up class-level fixtures."""
+        super().setUpClass()
+
+        cls.package = cls.env["stock.quant.package"]
+        cls.pallet_package_type = cls.env.ref("udes_stock_packaging.pallet_package_type")
+        cls.package_package_type = cls.env.ref("udes_stock_packaging.package_package_type")
+        cls.trolley_package_type = cls.env.ref("udes_stock_packaging.trolley_package_type")
+        cls.tote_package_type = cls.env.ref("udes_stock_packaging.tote_package_type")
+        cls.parcel_package_type = cls.env.ref("udes_stock_packaging.parcel_package_type")
+
+    def test_creates_pallet_with_valid_name(self):
+        """
+        We should be able to create a package of pallet type if we provide a valid name.
+        Pallet regex format restricts that name should start with UDES.
+        """
+        name = "UDES10001"
+
+        pallet = self.package.create({"name": name, "u_package_type": self.pallet_package_type.id})
+        self.assertEqual(pallet.name, name)
+
+    def test_creates_package_with_valid_name(self):
+        """
+        We should be able to create a package of package type if we provide a valid name.
+        Package regex format restricts that name should be all numerical.
+        """
+        name = "10001"
+
+        package = self.package.create({"name": name, "u_package_type": self.package_package_type.id})
+        self.assertEqual(package.name, name)
+
+    def test_creates_trolley_with_valid_name(self):
+        """
+        We should be able to create a package of trolley type if we provide a valid name.
+
+        Trolley regex format doesn't have any restriction.
+        """
+        name = "TestTrolley01"
+
+        trolley = self.package.create({"name": name, "u_package_type": self.trolley_package_type.id})
+        self.assertEqual(trolley.name, name)
+
+    def test_creates_tote_with_valid_name(self):
+        """
+        We should be able to create a package of tote type if we provide a valid name.
+
+        Tote regex format restricts that name should be all capitals.
+        """
+        name = "YELLOW"
+
+        tote = self.package.create({"name": name, "u_package_type": self.tote_package_type.id})
+        self.assertEqual(tote.name, name)
+
+    def test_creates_parcel_with_valid_name(self):
+        """
+        We should be able to create a package of parcel type if we provide a valid name.
+        Pallet regex format restricts that name should start with PAR.
+        """
+        name = "PAR10001"
+
+        parcel = self.package.create({"name": name, "u_package_type": self.parcel_package_type.id})
+        self.assertEqual(parcel.name, name)
+
+    def test_rejects_create_pallet_with_invalid_name(self):
+        """The system must prevent changing the package name to an invalid name."""
+        name = "WRONG001"
+        with self.assertRaises(ValidationError):
+            self.package.create({"name": name, "u_package_type": self.pallet_package_type.id})
+
+    def test_rejects_modify_pallet_with_invalid_name(self):
+        """The system must prevent changing the package name to an invalid name."""
+        name = "UDES10002"
+        pallet = self.package.create({"name": name, "u_package_type": self.pallet_package_type.id})
+        with self.assertRaises(ValidationError):
+            pallet.name = "000001"
+
+    def test_rejects_modify_pallet_with_invalid_package_type(self):
+        """The system must prevent changing the package name to an invalid name."""
+        name = "UDES10003"
+        pallet = self.package.create({"name": name, "u_package_type": self.pallet_package_type.id})
+        with self.assertRaises(ValidationError):
+            pallet.u_package_type = self.parcel_package_type.id
+
+    def test_accepts_modify_pallet_with_valid_name(self):
+        """The system must prevent changing the package name to an invalid name."""
+        name = "UDES10002"
+        pallet = self.package.create({"name": name, "u_package_type": self.pallet_package_type.id})
+        pallet.name = "UDES10003"
+        self.assertEqual(pallet.name, "UDES10003")
+
+    def test_accepts_modify_pallet_with_valid_name_and_package_type(self):
+        """The system must prevent changing the package name to an invalid name."""
+        name = "UDES10002"
+        pallet = self.package.create({"name": name, "u_package_type": self.pallet_package_type.id})
+        pallet.write({"name": "PAR10002", "u_package_type": self.parcel_package_type.id})
+        self.assertEqual(pallet.name, "PAR10002")
+
+
 class ResultPackagePreparationTestCase(BaseUDES):
     """Tests for result package preparation."""
 

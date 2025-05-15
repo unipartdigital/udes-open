@@ -9,7 +9,9 @@
     "depends": ["uom", "stock", "package_hierarchy", "udes_stock", "udes_get_info"],
     "data": [
         "security/ir.model.access.csv",
+        "data/package_types.xml",
         "views/container_type_views.xml",
+        "views/package_type_views.xml",
         "views/stock_picking_type.xml",
         "views/stock_warehouse.xml",
         "views/stock_quant_package.xml",
