@@ -16,6 +16,7 @@
                             <field name="u_stock_investigation_picking_type" />
                             <field name="u_max_reservable_serials" />
                             <field name="u_allowed_tracking_types" />
+                            <field name="u_force_upper_case_config"/>
                         </group>
                     </page>
                 </xpath>

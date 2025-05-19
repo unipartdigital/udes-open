@@ -56,6 +56,20 @@ class StockWarehouse(models.Model):
         help="Allowed tracking types on product level, values are comma separated and can use any combination of 3 "
              "possible options none, lot,serial."
     )
+    u_force_upper_case_config = fields.Text(
+        string="Force Upper Case Configuration",
+        default="{}",
+        help=""" Values added should be like below example in a key-value dictionary manner. 
+        Left part(valid UDES model) should contain model name and Right part should contain 
+        (valid field of the UDES object) field name in a comma-separated manner. 
+        Below example will force upper case on fields default_code and barcode of UDES models product.product and
+        stock.location   
+        {
+          "product.product":  "default_code,barcode",
+          "stock.location": "barcode",
+        }
+        """
+    )
 
     @api.constrains("u_allowed_tracking_types")
     def _constrain_allowed_tracking_types(self):
