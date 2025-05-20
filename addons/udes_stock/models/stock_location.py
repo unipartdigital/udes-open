@@ -3,7 +3,7 @@ from odoo import fields, models, api, _
 from .stock_picking_type import TARGET_STORAGE_FORMAT_OPTIONS
 from odoo.addons.udes_common.models.fields import PreciseDatetime
 from odoo.exceptions import ValidationError
-
+from . common import check_upper_case_validation
 
 class StockLocation(models.Model):
     _name = "stock.location"
@@ -231,6 +231,7 @@ class StockLocation(models.Model):
         """Extend write to add a hook which updates u_heatmap_data_updated"""
         if not self.env.context.get("bypass_heatmap_check"):
             self.set_u_heatmap_data_updated(vals)
+        check_upper_case_validation(self._name, self.env.user, vals)
         return super().write(vals)
 
     @api.depends("u_location_is_countable", "location_id", "location_id.u_is_countable")
@@ -365,3 +366,8 @@ class StockLocation(models.Model):
          their children) stock available for fulfilling orders. Should be
         overridden where necessary"""
         return self.env.ref("stock.stock_location_stock")
+    
+    @api.model
+    def create(self, vals):
+        check_upper_case_validation(self._name, self.env.user, vals)
+        return super().create(vals)

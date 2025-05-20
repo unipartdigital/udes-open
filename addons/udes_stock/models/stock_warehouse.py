@@ -63,7 +63,8 @@ class StockWarehouse(models.Model):
         Left part(valid UDES model) should contain model name and Right part should contain 
         (valid field of the UDES object) field name in a comma-separated manner. 
         Below example will force upper case on fields default_code and barcode of UDES models product.product and
-        stock.location   
+        stock.location. At the moment this validation is available on UDES models product.product 
+        and stock.location
         {
           "product.product":  "default_code,barcode",
           "stock.location": "barcode",

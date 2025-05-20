@@ -86,31 +86,25 @@ def get_next_name(obj, code, sequence=None):
         new_sequence = 1
     return f"{root}-{new_sequence:0>{padding}}"
 
-def _raise_validation(args,position,key,active_model):
-    if args[position].get(key):
-        if args[position].get(key) != args[position].get(key).upper():
-            raise ValidationError(_("%s column value on model %s should "
-                                    "be in upper case instead of %s ") % (key, active_model,
-                                                                          args[position].get(key)))
-
-
-def check_upper_case_validation(active_model, method, args, user, **kwargs):
+def check_upper_case_validation(active_model, user, vals):
     """
-    We have two main cases to determine 
-    1. Create/write function calls from UDES import
-    2. Manual Create/write function calls
-    Idea hear is to add validation based on warehouse field u_force_upper_case_config.
-    This function will determine during function calls upper case validation is required
-    for a field or not. 
-    active_model -> UDES model ex. product.product.
-    method -> Works as an identifier to determine how to enable validation
-              1. create -> Standard UDES create function for record creation.
-              2. write -> Standard UDES write function for record updation.
-              3. create_from_import -> UDES import function.
-    args -> function arguments ideally containing a UDES technical field on which validation
-            needs to be applied.
-    user -> Current UDES user
-    """
+        Added as a part of SE-1930
+        We have three main cases to determine
+        1. Create/write method calls from UDES import
+        2. Manual Create/write method calls
+        3. EDI import (this is more or less covered with point 1 and 2)
+        Idea hear is to add validation based on warehouse field u_force_upper_case_config.
+        This method will determine if upper case validation is required
+        for a field or not.
+        As part of SE-1930 we are calling this method from create and write methods of
+        product.product and stock.location
+        This method can be imported if needed in any other object in the future if we add
+        that object for upper case validation in warehouse field u_force_upper_case_config.
+        active_model -> UDES model ex. product.product.
+        vals -> dict value given by the method from which this method is called, ideally
+        containing valid UDES fields and value as a key value pair
+        user -> Current UDES user
+        """
     warehouse = user.get_user_warehouse()
     for wh in warehouse:
         if wh.u_force_upper_case_config:
@@ -122,18 +116,9 @@ def check_upper_case_validation(active_model, method, args, user, **kwargs):
             if json_op.get(active_model):
                 # loop over all the keys(fields) that requires upper case validation
                 for key in json_op.get(active_model).split(','):
-                    if method == 'create_from_import':
-                        browse_records = request.env[active_model].browse(kwargs.get('ids'))
-                        for record in browse_records:
-                            if record.exists() and record[key]:
-                                # if record[key]:
-                                if record[key] != record[key].upper():
-                                    raise ValidationError(_("%s column value on model %s should "
-                                                            "be in upper case instead of %s ") % (key, active_model,
-                                                                                                  record[key]))
-                    elif method == 'create':
-                        #create may have a multi create call
-                        for arg in args:
-                            _raise_validation(arg,0, key, active_model)
-                    elif method == 'write':
-                        _raise_validation(args, 1, key, active_model)
+                    if vals.get(key):
+                        sanitized_key = key.replace(" ", "")
+                        if vals.get(sanitized_key) != vals.get(sanitized_key).upper():
+                            raise ValidationError(_("%s column value on model %s should "
+                                                    "be in upper case instead of %s ") % (sanitized_key, active_model,
+                                                                                          vals.get(sanitized_key)))

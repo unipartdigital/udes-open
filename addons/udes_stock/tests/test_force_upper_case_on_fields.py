@@ -1,97 +1,88 @@
-import json
-import odoo.tools
-from odoo.tests import common
+from . import common
+from odoo.exceptions import ValidationError
 
 
-class TestForceUpperCaseOnFieldsHttp(common.HttpCase):
+class TestForceUpperCaseOnFields(common.BaseUDES):
 
-    def setUp(self):
-        super(TestForceUpperCaseOnFieldsHttp, self).setUp()
-        self.u_force_upper_case_config = '{"product.product": "barcode,default_code"}'
-        self.empty_u_force_upper_case_config = '{}'
-        self.warehouse_id = self.env.ref("stock.warehouse0")
-        self.params_create_product = {'model': 'product.template',
-                                      'method': 'create',
+    @classmethod
+    def setUpClass(cls):
+        super(TestForceUpperCaseOnFields, cls).setUpClass()
+        cls.u_force_upper_case_config = '{"product.product": "barcode,default_code", "stock.location": "barcode"}'
+        cls.empty_u_force_upper_case_config = '{}'
+        cls.warehouse_id = cls.env.ref("stock.warehouse0")
+        cls.Location = cls.env["stock.location"]
+        cls.lower_case_loc_vals = {'name': 'lower_case_location',
+                                   'usage': 'internal',
+                                   'barcode': 'lower_case_location'
+                                   }
+        cls.empty_barcode_loc_vals = {'name': 'empty_case_location',
+                                      'usage': 'internal',
                                       }
-        self.params_write_product = {'model': 'product.product',
-                                     'method': 'write',
-                                     }
 
-    @odoo.tools.mute_logger('odoo.http')
-    def call_route_to_test(self, route, params, vals, record_to_update=False):
-        self.authenticate("admin", "admin")
-        data = json.dumps({"params": {
-            'model': params.get('model'),
-            'method': params.get('method'),
-            'args': [record_to_update, vals] if record_to_update else [vals],
-            'kwargs': {},
-        }, })
-        open_route = self.url_open(route, data=data, headers={"Content-Type": "application/json"})
-        return open_route
+    def _create_location_for_upper_case_validation(self, vals):
+        # not using common.create_location as it always makes barcode in upper case
+        location = self.Location.create(vals)
+        return location
 
-    def test_product_creation_with_empty_u_force_upper_case_config_no(self):
-        """If u_force_upper_case_config is empty no validation error should occur"""
-
+    def test_regular_product_and_location_creation(self):
+        """
+        test with empty_u_force_upper_case_config and lower case product/location barcode and default code.
+        No upper case validation should be raised
+        """
         self.warehouse_id.u_force_upper_case_config = self.empty_u_force_upper_case_config
-        vals = [{'name': "banana_no_exp",
-                 'default_code': 'banana_no_exp',
-                 'barcode': 'banana_no_exp',
-                 },
-                {'name': "banana_no_exp2",
-                 'default_code': 'banana_no_exp2',
-                 'barcode': 'banana_no_exp2',
-                 }
-                ]
-        self.call_route_to_test('/web/dataset/call_kw', self.params_create_product,
-                                vals)
+        product = self.create_product("lower_case_product",
+                                      default_code="dc_lower_case_product",
+                                      barcode="br_lower_case_product")
+        self.assertEqual(product.default_code, "dc_lower_case_product")
+        self.assertEqual(product.barcode, "br_lower_case_product")
+        location = self._create_location_for_upper_case_validation(self.lower_case_loc_vals)
+        self.assertEqual(location.name, "lower_case_location")
+        self.assertEqual(location.barcode, "lower_case_location")
 
-    def test_product_creation_with_u_force_upper_case_config(self):
-        """If u_force_upper_case_config is set and lower case value provide validation error should occur"""
+    def test_regular_product_and_location_updation(self):
+        """
+        test with empty_u_force_upper_case_config and lower case product/location barcode and default code.
+        No upper case validation should be raised
+        """
+        self.warehouse_id.u_force_upper_case_config = self.empty_u_force_upper_case_config
+        product = self.create_product("lower_case_product2",
+                                      default_code="dc_lower_case_product2",
+                                      barcode="bc_lower_case_product2")
+        self.assertEqual(product.default_code, "dc_lower_case_product2")
+        self.assertEqual(product.barcode, "bc_lower_case_product2")
+        product.write({
+            'default_code': 'new_lower_case_ref',
+            'barcode': 'new_lower_case_barcode'
+
+        })
+        self.assertEqual(product.default_code, "new_lower_case_ref")
+        self.assertEqual(product.barcode, "new_lower_case_barcode")
+        location = self._create_location_for_upper_case_validation(self.lower_case_loc_vals)
+        location.write({'barcode':"new_lower_case_barcode"})
+        self.assertEqual(location.barcode, "new_lower_case_barcode")
+
+    def test_product_and_location_creation_with_u_force_upper_case_config(self):
+        """
+        test with u_force_upper_case_config and lower case product/location barcode and default code.
+        upper case validation should be raised
+        """
         self.warehouse_id.u_force_upper_case_config = self.u_force_upper_case_config
-        vals = [{'name': "banana1",
-                 'default_code': 'abc1',
-                 'barcode': 'abc1',
-                 },
-                {'name': "banana_no_exp2",
-                 'default_code': 'banana_no_exp2',
-                 'barcode': 'banana_no_exp2',
-                 }]
-        open_route = self.call_route_to_test('/web/dataset/call_kw', self.params_create_product, vals)
-        validation_error = open_route.json()
-        self.assertEqual(validation_error['error']['data']['name'], 'odoo.exceptions.ValidationError')
+        with (self.assertRaises(ValidationError)):
+            self.create_product("lower_case_product3",
+                                default_code="dc_lower_case_product3",
+                                barcode="bc_lower_case_product3")
+            self._create_location_for_upper_case_validation(self.lower_case_loc_vals)
 
-    def test_product_updation_with_empty_u_force_upper_case_config_no(self):
-        """If u_force_upper_case_config is empty no validation error should occur"""
-
-        self.warehouse_id.u_force_upper_case_config = self.empty_u_force_upper_case_config
-        create_vals = {'name': "product_with_lower_case",
-                       'default_code': '',
-                       'barcode': '',
-                       }
-        create_route = self.call_route_to_test('/web/dataset/call_kw', self.params_create_product,
-                                         create_vals)
-        product_id_to_update = create_route.json()['result']
-        write_vals = {'default_code': 'product_with_lower_case', 'barcode': '', }
-        self.call_route_to_test('/web/dataset/call_kw', self.params_write_product,
-                                write_vals, record_to_update=product_id_to_update)
-
-    def test_product_updation_with_u_force_upper_case_config(self):
-        """If u_force_upper_case_config is set and lower case value provide validation error should occur"""
-
-        # create new product with empty_u_force_upper_case_config and lower case default_code and barcode
-        self.warehouse_id.u_force_upper_case_config = self.empty_u_force_upper_case_config
-        create_vals = {'name': "product_with_lower_case",
-                       'default_code': 'product_with_lower_case',
-                       'barcode': 'product_with_lower_case',
-                       }
-        create_route = self.call_route_to_test('/web/dataset/call_kw', self.params_create_product,
-                                         create_vals)
-        product_id_to_update = create_route.json()['result']
-        # update created product with lower case again but with u_force_upper_case_config config
-        write_vals = {'default_code': 'new_lower_case', 'barcode': '', }
+    def test_product_and_location_updation_with_u_force_upper_case_config(self):
+        """
+        test with u_force_upper_case_config and lower case product/location barcode and default code.
+        upper case validation should be raised
+        """
         self.warehouse_id.u_force_upper_case_config = self.u_force_upper_case_config
-        open_route = self.call_route_to_test('/web/dataset/call_kw', self.params_write_product,
-                                             write_vals, record_to_update=product_id_to_update)
-        # this should generate the validation error
-        validation_error = open_route.json()
-        self.assertEqual(validation_error['error']['data']['name'], 'odoo.exceptions.ValidationError')
+        product = self.create_product("lower_case_product3",
+                                      default_code="",
+                                      barcode="")
+        location = self._create_location_for_upper_case_validation(self.empty_barcode_loc_vals)
+        with (self.assertRaises(ValidationError)):
+            product.write({'barcode': "lower_case_product3"})
+            location.write({'barcode': "new_lower_case_barcode"})
