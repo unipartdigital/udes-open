@@ -7,6 +7,11 @@
         <field name="inherit_id" ref="stock.view_stock_move_line_detailed_operation_tree" />
         <field name="arch" type="xml">
             <field name="product_uom_id" position="after">
+                    <!-- Tree view has very low priority and is shown on picking form in move lines where is called with-->
+                    <!-- context to reference this tree view. Showing u_measure_type and u_measure_qty only for pickings-->
+                    <!-- where picking type use multiple measures config is enabled.-->
+                <field name="u_measure_type" attrs="{'column_invisible': [('parent.u_use_multiple_measures', '=', False)]}"/>
+                <field name="u_measure_qty" attrs="{'column_invisible': [('parent.u_use_multiple_measures', '=', False)]}"/>
                 <field name="u_done_by_id" />
                 <field name="u_done_datetime" />
             </field>

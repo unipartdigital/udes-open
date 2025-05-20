@@ -11,6 +11,13 @@ from odoo.exceptions import ValidationError, UserError
 
 _logger = logging.getLogger(__name__)
 
+measure_type_options = [
+    ("none", "Each"),
+    ("u_pack_qty", "Pack"),
+    ("u_carton_qty", "Carton"),
+    ("u_pallet_qty", "Pallet"),
+]
+
 
 class StockMoveLine(models.Model):
     _inherit = "stock.move.line"
@@ -22,7 +29,6 @@ class StockMoveLine(models.Model):
         index=True,
         copy=False,
     )
-
     u_done_datetime = fields.Datetime(
         "Completion Datetime",
         help="Date and time the operation was completed.",
@@ -36,6 +42,18 @@ class StockMoveLine(models.Model):
         related="move_id.picking_type_id",
         store=True,
         readonly=True,
+    )
+    u_measure_qty = fields.Integer(
+        "Measure Quantity",
+        copy=False,
+        help="When picking type 'Use Multiple Measures' config is enabled, number of measures done recorded per "
+             "stock move line level.",
+    )
+    u_measure_type = fields.Selection(
+        selection=measure_type_options,
+        string="Measure Type",
+        copy=False,
+        help="Used to determine measure type used when picking the product if 'Use Multiple Measures' is enabled.",
     )
 
     @staticmethod
@@ -365,8 +383,15 @@ class StockMoveLine(models.Model):
             product = Product.get_or_create(product_barcode)
             rounding = product.uom_id.rounding
             quantity = prod["uom_qty"]
+            # Using get as depending on picking type config u_use_multiple_measures the measure_qty key will not always
+            # exist in prod dictionary.
+            measure_quantity = prod.get("measure_qty", 0)
             lot_names = prod.get("lot_names", [])
             lot_quantities = prod.get("lot_quantities", [])
+            measure_type = prod.get("measure_type")
+            # Measured quantities is a list of quantities entered for every lot for the entered measure type.
+            # Will be empty if product is not tracked or the picking type u_use_multiple_measures is disabled.
+            measure_quantities = prod.get("measure_quantities", [])
             lot_expiry_dates = prod.get("lot_expiry_dates", [])
             product_tracking = product.tracking
             is_trackable = product_tracking != "none"
@@ -395,6 +420,7 @@ class StockMoveLine(models.Model):
                 )
                 for idx, lot_name in enumerate(lot_names):
                     qty_done = lot_quantities[idx]
+                    lot_measure_qty = measure_quantities and measure_quantities[idx] or 0
                     lot_name_val = lot_name
                     # If it is incoming we don't need to match the lot
                     if incoming:
@@ -408,6 +434,8 @@ class StockMoveLine(models.Model):
                     if lot_expiry_dates:
                         # TODO: hidden dep to product_expiry
                         prod_dict["expiration_date"] = lot_expiry_dates[idx]
+                    if lot_measure_qty:
+                        vals.update({"u_measure_qty": lot_measure_qty, "u_measure_type": measure_type})
                     prod_dict.update(vals)
                     res[prod_mls] = prod_dict
                     quantity_fulfilled += qty_done
@@ -419,6 +447,8 @@ class StockMoveLine(models.Model):
             else:
                 prod_mls, new_ml = mls._find_move_lines(qty_done, product, package, None, location, picking=self.picking_id)
                 prod_dict = {"qty_done": qty_done}
+                if measure_quantity:
+                    vals.update({"u_measure_qty": measure_quantity, "u_measure_type": measure_type})
                 prod_dict.update(vals)
                 res[prod_mls] = prod_dict
                 mls -= prod_mls

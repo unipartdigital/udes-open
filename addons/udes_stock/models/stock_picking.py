@@ -168,6 +168,12 @@ class StockPicking(models.Model):
         store=False,
         help="Total weight based on moves and product weight",
     )
+    u_use_multiple_measures = fields.Boolean(
+        string="Use Multiple Measures",
+        help="Related field, added in order to show the columns measure type, and measure quantity in the move "
+             "lines when config is enabled.",
+        related="picking_type_id.u_use_multiple_measures"
+    )
 
     def get_next_picking_name(self, vals, picking_type=None):
         """

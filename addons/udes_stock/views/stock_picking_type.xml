@@ -29,6 +29,7 @@
                     <field name="u_count_pallets" />
                     <field name="u_pallet_barcode_regex" />
                     <field name="u_package_barcode_regex" />
+                    <field name="u_use_multiple_measures" />
                 </group>
             </xpath>
 
