@@ -7,8 +7,13 @@ class TestForceUpperCaseOnFields(common.BaseUDES):
     @classmethod
     def setUpClass(cls):
         super(TestForceUpperCaseOnFields, cls).setUpClass()
-        cls.u_force_upper_case_config = '{"product.product": "barcode,default_code", "stock.location": "barcode"}'
-        cls.empty_u_force_upper_case_config = '{}'
+        product_barcode_field = cls.env.ref('product.field_product_product__barcode')
+        product_default_code_field = cls.env.ref('product.field_product_product__default_code')
+        location_barcode_field = cls.env.ref('stock.field_stock_location__barcode')
+        cls.u_force_upper_case_field_ids = [(6,0, [product_barcode_field.id,
+                                                    product_default_code_field.id,
+                                                    location_barcode_field.id])]
+        cls.empty_u_force_upper_case_field_ids = False
         cls.warehouse_id = cls.env.ref("stock.warehouse0")
         cls.Location = cls.env["stock.location"]
         cls.lower_case_loc_vals = {'name': 'lower_case_location',
@@ -26,10 +31,10 @@ class TestForceUpperCaseOnFields(common.BaseUDES):
 
     def test_regular_product_and_location_creation(self):
         """
-        test with empty_u_force_upper_case_config and lower case product/location barcode and default code.
+        test with empty_u_force_upper_case_field_ids and lower case product/location barcode and default code.
         No upper case validation should be raised
         """
-        self.warehouse_id.u_force_upper_case_config = self.empty_u_force_upper_case_config
+        self.warehouse_id.u_force_upper_case_field_ids = self.empty_u_force_upper_case_field_ids
         product = self.create_product("lower_case_product",
                                       default_code="dc_lower_case_product",
                                       barcode="br_lower_case_product")
@@ -41,10 +46,10 @@ class TestForceUpperCaseOnFields(common.BaseUDES):
 
     def test_regular_product_and_location_updation(self):
         """
-        test with empty_u_force_upper_case_config and lower case product/location barcode and default code.
+        test with empty_u_force_upper_case_field_ids and lower case product/location barcode and default code.
         No upper case validation should be raised
         """
-        self.warehouse_id.u_force_upper_case_config = self.empty_u_force_upper_case_config
+        self.warehouse_id.u_force_upper_case_field_ids = self.empty_u_force_upper_case_field_ids
         product = self.create_product("lower_case_product2",
                                       default_code="dc_lower_case_product2",
                                       barcode="bc_lower_case_product2")
@@ -61,24 +66,24 @@ class TestForceUpperCaseOnFields(common.BaseUDES):
         location.write({'barcode':"new_lower_case_barcode"})
         self.assertEqual(location.barcode, "new_lower_case_barcode")
 
-    def test_product_and_location_creation_with_u_force_upper_case_config(self):
+    def test_product_and_location_creation_with_u_force_upper_case_field_ids(self):
         """
-        test with u_force_upper_case_config and lower case product/location barcode and default code.
+        test with u_force_upper_case_field_ids and lower case product/location barcode and default code.
         upper case validation should be raised
         """
-        self.warehouse_id.u_force_upper_case_config = self.u_force_upper_case_config
+        self.warehouse_id.u_force_upper_case_field_ids = self.u_force_upper_case_field_ids
         with (self.assertRaises(ValidationError)):
             self.create_product("lower_case_product3",
                                 default_code="dc_lower_case_product3",
                                 barcode="bc_lower_case_product3")
             self._create_location_for_upper_case_validation(self.lower_case_loc_vals)
 
-    def test_product_and_location_updation_with_u_force_upper_case_config(self):
+    def test_product_and_location_updation_with_u_force_upper_case_field_ids(self):
         """
-        test with u_force_upper_case_config and lower case product/location barcode and default code.
+        test with u_force_upper_case_field_ids and lower case product/location barcode and default code.
         upper case validation should be raised
         """
-        self.warehouse_id.u_force_upper_case_config = self.u_force_upper_case_config
+        self.warehouse_id.u_force_upper_case_field_ids = self.u_force_upper_case_field_ids
         product = self.create_product("lower_case_product3",
                                       default_code="",
                                       barcode="")

@@ -1,10 +1,7 @@
 import re
 
-
 from odoo import _
-from odoo.exceptions import UserError,ValidationError
-import json
-from odoo.http import request
+from odoo.exceptions import UserError, ValidationError
 
 MAX_SEQUENCE = 999  # Default maximum sequence number allowed
 
@@ -86,6 +83,7 @@ def get_next_name(obj, code, sequence=None):
         new_sequence = 1
     return f"{root}-{new_sequence:0>{padding}}"
 
+
 def check_upper_case_validation(active_model, user, vals):
     """
         Added as a part of SE-1930
@@ -93,32 +91,27 @@ def check_upper_case_validation(active_model, user, vals):
         1. Create/write method calls from UDES import
         2. Manual Create/write method calls
         3. EDI import (this is more or less covered with point 1 and 2)
-        Idea hear is to add validation based on warehouse field u_force_upper_case_config.
+        Idea hear is to add validation based on warehouse field u_force_upper_case_field_ids.
         This method will determine if upper case validation is required
         for a field or not.
         As part of SE-1930 we are calling this method from create and write methods of
         product.product and stock.location
         This method can be imported if needed in any other object in the future if we add
-        that object for upper case validation in warehouse field u_force_upper_case_config.
+        that object for upper case validation in warehouse field u_force_upper_case_field_ids.
         active_model -> UDES model ex. product.product.
         vals -> dict value given by the method from which this method is called, ideally
         containing valid UDES fields and value as a key value pair
         user -> Current UDES user
         """
-    warehouse = user.get_user_warehouse()
-    for wh in warehouse:
-        if wh.u_force_upper_case_config:
-            try:
-                json_op = json.loads(wh.u_force_upper_case_config)
-            except Exception as e:
-                raise ValidationError(_("Entered value is not JSON compatible in column "
-                                        "'Force Upper Case Configuration' \n %s ") % e)
-            if json_op.get(active_model):
-                # loop over all the keys(fields) that requires upper case validation
-                for key in json_op.get(active_model).split(','):
-                    if vals.get(key):
-                        sanitized_key = key.replace(" ", "")
-                        if vals.get(sanitized_key) != vals.get(sanitized_key).upper():
-                            raise ValidationError(_("%s column value on model %s should "
-                                                    "be in upper case instead of %s ") % (sanitized_key, active_model,
-                                                                                          vals.get(sanitized_key)))
+    wh = user.get_user_warehouse()
+    # There will always be only one warehouse as per get_user_warehouse()
+    if wh.u_force_upper_case_field_ids:
+        #field names can be similar in different models filter out records based on which active_model
+        #validation request is coming from
+        for field in wh.u_force_upper_case_field_ids.filtered(lambda x: x.model_id.model == active_model):
+            if vals.get(field.name):
+                if vals.get(field.name) != vals.get(field.name).upper():
+                    raise ValidationError(_("%s column value on model %s should "
+                                            "be in upper case instead of %s ") % (field.name, active_model,
+                                                                                  vals.get(field.name)))
+

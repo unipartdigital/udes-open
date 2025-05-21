@@ -12,6 +12,13 @@ class StockWarehouse(models.Model):
         """
         return ["!", ("id", "child_of", self.env.ref("stock.stock_location_stock").id)]
 
+    def _domain_for_u_force_upper_case_field_ids(self):
+        domain = [('model_id','in', [self.env.ref('product.model_product_product').id,
+                                     self.env.ref('stock.model_stock_location').id
+                                     ]),
+                 ('ttype','in',['char', 'text'])]
+        return domain
+
     # Add tracking for archiving.
     active = fields.Boolean(tracking=True)
     u_damaged_location_id = fields.Many2one(
@@ -56,21 +63,13 @@ class StockWarehouse(models.Model):
         help="Allowed tracking types on product level, values are comma separated and can use any combination of 3 "
              "possible options none, lot,serial."
     )
-    u_force_upper_case_config = fields.Text(
-        string="Force Upper Case Configuration",
-        default="{}",
-        help=""" Values added should be like below example in a key-value dictionary manner. 
-        Left part(valid UDES model) should contain model name and Right part should contain 
-        (valid field of the UDES object) field name in a comma-separated manner. 
-        Below example will force upper case on fields default_code and barcode of UDES models product.product and
-        stock.location. At the moment this validation is available on UDES models product.product 
-        and stock.location
-        {
-          "product.product":  "default_code,barcode",
-          "stock.location": "barcode",
-        }
-        """
-    )
+    u_force_upper_case_field_ids = fields.Many2many('ir.model.fields',
+                                                     string="Force Upper Case Configuration",
+                                                     domain = _domain_for_u_force_upper_case_field_ids,
+                                                     help="""UDES will force upper case validation on selected fields.  
+                                                     At the moment this validation is available on UDES models 
+                                                     product.product and stock.location
+                                                     """)
 
     @api.constrains("u_allowed_tracking_types")
     def _constrain_allowed_tracking_types(self):
