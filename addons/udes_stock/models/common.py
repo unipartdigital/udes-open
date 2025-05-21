@@ -109,9 +109,10 @@ def check_upper_case_validation(active_model, user, vals):
         #field names can be similar in different models filter out records based on which active_model
         #validation request is coming from
         for field in wh.u_force_upper_case_field_ids.filtered(lambda x: x.model_id.model == active_model):
-            if vals.get(field.name):
-                if vals.get(field.name) != vals.get(field.name).upper():
+            field_value = vals.get(field.name)
+            if field_value:
+                if field_value != field_value.upper():
                     raise ValidationError(_("%s column value on model %s should "
                                             "be in upper case instead of %s ") % (field.name, active_model,
-                                                                                  vals.get(field.name)))
+                                                                                  field_value))
 

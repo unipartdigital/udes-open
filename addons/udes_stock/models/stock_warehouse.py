@@ -13,10 +13,10 @@ class StockWarehouse(models.Model):
         return ["!", ("id", "child_of", self.env.ref("stock.stock_location_stock").id)]
 
     def _domain_for_u_force_upper_case_field_ids(self):
-        domain = [('model_id','in', [self.env.ref('product.model_product_product').id,
-                                     self.env.ref('stock.model_stock_location').id
-                                     ]),
-                 ('ttype','in',['char', 'text'])]
+        domain = [('model_id', 'in', [self.env.ref('product.model_product_product').id,
+                                      self.env.ref('stock.model_stock_location').id
+                                      ]),
+                  ('ttype', 'in', ['char', 'text'])]
         return domain
 
     # Add tracking for archiving.
@@ -26,8 +26,8 @@ class StockWarehouse(models.Model):
         string="Default Damaged Location",
         domain=_domain_u_damaged_location_id,
         help="The damaged location is a location outside Stock (it cannot be a"
-        " location under Stock/), because we do not want damaged stock to"
-        " be picked",
+             " location under Stock/), because we do not want damaged stock to"
+             " be picked",
     )
     u_good_location_id = fields.Many2one(
         comodel_name="stock.location",
@@ -63,13 +63,14 @@ class StockWarehouse(models.Model):
         help="Allowed tracking types on product level, values are comma separated and can use any combination of 3 "
              "possible options none, lot,serial."
     )
-    u_force_upper_case_field_ids = fields.Many2many('ir.model.fields',
-                                                     string="Force Upper Case Configuration",
-                                                     domain = _domain_for_u_force_upper_case_field_ids,
-                                                     help="""UDES will force upper case validation on selected fields.  
-                                                     At the moment this validation is available on UDES models 
-                                                     product.product and stock.location
-                                                     """)
+    u_force_upper_case_field_ids = fields.Many2many(
+        'ir.model.fields',
+        string="Force Upper Case Configuration",
+        domain=_domain_for_u_force_upper_case_field_ids,
+        help="UDES will force upper case validation on selected fields. "
+             "At the moment this validation is available on UDES models  "
+             "product.product and stock.location"
+    )
 
     @api.constrains("u_allowed_tracking_types")
     def _constrain_allowed_tracking_types(self):
