@@ -11,7 +11,7 @@ from odoo.exceptions import ValidationError, UserError
 
 _logger = logging.getLogger(__name__)
 
-measure_type_options = [
+MEASURE_TYPE_OPTIONS = [
     ("none", "Each"),
     ("u_pack_qty", "Pack"),
     ("u_carton_qty", "Carton"),
@@ -50,7 +50,7 @@ class StockMoveLine(models.Model):
              "stock move line level.",
     )
     u_measure_type = fields.Selection(
-        selection=measure_type_options,
+        selection=MEASURE_TYPE_OPTIONS,
         string="Measure Type",
         copy=False,
         help="Used to determine measure type used when picking the product if 'Use Multiple Measures' is enabled.",
