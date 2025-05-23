@@ -91,3 +91,35 @@ class ProductProduct(models.Model):
         )
 
         return bool(stock_pickings) or self.get_quant_counts()
+
+    def convert_measure_type_quantity(self, quantity, measure_type):
+        """
+        Getting the quantity in eaches when user selects a measure type, and the quantity is for measure selected.
+        """
+        self.ensure_one()
+        measure_qty = 0
+        quantity_factor = 1
+        # Multiplying product quantity with number of products per pack/carton/pallet depending on what user
+        # have selected.
+        if measure_type:
+            measure_qty = quantity
+            quantity_factor = measure_type == "none" and 1 or getattr(self, measure_type, None)
+            quantity *= quantity_factor
+        return quantity, measure_qty, quantity_factor
+
+    def find_next_picking_product_measure_type(self, picked_quantity):
+        """
+        Getting the expected measure type quantity from quantity
+        """
+        self.ensure_one()
+        carton_quantity_factor = self.u_carton_qty
+        picked_quantity = int(picked_quantity)
+        # Returning number of cartons if there are full number of cartons, picking with eaches otherwise.
+        quantity = picked_quantity // carton_quantity_factor
+        measure_type = "u_carton_qty"
+        measure_type_label = "Cartons"
+        if not quantity:
+            quantity = picked_quantity % carton_quantity_factor
+            measure_type = "none"
+            measure_type_label = "Eaches"
+        return str(quantity), measure_type, measure_type_label

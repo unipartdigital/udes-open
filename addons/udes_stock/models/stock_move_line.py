@@ -408,12 +408,12 @@ class StockMoveLine(models.Model):
                 raise ValidationError(
                     _("Total lot/serial quantities entered doesn't match to total quantity.")
                 )
-            elif is_trackable and len(lot_names) != len(lot_quantities):
+            elif is_trackable and lot_names and len(lot_names) != len(lot_quantities):
                 raise ValidationError(
                     _("Lot/Serial quantity doesn't correspond to every lot/serial number entered.")
                 )
             qty_done = quantity
-            if product_tracking != "none":
+            if lot_names:
                 quantity_fulfilled = 0
                 res, lot_names = self._swap_tracked_items(
                     mls, quantity, product, location, is_serial, vals, res, lot_names
