@@ -71,6 +71,8 @@
                     <field name="u_prev_picking_ids" widget="one2many_list" mode="kanban"/>
                     <field name="u_next_picking_ids" widget="one2many_list" mode="kanban"/>
                     <field name="u_created_backorder_ids" widget="one2many_list" mode="kanban"/>
+                    <!-- Field needed to be added as invisible as used when playing with visibility of move lines.-->
+                    <field name="u_use_multiple_measures" invisible="1" />
                 </group>
             </xpath>
 

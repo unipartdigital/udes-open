@@ -144,6 +144,11 @@ class StockPickingType(models.Model):
         "Package Barcode Format",
         help="If is not set, package barcode regex will be retrieved from the warehouse"
     )
+    u_use_multiple_measures = fields.Boolean(
+        string="Use Multiple Measures",
+        help="Flag to enable usage of multiple measures.",
+        default=False,
+    )
 
     def get_pallet_barcode_format(self):
         """Getting the pallet barcode regex which enforces pallets to be on a specific format"""
