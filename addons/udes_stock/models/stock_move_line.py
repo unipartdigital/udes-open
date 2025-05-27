@@ -327,10 +327,13 @@ class StockMoveLine(models.Model):
         if uom_qty > 0:
             # TODO: when implementing add_unexpected_parts() review if this is the best place
             products_quantities = [[{"product":product, "uom_qty": uom_qty},],]
-            if picking: 
-                mls_fulfill |= picking.add_unexpected_parts(products_quantities)
-            else:
-                mls_fulfill |= self.picking_id.add_unexpected_parts(products_quantities)
+            # Merge on action confirm of add_unexpected_parts method if we are adding unexpected parts from existing mls.
+            # Do not merge on action confirm, calling _merge_moves after unexpected part move has been confirmed.
+            merge_on_confirm = False
+            if mls:
+                merge_on_confirm = True
+                picking = mls.picking_id
+            mls_fulfill |= picking.add_unexpected_parts(products_quantities, merge_on_confirm=merge_on_confirm)
         return mls_fulfill, new_ml
 
     def prepare(
@@ -428,7 +431,7 @@ class StockMoveLine(models.Model):
                     else:
                         lot_name_val = None
                     prod_mls, new_ml = mls._find_move_lines(
-                        qty_done, product, package, lot_name, location
+                        qty_done, product, package, lot_name, location, picking=self.picking_id
                     )
                     prod_dict = {"qty_done": qty_done, "lot_name": lot_name_val}
                     if lot_expiry_dates:
@@ -662,7 +665,7 @@ class StockMoveLine(models.Model):
                 ml_vals["qty_done"] = current_uom_qty
             # A change of lot_id implies a change of quant so the old qty_done on
             # the moveline is not important
-            elif new_uom_qty > current_uom_qty and not values.get("lot_id"):
+            elif new_uom_qty > current_uom_qty and not (values.get("lot_id") or values.get("lot_name")):
                 raise ValidationError(
                     _("Move line %i for product %s does not have enough quantity: %i vs %i")
                     % (ml.id, ml.product_id.name, new_uom_qty, current_uom_qty)
