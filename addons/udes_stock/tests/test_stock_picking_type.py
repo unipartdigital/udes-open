@@ -1,5 +1,5 @@
 import re
-
+from odoo.exceptions import UserError
 from . import common
 
 
@@ -183,3 +183,9 @@ class TestStockPickingType(common.BaseUDES):
 
         string_to_match = f'New C\/{new_goods_in.name.upper().replace(" ", "_")}\/'
         self.assertTrue(bool(re.fullmatch(string_to_match, new_goods_in_prefix)))
+
+    def test_unexpected_products_and_over_receive_raise_error(self):
+        goods_in = self.env.ref("stock.picking_type_in")
+        with self.assertRaises(UserError, msg="Picking types: Goods In \n have turned on Receive Unexpected Products config, "
+                              "while Over receive config is turned off"):
+            goods_in.write({"u_over_receive": False, "u_receive_unexpected_products": True})

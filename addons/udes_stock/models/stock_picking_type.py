@@ -1,5 +1,5 @@
 import logging
-
+from odoo.exceptions import UserError
 from odoo import fields, models, _, api
 
 _logger = logging.getLogger(__name__)
@@ -44,6 +44,11 @@ class StockPickingType(models.Model):
         string="Over Receive",
         default=True,
         help="If True, allow more items than the expected quantity in a move line.",
+    )
+    u_receive_unexpected_products = fields.Boolean(
+        string="Receive Unexpected Products?",
+        default=False,
+        help="If True, allow unexpected products to be received.",
     )
     u_scan_parent_package_end = fields.Boolean(
         string="Scan Parent Package at the End",
@@ -150,6 +155,18 @@ class StockPickingType(models.Model):
         default=False,
     )
 
+    @api.constrains("u_over_receive", "u_receive_unexpected_products")
+    def _check_unexpected_and_over_receive_correct_configured(self):
+        """Check if there is any picking type where Receive Unexpected Products is turned on and Over Receive is
+        turned off. Raise error for the pickings types if there are any."""
+        wrong_configured_picking_types = self.filtered(
+            lambda pt: pt.u_receive_unexpected_products and not pt.u_over_receive
+        )
+        if wrong_configured_picking_types:
+            wrong_configured_picking_type_names = ",".join(wrong_configured_picking_types.mapped("name"))
+            raise UserError(_("Picking types: %s \n have turned on Receive Unexpected Products config, "
+                              "while Over receive config is turned off") % wrong_configured_picking_type_names)
+
     def get_pallet_barcode_format(self):
         """Getting the pallet barcode regex which enforces pallets to be on a specific format"""
         self.ensure_one()
@@ -210,3 +227,11 @@ class StockPickingType(models.Model):
     def is_picking_type_check(self):
         """Place holder"""
         return False
+
+    @api.onchange("u_over_receive")
+    def onchange_over_receive(self):
+        """
+        Making sure that receive unexpected products is turned off when over receive is turned off.
+        """
+        if not self.u_over_receive:
+            self.u_receive_unexpected_products = False
