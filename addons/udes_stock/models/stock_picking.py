@@ -929,15 +929,24 @@ class StockPicking(models.Model):
         if self.state in ("done", "cancel"):
             raise ValidationError(_("Wrong state %s for %s") % (self.state, self.log_name()))
 
-    def add_unexpected_parts(self, product_quantities):
+    def add_unexpected_parts(self, product_quantities, merge_on_confirm):
         """Create a new move"""
         old_mls = self.move_line_ids
-        move_values = self._prepare_move(self, product_quantities)
+        # Creating a new move with initial demand quantity 0, because the item is unexpected.
+        kwargs = {
+            "u_uom_initial_demand": 0
+        }
+        move_values = self._prepare_move(self, product_quantities, **kwargs)
         new_moves = self._create_move(move_values)
-        new_moves._action_confirm()
+        # Create the move without merging in order to be able to assign the move and create move line if
+        # picking type is incoming.
+        new_moves._action_confirm(merge=merge_on_confirm)
         if self.picking_type_id.code != "incoming":
             new_moves._action_assign()
         new_mls = self.move_line_ids - old_mls
+        # Merge moves after have been confirmed
+        if not merge_on_confirm:
+            new_moves._merge_moves()
         return new_mls
 
     def action_cancel(self):

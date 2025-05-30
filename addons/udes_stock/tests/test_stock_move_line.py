@@ -1703,6 +1703,14 @@ class TestFindMoveLines(common.BaseUDES):
         cls.picking = cls.create_picking(
             cls.picking_type_pick, products_info=pick_info, confirm=True, assign=True
         )
+        goods_in_info = [
+            {"product": cls.tangerine, "uom_qty": 5}, # Tracked by lot
+        ]
+        cls.goods_in_package = cls.create_package()
+        # Picking type is goods in, on confirm will automatically assign.
+        cls.goods_in_picking = cls.create_picking(
+            cls.picking_type_goods_in, products_info=goods_in_info, confirm=True
+        )
 
     def test_find_by_product(self):
         """Find move lines only by product key"""
@@ -1823,6 +1831,39 @@ class TestFindMoveLines(common.BaseUDES):
         self.assertEqual(mls_fulfill, location02_mls)
         self.assertEqual(len(mls_fulfill), 1)
         self.assertFalse(new_ml)
+
+    def test_find_unexpected_multiple_lots(self):
+        """
+        Testing 3 scenarios:
+        Goods in product qty is 5, and we try to over receive more than 5 where first lot exactly matches the goods in
+        expected qty.
+
+        Goods in product qty is 5, and we try to over receive more than 5 where first lot is less than expected qty.
+
+        Goods in product qty is 5, and we try to over receive more than 5 where first lot is more than expected qty.
+
+        Testing that _find_move_lines will return move line to fullfill as expected.
+        """
+        lot_quantities_and_names = [
+            [[5, 2], ["1001", "1002"]],
+            [[4, 3], ["1001", "1002"]],
+            [[6, 2], ["1001", "1002"]],
+        ]
+        for [lot_quantities, lot_names] in lot_quantities_and_names:
+            with self.subTest(lot_quantities=lot_quantities, lot_names=lot_names):
+                tangerine_mls = self.goods_in_picking.move_line_ids.filtered(lambda ml: ml.product_id == self.tangerine)
+                for idx, lot_name in enumerate(lot_names):
+                    qty_done = lot_quantities[idx]
+                    mls_to_fullfill, new_ml = tangerine_mls._find_move_lines(
+                        qty_done,
+                        self.tangerine,
+                        self.goods_in_package,
+                        lot_name,
+                        self.received_location,
+                        picking=self.goods_in_picking
+                    )
+                    self.assertTrue(mls_to_fullfill)
+                    self.assertEqual(mls_to_fullfill.product_uom_qty, qty_done)
 
 
 class TestMergeMoveLines(common.BaseUDES):
