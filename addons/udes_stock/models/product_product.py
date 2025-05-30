@@ -1,5 +1,6 @@
-from odoo import fields, models, _
+from odoo import fields, models, api, _
 from odoo.exceptions import ValidationError
+from . common import check_upper_case_validation
 import logging
 
 _logger = logging.getLogger(__name__)
@@ -123,3 +124,13 @@ class ProductProduct(models.Model):
             measure_type = "none"
             measure_type_label = "Eaches"
         return str(quantity), measure_type, measure_type_label
+
+    @api.model
+    def create(self, vals):
+        check_upper_case_validation(self._name, self.env.user, vals)
+        return super().create(vals)
+
+    def write(self, vals):
+        check_upper_case_validation(self._name, self.env.user, vals)
+        return super().write(vals)
+

@@ -16,9 +16,15 @@
                             <field name="u_stock_investigation_picking_type" />
                             <field name="u_max_reservable_serials" />
                             <field name="u_allowed_tracking_types" />
+                            <field name="u_force_upper_case_field_ids"
+                                   options="{'no_create': True, 'no_create_edit':True}"
+                                   widget="many2many_tags"
+                                   context="{'tree_view_ref':'udes_stock.view_ir_model_fields_basic_tree'}">
+                            </field>
                         </group>
                     </page>
                 </xpath>
             </field>
         </record>
+
 </odoo>

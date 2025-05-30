@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--IR Model Fields-->
+    <record id="view_ir_model_fields_basic_tree" model="ir.ui.view">
+        <field name="name">view.ir.model.fields.basic.tree</field>
+        <field name="model">ir.model.fields</field>
+        <field name="arch" type="xml">
+            <tree string="Fields" duplicate="false" create="false" delete="false" import="false">
+                <field name="field_description"/>
+                <field name="name"/>
+                <field name="model_id"/>
+            </tree>
+        </field>
+    </record>
+</odoo>

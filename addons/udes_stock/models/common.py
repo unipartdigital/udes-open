@@ -1,8 +1,7 @@
 import re
 
-
 from odoo import _
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 
 MAX_SEQUENCE = 999  # Default maximum sequence number allowed
 
@@ -83,3 +82,37 @@ def get_next_name(obj, code, sequence=None):
         root = obj.name
         new_sequence = 1
     return f"{root}-{new_sequence:0>{padding}}"
+
+
+def check_upper_case_validation(active_model, user, vals):
+    """
+        Added as a part of SE-1930
+        We have three main cases to determine
+        1. Create/write method calls from UDES import
+        2. Manual Create/write method calls
+        3. EDI import (this is more or less covered with point 1 and 2)
+        Idea hear is to add validation based on warehouse field u_force_upper_case_field_ids.
+        This method will determine if upper case validation is required
+        for a field or not.
+        As part of SE-1930 we are calling this method from create and write methods of
+        product.product and stock.location
+        This method can be imported if needed in any other object in the future if we add
+        that object for upper case validation in warehouse field u_force_upper_case_field_ids.
+        active_model -> UDES model ex. product.product.
+        vals -> dict value given by the method from which this method is called, ideally
+        containing valid UDES fields and value as a key value pair
+        user -> Current UDES user
+        """
+    wh = user.get_user_warehouse()
+    # There will always be only one warehouse as per get_user_warehouse()
+    if wh.u_force_upper_case_field_ids:
+        #field names can be similar in different models filter out records based on which active_model
+        #validation request is coming from
+        for field in wh.u_force_upper_case_field_ids.filtered(lambda x: x.model_id.model == active_model):
+            field_value = vals.get(field.name)
+            if field_value:
+                if field_value != field_value.upper():
+                    raise ValidationError(_("%s column value on model %s should "
+                                            "be in upper case instead of %s ") % (field.name, active_model,
+                                                                                  field_value))
+

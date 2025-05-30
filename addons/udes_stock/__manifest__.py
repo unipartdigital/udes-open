@@ -45,6 +45,7 @@
         "views/stock_location_route_views.xml",
         "views/stock_template.xml",
         "views/stock_scrap_views.xml",
+        "views/ir_model_fields.xml",
         "views/stock_warehouse.xml",
         "views/product_category.xml",
         "views/product_template.xml",

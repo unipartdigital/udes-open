@@ -16,3 +16,4 @@ from . import test_stock_picking_user_assignment
 from . import test_utils
 from . import test_stock_picking_batch
 from . import test_stock_picking_type
+from . import test_force_upper_case_on_fields
