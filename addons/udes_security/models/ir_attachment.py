@@ -192,7 +192,8 @@ class IrAttachment(models.Model):
                     raise UserError(
                         "Invalid URL: Only secure HTTPS links or relative URLs (starting with '/') are allowed for images. Please update the URL format and try again."
                     )
-                if "mimetype" in vals and vals["mimetype"] in allowed_image_mimetypes:
+                # Don't process server images i.e ones in addons.
+                if not vals["url"].startswith("/") and "mimetype" in vals and vals["mimetype"] in allowed_image_mimetypes:
                     # Process URL-based image, convert to binary and remove EXIF data
                     vals["datas"] = self._process_url_image(vals["url"])
                     vals["name"] = self._extract_filename_from_url(vals["url"])
