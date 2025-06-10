@@ -1159,7 +1159,7 @@ class StockPickingBatch(models.Model):
                     "Press back when resolved."
                 )
             )
-        product = Product.get_or_create(product_id) if product_id else None
+        product = Product.browse(product_id)
         location = Location.get_or_create(location_id) if location_id else None
         package = Package.get_or_create(package_name) if package_name else None
         allow_partial = False
