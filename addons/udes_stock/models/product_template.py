@@ -16,6 +16,14 @@ class ProductTemplate(models.Model):
         "sale_delay",
     ]
 
+    def _get_default_multiple_barcode_configuration(self):
+        """
+        Default configuration when creating a new product, so the visibility of the fields will be depending on
+        configuration value when we create new product.
+        """
+        warehouse = self.env.user.get_user_warehouse()
+        return warehouse.u_product_multiple_barcodes
+
     @api.constrains(*NON_NEGATIVE_FIELDS)
     def _constrain_non_negative_values(self):
         for record in self:
@@ -40,6 +48,16 @@ class ProductTemplate(models.Model):
         "Quantity Per Pallet",
         default=1,
         help=_("Quantity of products per pallet.")
+    )
+    u_multiple_barcodes = fields.Boolean(
+        string="Multiple Barcodes",
+        compute="_compute_multiple_barcodes_config",
+        default=_get_default_multiple_barcode_configuration,
+        help="Computed field, added in order to show the product barcodes field in product form view "
+             "lines when config on the warehouse is enabled.",
+    )
+    u_barcode_ids = fields.One2many(
+        "product.barcode", string="Product Barcodes", compute="_compute_barcode_ids", inverse="_set_barcode_ids",
     )
 
     POSITIVE_FIELDS = [
@@ -77,6 +95,25 @@ class ProductTemplate(models.Model):
                         _("You aren't allowed to track a product by %s.")
                         % tracking_types_mapping[product_template.tracking]
                     )
+
+    def _compute_multiple_barcodes_config(self):
+        """Computed field to show the configuration set on the warehouse for multiple barcodes."""
+        warehouse = self.env.user.get_user_warehouse()
+        for product in self:
+            product.u_multiple_barcodes = warehouse.u_product_multiple_barcodes
+
+    @api.depends("product_variant_ids", "product_variant_ids.u_barcode_ids")
+    def _compute_barcode_ids(self):
+        for p in self:
+            if len(p.product_variant_ids) == 1:
+                p.u_barcode_ids = p.product_variant_ids.u_barcode_ids
+            else:
+                p.u_barcode_ids = False
+
+    def _set_barcode_ids(self):
+        for p in self:
+            if len(p.product_variant_ids) == 1:
+                p.product_variant_ids.u_barcode_ids = p.u_barcode_ids
 
     def _domain_product_category(self, category):
         """Domain for product categories, not including category itself"""

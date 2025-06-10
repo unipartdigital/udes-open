@@ -15,6 +15,7 @@ class ProductProduct(models.Model):
 
     # Add tracking for archiving.
     active = fields.Boolean(tracking=True)
+    u_barcode_ids = fields.One2many("product.barcode", "product_id", string="Barcodes")
 
     def assert_tracking_unique(self, serial_numbers):
         """
@@ -134,3 +135,63 @@ class ProductProduct(models.Model):
         check_upper_case_validation(self._name, self.env.user, vals)
         return super().write(vals)
 
+    def get_barcode(self):
+        """
+        Get barcode of the product depending on configuration
+        """
+        self.ensure_one()
+        if self.u_multiple_barcodes:
+            barcode = self.u_barcode_ids and self.u_barcode_ids[0].name or None
+        else:
+            barcode = self.barcode
+        return barcode
+
+    def get_all_barcodes(self):
+        """
+        Get all barcodes of a product.
+        """
+        self.ensure_one()
+        if self.u_multiple_barcodes:
+            list_barcodes = self.u_barcode_ids.mapped("name")
+        else:
+            # Always returning a list, even when only one barcode is in it.
+            list_barcodes = [self.barcode]
+        return list_barcodes
+
+    @api.model
+    def get_by_barcode(self, barcode):
+        """
+        Getting the product from barcode, looking in product table or product barcode table depending on the config.
+
+        If barcode is a list of barcodes, of the same product. There are scenarios where is called like that.
+        """
+        Product = self.env["product.product"]
+        ProductBarcode = self.env["product.barcode"]
+        warehouse = self.env.ref("stock.warehouse0")
+        product = Product.browse()
+        if warehouse.u_product_multiple_barcodes:
+            # Using in operator when searching for the product, as the first one might be a new barcode.
+            # We want to make sure product doesn't exist.
+            if not isinstance(barcode, list):
+                barcode = [barcode]
+            product_barcodes = ProductBarcode.search([("name", "in", barcode)], order="id")
+            if product_barcodes:
+                product = product_barcodes.product_id
+                if len(product) > 1:
+                    raise ValidationError(
+                        _("Can not determine a single product from the provided barcodes. Found: %s") % product.mapped(
+                            "name"))
+        else:
+            # Because of sql_constraint there is only one record in case found
+            product = Product.search([("barcode", "=", barcode)], order="id", limit=1)
+        return product
+
+    def _get_info(self, level, info_fields, extra_fields):
+        """Inherit with super to extend _get_info by adding more values or tweaking existing ones."""
+        result = super()._get_info(level=level, info_fields=info_fields, extra_fields=extra_fields)
+        if "barcode" in result:
+            product_barcodes = self.get_all_barcodes()
+            result.update({
+                "barcode": product_barcodes
+            })
+        return result
