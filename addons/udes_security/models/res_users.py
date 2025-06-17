@@ -3,6 +3,7 @@ import re
 from odoo import models, fields, _, api
 from odoo.exceptions import AccessError, UserError
 from odoo.http import root
+from odoo.tools import config
 from collections import namedtuple
 from odoo.addons.udes_common.tools import RelFieldOps
 
@@ -140,6 +141,8 @@ class ResUsers(models.Model):
         If not, UserError is raised by default (raise_on_failure), otherwise False is returned
         """
         self.ensure_one()
+        if config.get_misc("udes", "skip_password_complexity_check"):
+            return True
         if not password:
             return True
         company_id = self.company_id
