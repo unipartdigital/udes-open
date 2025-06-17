@@ -383,7 +383,7 @@ class StockMoveLine(models.Model):
 
         for prod in product_ids:
             product_barcode = prod["barcode"]
-            product = Product.get_or_create(product_barcode)
+            product = Product.get_by_barcode(product_barcode)
             rounding = product.uom_id.rounding
             quantity = prod["uom_qty"]
             # Using get as depending on picking type config u_use_multiple_measures the measure_qty key will not always
@@ -403,7 +403,7 @@ class StockMoveLine(models.Model):
             if is_lot and not lot_quantities:
                 lot_quantities = [quantity]
             if is_serial and not lot_quantities:
-                lot_quantities = [1] * quantity
+                lot_quantities = [1] * int(quantity)
             if (
                 is_trackable
                 and float_compare(sum(lot_quantities), quantity, precision_rounding=rounding) != 0

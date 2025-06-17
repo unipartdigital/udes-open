@@ -561,6 +561,10 @@ class UnconfiguredBaseUDES(common.SavepointCase):
             vals = {"qty_done": qty}
             move_line.with_env(cls.env(user=user)).write(vals)
 
+    @classmethod
+    def add_product_barcodes(cls, product, barcodes):
+        product.write({"u_barcode_ids": [(0, 0, {"name": barcode}) for barcode in barcodes]})
+
 
 class BaseUDES(UnconfiguredBaseUDES):
     @classmethod

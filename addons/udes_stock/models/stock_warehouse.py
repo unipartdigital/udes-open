@@ -6,6 +6,12 @@ class StockWarehouse(models.Model):
     _name = "stock.warehouse"
     _inherit = ["stock.warehouse", "mail.thread"]
 
+    u_product_multiple_barcodes = fields.Boolean(
+        string="Product Multiple Barcodes",
+        help="Flag to enable usage of multiple barcodes on a single product.",
+        default=False,
+    )
+
     def _domain_u_damaged_location_id(self):
         """
         Domain for locations outside Stock

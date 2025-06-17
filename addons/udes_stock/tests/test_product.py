@@ -1,6 +1,8 @@
 from .common import BaseUDES
 from odoo.exceptions import ValidationError, UserError
 from unittest import skip
+from odoo.tools import mute_logger
+from psycopg2 import IntegrityError
 
 
 class TestProductMethods(BaseUDES):
@@ -20,8 +22,8 @@ class TestProductAllowedTrackingValues(BaseUDES):
         super().setUpClass()
         # Change all products tracking to none, in order not to raise any error, when changing allowed
         # tracking types on the warehouse.
-        Product = cls.env["product.product"]
-        products = Product.search([])
+        cls.Product = cls.env["product.product"]
+        products = cls.Product.search([])
         products.write({"tracking": "none"})
 
     def test_serial_not_in_allowed_tracking_types(self):
@@ -47,3 +49,71 @@ class TestProductAllowedTrackingValues(BaseUDES):
     def test_cannot_change_warehouse_allowed_tracking_types(self):
         with self.assertRaises(ValidationError):
             self.warehouse.u_allowed_tracking_types = "serial,lot"
+
+    def test_get_product_from_barcodes(self):
+        """Test getting product from barcode when the multi barcodes config is not enabled."""
+        strawberry_barcode = self.strawberry.barcode
+        product = self.Product.get_by_barcode(strawberry_barcode)
+        self.assertEqual(self.strawberry, product)
+
+
+class TestProductMultiBarcodes(BaseUDES):
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.warehouse = cls.env.ref("stock.warehouse0")
+        cls.ProductBarcode = cls.env["product.barcode"]
+        cls.Product = cls.env["product.product"]
+        cls.warehouse.u_product_multiple_barcodes = True
+
+    def test_unique_barcode_raise_error_on_same_product(self):
+        """
+        Testing adding multiple same barcodes raises error.
+        """
+        with self.assertRaises(IntegrityError), mute_logger('odoo.sql_db'):
+            barcodes = ["strawberry", "strawberry"]
+            self.add_product_barcodes(self.strawberry, barcodes)
+
+    def test_multi_barcodes_added_successfully(self):
+        barcodes = ["bar-strawberry", "strawberry", "strw"]
+        self.add_product_barcodes(self.strawberry, barcodes)
+        expected_barcodes = self.strawberry.get_all_barcodes()
+        self.assertEqual(sorted(barcodes), sorted(expected_barcodes))
+
+    def test_get_product_from_barcodes(self):
+        """Test getting product from several barcodes when the multi barcodes config is enabled."""
+        barcodes = ["bar-strawberry", "strawberry", "strw"]
+        self.add_product_barcodes(self.strawberry, barcodes)
+        expected_barcodes = self.strawberry.get_all_barcodes()
+        self.assertEqual(sorted(barcodes), sorted(expected_barcodes))
+        for barcode in barcodes:
+            with self.subTest(barcode=barcode):
+                product = self.Product.get_by_barcode(barcodes)
+                self.assertEqual(product, self.strawberry)
+
+    def test_get_add_new_barcode(self):
+        """
+        Testing adding new barcodes will update the list of barcodes as expected.
+        """
+        barcodes = ["bar-strawberry", "strawberry"]
+        self.add_product_barcodes(self.strawberry, barcodes)
+        expected_barcodes = self.strawberry.get_all_barcodes()
+        self.assertEqual(sorted(barcodes), sorted(expected_barcodes))
+        added_barcodes = ["strw"]
+        self.add_product_barcodes(self.strawberry, added_barcodes)
+        barcodes += added_barcodes
+        expected_barcodes = self.strawberry.get_all_barcodes()
+        self.assertEqual(sorted(barcodes), sorted(expected_barcodes))
+
+
+    def test_barcode_field_ignored_when_config_is_enabled(self):
+        """
+        Testing that when getting list of barcodes ignores the field barcode on the product if multi barcodes config
+        is enabled.
+        """
+        strawberry_barcode = self.strawberry.barcode
+        product = self.Product.get_by_barcode(strawberry_barcode)
+        self.assertFalse(product)
+        strawberry_barcodes = self.strawberry.get_all_barcodes()
+        self.assertFalse(strawberry_barcodes)

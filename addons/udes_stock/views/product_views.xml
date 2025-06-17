@@ -37,5 +37,25 @@
         </field>
     </record>
 
+    <record id="product_normal_form_view_udes_stock" model="ir.ui.view">
+        <field name="name">product.product.form.udes_stock</field>
+        <field name="model">product.product</field>
+        <field name="inherit_id" ref="product.product_normal_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='barcode']" position="attributes">
+                <attribute name="attrs">{'invisible': [('u_multiple_barcodes', '=', True)]}</attribute>
+            </xpath>
+            <xpath expr="//field[@name='description']/parent::group" position="before">
+                <group string="Barcodes" attrs="{'invisible':[('u_multiple_barcodes','=',False)]}">
+                    <field name="u_barcode_ids" nolabel="1">
+                        <tree string="Barcodes" editable="bottom">
+                            <field name="name" required="1"/>
+                        </tree>
+                    </field>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
 
 </odoo>
