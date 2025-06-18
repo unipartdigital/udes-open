@@ -19,8 +19,3 @@ class ProductBarcode(models.Model):
     _sql_constraints = [
         ("name_uniq", "unique(name)", "A barcode can only be assigned to one product!"),
     ]
-
-
-    def unlink(self):
-        a = 1
-        return super().unlink()
