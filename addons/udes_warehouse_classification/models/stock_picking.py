@@ -16,7 +16,13 @@ class StockPicking(models.Model):
             classifications = product.u_product_warehouse_classification_ids.filtered(
                 lambda c: self.picking_type_id in c.picking_type_ids
             ).sorted("sequence")
-            product_classifications[product.barcode] = [
-                {"message": classification.alert_message} for classification in classifications
-            ]
+
+        product_barcode = product.get_barcode()
+        
+        # TODO: Review if we can rely on `default_code` or another unique identifier
+        # instead of using the product's barcode here.
+        
+        product_classifications[product_barcode] = [
+            {"message": classification.alert_message} for classification in classifications
+        ]
         return product_classifications
