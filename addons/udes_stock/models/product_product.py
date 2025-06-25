@@ -15,7 +15,6 @@ class ProductProduct(models.Model):
 
     # Add tracking for archiving.
     active = fields.Boolean(tracking=True)
-    u_barcode_ids = fields.One2many("product.barcode", "product_id", string="Barcodes")
 
     def assert_tracking_unique(self, serial_numbers):
         """
@@ -176,7 +175,7 @@ class ProductProduct(models.Model):
                 barcode = [barcode]
             product_barcodes = ProductBarcode.search([("name", "in", barcode)], order="id")
             if product_barcodes:
-                product = product_barcodes.product_id
+                product = product_barcodes.product_tmpl_id.product_variant_ids
                 if len(product) > 1:
                     raise ValidationError(
                         _("Can not determine a single product from the provided barcodes. Found: %s") % product.mapped(

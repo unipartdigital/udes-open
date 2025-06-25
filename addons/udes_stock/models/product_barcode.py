@@ -14,7 +14,7 @@ class ProductBarcode(models.Model):
         "Barcode", copy=False, required=True,
         help="International Article Number used for product identification."
     )
-    product_id = fields.Many2one("product.product", string="Product", required=True, ondelete="cascade")
+    product_tmpl_id = fields.Many2one("product.template", string="Product", required=True, ondelete="cascade")
 
     _sql_constraints = [
         ("name_uniq", "unique(name)", "A barcode can only be assigned to one product!"),
