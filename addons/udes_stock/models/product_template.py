@@ -56,9 +56,7 @@ class ProductTemplate(models.Model):
         help="Computed field, added in order to show the product barcodes field in product form view "
              "lines when config on the warehouse is enabled.",
     )
-    u_barcode_ids = fields.One2many(
-        "product.barcode", string="Product Barcodes", compute="_compute_barcode_ids", inverse="_set_barcode_ids",
-    )
+    u_barcode_ids = fields.One2many("product.barcode", "product_tmpl_id", string="Barcodes")
 
     POSITIVE_FIELDS = [
         "u_pack_qty",
@@ -101,19 +99,6 @@ class ProductTemplate(models.Model):
         warehouse = self.env.user.get_user_warehouse()
         for product in self:
             product.u_multiple_barcodes = warehouse.u_product_multiple_barcodes
-
-    @api.depends("product_variant_ids", "product_variant_ids.u_barcode_ids")
-    def _compute_barcode_ids(self):
-        for p in self:
-            if len(p.product_variant_ids) == 1:
-                p.u_barcode_ids = p.product_variant_ids.u_barcode_ids
-            else:
-                p.u_barcode_ids = False
-
-    def _set_barcode_ids(self):
-        for p in self:
-            if len(p.product_variant_ids) == 1:
-                p.product_variant_ids.u_barcode_ids = p.u_barcode_ids
 
     def _domain_product_category(self, category):
         """Domain for product categories, not including category itself"""
