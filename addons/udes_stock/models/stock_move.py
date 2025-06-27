@@ -376,8 +376,10 @@ class StockMove(models.Model):
         default_values.update(kwargs)
         new_move = self.copy(default_values)
 
-        # Update the moved move lines with the new move, and no picking id
-        move_lines.write({"move_id": new_move.id, "picking_id": None})
+        # Update the moved move lines with the new move and get the
+        # new picking_id from the move in case it was provided in kwargs
+        picking_id = new_move.picking_id.id
+        move_lines.write({"move_id": new_move.id, "picking_id": picking_id})
 
         # Adding context variables to avoid any change to be propagated to
         # the following moves and do not unreserve any quant related to the
