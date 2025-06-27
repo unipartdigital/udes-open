@@ -51,6 +51,16 @@ class TestBatchState(common.BaseUDES):
         cls.batch01.user_id = cls.stock_user.id
 
     @classmethod
+    def assign_multi_user(cls):
+        """Method to attach stock user to batch"""
+        cls.batch01.add_to_multi_user(cls.stock_user)
+
+    @classmethod
+    def remove_multi_user(cls):
+        """Method to attach stock user to batch"""
+        cls.batch01.remove_from_multi_user(cls.stock_user)
+
+    @classmethod
     def complete_pick(cls, picking, call_done=True):
         for move in picking.move_lines:
             move.write(
@@ -96,13 +106,21 @@ class TestBatchState(common.BaseUDES):
         self.assertEqual(self.batch01.state, "ready")
 
     def test_waiting_to_in_progess(self):
-        """Assign user to check we get in_progress, then move back"""
+        """Assign user to check we get in_progress, then move back.
+        Repeat the same checks when using multi users field.
+        """
         self.draft_to_ready()
         self.assign_user()
         self.assertEqual(self.batch01.state, "in_progress")
         # Check that removing user moves back to ready
         self.batch01.user_id = False
         self.assertEqual(self.batch01.state, "ready")
+        self.batch01.add_to_multi_user(self.stock_user)
+        self.assertEqual(self.batch01.state, "in_progress")
+        self.batch01.remove_from_multi_user(self.stock_user)
+        self.batch01.remove_from_multi_user(self.stock_user)
+        self.assertEqual(self.batch01.state, "ready")
+        self.assertFalse(self.batch01.u_user_ids)
 
     def test_cancel_pick_to_done(self):
         """Cancel pick and confirm state 'done'"""

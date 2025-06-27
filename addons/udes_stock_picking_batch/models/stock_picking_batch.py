@@ -24,6 +24,26 @@ class StockPickingBatch(models.Model):
             "in_progress": [("readonly", False)],
         },
     )
+    u_user_ids = fields.Many2many(
+        "res.users",
+        string="Multi User",
+        help="Users working in the current batch.",
+        tracking=True,
+        readonly=True,
+        states={
+            "draft": [("readonly", False)],
+            "waiting": [("readonly", False)],
+            "ready": [("readonly", False)],
+            "in_progress": [("readonly", False)],
+        },
+    )
+
+    def add_to_multi_user(self, user):
+        self.u_user_ids = [(4, user.id)]
+
+    def remove_from_multi_user(self, user):
+        self.u_user_ids = [(3, user.id)]
+
     # Note: state field has been found to recompute itself everytime it was accessed even with store=True
     # lock_batch_state has been put in places to ensure correct behaviour.
     state = fields.Selection(
@@ -94,7 +114,7 @@ class StockPickingBatch(models.Model):
         store=True,
     )
 
-    @api.constrains("user_id")
+    @api.constrains("user_id", "u_user_ids")
     def _compute_state(self):
         """ Compute the state of a batch
             waiting     : At least some picks are not ready
@@ -122,13 +142,13 @@ class StockPickingBatch(models.Model):
 
                 # Figure out state
                 if ready_picks and not unready_picks:
-                    if batch.user_id:
+                    if batch.user_id or batch.u_user_ids:
                         batch.state = "in_progress"
                     else:
                         batch.state = "ready"
 
                 if ready_picks and unready_picks:
-                    if batch.user_id:
+                    if batch.user_id or batch.u_user_ids:
                         batch.state = "in_progress"
                     else:
                         batch.state = "waiting"
