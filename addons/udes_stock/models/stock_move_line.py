@@ -450,6 +450,11 @@ class StockMoveLine(models.Model):
             else:
                 prod_mls, new_ml = mls._find_move_lines(qty_done, product, package, None, location, picking=self.picking_id)
                 prod_dict = {"qty_done": qty_done}
+                remaining_qty = qty_done
+                for move_line in prod_mls:
+                    if move_line.product_uom_qty <= qty_done and remaining_qty:
+                        remaining_qty -= move_line.product_uom_qty
+                        prod_dict["qty_done"] = move_line.product_uom_qty
                 if measure_quantity:
                     vals.update({"u_measure_qty": measure_quantity, "u_measure_type": measure_type})
                 prod_dict.update(vals)
