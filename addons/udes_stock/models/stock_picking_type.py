@@ -154,6 +154,11 @@ class StockPickingType(models.Model):
         help="Flag to enable usage of multiple measures.",
         default=False,
     )
+    u_scan_destination_location_start = fields.Boolean(
+        string="Scan Destination Location at the Start",
+        default=False,
+        help="If True, the user is asked to scan drop off location at the beginning of the flow.",
+    )
 
     @api.constrains("u_over_receive", "u_receive_unexpected_products")
     def _check_unexpected_and_over_receive_correct_configured(self):

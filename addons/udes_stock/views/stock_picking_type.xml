@@ -13,6 +13,7 @@
                     <field name="u_target_storage_format" />
                     <field name="u_user_scans" />
                     <field name="u_scan_parent_package_end" />
+                    <field name="u_scan_destination_location_start" />
                     <field name="u_under_receive" />
                     <field name="u_over_receive" />
                     <field name="u_receive_unexpected_products" attrs="{'invisible': [('u_over_receive', '=', False)]}"/>
