@@ -1050,16 +1050,15 @@ class StockPickingBatch(models.Model):
             batch.filtered(lambda b: b.u_ephemeral).picking_ids.filtered(
                 lambda sp: sp.state not in ("done", "cancel")
             ).write({"batch_id": False, "u_reserved_pallet": False})
-
-            # Assign incomplete pickings to new batch
-            _logger.info("Creating continuation batch from %r.", batch.name)
+            # Assign incomplete pickings to new non-ephemeral batch if there are any
             pickings = (
                 batch.filtered(lambda b: not b.u_ephemeral).picking_ids
                 .filtered(lambda sp: sp.state not in ("done", "cancel"))
             )
-            _logger.info("Picking ids continuation %r", pickings)
-
-            batch._copy_continuation_batch(pickings)
+            if pickings:
+                _logger.info("Creating continuation batch from %r.", batch.name)
+                _logger.info("Picking ids continuation %r", pickings)
+                batch._copy_continuation_batch(pickings)
 
     def _copy_continuation_batch(self, pickings):
         """
