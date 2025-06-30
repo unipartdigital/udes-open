@@ -1675,6 +1675,132 @@ class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
                 product_ids=product_ids, location=location, result_package=pallet_to_pick_onto
             )
 
+    def test_picking_with_zero_move_line_done_qty(self):
+        """
+        Test with 2 move lines , marking qty_done of banana product move line completely.
+        marking qty_done of apple product move line with 0.
+        Should not generate any errors.
+        """
+        picking = self.picking
+        mls = picking.move_line_ids
+        apple_barcode = self.apple.barcode
+        banana_barcode = self.banana.barcode
+        apple_ml = self.apple_move_line
+        banana_ml = self.banana_move_line
+        result_package = self.create_package()
+        location_dest = self.test_goodsout_location_01
+        scan_banana = [{"barcode": banana_barcode, "uom_qty": 5}]
+        scan_apple = [{"barcode": apple_barcode, "uom_qty": 0}]
+        prepare_apple = mls.prepare(product_ids=scan_apple)
+        self.assertEqual(len(picking.move_line_ids), 2)
+        self.assertEqual(apple_ml.product_uom_qty, 4)
+        pending_mls = picking.move_line_ids.filtered(
+            lambda x: x.qty_done == 0 and x.product_id == self.apple
+        )
+        self.assertEqual(len(pending_mls), 1)
+        prepare_banana = mls.prepare(
+            product_ids=scan_banana,
+            result_package=result_package,
+            location_dest=location_dest,
+        )
+        self.assertEqual(prepare_banana[banana_ml]["qty_done"], 5)
+        self.assertEqual(
+            prepare_banana[banana_ml]["result_package_id"], result_package.id
+        )
+        self.assertEqual(
+            prepare_banana[banana_ml]["location_dest_id"], location_dest.id
+        )
+        self.assertEqual(banana_ml.product_uom_qty, 5)
+
+    def test_picking_with_partial_move_completion(self):
+        """
+        Test with multiple move lines , marking qty_done of banana product move line partially.
+        marking qty_done of apple product move line with partially. Move lines should not have
+        any excess done_qty then provided. There should be move lines with remaining qty's
+        to be marked done. Should not generate any errors.
+        """
+        picking = self.picking
+        mls = picking.move_line_ids
+        apple_barcode = self.apple.barcode
+        banana_barcode = self.banana.barcode
+        apple_ml = self.apple_move_line
+        banana_ml = self.banana_move_line
+        result_package = self.create_package()
+        location_dest = self.test_goodsout_location_01
+        scan_banana = [{"barcode": banana_barcode, "uom_qty": 2}]
+        scan_apple = [{"barcode": apple_barcode, "uom_qty": 1}]
+        prepare_apple = mls.prepare(product_ids=scan_apple)
+        self.assertEqual(prepare_apple[apple_ml]["qty_done"], 1)
+        self.assertEqual(len(picking.move_line_ids), 3)
+        self.assertEqual(apple_ml.product_uom_qty, 1)
+        prepare_banana = mls.prepare(
+            product_ids=scan_banana,
+            result_package=result_package,
+            location_dest=location_dest,
+        )
+        self.assertEqual(prepare_banana[banana_ml]["qty_done"], 2)
+        self.assertEqual(
+            prepare_banana[banana_ml]["result_package_id"], result_package.id
+        )
+        self.assertEqual(
+            prepare_banana[banana_ml]["location_dest_id"], location_dest.id
+        )
+        self.assertEqual(len(picking.move_line_ids), 4)
+        self.assertEqual(banana_ml.product_uom_qty, 2)
+        mark_apple_ml = apple_ml.mark_as_done(prepare_apple[apple_ml])
+        self.assertTrue(mark_apple_ml)
+        self.assertEqual(apple_ml.qty_done, 1)
+        self.assertFalse(apple_ml.result_package_id)
+        mark_banana_ml = banana_ml.mark_as_done(prepare_banana[banana_ml])
+        self.assertTrue(mark_banana_ml)
+        self.assertEqual(banana_ml.qty_done, 2)
+        self.assertEqual(banana_ml.result_package_id, result_package)
+        pending_mls = picking.move_line_ids.filtered(lambda x: x.qty_done == 0)
+        self.assertEqual(len(pending_mls), 2)
+
+    def test_picking_with_completing_all_move_lines(self):
+        """
+        Test with 2 move lines , marking qty_done of all move lines same as demand.
+        Should not generate any errors. Should not have any pending move lines to set done_qty
+        """
+        picking = self.picking
+        mls = picking.move_line_ids
+        apple_barcode = self.apple.barcode
+        banana_barcode = self.banana.barcode
+        apple_ml = self.apple_move_line
+        banana_ml = self.banana_move_line
+        result_package = self.create_package()
+        location_dest = self.test_goodsout_location_01
+        scan_banana = [{"barcode": banana_barcode, "uom_qty": 5}]
+        scan_apple = [{"barcode": apple_barcode, "uom_qty": 4}]
+        prepare_apple = mls.prepare(product_ids=scan_apple)
+        self.assertEqual(prepare_apple[apple_ml]["qty_done"], 4)
+        self.assertEqual(len(picking.move_line_ids), 2)
+        prepare_banana = mls.prepare(
+            product_ids=scan_banana,
+            result_package=result_package,
+            location_dest=location_dest,
+        )
+        self.assertEqual(prepare_banana[banana_ml]["qty_done"], 5)
+        self.assertEqual(
+            prepare_banana[banana_ml]["result_package_id"], result_package.id
+        )
+        self.assertEqual(
+            prepare_banana[banana_ml]["location_dest_id"], location_dest.id
+        )
+        self.assertEqual(len(picking.move_line_ids), 2)
+        self.assertEqual(banana_ml.product_uom_qty, 5)
+        mark_apple_ml = apple_ml.mark_as_done(prepare_apple[apple_ml])
+        self.assertTrue(mark_apple_ml)
+        self.assertEqual(apple_ml.qty_done, 4)
+        self.assertFalse(apple_ml.result_package_id)
+        mark_banana_ml = banana_ml.mark_as_done(prepare_banana[banana_ml])
+        self.assertTrue(mark_banana_ml)
+        self.assertEqual(banana_ml.qty_done, 5)
+        self.assertEqual(banana_ml.result_package_id, result_package)
+        no_pending_mls = picking.move_line_ids.filtered(lambda x: x.qty_done == 0)
+        self.assertEqual(len(no_pending_mls), 0)
+
 
 class TestFindMoveLines(common.BaseUDES):
     @classmethod
