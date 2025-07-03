@@ -346,6 +346,12 @@ class StockPickingBatch(models.Model):
             raise ValidationError(_("No more work to do."))
 
         picking_type = pickings.picking_type_id
+
+        if picking_type.u_split_batches_by_key:
+            raise ValidationError(_(
+                "Adding extra pickings to a batch when split batches by key is enabled is not supported."
+            ))
+
         if picking_type.u_reserve_pallet_per_picking:
             active_pickings = self.picking_ids.filtered(
                 lambda p: p.state not in ["draft", "done", "cancel"]
@@ -974,6 +980,24 @@ class StockPickingBatch(models.Model):
                 ).format(picks_txt)
             )
 
+    def _get_next_pickings_by_key(self, pickings, grouping_key, grouping_size):
+        """
+        Retrieve the next set of pickings for when u_split_batches_by_key is enabled
+        """
+        # Using pickings.groupby(grouping_key) results in loss of original picking ordering.
+        # If we use sort=False then the groupby does not necessarily include all pickings with the same key.
+        # Preserve the original picking order as much as possible by iterating this way.
+        # Note that we could use groupby with a sort and compare the key with `getattr(first_picking, grouping_key)`
+        # but we would still need to re-order the pickings afterwards, which seems more cumbersome.
+        first_picking = pickings[0]
+        first_set_pickings = first_picking
+        for picking in pickings:
+            if getattr(picking, grouping_key) == getattr(first_picking, grouping_key):
+                first_set_pickings |= picking
+                if len(first_set_pickings) == grouping_size:
+                    break
+        return first_set_pickings
+
     def _create_batch(
         self, user_id, picking_type_id, picking_priorities=None, picking_id=None, limit=1, **kwargs
     ):
@@ -987,7 +1011,7 @@ class StockPickingBatch(models.Model):
         :args:
             - user_id: int
                The user id to assign to the batch
-            - picking_type_id: int
+            - picking_type_id: int or None
                The picking type id to apply to the search
         :kwargs:
             - picking_priorities: list
@@ -1001,6 +1025,14 @@ class StockPickingBatch(models.Model):
         """
         PickingBatch = self.env["stock.picking.batch"]
         Picking = self.env["stock.picking"]
+        PickingType = self.env["stock.picking.type"]
+
+        picking_type = PickingType.browse(picking_type_id)
+
+        # If splitting batches, remove the limit which is used in search_for_pickings
+        # as the splitting by key is done after the initial search, and then limited by u_split_batches_size.
+        if picking_type.u_split_batches_by_key:
+            limit = 0
 
         if picking_id:
             picking = Picking.browse(picking_id)
@@ -1013,6 +1045,13 @@ class StockPickingBatch(models.Model):
             return None
 
         picking_type = picking.picking_type_id
+
+        if picking_type.u_split_batches_by_key:
+            picking = self._get_next_pickings_by_key(
+                picking,
+                picking_type.u_split_batches_by_key,
+                picking_type.u_split_batches_size,
+            )
 
         if picking_type.u_reserve_pallet_per_picking:
             max_reservable_pallets = picking_type.u_max_reservable_pallets
