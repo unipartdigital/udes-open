@@ -37,6 +37,20 @@ class StockPickingType(models.Model):
         default=10,
         help="This setting is only applied when u_reserve_pallet_per_picking is True",
     )
+    u_split_batches_by_key = fields.Char(
+        string="Split Batches By Key",
+        help="When assigning a batch to a user, if this config is set - then group the pickings by this key "
+        "and assign only pickings in the same group to the batch. "
+        "Only supports simple keys - field names.",
+    )
+    u_split_batches_size = fields.Integer(
+        string="Split Batches Size",
+        default=0,
+        help="This setting is only applied when u_split_batches_by_key is True. "
+        "This field determines the maximum number of pickings to assign to a batch per group. "
+        "Setting this to less than 1 will mean no restriction. "
+        "u_max_reservable_pallets configuration will be considered after splitting by this size."
+    )
     u_allow_swapping_packages = fields.Boolean(string="Allow Swapping Packages", default=False)
     u_return_to_skipped = fields.Boolean(
         string="Return to Skipped Items",
