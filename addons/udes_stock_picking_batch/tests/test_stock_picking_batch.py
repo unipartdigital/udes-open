@@ -2181,7 +2181,7 @@ class TestUnpickableItems(TestStockPickingBatch):
         # Create a batch for both pickings, flag three of the four items from
         # each line as unpickable for different reasons and raise stock investigations
         batch = Batch._create_batch(
-            self.stock_user.id, self.picking_type_pick, picking_id=apple_picking.id
+            self.stock_user.id, self.picking_type_pick.id, picking_id=apple_picking.id
         )
         batch.add_extra_pickings(self.picking_type_pick.id)
         self.assertEqual(apple_picking.batch_id, batch)
