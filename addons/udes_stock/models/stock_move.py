@@ -45,6 +45,13 @@ class StockMove(models.Model):
             vals["u_uom_initial_demand"] = vals.get("product_uom_qty")
         return super().create(vals)
 
+    def _merge_moves(self, merge_into=False):
+        """
+        Override to add context variable to know moves are being merged.
+        """
+        self = self.with_context(merging=True)
+        return super()._merge_moves(merge_into=merge_into)
+
     def _action_cancel(self):
         """
         Extend _action_cancel to;
@@ -60,9 +67,11 @@ class StockMove(models.Model):
         res = super(
             StockMove, self.with_context({"bypass_set_qty_to_initial_demand": True})
         )._action_cancel()
-        for move in self:
-            if move.picking_type_id.u_propagate_cancel:
-                move.propagate_cancellation_to_next_picks(old_dest_ids.get(move.id))
+        # Do not propagate cancellations if moves are being merged
+        if not self.env.context.get("merging"):
+            for move in self:
+                if move.picking_type_id.u_propagate_cancel:
+                    move.propagate_cancellation_to_next_picks(old_dest_ids.get(move.id))
 
         return res
 

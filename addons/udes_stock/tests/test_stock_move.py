@@ -609,6 +609,27 @@ class TestUdesPropagateCancel(common.BaseUDES):
             with self.subTest():
                 self.assertEqual(next_picking.state, "cancel")
 
+    def test_propagates_when_merging_and_cancellations(self):
+        """
+        If u_propagate_cancel is enabled on all picking types,
+        and moves are being merged, make sure cancellations are not propagated.
+        """
+        self.toggle_u_propagate_cancel(True)
+        next_pickings = self.get_next_pick_chain(self.pick)
+        self.assertTrue(len(next_pickings) == 3)
+        for next_picking in next_pickings:
+            with self.subTest():
+                self.assertEqual(next_picking.move_lines.product_qty, 6)
+        new_move = self.pick.move_lines.copy({
+            "product_uom_qty": 1,
+        })
+        # New move will be merged into the original one when confirmed
+        new_move._action_confirm()
+        self.assertTrue(len(next_pickings) == 3)
+        for next_picking in next_pickings:
+            with self.subTest():
+                self.assertEqual(next_picking.move_lines.product_qty, 7)
+
     def test_cancel_picking_backorder_propagates_to_next_pickings(self):
         """
         If u_propagate_cancel is enabled on all picking types,
