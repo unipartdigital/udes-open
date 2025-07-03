@@ -2514,3 +2514,230 @@ class TestMultipleOrders(common.BaseUDES):
         batch.unpickable_item(package_name=move_line.package_id.name, reason=reason)
 
         self.assertFalse(picking.u_reserved_pallet)
+
+
+class TestBatchSplit(common.BaseUDES):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.Batch = cls.env["stock.picking.batch"]
+        cls.pack_4apples_info = [{"product": cls.apple, "qty": 4}]
+        cls.pack_4bananas_info = [{"product": cls.banana, "qty": 4}]
+
+        cls.create_quant(
+            cls.apple.id, cls.test_stock_location_01.id, 300, package_id=cls.create_package().id
+        )
+        cls.create_quant(
+            cls.banana.id, cls.test_stock_location_02.id, 300, package_id=cls.create_package().id
+        )
+
+        cls.picking_type_pick.u_reserve_pallet_per_picking = True
+
+        cls.stock_user = cls.create_user(
+            "stock user",
+            "stock user",
+            groups_id=[(6, 0, [cls.env.ref("stock.group_stock_user").id])],
+        )
+        cls.picking_type_pick.u_split_batches_by_key = "origin"
+        cls.picking_type_pick.u_split_batches_size = 2
+
+    def complete_pick(self, picking):
+        for ml in picking.move_line_ids:
+            ml.write(
+                {
+                    "qty_done": ml.product_uom_qty,
+                    "location_dest_id": self.test_goodsout_location_01.id,
+                }
+            )
+        picking._action_done()
+
+    def test_create_batch_adds_up_to_max_split_size_1(self):
+        """
+        Ensure when we use create_batch and u_split_batches_by_key is set,
+        that the pickings with a same key are added to a batch, up to the max configured qty (2)
+        """
+        p1 = self.create_picking(
+            self.picking_type_pick,
+            products_info=self.pack_4apples_info,
+            confirm=True,
+            assign=True,
+        )
+        p2 = self.create_picking(
+            self.picking_type_pick,
+            products_info=self.pack_4apples_info,
+            confirm=True,
+            assign=True,
+        )
+        p3 = self.create_picking(
+            self.picking_type_pick,
+            products_info=self.pack_4apples_info,
+            confirm=True,
+            assign=True,
+        )
+        (p1 | p2 | p3).write({"origin": "Hello World", "priority": "1"})
+
+        batch = self.Batch.create_batch(
+            picking_type_id=self.picking_type_pick.id,
+            picking_priorities=["1"],
+            user_id=self.stock_user.id,
+        )
+        self.assertEqual(len(batch.picking_ids), 2)
+
+    def test_create_batch_adds_up_to_max_split_size_2(self):
+        """
+        Ensure when we use create_batch and u_split_batches_by_key is set,
+        that no errors occur if the available pickings count is less than the max configured qty (2)
+        """
+        p1 = self.create_picking(
+            self.picking_type_pick,
+            products_info=self.pack_4apples_info,
+            confirm=True,
+            assign=True,
+        )
+        p1.write({"origin": "Hello World", "priority": "1"})
+
+        batch = self.Batch.create_batch(
+            picking_type_id=self.picking_type_pick.id,
+            picking_priorities=["1"],
+            user_id=self.stock_user.id,
+        )
+        self.assertEqual(len(batch.picking_ids), 1)
+
+    def test_create_batch_groups_by_configured_grouping_1(self):
+        """
+        Ensure when we use create_batch and u_split_batches_by_key is set,
+        that the pickings with a same key are added to a batch. Upon completion
+        of a batch, ensure the next unique set of pickings are added to a new batch.
+        """
+        p1 = self.create_picking(
+            self.picking_type_pick,
+            products_info=self.pack_4apples_info,
+            confirm=True,
+            assign=True,
+        )
+        p2 = self.create_picking(
+            self.picking_type_pick,
+            products_info=self.pack_4apples_info,
+            confirm=True,
+            assign=True,
+        )
+        p3 = self.create_picking(
+            self.picking_type_pick,
+            products_info=self.pack_4apples_info,
+            confirm=True,
+            assign=True,
+        )
+        (p1 | p2 | p3).write({"priority": "1"})
+        p1.origin = "1"
+        p2.origin = "2"
+        p3.origin = "3"
+
+        batch = self.Batch.create_batch(
+            picking_type_id=self.picking_type_pick.id,
+            picking_priorities=["1"],
+            user_id=self.stock_user.id,
+        )
+        self.assertEqual(len(batch.picking_ids), 1)
+        self.complete_pick(batch.picking_ids)
+
+        batch2 = self.Batch.create_batch(
+            picking_type_id=self.picking_type_pick.id,
+            picking_priorities=["1"],
+            user_id=self.stock_user.id,
+        )
+        self.assertEqual(len(batch2.picking_ids), 1)
+        self.complete_pick(batch2.picking_ids)
+
+        batch3 = self.Batch.create_batch(
+            picking_type_id=self.picking_type_pick.id,
+            picking_priorities=["1"],
+            user_id=self.stock_user.id,
+        )
+        self.assertEqual(len(batch3.picking_ids), 1)
+        self.complete_pick(batch3.picking_ids)
+
+    def test_create_batch_groups_by_configured_grouping_2(self):
+        """
+        Ensure when we use create_batch and u_split_batches_by_key is set,
+        that multiple groups of picks are added to batches in succession.
+        """
+        p1 = self.create_picking(
+            self.picking_type_pick,
+            products_info=self.pack_4apples_info,
+            confirm=True,
+            assign=True,
+        )
+        p2 = self.create_picking(
+            self.picking_type_pick,
+            products_info=self.pack_4apples_info,
+            confirm=True,
+            assign=True,
+        )
+        p3 = self.create_picking(
+            self.picking_type_pick,
+            products_info=self.pack_4apples_info,
+            confirm=True,
+            assign=True,
+        )
+        p4 = self.create_picking(
+            self.picking_type_pick,
+            products_info=self.pack_4apples_info,
+            confirm=True,
+            assign=True,
+        )
+        # Use an equal number of batches with each origin so test is easier to assert (will always be 2+2 not 1+3 or 3+1)
+        (p1 | p2 | p3 | p4).write({"priority": "1"})
+        p1.origin = "1"
+        p2.origin = "2"
+        p3.origin = "1"
+        p4.origin = "2"
+
+        batch = self.Batch.create_batch(
+            picking_type_id=self.picking_type_pick.id,
+            picking_priorities=["1"],
+            user_id=self.stock_user.id,
+        )
+        self.assertEqual(len(batch.picking_ids), 2)
+        for batch_pick in batch.picking_ids:
+            self.complete_pick(batch_pick)
+        batch2 = self.Batch.create_batch(
+            picking_type_id=self.picking_type_pick.id,
+            picking_priorities=["1"],
+            user_id=self.stock_user.id,
+        )
+        self.assertEqual(len(batch2.picking_ids), 2)
+        for batch_pick in batch2.picking_ids:
+            self.complete_pick(batch_pick)
+
+    def test_zero_split_batch_size(self):
+        """
+        Ensure when we use create_batch and u_split_batches_by_key is set,
+        that when we configure u_split_batches_size to 0, all picks of the same group
+        are added to a batch
+        """
+        Picking = self.env["stock.picking"]
+        self.picking_type_pick.u_split_batches_size = 0
+        picks = Picking.browse()
+        for n in range(10):
+            picks |= self.create_picking(
+                self.picking_type_pick,
+                products_info=self.pack_4apples_info,
+                confirm=True,
+                assign=True,
+            )
+        picks.write({"priority": "1", "origin": "1"})
+        picks2 = Picking.browse()
+        for n in range(10):
+            picks2 |= self.create_picking(
+                self.picking_type_pick,
+                products_info=self.pack_4apples_info,
+                confirm=True,
+                assign=True,
+            )
+        picks2.write({"priority": "1", "origin": "2"})
+        batch = self.Batch.create_batch(
+            picking_type_id=self.picking_type_pick.id,
+            picking_priorities=["1"],
+            user_id=self.stock_user.id,
+        )
+        self.assertEqual(len(batch.picking_ids), 10)
