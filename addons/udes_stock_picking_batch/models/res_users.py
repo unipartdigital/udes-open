@@ -16,3 +16,10 @@ class ResUser(models.Model):
             raise ValidationError(_("Cannot find user to get location categories."))
 
         return user.u_location_category_ids
+
+    def assign_picking_to_users(self, picking):
+        """Prevent picking assignment when picking in multi user batch."""
+        batch = picking.batch_id
+        if batch and batch.u_user_ids:
+            raise ValidationError(_("Picking in use in batch %s") % batch.name)
+        super().assign_picking_to_users(picking)
