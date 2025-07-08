@@ -189,10 +189,10 @@ class StockMove(models.Model):
         # we can split those into backorders. Doing it this way prevents us from having picks with multiple
         # products (moves which cannot be _merged) backorder to several separate pickings.
         for rule, assigned_moves in moves_to_split_by_rule.items():
-            original_picking = assigned_moves.picking_id
-            res |= assigned_moves._split_pick_for_rule(assigned_moves, rule)
-            if not original_picking.move_lines:
-                original_picking.u_is_empty = True
+            for original_picking, other_moves in assigned_moves.groupby("picking_id"):
+                res |= other_moves._split_pick_for_rule(other_moves, rule)
+                if not original_picking.move_lines:
+                    original_picking.u_is_empty = True
 
         return res
 
