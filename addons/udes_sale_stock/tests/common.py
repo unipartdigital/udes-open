@@ -39,9 +39,11 @@ class BaseSaleUDES(BaseUDES):
     def complete_sale(cls, sale):
         """Complete a sale by completing its pickings."""
         pickings = sale.picking_ids
+        first_pickings = pickings.filtered(lambda p: not p.u_prev_picking_ids)
+        first_pickings.action_assign()
+        pickings = sale.picking_ids
         picks_to_process = pickings.filtered(lambda p: not p.u_prev_picking_ids)
         while picks_to_process:
-            picks_to_process.action_assign()
             for picking in picks_to_process:
                 cls.complete_picking(picking)
             picks_to_process = picks_to_process.u_next_picking_ids
