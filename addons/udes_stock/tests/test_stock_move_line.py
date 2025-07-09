@@ -1801,6 +1801,85 @@ class TestStockMoveLinePrepareAndMarkMoveLines(common.BaseUDES):
         no_pending_mls = picking.move_line_ids.filtered(lambda x: x.qty_done == 0)
         self.assertEqual(len(no_pending_mls), 0)
 
+    def test_picking_with_lot_products(self):
+        result_package = self.create_package()
+        self.create_quant(
+            self.tangerine.id,
+            self.test_stock_location_01.id,
+            1,
+            lot_name="LP100",
+            package_id=result_package.id,
+        )
+        self.create_quant(
+            self.tangerine.id,
+            self.test_stock_location_01.id,
+            1,
+            lot_name="LP101",
+            package_id=result_package.id,
+        )
+        products_info = [
+            {"product": self.tangerine, "uom_qty": 1},
+            {"product": self.tangerine, "uom_qty": 1},
+        ]
+        picking = self.create_picking(
+            self.picking_type_pick, products_info=products_info, confirm=True, assign=True
+        )
+        self.assertEqual(len(picking.move_line_ids), 2)
+        mls = picking.move_line_ids
+        product_info = [
+            {"barcode": self.tangerine.barcode, "uom_qty": 2},
+        ]
+        mls_prepare = mls.prepare(
+            product_info, result_package, self.test_stock_location_01
+        )
+        for mls, mls_values in mls_prepare.items():
+            mls.mark_as_done(mls_values)
+        for ml in mls:
+            with self.subTest(msg="Testing move lines common values", id=ml.id):
+                self.assertEqual(ml.package_id, result_package)
+                self.assertIn(ml.lot_id.name, ["LP100", "LP101"])
+        no_pending_mls = mls.filtered(lambda x: x.qty_done == 0)
+        self.assertEqual(len(no_pending_mls), 0)
+
+    def test_picking_with_tracked_and_non_tracked_products(self):
+        result_package = self.create_package()
+        self.create_quant(
+            self.tangerine.id,
+            self.test_stock_location_01.id,
+            20,
+            lot_name="LP200",
+            package_id=result_package.id,
+        )
+        self.create_quant(
+            self.apple.id,
+            self.test_stock_location_01.id,
+            20,
+        )
+        products_info = [
+            {"product": self.tangerine, "uom_qty": 15,},
+            {"product": self.tangerine, "uom_qty": 5,},
+            {"product": self.apple, "uom_qty": 1},
+        ]
+        picking = self.create_picking(
+            self.picking_type_pick, products_info=products_info, confirm=True, assign=True
+        )
+        mls = picking.move_line_ids
+        product_info = [
+            {"barcode": self.tangerine.barcode, "uom_qty": 20},
+            {"barcode": self.apple.barcode, "uom_qty": 1},
+        ]
+        mls_prepare = mls.prepare(
+            product_info, result_package, self.test_stock_location_01
+        )
+        for mls, mls_values in mls_prepare.items():
+            mls.mark_as_done(mls_values)
+        for ml in mls.filtered(lambda x: x.product_id == self.tangerine):
+            with self.subTest(msg="Testing move lines common values", id=ml.id):
+                self.assertEqual(ml.package_id, result_package)
+                self.assertEqual(ml.lot_id.name, "LP200")
+        no_pending_mls = mls.filtered(lambda x: x.qty_done == 0)
+        self.assertEqual(len(no_pending_mls), 0)
+
 
 class TestFindMoveLines(common.BaseUDES):
     @classmethod

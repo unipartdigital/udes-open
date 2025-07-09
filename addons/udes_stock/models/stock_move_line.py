@@ -435,13 +435,33 @@ class StockMoveLine(models.Model):
                         qty_done, product, package, lot_name, location, picking=self.picking_id
                     )
                     prod_dict = {"qty_done": qty_done, "lot_name": lot_name_val}
-                    if lot_expiry_dates:
-                        # TODO: hidden dep to product_expiry
-                        prod_dict["expiration_date"] = lot_expiry_dates[idx]
+                    remaining_qty = qty_done
                     if lot_measure_qty:
-                        vals.update({"u_measure_qty": lot_measure_qty, "u_measure_type": measure_type})
+                        vals.update({"u_measure_type": measure_type})
                     prod_dict.update(vals)
-                    res[prod_mls] = prod_dict
+                    for move_line in prod_mls:
+                        move_line_dict = prod_dict.copy()
+                        if not remaining_qty:
+                            break
+                        if move_line.product_uom_qty <= qty_done:
+                            qty_done = move_line.product_uom_qty
+                            remaining_qty -= qty_done
+                        else:
+                            qty_done = remaining_qty
+                            remaining_qty = 0
+                        move_line_dict["qty_done"] = qty_done
+                        if lot_expiry_dates:
+                            # TODO: hidden dep to product_expiry
+                            move_line_dict["expiration_date"] = lot_expiry_dates[idx]
+                        if lot_measure_qty:
+                            # Assuming that every move line can be picked with full integer number.
+                            _qty, ml_measure_qty, _quantity_factor = (
+                                product.convert_measure_type_quantity(
+                                    qty_done, measure_type, reverse=True
+                                )
+                            )
+                            move_line_dict["u_measure_qty"] = ml_measure_qty
+                        res[move_line] = move_line_dict
                     quantity_fulfilled += qty_done
                     mls -= prod_mls
                     if new_ml:
