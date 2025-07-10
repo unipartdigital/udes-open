@@ -247,22 +247,21 @@ class StockPickingType(models.Model):
             self.u_receive_unexpected_products = False
 
 
-    def get_measure_type_options(picking_type=None):
+    def get_measure_type_options(self):
         """
         Return available measure type options.
 
-        If picking_type is provided and u_measure_type_options is set with values,
+        If u_measure_type_options is set with values,
         return only the filtered options. Otherwise, return all options.
         """
-        if picking_type:
-            option_string = (picking_type.u_measure_type_options or "").strip()
-            if option_string:
-                allowed = set(option_string.split(","))
-                return [
-                    {"label": label, "value": value}
-                    for value, label in MEASURE_TYPE_OPTIONS
-                    if value in allowed
-                ]
-
-        # fallback to full list
-        return [{"label": label, "value": value} for value, label in MEASURE_TYPE_OPTIONS]
+        self.ensure_one()
+        option_string = (self.u_measure_type_options or "").strip()
+        if option_string:
+            allowed = set(option_string.split(","))
+            return [
+                {"label": label, "value": value}
+                for value, label in MEASURE_TYPE_OPTIONS
+                if value in allowed
+            ]
+        else:
+            return [{"label": label, "value": value} for value, label in MEASURE_TYPE_OPTIONS]
