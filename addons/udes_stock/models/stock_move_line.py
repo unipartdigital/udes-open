@@ -787,3 +787,16 @@ class StockMoveLine(models.Model):
         return {
             "product_uom_qty": sum(self.mapped("product_uom_qty")),
         }
+    
+
+    def get_measure_type_options(self):
+        # Get select measure type options
+        measure_types = []
+        for measure_type in MEASURE_TYPE_OPTIONS:
+            measure_types.append(
+                {
+                    "label": measure_type[1],
+                    "value": measure_type[0],
+                }
+            )
+        return measure_types
