@@ -31,6 +31,7 @@
                     <field name="u_pallet_barcode_regex" />
                     <field name="u_package_barcode_regex" />
                     <field name="u_use_multiple_measures" />
+                    <field name="u_measure_type_options" attrs="{'invisible': [('u_use_multiple_measures', '=', False)]}" />
                 </group>
             </xpath>
 

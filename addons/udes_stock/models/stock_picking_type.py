@@ -1,6 +1,7 @@
 import logging
 from odoo.exceptions import UserError
 from odoo import fields, models, _, api
+from odoo.addons.udes_stock.models.stock_move_line import MEASURE_TYPE_OPTIONS
 
 _logger = logging.getLogger(__name__)
 
@@ -154,6 +155,10 @@ class StockPickingType(models.Model):
         help="Flag to enable usage of multiple measures.",
         default=False,
     )
+    u_measure_type_options = fields.Char(
+        string="Allowed Measure Types (comma-separated)",
+        help="Enter allowed measure types separated by commas (e.g. none,u_carton_qty,u_pallet_qty)"
+    )
 
     @api.constrains("u_over_receive", "u_receive_unexpected_products")
     def _check_unexpected_and_over_receive_correct_configured(self):
@@ -240,3 +245,24 @@ class StockPickingType(models.Model):
         """
         if not self.u_over_receive:
             self.u_receive_unexpected_products = False
+
+
+    def get_measure_type_options(picking_type=None):
+        """
+        Return available measure type options.
+
+        If picking_type is provided and u_measure_type_options is set with values,
+        return only the filtered options. Otherwise, return all options.
+        """
+        if picking_type:
+            option_string = (picking_type.u_measure_type_options or "").strip()
+            if option_string:
+                allowed = set(option_string.split(","))
+                return [
+                    {"label": label, "value": value}
+                    for value, label in MEASURE_TYPE_OPTIONS
+                    if value in allowed
+                ]
+
+        # fallback to full list
+        return [{"label": label, "value": value} for value, label in MEASURE_TYPE_OPTIONS]
