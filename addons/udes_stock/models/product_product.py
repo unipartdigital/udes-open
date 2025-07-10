@@ -93,7 +93,7 @@ class ProductProduct(models.Model):
 
         return bool(stock_pickings) or self.get_quant_counts()
 
-    def convert_measure_type_quantity(self, quantity, measure_type):
+    def convert_measure_type_quantity(self, quantity, measure_type, reverse=False):
         """
         Getting the quantity in eaches when user selects a measure type, and the quantity is for measure selected.
         """
@@ -103,9 +103,12 @@ class ProductProduct(models.Model):
         # Multiplying product quantity with number of products per pack/carton/pallet depending on what user
         # have selected.
         if measure_type:
-            measure_qty = quantity
             quantity_factor = measure_type == "none" and 1 or getattr(self, measure_type, None)
-            quantity *= quantity_factor
+            if reverse:
+                measure_qty = int(quantity/quantity_factor)
+            elif measure_type and reverse:
+                measure_qty = quantity
+                quantity *= quantity_factor
         return quantity, measure_qty, quantity_factor
 
     def find_next_picking_product_measure_type(self, picked_quantity):

@@ -228,6 +228,11 @@ class StockPickingType(models.Model):
         """Place holder"""
         return False
 
+    def are_serials_scanned(self):
+        """Place holder"""
+        self.ensure_one()
+        return True
+
     @api.onchange("u_over_receive")
     def onchange_over_receive(self):
         """
