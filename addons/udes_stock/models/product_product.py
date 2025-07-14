@@ -106,7 +106,7 @@ class ProductProduct(models.Model):
             quantity_factor = measure_type == "none" and 1 or getattr(self, measure_type, None)
             if reverse:
                 measure_qty = int(quantity/quantity_factor)
-            elif measure_type and reverse:
+            else:
                 measure_qty = quantity
                 quantity *= quantity_factor
         return quantity, measure_qty, quantity_factor
