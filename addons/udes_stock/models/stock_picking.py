@@ -736,6 +736,9 @@ class StockPicking(models.Model):
         }
         if expected_date:
             vals.update({"date": expected_date})
+        # Added when we don't want moves of same product to be merged.
+        if price_unit := product_info.get("price_unit"):
+            vals.update({"price_unit": price_unit})
         vals.update(kwargs)
         return vals
 

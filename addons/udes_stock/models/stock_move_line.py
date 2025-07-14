@@ -365,6 +365,7 @@ class StockMoveLine(models.Model):
             vals["location_dest_id"] = location_dest.id
         mls = self.get_lines_incomplete()
         incoming = mls.u_picking_type_id.code == "incoming"
+        serials_scanned = mls.u_picking_type_id.are_serials_scanned()
         res = defaultdict(dict)
         if not product_ids:
             if package:
@@ -416,7 +417,7 @@ class StockMoveLine(models.Model):
                     _("Lot/Serial quantity doesn't correspond to every lot/serial number entered.")
                 )
             qty_done = quantity
-            if lot_names:
+            if lot_names and serials_scanned:
                 quantity_fulfilled = 0
                 res, lot_names = self._swap_tracked_items(
                     mls, quantity, product, location, is_serial, vals, res, lot_names
@@ -451,14 +452,29 @@ class StockMoveLine(models.Model):
                 prod_mls, new_ml = mls._find_move_lines(qty_done, product, package, None, location, picking=self.picking_id)
                 prod_dict = {"qty_done": qty_done}
                 remaining_qty = qty_done
-                for move_line in prod_mls:
-                    if move_line.product_uom_qty <= qty_done and remaining_qty:
-                        remaining_qty -= move_line.product_uom_qty
-                        prod_dict["qty_done"] = move_line.product_uom_qty
-                if measure_quantity:
-                    vals.update({"u_measure_qty": measure_quantity, "u_measure_type": measure_type})
+                if measure_type:
+                    vals.update({"u_measure_type": measure_type})
                 prod_dict.update(vals)
-                res[prod_mls] = prod_dict
+                for move_line in prod_mls:
+                    # Copying base dictionary and handling only qty done in case there are multiple move lines
+                    # found for same product.
+                    move_line_dict = prod_dict.copy()
+                    if not remaining_qty:
+                        break
+                    if move_line.product_uom_qty <= qty_done:
+                        qty_done = move_line.product_uom_qty
+                        remaining_qty -= qty_done
+                    else:
+                        qty_done = remaining_qty
+                        remaining_qty = 0
+                    if measure_quantity:
+                        # Assuming that every move line can be picked with full integer number.
+                        _qty, ml_measure_qty, _quantity_factor = product.convert_measure_type_quantity(
+                            qty_done, measure_type, reverse=True
+                        )
+                        move_line_dict["u_measure_qty"] = ml_measure_qty
+                    move_line_dict["qty_done"] = qty_done
+                    res[move_line] = move_line_dict
                 mls -= prod_mls
                 if new_ml:
                     mls |= new_ml
