@@ -3,6 +3,7 @@ from odoo.exceptions import ValidationError, UserError
 from unittest import skip
 from odoo.tools import mute_logger
 from psycopg2 import IntegrityError
+from ..models.stock_move_line import MEASURE_TYPE_OPTIONS
 
 
 class TestProductMethods(BaseUDES):
@@ -117,3 +118,40 @@ class TestProductMultiBarcodes(BaseUDES):
         self.assertFalse(product)
         strawberry_barcodes = self.strawberry.get_all_barcodes()
         self.assertFalse(strawberry_barcodes)
+
+
+class TestProductMeasureQuantityConvert(BaseUDES):
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        # Setting different measure qty on product
+        cls.strawberry.u_pack_qty = 4
+        cls.strawberry.u_carton_qty = 2
+        cls.strawberry.u_pallet_qty = 16
+        cls.measure_types_factor_mapping = {
+            "none": 1,
+            "u_pack_qty": 4,
+            "u_carton_qty": 2,
+            "u_pallet_qty": 16,
+        }
+
+    def test_convert_measure_type_quantity(self):
+        """Testing that convert measure qty works as expected"""
+        for measure_type, _measure_type_label in MEASURE_TYPE_OPTIONS:
+            with self.subTest(measure_type=measure_type):
+                quantity, measure_qty, quantity_factor = self.strawberry.convert_measure_type_quantity(2, measure_type)
+                self.assertEqual(self.measure_types_factor_mapping[measure_type], quantity_factor)
+                self.assertEqual(measure_qty, 2)
+                self.assertEqual(quantity, 2 * quantity_factor)
+
+    def test_reverse_convert_measure_type_quantity(self):
+        """Testing that reverse convert measure qty works as expected"""
+        for measure_type, _measure_type_label in MEASURE_TYPE_OPTIONS:
+            with self.subTest(measure_type=measure_type):
+                quantity, measure_qty, quantity_factor = self.strawberry.convert_measure_type_quantity(
+                    32, measure_type, reverse=True
+                )
+                self.assertEqual(self.measure_types_factor_mapping[measure_type], quantity_factor)
+                self.assertEqual(quantity, 32)
+                self.assertEqual(measure_qty, int(32 / quantity_factor))
