@@ -1,5 +1,5 @@
 import os.path
-from odoo import fields, models, api, _
+from odoo import fields, models, api, _, tools
 from .stock_picking_type import TARGET_STORAGE_FORMAT_OPTIONS
 from odoo.addons.udes_common.models.fields import PreciseDatetime
 from odoo.exceptions import ValidationError
@@ -10,6 +10,13 @@ class StockLocation(models.Model):
     # Add messages and abstract model to locations
     _inherit = ["stock.location", "mail.thread", "mixin.stock.model"]
     MSM_STR_DOMAIN = ("name", "barcode")
+
+    def _auto_init(self):
+        """Add index on default order."""
+        res = super()._auto_init()
+        fields = ["complete_name", "id"]
+        tools.create_index(self._cr, "stock_location_complete_name_id", "stock_location", fields)
+        return res
 
     @api.depends(
         "u_location_storage_format",
