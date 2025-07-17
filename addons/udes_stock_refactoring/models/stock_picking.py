@@ -195,6 +195,10 @@ class StockPicking(models.Model):
         if len(origins) == 1:
             values["origin"] = origins.pop()
 
+        sequences = set(self.mapped("sequence"))
+        if len(sequences) == 1:
+            values["sequence"] = sequences.pop()
+
         picking_states = set(moves.picking_id.mapped("state"))
         if len(picking_states) == 1:
             values["picking_state"] = picking_states.pop()

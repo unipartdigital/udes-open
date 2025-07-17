@@ -90,6 +90,7 @@ class TestRefactoringBase(common.BaseUDES):
         location_dest_id=None,
         date_done=None,
         priority=None,
+        sequence=None,
     ):
         """
         Assert that the supplied picking recordset has only 1 record.
@@ -116,6 +117,8 @@ class TestRefactoringBase(common.BaseUDES):
             self.assertEqual(picking.date_done, date_done)
         if priority:
             self.assertEqual(picking.priority, priority)
+        if sequence:
+            self.assertEqual(picking.sequence, sequence)
 
     def _assert_package_levels(self, pickings):
         """
@@ -748,7 +751,8 @@ class TestValidateRefactoring(TestRefactoringBase):
         partner = self.create_partner("Test Partner 123")
         origin = "Test origin 123"
         priority = "1"
-        both_picks.write({"origin": origin, "partner_id": partner.id, "priority": priority})
+        sequence=100
+        both_picks.write({"origin": origin, "partner_id": partner.id, "priority": priority, "sequence": sequence})
         both_picks._action_done()
         # apple and banana moves are now in different picks.
         self.assertEqual(
@@ -764,6 +768,7 @@ class TestValidateRefactoring(TestRefactoringBase):
             partner=partner,
             date_done=apple_move.date,
             priority=priority,
+            sequence=sequence,
         )
         self._assert_picking_fields(
             banana_move.picking_id,
@@ -771,6 +776,7 @@ class TestValidateRefactoring(TestRefactoringBase):
             partner=partner,
             date_done=banana_move.date,
             priority=priority,
+            sequence=sequence,
         )
 
 
