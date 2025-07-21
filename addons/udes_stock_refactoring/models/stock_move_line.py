@@ -39,11 +39,10 @@ class StockMoveLine(models.Model):
             raise UserError(
                 _("Cannot group move lines when their picking type has no grouping key set.")
             )
-
+        # Recompute the grouping_key every time as there are some edge cases where it will not recompute on the fly
+        self.with_context(compute_key=True)._compute_grouping_key()
         by_key = lambda ml: ml.u_grouping_key
         return {
             key: self.browse([move_line.id for move_line in group])
-            for key, group in groupby(
-                sorted(self.with_context(compute_key=True), key=by_key), key=by_key
-            )
+            for key, group in self.sorted(key=by_key).groupby(key=by_key)
         }
