@@ -31,6 +31,7 @@
         "views/branding_res_config_settings.xml",
         "views/udes_carrier_views.xml",
         "views/stock_picking_type_views.xml",
+        "views/stock_location_route.xml",
     ],
     "qweb": [],
     "test": [],

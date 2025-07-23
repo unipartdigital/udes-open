@@ -23,6 +23,84 @@ class SaleOrderLine(models.Model):
         index=True,
     )
     u_cancelled_qty = fields.Float(string="Cancelled Quantity", digits="Product Unit of Measure")
+    u_delivery_line_state = fields.Selection(
+        [
+            ("confirmed", "Confirmed"),
+            ("no_stock", "No Stock"),
+            ("allocated", "Allocated"),
+            ("picked", "Picked"),
+            ("packed", "Packed"),
+            ("done", "Done"),
+            ("cancelled", "Cancelled"),
+        ],
+        string="Delivery Status",
+        compute="_compute_delivery_line_state",
+        store=True,
+        help="""
+            "Confirmed: Pickings are created and are in waiting state"
+            "No Stock: One or more order line has no stock"
+            "Allocated: All pick pickings are reserved"
+            "Picked: All pick pickings are in done state"
+            "Packed: All pack pickings are in done state"
+            "Cancelled: Sale order is in cancel state"
+            "Done: All pickings are in done state"
+            """,
+    )
+
+    @api.depends("move_ids", "move_ids.state", "product_id", "order_id.state")
+    def _compute_delivery_line_state(self):
+        """
+        Compute u_delivery_line_state based on pickings.
+        - This function assumes the order line will always have route_id set
+        - There are 2 new field added on stock.location.route
+        u_pick_operation_type_ids, u_pack_operation_type_ids these should be correctly set.
+        - We will first look at the pick pickings and set status according to it.
+        - Then we will look at the pack pickings and set status according to it.
+        - States:
+        "Confirmed: Pickings are created and are in waiting state"
+        "No Stock: One or more order line has no stock"
+        "Allocated: All pick pickings are reserved"
+        "Picked: All pick pickings are in done state"
+        "Packed: All pack pickings are in done state"
+        "Cancelled: Sale order is in cancel state"
+        "Done: All pickings are in done state"
+        """
+        for line in self:
+            state = False
+            if line.route_id:
+                route_id = line.route_id
+                pick_op_type = route_id.u_pick_operation_type_ids
+                pack_op_type = route_id.u_pack_operation_type_ids
+                if not pick_op_type and not pack_op_type:
+                    line.u_delivery_line_state = state
+                    continue
+                if line.is_cancelled:
+                    line.u_delivery_line_state = "cancelled"
+                    continue
+                if not line.product_id.qty_available and line.qty_delivered != line.product_uom_qty:
+                    line.u_delivery_line_state = "no_stock"
+                    continue
+                all_pickings = line.move_ids.filtered(lambda x: x.state != "cancel").picking_id
+                pick_pickings = all_pickings.filtered(
+                    lambda x: x.picking_type_id in pick_op_type
+                )
+                pack_pickings = all_pickings.filtered(
+                    lambda x: x.picking_type_id in pack_op_type
+                )
+                if pick_pickings:
+                    if all(x.state == "done" for x in pick_pickings):
+                        state = "picked"
+                    elif any(x.state in ["waiting", "confirmed"] for x in pick_pickings):
+                        state = "confirmed"
+                    elif any(x.state == "assigned" for x in pick_pickings):
+                        state = "allocated"
+                if pack_pickings:
+                    if all(x.state == "done" for x in pack_pickings):
+                        state = "packed"
+                if all_pickings:
+                    if all(x.state == "done" for x in all_pickings):
+                        state = "done"
+            line.u_delivery_line_state = state
 
     def _prepare_procurement_values(self, group_id=False):
         values = super()._prepare_procurement_values(group_id)

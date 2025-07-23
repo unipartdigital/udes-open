@@ -67,6 +67,53 @@ class SaleOrder(models.Model):
         help="Special instructions associated with the order.",
     )
     u_done_date = fields.Datetime(string="Done Date", readonly=True)
+    u_delivery_state = fields.Selection(
+        [
+            ("confirmed", "Confirmed"),
+            ("no_stock", "No Stock"),
+            ("allocated", "Allocated"),
+            ("picked", "Picked"),
+            ("packed", "Packed"),
+            ("done", "Done"),
+            ("cancelled", "Cancelled"),
+        ],
+        string="Delivery Status",
+        compute="_compute_delivery_state",
+        store=True,
+        help="""
+        "Confirmed: Pickings are created and are in waiting state"
+        "No Stock: One or more order line has no stock"
+        "Allocated: All pick pickings are reserved"
+        "Picked: All pick pickings are in done state"
+        "Packed: All pack pickings are in done state"
+        "Cancelled: Sale order is in cancel state"
+        "Done: All pickings are in done state"
+        """,
+    )
+
+    @api.depends("order_line.u_delivery_line_state")
+    def _compute_delivery_state(self):
+        """
+        Compute the orders delivery status based on the order lines u_delivery_line_state
+        """
+        for order in self:
+            state = False
+            line_states = order.order_line.mapped("u_delivery_line_state")
+            if order.state == "cancel":
+                state = "cancelled"
+            elif any(state == "no_stock" for state in line_states):
+                state = "no_stock"
+            elif any(state == "confirmed" for state in line_states):
+                state = "confirmed"
+            elif any(state == "allocated" for state in line_states):
+                state = "allocated"
+            elif any(state == "picked" for state in line_states):
+                state = "picked"
+            elif any(state == "packed" for state in line_states):
+                state = "packed"
+            elif any(state == "done" for state in line_states):
+                state = "done"
+            order.u_delivery_state = state
 
     @api.depends("order_line.move_ids.picking_id")
     def _compute_picking_ids_by_line(self):
