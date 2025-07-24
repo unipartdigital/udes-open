@@ -22,6 +22,7 @@ class SaleOrderLine(models.Model):
         default=False,
         index=True,
     )
+    u_cancelled_qty = fields.Float(string="Cancelled Quantity", digits="Product Unit of Measure")
 
     def _prepare_procurement_values(self, group_id=False):
         values = super()._prepare_procurement_values(group_id)
