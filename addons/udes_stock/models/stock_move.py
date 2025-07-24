@@ -199,12 +199,20 @@ class StockMove(models.Model):
                 next_moves = StockMove  # Clear this as we potentially rebuild inside the loop
                 for move in next_moves_todo:  # Iterate on the non-cleared set
                     if move.product_uom_qty > qty:
-                        move.product_uom_qty -= qty
+                        move.reduce_product_qty(qty)
                         # Recursing inside here is only necessary for part cancellations
                         if move.picking_type_id.u_propagate_cancel:
                             next_moves |= move.move_dest_ids
                     else:  # move qty is less, as there was no fully_matched_move
                         move._action_cancel()
+
+    def reduce_product_qty(self, qty):
+        """
+        Wrapping into a method in order to add further functionalities with inheritance in other modules.
+        """
+        self.ensure_one()
+        self.product_uom_qty -= qty
+        return True
 
     def split_out_move_lines(self, move_lines, **kwargs):
         """Split sufficient quantity from self to cover move_lines, and
