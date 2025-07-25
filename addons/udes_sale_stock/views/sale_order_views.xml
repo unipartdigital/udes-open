@@ -24,6 +24,7 @@
                                       ('parent.u_allow_manual_sale_order_line_cancellation', '=', False),
                                       ('is_cancelled', '=', True),
                                       ('state', '=', 'done')]}"/>
+          <field name="u_cancelled_qty" readonly="1"/>
         </xpath>
 
         <xpath expr="//field[@name='client_order_ref']" position="replace"/>

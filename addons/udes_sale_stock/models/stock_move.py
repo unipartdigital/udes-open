@@ -27,15 +27,17 @@ class StockMove(models.Model):
         def not_cancelled_filter(m):
             return m.state not in ["cancel"] and m.location_dest_id == location_customers
 
-        if not self.env.context.get("disable_sale_cancel", False):
-            lines_to_cancel = (
-                self.filtered(lambda m: m.location_dest_id == location_customers)
-                .mapped("sale_line_id")
-                .filtered(lambda s: len(s.move_ids.filtered(not_cancelled_filter)) == 0)
-            )
-            if lines_to_cancel:
-                lines_to_cancel.action_cancel()
+        delivery_cancelled_moves = self.filtered(lambda m: m.location_dest_id == location_customers)
 
+        if not self.env.context.get("disable_sale_cancel", False) and delivery_cancelled_moves:
+            lines_to_cancel = delivery_cancelled_moves.sale_line_id.filtered(lambda s: len(s.move_ids.filtered(not_cancelled_filter)) == 0)
+            lines_to_cancel.action_cancel()
+
+        for delivery_cancelled_move in delivery_cancelled_moves:
+            # Already cancelled qty for sale order line
+            cancelled_qty = delivery_cancelled_move.sale_line_id.u_cancelled_qty
+
+            delivery_cancelled_move.sale_line_id.u_cancelled_qty = cancelled_qty + delivery_cancelled_move.product_uom_qty
         return result
 
     def _prepare_procurement_values(self):
@@ -69,3 +71,14 @@ class StockMove(models.Model):
             # Update the values dictionary with the priority of the associated sale order
             values.update({"priority": self.sale_line_id.order_id.priority})
         return values
+
+    def reduce_product_qty(self, qty):
+        """
+        Increase cancelled qty on sale order line when we reduce stock move qty from move cancel propagation.
+        """
+        location_customers = self.env.ref("stock.stock_location_customers")
+        result = super().reduce_product_qty(qty)
+        if self.sale_line_id and self.location_dest_id == location_customers:
+            cancelled_qty = self.sale_line_id.u_cancelled_qty
+            self.sale_line_id.u_cancelled_qty = cancelled_qty + qty
+        return result
