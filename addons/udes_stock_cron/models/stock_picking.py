@@ -179,6 +179,9 @@ class StockPicking(models.Model):
 
             pickings = pickings.add_more_pickings_to_reserve(picking_type)
 
+            if pickings in processed:
+                continue
+
             extended_processed_pickings = pickings.add_processed_pickings(processed)
             # If have been added more processed pickings, continue the loop without trying to reserve the pickings
             if extended_processed_pickings != processed:
