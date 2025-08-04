@@ -284,7 +284,7 @@ class StockPickingBatch(models.Model):
                 old_priority = batch.read(["priority"])[0]["priority"]
             if batch.picking_ids:
                 priorities = [p for p in batch.picking_ids.mapped("priority") if type(p) == str]
-                new_priority = 0
+                new_priority = '0'
                 if priorities:
                     new_priority = max(priorities)
             else:
