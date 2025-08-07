@@ -40,6 +40,15 @@ class StockQuant(models.Model):
         Context variable quant_ids might contain quants of different products.
         """
         quants = super(StockQuant, self)._gather(product_id, location_id, **kwargs)
+        return self._filter_quants(quants)
+
+    def _filter_quants(self, quants):
+        """
+        Return a filtered collection of quants.
+
+        The purpose of this method is to apply filters to quants collected by
+        _gather without having to change gather directly.
+        """
         quant_ids = self.env.context.get("quant_ids")
         if quant_ids:
             quants = quants.filtered(lambda q: q.id in quant_ids)
