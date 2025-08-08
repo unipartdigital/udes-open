@@ -162,3 +162,9 @@ class StockPicking(models.Model):
             # Flag fully emptied pickings as empty.
             if not self.move_lines:
                 self.u_is_empty = True
+
+    def do_unreserve(self):
+        """Extend to mark empty picks for deletion."""
+        res = super().do_unreserve()
+        self.filtered(lambda p: len(p.move_lines) == 0).write({"u_is_empty": True})
+        return res
