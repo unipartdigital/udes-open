@@ -117,7 +117,7 @@ class StockPickingType(models.Model):
         help="Number of attempts to check for a batch that all off system items are picked"
     )
     u_off_system_waiting_sleep_time = fields.Integer(
-        string="Waiting Sleep Time",
+        string="Off System Waiting Sleep Time",
         required=False, copy=False,
         help="Time interval (in seconds)."
     )

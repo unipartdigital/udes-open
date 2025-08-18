@@ -9,7 +9,7 @@ class MimeType(models.Model):
     _description = "Mimetypes related to allowed file types."
 
     mimetype = fields.Char(
-        string="Name",
+        string="Mimetype Name",
         required=True,
         help="Name Of a Mime Type",
     )
