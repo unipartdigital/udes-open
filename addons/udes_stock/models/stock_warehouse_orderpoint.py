@@ -31,3 +31,39 @@ class Orderpoint(models.Model):
                         orderpoint.location_id.name, names
                     )
                 )
+
+    @api.model
+    def create(self, vals):
+        """
+        Override create to include product's _compute_nbr_reordering_rules()
+        to check whether we need to add "replen" route.
+        """
+        res = super().create(vals)
+        res.product_id._compute_nbr_reordering_rules()
+        return res
+
+    def write(self, vals):
+        """
+        Override write to include product's _compute_nbr_reordering_rules()
+        There might be a chance where a user changes product on "stock.warehouse.orderpoint" record
+        in this case we need to check on new product as well as on old product weather we need to
+        add/remove "replen" route.
+        """
+        products_to_update = self.mapped("product_id")
+        res = super().write(vals)
+        products_to_update |= self.product_id
+        products_to_update._compute_nbr_reordering_rules()
+        return res
+
+    def unlink(self):
+        """
+        Override unlink to include product's _compute_nbr_reordering_rules()
+        Map products before unlink is performed then browse products to check
+        weather we need to remove "replen" route.
+        """
+        products_to_update = self.mapped("product_id")
+        res = super().unlink()
+        Product = self.env["product.product"].browse(products_to_update.ids)
+        Product._compute_nbr_reordering_rules()
+        return res
+

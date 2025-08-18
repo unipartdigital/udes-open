@@ -197,3 +197,35 @@ class ProductProduct(models.Model):
                 "barcode": product_barcodes
             })
         return result
+
+    def _compute_nbr_reordering_rules(self):
+        """
+        Override this method to include add_or_remove_replenishment_route_in_products()
+        We are calling _compute_nbr_reordering_rules() from "stock.warehouse.orderpoint"
+        so nbr_reordering_rules counts are correct when stock.warehouse.orderpoint records
+        are created/updated/deleted/archived/unarchived for a product,
+        """
+        res = super()._compute_nbr_reordering_rules()
+        self.add_or_remove_replenishment_route_in_products()
+        return res
+
+    def add_or_remove_replenishment_route_in_products(self):
+        """
+        This method checks if product has any replenishment rule(s) set up.
+        If replenishment rules are found and "replen" route is missing on product it will
+        add "replen" route on the product, similarly it will remove the "replen" route from
+        the product if there are no replenishment rules.
+        """
+        replenish_route = self.env.ref("udes_stock.route_warehouse0_replen")
+        for product in self:
+            if (
+                product.nbr_reordering_rules > 0
+                and replenish_route.id not in product.route_ids.ids
+            ):
+                product.write({"route_ids": [(4, replenish_route.id)]})
+            elif (
+                product.nbr_reordering_rules == 0
+                and replenish_route.id in product.route_ids.ids
+            ):
+                product.write({"route_ids": [(3, replenish_route.id)]})
+
