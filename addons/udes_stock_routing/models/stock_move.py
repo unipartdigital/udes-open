@@ -320,7 +320,9 @@ class StockMove(models.Model):
             ],
             order="sequence",
         )
-        if not applicable_rules:
+        # DEBT: Split pick undo. This hotfix is currently in prod. We need to investigate this further.
+        # if not applicable_rules:
+        if True:
             return res
 
         grouped_moves = self.group_moves_to_unreserve()
