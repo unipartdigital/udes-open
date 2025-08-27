@@ -1,5 +1,4 @@
-from odoo import api, models, _, registry
-from odoo.osv import expression
+from odoo import  models
 
 
 class ProcurementGroup(models.Model):
@@ -18,40 +17,3 @@ class ProcurementGroup(models.Model):
         if orderpoints:
             domain += [('id', 'in', orderpoints)]
         return domain
-
-
-class StockWarehouseOrderPoint(models.Model):
-    _inherit = 'stock.warehouse.orderpoint'
-
-    @api.model
-    def check_order_points(self, use_new_cursor=False, company_id=False, location_id=False, excluded_location_ids=False):
-        """
-        Copy of run_scheduler from Odoo's stock module ProcurementGroup class.
-        This allows us to only check order points.
-        """
-        OrderPoint = self.env["stock.warehouse.orderpoint"]
-        ProcurementGroup = self.env["procurement.group"]
-        try:
-            if use_new_cursor:
-                domain = ProcurementGroup._get_orderpoint_domain()
-                if location_id:
-                    domain = expression.AND([domain, [("location_id", "=", location_id)]])
-                if excluded_location_ids:
-                    domain = expression.AND([domain, [("location_id", "not in", excluded_location_ids)]])
-                self = OrderPoint.with_context(prefetch_fields=False).search(domain)
-                cr = registry(self._cr.dbname).cursor()
-                self = self.with_env(self.env(cr=cr))
-
-            self.sudo()._procure_orderpoint_confirm(
-                use_new_cursor=use_new_cursor,
-                company_id=company_id)
-            if use_new_cursor:
-                self._cr.commit()
-        finally:
-            if use_new_cursor:
-                try:
-                    self._cr.close()
-                except Exception:
-                    pass
-        return {}
-
