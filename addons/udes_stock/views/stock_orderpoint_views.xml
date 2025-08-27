@@ -27,7 +27,10 @@
     <!-- Move Reordering Rules menu to Operations and rename-->
     <menuitem
             id="stock.menu_reordering_rules_config"
-            name="Replenishments" parent="stock.menu_stock_warehouse_mgmt"/>
+            name="Replenishments"
+            parent="stock.menu_stock_warehouse_mgmt"
+            sequence="8"
+    />
 
     <!-- Rename Reorder Rules view and add domain to hide manual trigger -->
     <record id="stock.action_orderpoint" model="ir.actions.act_window">
