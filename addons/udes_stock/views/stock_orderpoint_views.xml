@@ -21,13 +21,13 @@
 
     <!-- Hide Replenishment Menu -->
     <record id="stock.menu_reordering_rules_replenish" model="ir.ui.menu">
-        <field name="active">0</field>
+        <field name="active">1</field>
     </record>
 
     <!-- Move Reordering Rules menu to Operations and rename-->
     <menuitem
             id="stock.menu_reordering_rules_config"
-            name="Replenishments" parent="stock.menu_stock_warehouse_mgmt"/>
+            name="Replenishments" parent="stock.menu_reordering_rules_replenish"/>
 
     <!-- Rename Reorder Rules view and add domain to hide manual trigger -->
     <record id="stock.action_orderpoint" model="ir.actions.act_window">
