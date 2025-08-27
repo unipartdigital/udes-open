@@ -1,0 +1,38 @@
+<odoo>
+  <data>
+
+    <record id="generate_proactive_replen_moves_form" model="ir.ui.view">
+      <field name="name">udes.proactive.replen.form</field>
+      <field name="model">udes.proactive.replen</field>
+      <field name="arch" type="xml">
+        <form string="Generate Proactive Replen Moves Wizard">
+          <separator string="Generate Proactive Replen Moves"/>
+          <group>
+            <group>
+              <field name="number_replen_moves" required='1'/>
+              <field name="replen_percentage" required='1'/>
+            </group>
+          </group>
+          <footer>
+            <button string="Generate" name="generate_replen_moves" type="object" class="oe_highlight"/>
+            <button string="Cancel" class="btn-default" special="cancel"/>
+          </footer>
+        </form>
+     </field>
+    </record>
+
+    <record model="ir.actions.act_window" id="generate_proactive_replen_moves_action">
+      <field name="name">Generate Proactive Replen Moves</field>
+      <field name="res_model">udes.proactive.replen</field>
+      <field name="view_mode">form</field>
+      <field name="target">new</field>
+    </record>
+
+    <menuitem id="generate_proactive_replen_moves_menu_items"
+              sequence="20"
+              name="Generate Proactive Replen Moves Menu"
+              parent="stock.menu_reordering_rules_replenish"
+              action="generate_proactive_replen_moves_action" />
+
+  </data>
+</odoo>
