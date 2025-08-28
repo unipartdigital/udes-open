@@ -8,7 +8,10 @@ _logger = logging.getLogger(__name__)
 
 class ProductProduct(models.Model):
     _name = "product.product"
-    _inherit = ["product.product", "mixin.stock.model"]
+    _inherit = ["product.product", "mixin.stock.model"]   
+    _sql_constraints = [
+        ('default_code_uniq', 'unique(default_code)', "An internal reference can only be assigned to one product !"),
+        ]
 
     # Allow to search via both name and barcode
     MSM_STR_DOMAIN = ("name", "barcode")
