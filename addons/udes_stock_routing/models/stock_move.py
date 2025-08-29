@@ -93,6 +93,9 @@ class StockMove(models.Model):
         done_moves.push_from_drop()
         return done_moves
 
+    def _action_cancel(self):
+        return super(StockMove, self.with_context(cancellation_in_progress=True))._action_cancel()
+
     def _get_new_picking_values(self):
         """
         Extend _get_new_picking_values() to propagate the origin and partner_id fields for next "push" picking.
@@ -166,7 +169,7 @@ class StockMove(models.Model):
         # which we can then split to backorder pickings after looping over all rules.
         moves_to_split_by_rule = collections.defaultdict(StockMoveObj.browse)
         # Split pick hook (different to two stage split!)
-        for move in self:
+        for move in self.filtered(lambda m: m.state in ['confirmed', 'waiting', 'partially_available']):
             move_qty = move.product_uom_qty
             for rule in applicable_rules.sorted("sequence"):
                 # Iterate on the rules applicable to this picking type, attempting to reserve
@@ -193,10 +196,10 @@ class StockMove(models.Model):
         # we can split those into backorders. Doing it this way prevents us from having picks with multiple
         # products (moves which cannot be _merged) backorder to several separate pickings.
         for rule, assigned_moves in moves_to_split_by_rule.items():
-            original_picking = assigned_moves.picking_id
-            res |= assigned_moves._split_pick_for_rule(assigned_moves, rule)
-            if not original_picking.move_lines:
-                original_picking.u_is_empty = True
+            for original_picking, other_moves in assigned_moves.groupby("picking_id"):
+                res |= other_moves._split_pick_for_rule(other_moves, rule)
+                if not original_picking.move_lines:
+                    original_picking.u_is_empty = True
 
         return res
 
@@ -320,7 +323,7 @@ class StockMove(models.Model):
             ],
             order="sequence",
         )
-        if not applicable_rules:
+        if self.env.context.get("cancellation_in_progress") or not applicable_rules:
             return res
 
         grouped_moves = self.group_moves_to_unreserve()
