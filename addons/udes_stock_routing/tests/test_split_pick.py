@@ -818,3 +818,150 @@ class SplitPickUnreservationTestCase(SplitPickBase):
         self.assertEqual(sum(pick_pick.move_lines.mapped("product_uom_qty")), 199)
         self.assertTrue(all(bulk_pick.mapped("u_is_empty")))
         self.assertTrue(all(standard_pick.mapped("u_is_empty")))
+
+    def test_does_not_merge_moves_of_cancelled_picking(self):
+        """The system will not merge moves into the original picking if they are cancelled."""
+        # Disable the standard rule: non-bulk goes into "pick" picks.
+        self.standard_rule.active = False
+
+        # Set up 200 apples on multiple pallets in bulk, 100 apples loose in standard.
+        self.create_quant(
+            self.apple.id, self.bulk_location_01.id, 100, package_id=self.create_package().id
+        )
+        self.create_quant(self.apple.id, self.standard_location_01.id, 100)
+        # Need for 199 apples. The first sequenced rule of whole pallets should find one suitable quant.
+        # The second rule should find one suitable quant also.
+        self.procure_products([{"product": self.apple, "qty": 199}])
+        all_picks = self.Picking.search([])
+        pick_pick = all_picks.filtered(lambda p: p.picking_type_id == self.pick_operation_type)
+        pick_pick.action_assign()
+        all_picks = self.Picking.search([])
+        bulk_pick = all_picks.filtered(lambda p: p.picking_type_id == self.bulk_operation_type)
+        # No standard pick should have been created.
+        standard_pick = all_picks.filtered(
+            lambda p: p.picking_type_id == self.standard_operation_type
+        )
+
+        # TODO remove the asserts before here as the code is copied from
+        # test_split_both_rules_are_used
+        assert bulk_pick.state == "assigned", f"{bulk_pick.state = }"
+        bulk_pick.move_lines = bulk_pick.move_lines.with_context(cancel=True)
+        bulk_pick.action_cancel()
+        all_picks = self.Picking.search([])
+        bulk_pick = all_picks.filtered(lambda p: p.picking_type_id == self.bulk_operation_type)
+
+        self.assertEqual(len(bulk_pick.move_lines), 1)
+        self.assertEqual(bulk_pick.move_lines.state, "cancel")
+        self.assertEqual(bulk_pick.state, "cancel")
+
+        standard_pick = all_picks.filtered(
+            lambda p: p.picking_type_id == self.standard_operation_type
+        )
+        self.assertEqual(len(standard_pick.move_lines), 0)
+
+        self.assertEqual(len(pick_pick.move_lines), 1)
+        self.assertEqual(sum(pick_pick.move_lines.mapped("product_uom_qty")), 99)
+        self.assertFalse(any(bulk_pick.mapped("u_is_empty")))
+        self.assertTrue(all(standard_pick.mapped("u_is_empty")))
+
+    def test_creates_new_picking_on_unreservation_if_original_was_cancelled(self):
+        """The system will create a new picking if a split pick is unreserved and the original has been cancelled."""
+        # Disable the standard rule: non-bulk goes into "pick" picks.
+        self.standard_rule.active = False
+
+        # Set up 200 apples on multiple pallets in bulk, 100 apples loose in standard.
+        self.create_quant(
+            self.apple.id, self.bulk_location_01.id, 100, package_id=self.create_package().id
+        )
+        self.create_quant(self.apple.id, self.standard_location_01.id, 100)
+        # Need for 199 apples. The first sequenced rule of whole pallets should find one suitable quant.
+        # The second rule should find one suitable quant also.
+        self.procure_products([{"product": self.apple, "qty": 199}])
+        all_picks = self.Picking.search([])
+        pick_pick = all_picks.filtered(lambda p: p.picking_type_id == self.pick_operation_type)
+        pick_pick.action_assign()
+        all_picks = self.Picking.search([])
+        bulk_pick = all_picks.filtered(lambda p: p.picking_type_id == self.bulk_operation_type)
+        # No standard pick should have been created.
+        standard_pick = all_picks.filtered(
+            lambda p: p.picking_type_id == self.standard_operation_type
+        )
+
+        # TODO remove the asserts before here as the code is copied from
+        # test_split_both_rules_are_used
+        assert bulk_pick.state == "assigned", f"{bulk_pick.state = }"
+        pick_pick = all_picks.filtered(lambda p: p.picking_type_id == self.pick_operation_type)
+        pick_pick.action_cancel()
+        bulk_pick.move_lines = bulk_pick.move_lines.with_context(cancel=True)
+        bulk_pick.do_unreserve()
+        all_picks = self.Picking.search([])
+        bulk_pick = all_picks.filtered(lambda p: p.picking_type_id == self.bulk_operation_type)
+        pick_pick = all_picks.filtered(lambda p: p.picking_type_id == self.pick_operation_type)
+        confirmed_pick = pick_pick.filtered(lambda p: p.state == "confirmed")
+        cancelled_pick = pick_pick.filtered(lambda p: p.state == "cancel")
+
+        self.assertEqual(len(bulk_pick.move_lines), 0)
+
+        standard_pick = all_picks.filtered(
+            lambda p: p.picking_type_id == self.standard_operation_type
+        )
+        self.assertEqual(len(standard_pick.move_lines), 0)
+
+        self.assertEqual(len(pick_pick), 2)
+        self.assertEqual(sorted(pick_pick.mapped("state")), ["cancel", "confirmed"])
+        self.assertEqual(len(confirmed_pick.move_lines), 1)
+        self.assertEqual(sum(confirmed_pick.move_lines.mapped("product_uom_qty")), 100)
+        self.assertEqual(len(cancelled_pick.move_lines), 1)
+        self.assertEqual(sum(cancelled_pick.move_lines.mapped("product_uom_qty")), 99)
+        self.assertTrue(all(bulk_pick.mapped("u_is_empty")))
+        self.assertTrue(all(standard_pick.mapped("u_is_empty")))
+
+    def test_does_not_merge_moves_if_all_picks_in_split_are_cancelled(self):
+        """The system will not merge moves if the original pick and all aplit picks have been cancelled."""
+        # Disable the standard rule: non-bulk goes into "pick" picks.
+        self.standard_rule.active = False
+
+        # Set up 200 apples on multiple pallets in bulk, 100 apples loose in standard.
+        self.create_quant(
+            self.apple.id, self.bulk_location_01.id, 100, package_id=self.create_package().id
+        )
+        self.create_quant(self.apple.id, self.standard_location_01.id, 100)
+        # Need for 199 apples. The first sequenced rule of whole pallets should find one suitable quant.
+        # The second rule should find one suitable quant also.
+        self.procure_products([{"product": self.apple, "qty": 199}])
+        all_picks = self.Picking.search([])
+        pick_pick = all_picks.filtered(lambda p: p.picking_type_id == self.pick_operation_type)
+        pick_pick.action_assign()
+        all_picks = self.Picking.search([])
+        bulk_pick = all_picks.filtered(lambda p: p.picking_type_id == self.bulk_operation_type)
+        # No standard pick should have been created.
+        standard_pick = all_picks.filtered(
+            lambda p: p.picking_type_id == self.standard_operation_type
+        )
+
+        # TODO remove the asserts before here as the code is copied from
+        # test_split_both_rules_are_used
+        assert bulk_pick.state == "assigned", f"{bulk_pick.state = }"
+        bulk_pick.move_lines = bulk_pick.move_lines.with_context(cancel=True)
+        all_picks.action_cancel()
+        all_picks = self.Picking.search([])
+        bulk_pick = all_picks.filtered(lambda p: p.picking_type_id == self.bulk_operation_type)
+        pick_pick = all_picks.filtered(lambda p: p.picking_type_id == self.pick_operation_type)
+
+        self.assertEqual(len(bulk_pick.move_lines), 1)
+        self.assertEqual(bulk_pick.move_lines.state, "cancel")
+        self.assertEqual(bulk_pick.state, "cancel")
+        self.assertEqual(sum(bulk_pick.move_lines.mapped("product_uom_qty")), 100)
+
+        self.assertEqual(len(pick_pick.move_lines), 1)
+        self.assertEqual(pick_pick.move_lines.state, "cancel")
+        self.assertEqual(pick_pick.state, "cancel")
+        self.assertEqual(sum(pick_pick.move_lines.mapped("product_uom_qty")), 99)
+
+        standard_pick = all_picks.filtered(
+            lambda p: p.picking_type_id == self.standard_operation_type
+        )
+        self.assertEqual(len(standard_pick.move_lines), 0)
+
+        self.assertFalse(any(bulk_pick.mapped("u_is_empty")))
+        self.assertTrue(all(standard_pick.mapped("u_is_empty")))

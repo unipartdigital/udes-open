@@ -93,6 +93,9 @@ class StockMove(models.Model):
         done_moves.push_from_drop()
         return done_moves
 
+    def _action_cancel(self):
+        return super(StockMove, self.with_context(cancellation_in_progress=True))._action_cancel()
+
     def _get_new_picking_values(self):
         """
         Extend _get_new_picking_values() to propagate the origin and partner_id fields for next "push" picking.
@@ -320,9 +323,7 @@ class StockMove(models.Model):
             ],
             order="sequence",
         )
-        # DEBT: Split pick undo. This hotfix is currently in prod. We need to investigate this further.
-        # if not applicable_rules:
-        if True:
+        if self.env.context.get("cancellation_in_progress") or not applicable_rules:
             return res
 
         grouped_moves = self.group_moves_to_unreserve()
