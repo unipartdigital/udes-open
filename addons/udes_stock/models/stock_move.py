@@ -58,7 +58,7 @@ class StockMove(models.Model):
         # Pull out old move_dest_ids as these _can_ be removed upon cancellation
         old_dest_ids = {m.id: m.move_dest_ids for m in self}
         res = super(
-            StockMove, self.with_context({"bypass_set_qty_to_initial_demand": True})
+            StockMove, self.with_context(bypass_set_qty_to_initial_demand=True)
         )._action_cancel()
         for move in self:
             if move.picking_type_id.u_propagate_cancel:
