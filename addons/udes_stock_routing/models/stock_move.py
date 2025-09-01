@@ -338,6 +338,14 @@ class StockMove(models.Model):
                     continue
                 split_pick_type = rule.picking_type_id
                 original_picking_type = rule.u_run_on_assign_applicable_to
+                if split_pick_type == original_picking_type:
+                    _logger.debug(
+                        "Skipping because split and original picking types are the same: %r",
+                        split_pick_type | original_picking_type,
+                    )
+                    # Remove references to any moves that have been deleted.
+                    moves = moves.exists()
+                    continue
                 split_pick_moves = moves.filtered(lambda p: p.picking_type_id == split_pick_type)
                 if not split_pick_moves:
                     _logger.debug("No candidate moves match %r", rule)
