@@ -20,6 +20,11 @@
         <xpath expr="//button[@name='action_cancel']" position="attributes">
           <attribute name="states">ready,waiting,in_progress</attribute>
         </xpath>
+        <xpath expr="//field[@name='user_id']" position="replace">
+          <field name="user_id"
+            domain="[('active', '=', True), ('company_ids', 'in', [company_id])]"
+          />
+        </xpath>
         <xpath expr="//field[@name='user_id']" position="after">
           <field name="u_ephemeral"/>
           <field name="priority"/>
