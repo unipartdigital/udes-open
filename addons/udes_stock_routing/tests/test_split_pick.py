@@ -619,9 +619,10 @@ class SplitPickUnreservationTestCase(SplitPickBase):
 
         # TODO remove the asserts before here as the code is copied from
         # test_split_both_rules_are_used
-        all_picks = self.Picking.search([])
+        all_picks = self.Picking.search([("state", "=", "assigned")])
         all_picks.do_unreserve()
         all_picks = self.Picking.search([])
+        pick_pick = all_picks.filtered(lambda p: p.picking_type_id == self.pick_operation_type)
         bulk_pick = all_picks.filtered(lambda p: p.picking_type_id == self.bulk_operation_type)
 
         self.assertEqual(len(bulk_pick.move_lines), 0)
@@ -631,7 +632,7 @@ class SplitPickUnreservationTestCase(SplitPickBase):
         )
         self.assertEqual(len(standard_pick.move_lines), 0)
 
-        self.assertEqual(len(pick_pick.move_lines), 1)
+        self.assertEqual(len(pick_pick.move_lines), 2)
         self.assertEqual(sum(pick_pick.move_lines.mapped("product_uom_qty")), 299)
         self.assertTrue(all(bulk_pick.mapped("u_is_empty")))
         self.assertTrue(all(standard_pick.mapped("u_is_empty")))
@@ -653,7 +654,7 @@ class SplitPickUnreservationTestCase(SplitPickBase):
         pick_pick = all_picks.filtered(lambda p: p.picking_type_id == self.pick_operation_type)
         pick_pick.action_assign()
 
-        all_picks = self.Picking.search([])
+        all_picks = self.Picking.search([("state", "=", "assigned")])
         all_picks.do_unreserve()
 
         all_picks = self.Picking.search([])
@@ -667,7 +668,7 @@ class SplitPickUnreservationTestCase(SplitPickBase):
         self.assertEqual(len(standard_pick.move_lines), 0)
 
         pick_pick = all_picks.filtered(lambda p: p.picking_type_id == self.pick_operation_type)
-        self.assertEqual(len(pick_pick.move_lines), 1)
+        self.assertEqual(len(pick_pick.move_lines), 2)
         self.assertEqual(sum(pick_pick.move_lines.mapped("product_uom_qty")), 299)
         self.assertTrue(all(bulk_pick.mapped("u_is_empty")))
         self.assertTrue(all(standard_pick.mapped("u_is_empty")))
@@ -753,8 +754,7 @@ class SplitPickUnreservationTestCase(SplitPickBase):
         self.assertTrue(all(standard_pick.mapped("u_is_empty")))
 
     def test_other_route_rules_ignored(self):
-        """The system will ignore inapplicable rules when reverting split
-        picks."""
+        """The system will ignore inapplicable rules when reverting split picks."""
         PickingType = self.env["stock.picking.type"]
 
         # Set up 100 apples on a pallet in bulk, 100 apples loose in standard.
@@ -793,7 +793,7 @@ class SplitPickUnreservationTestCase(SplitPickBase):
         all_picks = self.Picking.search([])
         bulk_pick = all_picks.filtered(lambda p: p.picking_type_id == self.bulk_operation_type)
 
-        all_picks = self.Picking.search([])
+        all_picks = self.Picking.search([("state", "=", "assigned")])
 
         # Enable the dummy rule. It should match based on picking type (bulk)
         # but fail to match on route.
@@ -814,7 +814,7 @@ class SplitPickUnreservationTestCase(SplitPickBase):
         self.assertEqual(len(dummy_pick.move_lines), 0)
 
         pick_pick = all_picks.filtered(lambda p: p.picking_type_id == self.pick_operation_type)
-        self.assertEqual(len(pick_pick.move_lines), 1)
+        self.assertEqual(len(pick_pick.move_lines), 2)
         self.assertEqual(sum(pick_pick.move_lines.mapped("product_uom_qty")), 199)
         self.assertTrue(all(bulk_pick.mapped("u_is_empty")))
         self.assertTrue(all(standard_pick.mapped("u_is_empty")))
