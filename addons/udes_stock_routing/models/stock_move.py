@@ -166,7 +166,7 @@ class StockMove(models.Model):
         # which we can then split to backorder pickings after looping over all rules.
         moves_to_split_by_rule = collections.defaultdict(StockMoveObj.browse)
         # Split pick hook (different to two stage split!)
-        for move in self:
+        for move in self.filtered(lambda m: m.state in ['confirmed', 'waiting', 'partially_available']):
             move_qty = move.product_uom_qty
             for rule in applicable_rules.sorted("sequence"):
                 # Iterate on the rules applicable to this picking type, attempting to reserve
