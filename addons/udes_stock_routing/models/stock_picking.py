@@ -101,6 +101,7 @@ class StockPicking(models.Model):
         original_origin = self.origin
         original_location = self.location_id
         original_partner = self.partner_id
+        original_sequence = self.sequence
 
         configuration_move_line_mapping = self._get_two_stage_configuration_move_line_mapping()
         for configuration, move_lines in configuration_move_line_mapping.items():
@@ -115,6 +116,7 @@ class StockPicking(models.Model):
                 "location_dest_id": configuration.intermediate_dest_location_id,
                 "origin": original_origin,
                 "u_from_two_stage_split": True,
+                "sequence": original_sequence,
             }
             stage_2_pick = self.split_move_lines_to_backorder(move_lines, **stage_2_pick_vals)
             stage_2_pick.move_lines.write(
@@ -134,6 +136,7 @@ class StockPicking(models.Model):
                     "origin": original_origin,
                     "partner_id": original_partner.id,
                     "u_from_two_stage_split": True,
+                    "sequence": original_sequence,
                 }
             )
             for move in stage_2_pick.move_lines:
@@ -162,3 +165,9 @@ class StockPicking(models.Model):
             # Flag fully emptied pickings as empty.
             if not self.move_lines:
                 self.u_is_empty = True
+
+    def do_unreserve(self):
+        """Extend to mark empty picks for deletion."""
+        res = super().do_unreserve()
+        self.filtered(lambda p: len(p.move_lines) == 0).write({"u_is_empty": True})
+        return res

@@ -283,8 +283,10 @@ class StockPickingBatch(models.Model):
             if not isinstance(batch.id, models.NewId):
                 old_priority = batch.read(["priority"])[0]["priority"]
             if batch.picking_ids:
-                priorities = batch.picking_ids.mapped("priority")
-                new_priority = max(priorities)
+                priorities = [p for p in batch.picking_ids.mapped("priority") if type(p) == str]
+                new_priority = '0'
+                if priorities:
+                    new_priority = max(priorities)
             else:
                 # If the picking is empty keep the old priority
                 new_priority = old_priority
