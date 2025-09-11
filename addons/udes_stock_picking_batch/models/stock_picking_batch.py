@@ -1135,9 +1135,6 @@ class StockPickingBatch(models.Model):
 
         self.ensure_one()
 
-        if not self.u_ephemeral:
-            raise ValidationError(_("Can only remove work from ephemeral batches"))
-
         pickings_to_remove = Picking.browse()
 
         for picking in self.picking_ids:
@@ -1152,6 +1149,9 @@ class StockPickingBatch(models.Model):
                 pickings_to_remove |= picking.with_context(lock_batch_state=True).sudo()._backorder_move_lines(mls_to_keep=mls_to_keep)
             else:
                 pickings_to_remove |= picking
+
+        if pickings_to_remove and not self.u_ephemeral:
+            raise ValidationError(_("Can only remove work from ephemeral batches"))
 
         pickings_to_remove.with_context(lock_batch_state=True).write(
             {"batch_id": False, "u_reserved_pallet": False}
