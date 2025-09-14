@@ -817,6 +817,7 @@ class StockPicking(models.Model):
                 raise ValidationError(
                     _("Trying to unlink non empty pickings: %r") % non_empty_pickings.ids
                 )
+            to_unlink.write({"batch_id": False})
             to_unlink.with_context(bypass_state_check=True).unlink()
 
         return self - records
