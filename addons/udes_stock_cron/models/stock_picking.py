@@ -319,6 +319,7 @@ class StockPicking(models.Model):
         Returns:
             processed_pickings  (recordset): Stock picking recordset.
         """
-        if self.batch_id.state == "draft":
-            processed_pickings |= self.batch_id.picking_ids
+        for record in self:
+            if record.batch_id.state == "draft":
+                processed_pickings |= record.batch_id.picking_ids
         return processed_pickings
