@@ -9,6 +9,7 @@ from odoo.addons.udes_common.models.fields import PreciseDatetime
 from odoo.addons.udes_common.tools import RelFieldOps
 from lxml import etree
 from odoo.osv import expression
+from collections import defaultdict
 
 from ..utils import UDES_STATISTICS_LOG_FORMAT
 
@@ -1046,7 +1047,57 @@ class StockPicking(models.Model):
             stats.count / stats.elapsed,
         )
 
+        if self.env.user.get_user_warehouse().u_enabled_auto_replenishment:
+           self._process_auto_replenishment()
+
         return new_picking
+    
+    def _get_picking_type_to_auto_create_replenishment(self):
+        """
+        Determine the picking type to automatically create replenishment rules.
+
+        **UDES Open**: defaults to *Internal Transfer* picking type.
+        **UDES Closed**: uses *Putaway* picking type instead.
+
+        This allows the same logic to adapt depending on the UDES variant.
+        """
+        return self.env.ref("stock.picking_type_internal")
+    
+    def _get_pick_zone_location(self):
+        """
+        Return the Pick Zone location used for replenishment rules.
+
+        By default, returns False (no Pick Zone defined).
+        This method is intended to be overridden in downstream modules
+        to provide the actual Pick Zone location if applicable.
+        """
+        return False
+
+    
+    def _process_auto_replenishment(self):
+        """
+            Auto-create or update replenishment rules after putaway:
+            - Only runs for putaway pickings.
+            - Groups qty_done by product/location.
+            - Creates/updates rules if destination location is Pick Zone location.
+        """
+        OrderPoint = self.env["stock.warehouse.orderpoint"]
+        pick_zone = self._get_pick_zone_location()
+        picking_for_replenishment = self._get_picking_type_for_replenishment()
+
+
+        product_location_map = defaultdict(float)
+
+        if self.picking_type_id.id == picking_for_replenishment.id:
+
+            for move in self.move_line_ids:
+                    product_location_map[(move.product_id, move.location_dest_id)] += move.qty_done
+
+            for (product, location), qty in product_location_map.items():
+                if pick_zone and pick_zone.record_is_child_of_self(location):
+                    OrderPoint.create_or_update_replenishment_rules(
+                        product, location, qty
+                    )
 
     @api.model
     def _fields_view_get(self, view_id=None, view_type="form", toolbar=False, submenu=False):
