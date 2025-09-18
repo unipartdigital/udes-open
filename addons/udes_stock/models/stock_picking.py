@@ -887,7 +887,7 @@ class StockPicking(models.Model):
         # Post message and un-reserve stock
         for pick in self:
             pick.message_post(body=reason)
-            pick.do_unreserve()
+            pick.with_context(disable_move_refactor=True).do_unreserve()
 
         # create a stock investigation pick
         investigation_picking = quants.create_picking(
