@@ -98,6 +98,18 @@ class StockPicking(models.Model):
         self.batch_id._compute_state()
         return res
 
+    def _create_backorder(self):
+        """
+        Extend core odoo method to add the batch on the created backorder depending on configuration.
+
+        If preserve back order batch config is True copying batch into the created backorder. Extra safety check
+        that backorders are created from transfers on same batch, which will mean are of same picking type.
+        """
+        backorders = super()._create_backorder()
+        if self.batch_id and len(self.batch_id) == 1 and self.picking_type_id.u_preserve_backorder_batch:
+            backorders.batch_id = self.batch_id
+        return backorders
+
     @api.model
     def create(self, vals):
         """
