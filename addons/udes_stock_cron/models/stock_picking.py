@@ -319,6 +319,11 @@ class StockPicking(models.Model):
         Returns:
             processed_pickings  (recordset): Stock picking recordset.
         """
-        if self.batch_id.state == "draft":
-            processed_pickings |= self.batch_id.picking_ids
+        if len(self.batch_id) > 1:
+            batch_names = ", ".join(self.batch_id.mapped("name"))
+            # Logging message that we are adding processed pickings for multiple batches.
+            _logger.warning(f"Adding processed pickings for multiple batches {batch_names}.")
+        for batch in self.batch_id:
+            if batch.state == "draft":
+                processed_pickings |= batch.picking_ids
         return processed_pickings
