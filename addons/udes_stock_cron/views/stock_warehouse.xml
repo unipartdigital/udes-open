@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+  <record id="view_warehouse_form_udes_stock_cron" model="ir.ui.view">
+    <field name="name">stock.warehouse.udes_stock_cron</field>
+    <field name="model">stock.warehouse</field>
+    <field name="inherit_id" ref="udes_stock.view_warehouse_inherited"/>
+    <field name="arch" type="xml">
+      <xpath expr="//group[@name='udes_stock_config']" position="inside">
+        <field name="u_one_product_per_location"/>
+      </xpath>
+    </field>
+  </record>
+</odoo>

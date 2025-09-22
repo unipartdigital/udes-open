@@ -16,6 +16,7 @@
     "data": [
         "data/ir_cron.xml",
         "views/stock_picking_type.xml",
+        "views/stock_warehouse.xml",
         "security/ir.model.access.csv",
         "wizard/reservation_views.xml",
     ],
