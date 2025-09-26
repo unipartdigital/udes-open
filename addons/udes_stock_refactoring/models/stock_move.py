@@ -3,6 +3,7 @@ from odoo.exceptions import UserError, ValidationError
 from odoo.tools.float_utils import float_compare, float_is_zero
 from ..registry.refactor import REFACTOR_REGISTRY
 import logging
+import inspect
 
 _logger = logging.getLogger(__name__)
 
@@ -115,10 +116,7 @@ class StockMove(models.Model):
 
                 if refactor_class:
                     has_split_partial_moves = False
-                    _logger.info(
-                        f"Refactoring {picking_type.name} at {stage} "
-                        f"using {refactor_class.name()}: {stage_moves.ids}",
-                    )
+
                      # Only split partial moves when refactoring post assign.
                     if stage == "assign":
                         # Group the moves by picking, and split all covered move lines to a backorder.
@@ -142,6 +140,27 @@ class StockMove(models.Model):
                     # refactored moves in order to remove the previous and next pickings unlinking.
                     stage_moves = stage_moves.with_context(remove_related_moves=True)
                     new_moves = refactor_class.do_refactor(stage_moves)
+
+                    moves = (stage_moves | new_moves)
+                    move_refs = moves.mapped("display_name")
+                    move_lines_refs = moves.mapped("move_line_ids.display_name")
+                    picking_refs = moves.mapped("picking_id.name")              
+                    
+                    source = self.env.context.get("refactor_source")
+                    if not source:
+                        stack = inspect.stack()
+                        caller = next((frame.function for frame in stack[1:6]), "unknown")
+                        source = f"{caller}"
+                    user = self.env.user.name
+
+                    _logger.info("Refactoring moves= [%s], move_lines= [%s] pickings= [%s] by %s, stage=%s, user=%s",
+                        ",".join(move_refs) if move_refs else "",
+                        ",".join(move_lines_refs) if picking_refs else "",
+                        ",".join(picking_refs) if picking_refs else "",
+                        source,
+                        stage,
+                        user,
+                        )
 
                     # Merge possible moves (same group/location/destination/product...) and their
                     # move lines. Note that _merge_moves() may return same or different move(s) after
