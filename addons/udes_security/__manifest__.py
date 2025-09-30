@@ -7,7 +7,7 @@
     "license": "LGPL-3",
     "application": True,
     "version": "14.0.0.0.0",
-    "depends": ["base", "base_setup", "web", "portal", "udes_common"],
+    "depends": ["base", "base_setup", "web", "portal", "udes_common", "auth_brute_force"],
     "data": [
         "data/ir_module_category_data.xml",
         "data/res_groups.xml",
