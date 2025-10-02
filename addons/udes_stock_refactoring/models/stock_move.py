@@ -92,6 +92,7 @@ class StockMove(models.Model):
         if stage is not None and stage not in STOCK_REFACTOR_STAGES.values():
             raise UserError(_("Unknown stage for move refactor: %s") % (stage))
         moves = self.exists()
+        original_move_ids = moves.ids
 
         if self.env.context.get("disable_move_refactor"):
             return moves
@@ -140,28 +141,7 @@ class StockMove(models.Model):
                     # refactored moves in order to remove the previous and next pickings unlinking.
                     stage_moves = stage_moves.with_context(remove_related_moves=True)
                     new_moves = refactor_class.do_refactor(stage_moves)
-
-                    moves = (stage_moves | new_moves)
-                    move_refs = moves.mapped("display_name")
-                    move_lines_refs = moves.mapped("move_line_ids.display_name")
-                    picking_refs = moves.mapped("picking_id.name")              
                     
-                    source = self.env.context.get("refactor_source")
-                    if not source:
-                        stack = inspect.stack()
-                        caller = next((frame.function for frame in stack[1:6]), "unknown")
-                        source = f"{caller}"
-                    user = self.env.user.name
-
-                    _logger.info("Refactoring moves= [%s], move_lines= [%s] pickings= [%s] by %s, stage=%s, user=%s",
-                        ",".join(move_refs) if move_refs else "",
-                        ",".join(move_lines_refs) if picking_refs else "",
-                        ",".join(picking_refs) if picking_refs else "",
-                        source,
-                        stage,
-                        user,
-                        )
-
                     # Merge possible moves (same group/location/destination/product...) and their
                     # move lines. Note that _merge_moves() may return same or different move(s) after
                     # merging other moves (no merging can happen too)
@@ -171,6 +151,23 @@ class StockMove(models.Model):
                     if new_moves != stage_moves or has_split_partial_moves:
                         moves -= stage_moves
                         moves |= new_moves
+                        
+                    new_move_ids = new_moves.ids
+                    move_line_ids = (stage_moves | new_moves).mapped("move_line_ids").ids
+                    pickings = moves.mapped("picking_id")
+                    picking_info = [f"{pick.id}, {(pick.name)}" for pick in pickings]
+
+                    stack = inspect.stack()
+                    caller = next((frame.function for frame in stack[1:6]), "unknown")
+                    source = f"{caller}"
+
+                    _logger.info(f"Original moves: {sorted(original_move_ids)}")
+                    _logger.info(f"New moves: {sorted(new_move_ids)}")
+                    _logger.info(f"Move Lines: {move_line_ids}")
+                    _logger.info(f"Pickings: {picking_info}")
+                    _logger.info(f"Picking type: {picking_type.id if picking_type else None}, {picking_type.name if picking_type else None}")
+                    _logger.info(f"Refactored by method: {source}")
+                    _logger.info(f"Stage: {stage}")
 
         return moves
 
