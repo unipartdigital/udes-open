@@ -4,6 +4,7 @@ import math
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError, UserError
 from odoo.tools import float_compare
+from odoo.addons.stock.models.stock_move import PROCUREMENT_PRIORITIES
 
 
 _logger = logging.getLogger(__name__)
@@ -44,6 +45,11 @@ class StockMove(models.Model):
         if "u_uom_initial_demand" not in vals:
             vals["u_uom_initial_demand"] = vals.get("product_uom_qty")
         return super().create(vals)
+
+    @api.model
+    def get_procurement_priorities(self):
+        """Function to return the implemented priorities. Designed to be extended by inheriting classes."""
+        return PROCUREMENT_PRIORITIES
 
     def _merge_moves(self, merge_into=False):
         """
