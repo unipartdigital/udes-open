@@ -6,6 +6,14 @@ from odoo.exceptions import ValidationError
 class Orderpoint(models.Model):
     _inherit = "stock.warehouse.orderpoint"
 
+    _sql_constraints = [
+        (
+            "product_min_qty_positive",
+            "check (product_min_qty > 0)",
+            _("Minimum Quantity must be greater than zero"),
+        )
+    ]
+
     @api.onchange("location_id")
     @api.constrains("location_id")
     def _is_limited(self):
