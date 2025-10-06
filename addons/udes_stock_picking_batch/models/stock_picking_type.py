@@ -10,8 +10,8 @@ class StockPickingType(models.Model):
         default=False,
     )
     u_remove_unready_batch = fields.Boolean(
-        string="Auto Remove Running Batch Unready Picks",
-        help="Remove automatically unready picks from a running batch when batch assigned or pick state changed",
+        string="Auto Remove Ready/Running Batch Unready Picks",
+        help="Remove automatically unready picks from a ready/running batch when batch assigned or pick state changed",
         default=True,
     )
     u_use_location_categories = fields.Boolean(

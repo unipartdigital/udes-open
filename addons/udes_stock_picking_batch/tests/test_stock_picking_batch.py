@@ -97,12 +97,24 @@ class TestBatchState(common.BaseUDES):
     def test_ready_to_waiting(self):
         """Get to ready then check that we can move back to waiting"""
         self.draft_to_ready()
+        # Set u_remove_unready_batch false to avoid removing waiting picks
+        self.picking02.picking_type_id.u_remove_unready_batch = False
         # Add another picking to go back!
         self.picking02.batch_id = self.batch01.id
         self.assertEqual(self.batch01.state, "waiting")
-
         # Remove picking to go back to ready...
         self.picking02.batch_id = False
+        self.assertEqual(self.batch01.state, "ready")
+
+    def test_ready_batch_auto_removes_waiting_picks(self):
+        """Get to ready then check that it auto removes waiting picks"""
+        self.draft_to_ready()
+        # Make sure u_remove_unready_batch is enabled
+        self.picking02.picking_type_id.u_remove_unready_batch = True
+        # Try to set ready batch in a waiting pick
+        self.picking02.batch_id = self.batch01.id
+        # Check waiting pick is not included in ready batch
+        self.assertNotIn(self.picking02.id, self.batch01.picking_ids.ids)
         self.assertEqual(self.batch01.state, "ready")
 
     def test_waiting_to_in_progess(self):

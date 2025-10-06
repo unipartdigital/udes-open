@@ -176,7 +176,7 @@ class StockPickingBatch(models.Model):
         """ Return unready picks from picks or self.picking_ids """
         picks = self.picking_ids
         return picks.filtered(lambda pick: pick.state in ["draft", "waiting", "confirmed"])
-    
+
     def cancel_pickings(self):
         self.mapped('picking_ids').action_cancel()
         return self.write({'state': 'cancel'})
@@ -256,7 +256,7 @@ class StockPickingBatch(models.Model):
                 batch._compute_state()
 
     def _remove_unready_picks(self):
-        """ Remove unready picks from running batches in self, if configured """
+        """ Remove unready picks from ready/running batches in self, if configured """
         if self.env.context.get("lock_batch_state"):
             # State is locked so don't do anything
             return
@@ -264,7 +264,7 @@ class StockPickingBatch(models.Model):
         # Get unready picks in running batches
         unready_picks = (
             self.with_context(lock_batch_state=True)
-            .filtered(lambda b: b.state in ["waiting", "in_progress"])
+            .filtered(lambda b: b.state in ["ready", "waiting", "in_progress"])
             .unready_picks()
         )
 
