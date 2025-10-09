@@ -1055,11 +1055,7 @@ class StockPicking(models.Model):
     def _get_picking_type_to_auto_create_replenishment(self):
         """
         Determine the picking type to automatically create replenishment rules.
-
-        **UDES Open**: defaults to *Internal Transfer* picking type.
-        **UDES Closed**: uses *Putaway* picking type instead.
-
-        This allows the same logic to adapt depending on the UDES variant.
+        Defaults to the *Internal Transfer* picking type.
         """
         return self.env.ref("stock.picking_type_internal")
     
@@ -1083,7 +1079,7 @@ class StockPicking(models.Model):
         """
         OrderPoint = self.env["stock.warehouse.orderpoint"]
         pick_zone = self._get_pick_zone_location()
-        picking_for_replenishment = self._get_picking_type_for_replenishment()
+        picking_for_replenishment = self._get_picking_type_to_auto_create_replenishment()
 
 
         product_location_map = defaultdict(float)
@@ -1094,7 +1090,8 @@ class StockPicking(models.Model):
                     product_location_map[(move.product_id, move.location_dest_id)] += move.qty_done
 
             for (product, location), qty in product_location_map.items():
-                if pick_zone and pick_zone.record_is_child_of_self(location):
+                qty_now = self.env["stock.quant"]._get_available_quantity(product, location)
+                if pick_zone and pick_zone.record_is_child_of_self(location) and qty==qty_now:
                     OrderPoint.create_or_update_replenishment_rules(
                         product, location, qty
                     )

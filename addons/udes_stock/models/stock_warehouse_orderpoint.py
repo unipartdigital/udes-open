@@ -123,6 +123,7 @@ class Orderpoint(models.Model):
               - In progress → raise error.
         """
         StockMove = self.env["stock.move"]
+        ReplanRoute =  self.env.ref("udes_stock.procurement_replen")
 
         # Check for existing rule on this location & product
         existing_rule = self.search([
@@ -167,4 +168,8 @@ class Orderpoint(models.Model):
             "product_max_qty": max_qty,    
         }
         rule = self.create(vals)
+
+        # Set replan route for product
+        product.write({"route_ids": [(4, ReplanRoute.id)]})
+
         return rule
