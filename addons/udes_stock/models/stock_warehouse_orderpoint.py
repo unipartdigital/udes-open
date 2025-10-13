@@ -148,8 +148,8 @@ class Orderpoint(models.Model):
                 ("state", "not in", ["cancel", "done"]),
             ])
             if moves:
-                if all(m.state == "draft" for m in moves):
-                    moves.unlink()
+                if all(m.state in ["draft","waiting","confirmed"] for m in moves):
+                    moves._action_cancel()
                     old_rule.unlink()
                 else:
                     raise UserError(_(
