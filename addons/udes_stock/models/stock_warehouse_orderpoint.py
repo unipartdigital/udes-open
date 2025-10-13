@@ -1,6 +1,6 @@
 from odoo import fields, models, _, api, registry
 from odoo.osv import expression
-from odoo.exceptions import ValidationError
+from odoo.exceptions import ValidationError, UserError
 
 
 class Orderpoint(models.Model):
@@ -107,3 +107,69 @@ class Orderpoint(models.Model):
                 except Exception:
                     pass
         return {}
+    
+    
+    def create_or_update_replenishment_rules(self, product, location, qty):
+        """
+        Ensure replenishment rules exist for product/location after putaway.
+
+        Rules:
+        - If no rule exists for product/location → create one.
+        - Max qty = qty put away.
+        - Min qty = 10% of Max (rounded down, at least 1).
+        - If location had an old rule for another product → delete it.
+            * If replenishments exist:
+              - Not started → delete them.
+              - In progress → raise error.
+        """
+        StockMove = self.env["stock.move"]
+        ReplanRoute =  self.env.ref("udes_stock.procurement_replen")
+
+        # Check for existing rule on this location & product
+        existing_rule = self.search([
+            ("location_id", "=", location.id),
+            ("product_id", "=", product.id)
+        ], limit=1)
+
+        max_qty = qty
+        min_qty = max(1, round(max_qty * 0.1))
+
+        if existing_rule:
+            return existing_rule
+
+        # Cleanup old rules for other products on this location
+        old_rules = self.search([
+            ("location_id", "=", location.id),
+            ("product_id", "!=", product.id),
+        ])
+        for old_rule in old_rules:
+            moves = StockMove.search([
+                ("orderpoint_id", "=", old_rule.id),
+                ("state", "not in", ["cancel", "done"]),
+            ])
+            if moves:
+                if all(m.state in ["draft","waiting","confirmed"] for m in moves):
+                    moves._action_cancel()
+                    old_rule.unlink()
+                else:
+                    raise UserError(_(
+                        "Pickface has changed for %s → %s. "
+                        "There are replenishments in progress. "
+                        "Please speak to your team leader."
+                    ) % (old_rule.product_id.display_name, product.display_name))
+            else:
+                old_rule.unlink()
+
+        # Create new replenishment rule
+        vals = {
+            "product_id": product.id,
+            "location_id": location.id,
+            "product_min_qty": min_qty,
+            "product_max_qty": max_qty,    
+        }
+        rule = self.create(vals)
+
+        # Set replan route for product
+        product.write({"route_ids": [(4, ReplanRoute.id)]})
+
+        return rule

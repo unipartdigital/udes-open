@@ -22,6 +22,7 @@
                                    widget="many2many_tags"
                                    context="{'tree_view_ref':'udes_stock.view_ir_model_fields_basic_tree'}">
                             </field>
+                            <field name="u_enabled_auto_replenishment" />
                         </group>
                     </page>
                 </xpath>

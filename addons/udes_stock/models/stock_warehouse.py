@@ -77,6 +77,12 @@ class StockWarehouse(models.Model):
              "At the moment this validation is available on UDES models  "
              "product.product and stock.location"
     )
+    u_enabled_auto_replenishment = fields.Boolean(
+        string="Enable Auto Replenishment",
+        default=False,
+        help="If enabled, the system will automatically create or update replenishment rules "
+            "when stock is put away into a pick face location."
+    )
 
     @api.constrains("u_allowed_tracking_types")
     def _constrain_allowed_tracking_types(self):
