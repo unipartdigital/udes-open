@@ -4,3 +4,5 @@ access_stock_location_category_user,stock.location.category.user,model_stock_loc
 access_stock_mark_as_todo_wizard,stock_mark_as_todo_wizard,model_stock_picking_mark_todo,udes_security.group_trusted_user,1,1,1,1
 access_product_barcode_stock_user,product_barcode_stock_user,model_product_barcode,stock.group_stock_user,1,0,0,0
 access_product_barcode_stock_manager,product.barcode stock_manager,model_product_barcode,stock.group_stock_manager,1,1,1,1
+access_upload_product_image_wizard,stock.upload.product.image.wizard,model_stock_upload_product_image_wizard,stock.group_stock_manager,1,1,1,1
+access_upload_csv_image_wizard,stock.upload.csv.image.wizard,model_upload_csv_image_wizard,stock.group_stock_manager,1,1,1,1

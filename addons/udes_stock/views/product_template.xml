@@ -73,4 +73,28 @@
         <field name="context">{"search_default_consumable": 1, 'default_type': 'product', "active_test": False, "search_default_active": 1}</field>
     </record>
 
+    <record id="action_upload_image_list" model="ir.actions.act_window">
+        <field name="name">Upload Product Image</field>
+        <field name="res_model">stock.upload.product.image.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="context">{'default_product_ids': active_ids}</field>
+        <field name="binding_model_id" ref="product.model_product_template"/>
+        <field name="binding_view_types">list</field>
+    </record>
+
+
+    <record id="view_product_form_inherit_upload_photo" model="ir.ui.view">
+        <field name="name">product.template.form.inherit.upload.photo</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_only_form_view"/>
+        <field name="arch" type="xml">
+            <header position="inside">
+                <button name="%(action_upload_product_image_wizard)d"
+                        string="Upload Image"
+                        type="action"
+                        class="oe_highlight"/>
+            </header>
+        </field>
+    </record>
 </odoo>

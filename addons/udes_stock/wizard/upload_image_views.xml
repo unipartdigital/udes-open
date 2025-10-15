@@ -1,0 +1,25 @@
+<odoo>
+    <record id="view_upload_product_image_wizard_form" model="ir.ui.view">
+        <field name="name">stock.upload.product.image.wizard.form</field>
+        <field name="model">stock.upload.product.image.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Add Image to Products">
+                <group>
+                    <field name="image_1920" widget="image"/>
+                </group>
+                <footer>
+                    <button string="Upload" type="object" name="action_upload_image" class="btn-primary"/>
+                    <button string="Cancel" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_upload_product_image_wizard" model="ir.actions.act_window">
+        <field name="name">Upload Product Image</field>
+        <field name="res_model">stock.upload.product.image.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="context">{'default_product_ids': active_ids}</field>
+    </record>
+</odoo>
