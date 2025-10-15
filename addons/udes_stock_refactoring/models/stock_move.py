@@ -159,7 +159,7 @@ class StockMove(models.Model):
                         moves -= stage_moves
                         moves |= new_moves
                         
-                    move_line_ids = (stage_moves | new_moves).move_line_ids.ids
+                    move_line_ids = (stage_moves | new_moves).exists().move_line_ids.ids
                     pickings = moves.picking_id
                     picking_info = [f"{pick.id}, {(pick.name)}" for pick in pickings]
 
