@@ -526,6 +526,20 @@ class StockPickingBatch(models.Model):
         available_pickings = self.picking_ids.filtered(lambda p: p.state == "assigned")
         return available_pickings.get_move_lines_ordered_by()
 
+    def get_skipped_move_lines(self, mls, skipped_product_ids=None, skipped_move_line_ids=None):
+        MoveLine = self.env["stock.move.line"]
+
+        skipped_mls = MoveLine.browse()
+        # Filter out skipped move lines
+        if skipped_product_ids:
+            skipped_mls = mls.filtered(
+                lambda ml: ml.product_id.id in skipped_product_ids
+            )
+        elif skipped_move_line_ids:
+            skipped_mls = mls.filtered(lambda ml: ml.id in skipped_move_line_ids)
+
+        return skipped_mls
+
     def get_next_tasks(
         self,
         skipped_product_ids=None,
@@ -551,20 +565,10 @@ class StockPickingBatch(models.Model):
         They are enabled by picking type and should be filled at
         _prepare_task_info(), by default it is not required to confirm anything.
         """
-        MoveLine = self.env["stock.move.line"]
-
         self.ensure_one()
 
         all_available_mls = self.get_available_move_lines()
-        skipped_mls = MoveLine.browse()
-
-        # Filter out skipped move lines
-        if skipped_product_ids:
-            skipped_mls = all_available_mls.filtered(
-                lambda ml: ml.product_id.id in skipped_product_ids
-            )
-        elif skipped_move_line_ids:
-            skipped_mls = all_available_mls.filtered(lambda ml: ml.id in skipped_move_line_ids)
+        skipped_mls = self.get_skipped_move_lines(all_available_mls, skipped_product_ids, skipped_move_line_ids)
         available_mls = all_available_mls - skipped_mls
 
         num_tasks_picked = len(available_mls.filtered(lambda ml: ml.qty_done == ml.product_qty))
@@ -590,6 +594,7 @@ class StockPickingBatch(models.Model):
         remaining_limit = False
         if type(limit) == int:
             remaining_limit = limit - len(remaining_tasks)
+        # TODO: review
         remaining_tasks += self._populate_next_tasks(
             incomplete_mls,
             have_tasks_been_picked,
