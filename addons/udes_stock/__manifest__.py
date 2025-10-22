@@ -16,6 +16,8 @@
         "udes_security",
     ],
     "data": [
+        "wizard/upload_image_views.xml",
+        "wizard/csv_image_upload_view.xml",
         "security/ir.model.access.csv",
         "data/stock_data.xml",
         "data/stock_config.xml",

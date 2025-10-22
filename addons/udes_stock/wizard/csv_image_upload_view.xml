@@ -1,0 +1,32 @@
+<odoo>
+    <record id="view_upload_csv_image_wizard_form" model="ir.ui.view">
+        <field name="name">upload.csv.image.wizard.form</field>
+        <field name="model">upload.csv.image.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Upload Images via CSV">
+                <group>
+                    <field name="csv_file" filename="csv_filename"/>
+                    <field name="csv_filename" invisible="1"/>
+                    <field name="image_1920" widget="image"/>
+                </group>
+                <footer>
+                    <button name="action_upload_image" type="object" string="Apply" class="btn-primary"/>
+                    <button string="Cancel" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_upload_csv_image_wizard" model="ir.actions.act_window">
+        <field name="name">Upload Images via csv</field>
+        <field name="res_model">upload.csv.image.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <menuitem id="menu_upload_csv_image_wizard"
+            name="Upload Images via csv"
+            parent="stock.menu_stock_inventory_control"
+            action="action_upload_csv_image_wizard"
+            sequence="200" />
+</odoo>
