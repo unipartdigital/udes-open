@@ -81,12 +81,8 @@ class SaleOrderLine(models.Model):
                     line.u_delivery_line_state = "no_stock"
                     continue
                 all_pickings = line.move_ids.filtered(lambda x: x.state != "cancel").picking_id
-                pick_pickings = all_pickings.filtered(
-                    lambda x: x.picking_type_id in pick_op_type
-                )
-                pack_pickings = all_pickings.filtered(
-                    lambda x: x.picking_type_id in pack_op_type
-                )
+                pick_pickings = all_pickings.filtered(lambda x: x.picking_type_id in pick_op_type)
+                pack_pickings = all_pickings.filtered(lambda x: x.picking_type_id in pack_op_type)
                 if pick_pickings:
                     if all(x.state == "done" for x in pick_pickings):
                         state = "picked"
@@ -105,12 +101,14 @@ class SaleOrderLine(models.Model):
     def _prepare_procurement_values(self, group_id=False):
         values = super()._prepare_procurement_values(group_id)
         values.update(
-            {"priority": self.order_id.priority,}
+            {
+                "priority": self.order_id.priority,
+            }
         )
         return values
 
     def action_cancel(self):
-        """ A cancelled SO line will also cancel move IDs """
+        """A cancelled SO line will also cancel move IDs"""
         to_cancel = self.filtered(lambda l: not l.is_cancelled)
 
         if not to_cancel:
@@ -144,17 +142,6 @@ class SaleOrderLine(models.Model):
         lines_to_uncancel = self.filtered(lambda l: l.is_cancelled and not l.ui_is_cancelled)
         lines_to_cancel = self.filtered(lambda l: not l.is_cancelled and l.ui_is_cancelled)
 
-        # Check if the warehouse config allow manual cancellation
-        if lines_to_cancel and False in self.mapped(
-            "order_id.warehouse_id.u_allow_manual_sale_order_line_cancellation"
-        ):
-            raise ValidationError(
-                _(
-                    "Manual cancellation of individual order lines is not "
-                    "allowed by the warehouse config"
-                )
-            )
-
         # Forbid uncancellation of sale order lines
         if lines_to_uncancel:
             raise ValidationError(
@@ -162,10 +149,29 @@ class SaleOrderLine(models.Model):
                 % (", ".join(lines_to_uncancel.mapped("name")),)
             )
 
+        cancel_errors = lines_to_cancel._get_cancel_errors()
+        if cancel_errors:
+            # Just raise for the first error in the list (this preserves behaviour
+            # from before we had a helper _get_cancel_errors())
+            raise ValidationError(cancel_errors[0])
+
+        lines_to_cancel.action_cancel()
+
+    def _get_cancel_errors(self):
+        """Retrieve any errors for cancelling the sale line"""
+        errors = []
+        # Check if the warehouse config allows manual cancellation
+        if self and False in self.mapped(
+            "order_id.warehouse_id.u_allow_manual_sale_order_line_cancellation"
+        ):
+            errors.append(
+                "Manual cancellation of individual order lines is not allowed by the warehouse config"
+            )
+
         # Forbid cancellation of completed sale order lines
-        lines_done = lines_to_cancel.filtered(lambda l: l.state == "done")
+        lines_done = self.filtered(lambda l: l.state == "done")
         if lines_done:
-            raise ValidationError(
+            errors.append(
                 _("Cannot cancel completed order lines: %s")
                 % (", ".join(lines_done.mapped("name")),)
             )
@@ -175,8 +181,7 @@ class SaleOrderLine(models.Model):
         # process completed and the next part unstarted is intentionally
         # allowed. In this case it is up to the users to stock move products
         # back into stock.
-        moves = lines_to_cancel.mapped("move_ids")
-        in_progress_moves = moves.filtered(
+        in_progress_moves = self.move_ids.filtered(
             # Sale order lines are in progress if any of their pickings in the route are in progress
             lambda m: m.state not in ("done", "cancel")
             and (
@@ -187,7 +192,7 @@ class SaleOrderLine(models.Model):
         )
         in_progress_lines = in_progress_moves.mapped("sale_line_id")
         if in_progress_lines:
-            raise ValidationError(
+            errors.append(
                 _("Cannot cancel order lines with pickings in progress: %s")
                 % (", ".join(in_progress_lines.mapped("name")),)
             )
@@ -195,21 +200,19 @@ class SaleOrderLine(models.Model):
         # Disallow cancellation at certain stages in the outbound process
         # NB: If half of a sale order line has left the warehouse and the other
         #     half has not been picked yet, cancellation should be allowed.
-        uncancellable_moves = moves.filtered(
+        uncancellable_moves = self.move_ids.filtered(
             lambda m: m.state in ("partially_available", "assigned")
             and m.picking_id.picking_type_id
             in m.sale_line_id.order_id.warehouse_id.u_disallow_manual_sale_order_line_cancellation_at_picking_type_ids
             # move.warehouse_id can't be used as it is not populated
         )
-
         uncancellable_lines = uncancellable_moves.mapped("sale_line_id")
         if uncancellable_lines:
-            raise ValidationError(
+            errors.append(
                 _("Cannot cancel order lines with pickings at the %s stage: %s")
                 % (
                     "/".join(uncancellable_moves.mapped("picking_type_id.name")),
                     ", ".join(uncancellable_lines.mapped("name")),
                 )
             )
-
-        lines_to_cancel.action_cancel()
+        return errors
