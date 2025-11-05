@@ -20,6 +20,14 @@ class StockMove(models.Model):
         location_customers = self.env.ref("stock.stock_location_customers")
         from_sale = self.env.context.get("from_sale", False)
         result = True
+
+        # This fn can be called multiple times via propagation. Gather delivery cancelled moves
+        # before cancelling by checking state. This time, if any further calls hit this function
+        # then we will not double calculate the u_cancelled_qty
+        delivery_cancelled_moves = self.filtered(
+            lambda m: m.location_dest_id == location_customers and m.state != "cancel"
+        )
+
         if not from_sale:
             result = super(StockMove, self)._action_cancel()
             self.mapped("sale_line_id.order_id").check_delivered()
@@ -27,7 +35,6 @@ class StockMove(models.Model):
         def not_cancelled_filter(m):
             return m.state not in ["cancel"] and m.location_dest_id == location_customers
 
-        delivery_cancelled_moves = self.filtered(lambda m: m.location_dest_id == location_customers)
 
         if not self.env.context.get("disable_sale_cancel", False) and delivery_cancelled_moves:
             lines_to_cancel = delivery_cancelled_moves.sale_line_id.filtered(lambda s: len(s.move_ids.filtered(not_cancelled_filter)) == 0)
