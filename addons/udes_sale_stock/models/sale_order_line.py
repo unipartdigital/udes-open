@@ -216,3 +216,7 @@ class SaleOrderLine(models.Model):
                 )
             )
         return errors
+
+    def _get_reserved_move_lines(self):
+        """Get the reserved move lines for sale lines"""
+        return self.move_ids.move_line_ids.filtered(lambda ml: ml.product_uom_qty > 0)
