@@ -3,6 +3,7 @@ from odoo.exceptions import UserError, ValidationError
 from odoo.tools.float_utils import float_compare, float_is_zero
 from ..registry.refactor import REFACTOR_REGISTRY
 import logging
+import inspect
 
 _logger = logging.getLogger(__name__)
 
@@ -91,6 +92,7 @@ class StockMove(models.Model):
         if stage is not None and stage not in STOCK_REFACTOR_STAGES.values():
             raise UserError(_("Unknown stage for move refactor: %s") % (stage))
         moves = self.exists()
+        original_move_ids = moves.ids
 
         if self.env.context.get("disable_move_refactor"):
             return moves
@@ -100,6 +102,10 @@ class StockMove(models.Model):
             refactor_lam = (
                 lambda m, lam=refactor_lam: lam(m) and STOCK_REFACTOR_STAGES[m.state] == stage
             )
+
+        stack = inspect.stack()
+        caller = next((frame.function for frame in stack[1:6]), "unknown")
+        source = str(caller)
 
         refactor_moves = moves.filtered(refactor_lam)
 
@@ -152,6 +158,21 @@ class StockMove(models.Model):
                     if new_moves != stage_moves or has_split_partial_moves:
                         moves -= stage_moves
                         moves |= new_moves
+                        
+                    move_line_ids = (stage_moves | new_moves).exists().move_line_ids.ids
+                    pickings = moves.picking_id
+                    picking_info = [f"{pick.id}, {(pick.name)}" for pick in pickings]
+
+                    _logger.info("\nOriginal moves: %s\nNew moves: %s\nMove lines: %s\nPickings: %s\nPicking type: %s, %s\nRefactor triggered by: %s\nStage: %s",
+                        sorted(original_move_ids),
+                        sorted(moves.ids),
+                        sorted(move_line_ids),
+                        sorted(picking_info),
+                        picking_type.id if picking_type else None,
+                        picking_type.name if picking_type else None,
+                        source,
+                        stage
+                    )
 
         return moves
 

@@ -93,6 +93,9 @@ class StockMove(models.Model):
         done_moves.push_from_drop()
         return done_moves
 
+    def _action_cancel(self):
+        return super(StockMove, self.with_context(cancellation_in_progress=True))._action_cancel()
+
     def _get_new_picking_values(self):
         """
         Extend _get_new_picking_values() to propagate the origin and partner_id fields for next "push" picking.
@@ -166,7 +169,7 @@ class StockMove(models.Model):
         # which we can then split to backorder pickings after looping over all rules.
         moves_to_split_by_rule = collections.defaultdict(StockMoveObj.browse)
         # Split pick hook (different to two stage split!)
-        for move in self:
+        for move in self.filtered(lambda m: m.state in ['confirmed', 'waiting', 'partially_available']):
             move_qty = move.product_uom_qty
             for rule in applicable_rules.sorted("sequence"):
                 # Iterate on the rules applicable to this picking type, attempting to reserve
@@ -193,10 +196,10 @@ class StockMove(models.Model):
         # we can split those into backorders. Doing it this way prevents us from having picks with multiple
         # products (moves which cannot be _merged) backorder to several separate pickings.
         for rule, assigned_moves in moves_to_split_by_rule.items():
-            original_picking = assigned_moves.picking_id
-            res |= assigned_moves._split_pick_for_rule(assigned_moves, rule)
-            if not original_picking.move_lines:
-                original_picking.u_is_empty = True
+            for original_picking, other_moves in assigned_moves.groupby("picking_id"):
+                res |= other_moves._split_pick_for_rule(other_moves, rule)
+                if not original_picking.move_lines:
+                    original_picking.u_is_empty = True
 
         return res
 
@@ -299,16 +302,22 @@ class StockMove(models.Model):
         # TODO What if no origin?
         return self.groupby("origin")
 
+    def _handle_same_picking_type_moves_after_unreservation(self, merge=True):
+        """Action to take after unreserving moves of the same picking type."""
+        return self._action_confirm(merge=merge)
+
+    def _handle_different_picking_type_moves_after_unreservation(self, merge=True):
+        """Action to take after unreserving moves different picking types."""
+        return self._action_confirm(merge=merge)
+
     def _do_unreserve(self):
         """
-        Restore original picking configuration of split picks.
+        Confirm split pick moves after returning them to their original picking type.
 
-        When a split pick collection is unreserved, we want to put the split
-        pick moves back into the original "pick" picking, so that subsequent
-        reservation will execute the splitting process from the beginning.
-
-        If the original picking is not amendable we should put unreserved moves
-        into a new picking.
+        When a split pick collection is unreserved, we want to identify the
+        unreserved moves, place them into a new picking of their original,
+        pre-split, type and then confirm them. This may result in refactoring
+        depending on the original picking type's configuration.
         """
         Rule = self.env["stock.rule"]
 
@@ -320,7 +329,7 @@ class StockMove(models.Model):
             ],
             order="sequence",
         )
-        if not applicable_rules:
+        if self.env.context.get("cancellation_in_progress") or not applicable_rules:
             return res
 
         grouped_moves = self.group_moves_to_unreserve()
@@ -334,56 +343,46 @@ class StockMove(models.Model):
                     )
                     continue
                 split_pick_type = rule.picking_type_id
-                original_picking_type = rule.u_run_on_assign_applicable_to
                 split_pick_moves = moves.filtered(lambda p: p.picking_type_id == split_pick_type)
                 if not split_pick_moves:
                     _logger.debug("No candidate moves match %r", rule)
                     continue
-                original_picks = moves.picking_id.filtered(
-                    lambda p: p.picking_type_id == original_picking_type
-                    and p.state not in ["assigned", "cancel", "done"]
-                )
+                original_picking_type = rule.u_run_on_assign_applicable_to
+                if split_pick_type == original_picking_type:
+                    _logger.debug(
+                        "Skipping because split and original picking types are the same: %r",
+                        split_pick_type,
+                    )
+                    split_pick_moves._handle_same_picking_type_moves_after_unreservation()
+                    # Remove references to any moves that have been deleted.
+                    moves = moves.exists()
+                    continue
                 split_pick_picks = split_pick_moves.picking_id.filtered(
                     lambda p: p.state not in ["assigned", "cancel", "done"]
                 )
                 origins = split_pick_moves.mapped("origin")
                 origin = origins[0] if len(origins) == 1 else ""
-                # Select a pick picking into which we will merge unreserved
-                # moves from split pick pickings.
-                if original_picks:
-                    target = original_picks[0]
-                    split_pick_moves.write(
-                        {
-                            "picking_id": target.id,
-                            "origin": origin,
-                            "picking_type_id": original_picking_type.id,
-                            "location_id": target.location_id,
-                        }
-                    )
-                    split_pick_moves._merge_moves(merge_into=target.move_lines)
-                    _logger.debug("Merged split pick moves into %r", target)
-                else:
-                    # If we can't find a suitable target picking, create a
-                    # backorder from this picking and convert it to the
-                    # required picking type.
-                    new_pick_vals = {
-                        "location_id": original_picking_type.default_location_src_id.id,
-                        "location_dest_id": original_picking_type.default_location_dest_id.id,
-                        "picking_type_id": original_picking_type.id,
-                        "origin": origin,
-                    }
 
-                    target = split_pick_picks[0]._create_backorder_picking(
-                        split_pick_moves, **new_pick_vals
-                    )
-                    target.move_lines._merge_moves()
-                    target.move_lines.write(
-                        {
-                            "picking_type_id": original_picking_type.id,
-                            "location_id": original_picking_type.default_location_src_id,
-                        }
-                    )
-                    _logger.debug("Created new picking %r for split pick moves", target)
-                # Remove references to moves that have been merged away.
+                # Create a backorder for the moves that have been unreserved
+                # from split picks.
+                new_pick_vals = {
+                    "location_id": original_picking_type.default_location_src_id.id,
+                    "location_dest_id": original_picking_type.default_location_dest_id.id,
+                    "picking_type_id": original_picking_type.id,
+                    "origin": origin,
+                }
+
+                target = split_pick_picks[0]._create_backorder_picking(
+                    split_pick_moves, **new_pick_vals
+                )
+                target.move_lines.write(
+                    {
+                        "picking_type_id": original_picking_type.id,
+                        "location_id": original_picking_type.default_location_src_id,
+                    }
+                )
+                _logger.debug("Created new picking %r for split pick moves", target)
+                target.move_lines._handle_different_picking_type_moves_after_unreservation()
+                # Remove references to any moves that have been deleted.
                 moves = moves.exists()
         return res
