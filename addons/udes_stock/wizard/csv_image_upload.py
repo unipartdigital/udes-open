@@ -10,7 +10,7 @@ class UploadCsvImageWizard(models.TransientModel):
 
     csv_file = fields.Binary(string="CSV File", required=True)
     csv_filename = fields.Char(string="CSV Filename")
-    image_1920 = fields.Binary(String="Image", required=True)
+    image_1920 = fields.Binary(string="Image", required=True)
 
     def action_upload_image(self):
         "Read each line from a CSV and apply the uploaded images to matching products"
