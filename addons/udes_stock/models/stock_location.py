@@ -50,6 +50,41 @@ class StockLocation(models.Model):
                 parent_storage_format = result[0].get("u_location_storage_format", False)
             location.u_storage_format = parent_storage_format
 
+    @api.depends(
+        "u_unreserving_configuration",
+        "location_id",
+        "location_id.u_unreserving_configuration",
+    )
+    def _compute_unreserving(self):
+        """Determine the unreserving configuration of the location.
+
+        If not set on self, get the configuration of the nearest ancestor that has enabled unreserving configuration enabled.
+        """
+        Location = self.env["stock.location"]
+
+        internal_locations = self.filtered(lambda l: l.usage == "internal")
+        other_locations = self - internal_locations
+        for other_location in other_locations:
+            other_location.u_unreserving = False
+        for internal_location in internal_locations:
+            unreserving_config = internal_location.u_unreserving_configuration
+            if unreserving_config:
+                internal_location.u_unreserving = unreserving_config
+                continue
+            # Check ancestors
+            parent_unreserving_config = False
+            parent = internal_location.location_id
+            while not parent_unreserving_config and parent:
+                # No need to read all fields but only parent and storage_format fields
+                result = parent.read(fields=["location_id", "u_unreserving_configuration"])
+                if result[0].get("location_id"):
+                    parent_id = result[0].get("location_id")[0]
+                    parent = Location.browse(parent_id)
+                else:
+                    parent = False
+                parent_unreserving_config = result[0].get("u_unreserving_configuration", False)
+            internal_location.u_unreserving = parent_unreserving_config
+
     def _domain_speed_category(self):
         """Domain for speed product category"""
         Product = self.env["product.template"]
@@ -168,6 +203,30 @@ class StockLocation(models.Model):
         compute="_compute_picking_zone_id",
         readonly=True,
         store=True,
+    )
+    u_unreserving = fields.Boolean(
+        string="Unreserving",
+        compute="_compute_unreserving",
+        help="""
+            Computed unreserving configuration for this location.
+
+            The field visible only in internal locations.
+
+            Unreserving applicable if set directly on the location.
+            Otherwise the configuration of the nearest ancestor with unreserving configuration enabled will be used.
+        """,
+        store=True,
+    )
+    u_unreserving_configuration = fields.Boolean(
+        string="Unreserving Configuration",
+        help="""
+            Enabling unreserving configuration directly from this location.
+
+            The configuration applicable in view or internal locations.
+
+            If not set then the location will use the configuration
+            of the nearest ancestor that has enabled unreserving.
+        """,
     )
 
     def set_u_heatmap_data_updated(self, vals):

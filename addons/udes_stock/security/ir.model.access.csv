@@ -6,3 +6,4 @@ access_product_barcode_stock_user,product_barcode_stock_user,model_product_barco
 access_product_barcode_stock_manager,product.barcode stock_manager,model_product_barcode,stock.group_stock_manager,1,1,1,1
 access_upload_product_image_wizard,stock.upload.product.image.wizard,model_stock_upload_product_image_wizard,stock.group_stock_manager,1,1,1,1
 access_upload_csv_image_wizard,stock.upload.csv.image.wizard,model_upload_csv_image_wizard,stock.group_stock_manager,1,1,1,1
+access_stock_location_unreserve,stock_location_unreserve,model_stock_location_unreserve,stock.group_stock_manager,1,1,1,1
