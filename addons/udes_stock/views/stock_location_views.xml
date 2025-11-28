@@ -45,6 +45,7 @@
                     <field name="posy"/>
                     <field name="posz"/>
                     <field name="u_size"/>
+                    <field name="u_sequence"/>
                 </group>
             </group>
 
@@ -76,6 +77,17 @@
           <filter name="u_is_picking_zone" string="Picking Zone" domain="[('u_is_picking_zone', '=', 'True')]" help="Show only Picking Zones"/>
         </xpath>
       </field>
+    </record>
+
+    <record id="view_location_tree" model="ir.ui.view">
+        <field name="name">stock.location.tree.udes_stock</field>
+        <field name="model">stock.location</field>
+        <field name="inherit_id" ref="stock.view_location_tree2"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='complete_name']" position="after">
+                <field name="u_sequence"/>
+            </xpath>
+        </field>
     </record>
 
     <!-- Move Locations menu item outside of config menu -->
