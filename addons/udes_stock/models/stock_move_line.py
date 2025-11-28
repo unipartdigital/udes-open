@@ -364,9 +364,12 @@ class StockMoveLine(models.Model):
         if location_dest:
             vals["location_dest_id"] = location_dest.id
         mls = self.get_lines_incomplete()
+        res = defaultdict(dict)
+        # Return empty dictionary if there are not any incomplete move lines.
+        if not mls:
+            return dict(res)
         incoming = mls.u_picking_type_id.code == "incoming"
         serials_scanned = mls.u_picking_type_id.are_serials_scanned()
-        res = defaultdict(dict)
         if not product_ids:
             if package:
                 pack_mls = package._get_current_move_lines()
@@ -823,3 +826,15 @@ class StockMoveLine(models.Model):
         return {
             "product_uom_qty": sum(self.mapped("product_uom_qty")),
         }
+
+    def reset_product_uom_qty(self):
+        """
+        Method is called when _do_unreserve method is called on stock.move class. The context
+        will be use to modify core odoo functionality to skip unreserving already picked items.
+        """
+        if self._context.get("skip_picked_qty"):
+            for move_line in self:
+                product_uom_qty = move_line.qty_done
+                move_line.write({"product_uom_qty": product_uom_qty})
+        else:
+            return super().reset_product_uom_qty()

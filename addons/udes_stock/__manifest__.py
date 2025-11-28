@@ -35,6 +35,7 @@
         "wizard/stock_backorder_confirmation_views.xml",
         "wizard/stock_immediate_transfer_views.xml",
         "wizard/stock_picking_mark_todo_views.xml",
+        "wizard/stock_location_unreserve_views.xml",
         "views/assets.xml",
         "views/product_template.xml",
         "views/product_views.xml",

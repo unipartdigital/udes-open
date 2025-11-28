@@ -14,6 +14,8 @@
                 <field name="u_picking_zone_id" attrs="{'invisible': [('u_picking_zone_id', '=', False)]}"/>
                 <field name="u_storage_format"/>
                 <field name="u_location_storage_format" groups="stock.group_stock_manager"/>
+                <field name="u_unreserving" attrs="{'invisible': [('usage', '!=', 'internal')]}" groups="stock.group_stock_manager"/>
+                <field name="u_unreserving_configuration" attrs="{'invisible': [('usage', 'not in', ('internal', 'view'))]}" groups="stock.group_stock_manager"/>
                 <field name="u_location_is_countable"/>
                 <field name="u_is_countable"/>
             </xpath>
@@ -37,6 +39,10 @@
                         name="button_view_child_locations"
                         attrs="{'invisible': [('usage', '=', 'internal')]}"
                 />
+                <button string="Unreserve Stock"
+                        class="oe_stat_button"
+                        attrs="{'invisible': [('u_unreserving', '=', False)]}"
+                        icon="fa-cubes" name="%(stock_location_unreserve)d" type="action"/>
             </xpath>
 
             <group name="additional_info" position="after">
