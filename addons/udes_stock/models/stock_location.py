@@ -229,6 +229,11 @@ class StockLocation(models.Model):
         """,
     )
 
+    u_sequence = fields.Integer(
+        string="Sequence",
+        default=0,
+    )
+
     def set_u_heatmap_data_updated(self, vals):
         """
         Iterate over locations in `self`, checking if any heatmap fields
