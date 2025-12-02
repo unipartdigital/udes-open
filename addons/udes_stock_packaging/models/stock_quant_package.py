@@ -121,36 +121,35 @@ class StockQuantPackage(models.Model):
 
     def get_package_regex_pattern(self, pallet=False, package=False):
         """
-        Method to return pattern of a package, will first look into the package type,
-        if regex is not set on package type will get the package regex pattern in the same way was getting before
-        package types.
+        Method to return pattern of a package.
         """
-        User = self.env["res.users"]
         Package = self.env["stock.quant.package"]
+        pallet_package_type = self.env.ref("udes_stock_packaging.pallet_package_type")
+        package_package_type = self.env.ref("udes_stock_packaging.package_package_type")
 
-        warehouse = User.get_user_warehouse()
         self.ensure_one()
+
         if self.u_package_type.package_type_regex:
             pattern = self.u_package_type.package_type_regex
             type_ = self.u_package_type.name
         else:
-            # TODO , this maybe can be removed if we rely in the future only on package type. At the moment this block
-            #  is to have the previous checks before using package type.
             if package:
-                pattern = warehouse.u_package_barcode_regex
+                pattern = package_package_type.package_type_regex
                 type_ = "package"
             elif pallet:
-                pattern = warehouse.u_pallet_barcode_regex
+                pattern = pallet_package_type.package_type_regex
                 type_ = "pallet"
             elif Package.search_count([("parent_id", "=", self.id)]) > 0:
-                pattern = warehouse.u_pallet_barcode_regex
+                pattern = pallet_package_type.package_type_regex
                 type_ = "pallet"
             else:
                 # Absent any other information, we don't know if a package is a package
                 # of quants or a package of packages (pallet), so the name may match
                 # either.
-                pattern = f"{warehouse.u_package_barcode_regex}|{warehouse.u_pallet_barcode_regex}"
+                pattern = f"{pallet_package_type.package_type_regex}|{package_package_type.package_type_regex}"
                 type_ = "package"
+
+    
         return pattern, type_
 
     def _get_all_products_quantities(self):

@@ -175,12 +175,14 @@ class StockPickingType(models.Model):
     def get_pallet_barcode_format(self):
         """Getting the pallet barcode regex which enforces pallets to be on a specific format"""
         self.ensure_one()
-        return self.u_pallet_barcode_regex or self.warehouse_id.u_pallet_barcode_regex
+        pallet_package_type = self.env.ref("udes_stock_packaging.pallet_package_type")
+        return self.u_pallet_barcode_regex or pallet_package_type.package_type_regex
 
     def get_package_barcode_format(self):
         """Getting the package barcode regex which enforces packages to be on a specific format"""
         self.ensure_one()
-        return self.u_package_barcode_regex or self.warehouse_id.u_package_barcode_regex
+        package_package_type = self.env.ref("udes_stock_packaging.package_package_type")
+        return self.u_package_barcode_regex or package_package_type.package_type_regex
 
     def get_action_picking_tree_draft(self):
         return self._get_action("udes_stock.action_picking_tree_draft")
