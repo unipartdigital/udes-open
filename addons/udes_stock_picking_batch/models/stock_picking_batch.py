@@ -1070,6 +1070,7 @@ class StockPickingBatch(models.Model):
         if picking_zones := kwargs.get("pick_zones", False):
             if isinstance(picking_zones, int):
                 picking_zones = [picking_zones]
+            picking_type.validate_selected_picking_zones(picking_zones)
             batch_create_vals.update({"u_picking_zone_ids": [(6, 0, picking_zones)]})
         if package_name := kwargs.get("package_name", False):
             batch_create_vals.update({"u_last_reserved_pallet_name": package_name})

@@ -1,11 +1,67 @@
 from odoo.addons.udes_stock.tests import common
 from odoo.exceptions import ValidationError
-
+from datetime import datetime
 
 class TestStockPicking(common.BaseUDES):
     @classmethod
     def setUpClass(cls):
         super(TestStockPicking, cls).setUpClass()
+        cls._set_up_some_pickings()
+        cls.StockPicking = cls.env["stock.picking"]
+
+    @classmethod
+    def _set_up_some_pickings(cls):
+        """
+        Create all pickings with same scheduled_date.
+        """
+        Picking = cls.env["stock.picking"]
+        cls.picks = Picking.browse()
+        datetime_now = datetime.now()
+        for i in range(5):
+            cls.picks |= cls._create_quant_and_picking(
+                cls.apple,
+                cls.test_stock_location_01.id,
+                scheduled_date=datetime_now,
+                sequence=10,
+            )
+
+    @classmethod
+    def _create_quant_and_picking(cls, product, location_id, **kwargs):
+        cls.create_quant(product.id, location_id, 1)
+        picking = cls.create_picking(
+            cls.picking_type_pick,
+            products_info=[{"product": product, "qty": 1}],
+            confirm=True,
+            assign=True,
+            **kwargs
+        )
+        return picking
+
+    def test_search_for_pickings_not_custom_order_pickings(self):
+        """
+        If order pickings variable is not passed when searching for pickings, it will order by stock picking
+        _order attribute.
+        """
+        order = self.StockPicking._order
+        earlier_date = datetime.now().replace(hour=0, minute=0, second=0)
+        self.picks[2].scheduled_date = earlier_date
+        # Checking that scheduled date is in _order attribute of picking, all picks have same priority
+        self.assertIn("scheduled_date asc", order)
+        picking = self.StockPicking.search_for_pickings(self.picking_type_pick.id, picking_priorities=None)
+        self.assertEqual(picking.scheduled_date, min(self.picks.mapped("scheduled_date")))
+        self.assertEqual(picking.scheduled_date, earlier_date)
+
+    def test_search_for_pickings_custom_order_pickings(self):
+        """
+        If order pickings variable is passed when searching for pickings, it will order by order_pickings variable passed.
+        """
+        kwargs = {
+            "order_pickings": "sequence desc, id desc"
+        }
+        self.picks[2].sequence = 100
+        picking = self.StockPicking.search_for_pickings(self.picking_type_pick.id, picking_priorities=None, **kwargs)
+        self.assertEqual(picking.sequence, max(self.picks.mapped("sequence")))
+        self.assertEqual(picking.sequence, 100)
 
 
 class TestBatchToUser(common.BaseUDES):

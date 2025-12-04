@@ -210,6 +210,7 @@ class StockPicking(models.Model):
 
         if limit == -1:
             limit = None
+        order_pickings = kwargs.get("order_pickings")
         if picking_priorities:
             search_domain.append(("priority", "in", picking_priorities))
         # Filter pickings by location categories if they are enabled for the given picking type
@@ -227,7 +228,10 @@ class StockPicking(models.Model):
                 [("u_total_volume", "<=", picking_type.u_small_orders_volume_threshold)]
             ])
         # Note: order should be determined by stock.picking._order
-        pickings = self.search(search_domain, limit=limit)
+        if order_pickings:
+            pickings = self.search(search_domain, limit=limit, order=order_pickings)
+        else:
+            pickings = self.search(search_domain, limit=limit)
         if not pickings:
             return None
         return pickings

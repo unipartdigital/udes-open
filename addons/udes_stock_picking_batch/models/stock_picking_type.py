@@ -121,3 +121,10 @@ class StockPickingType(models.Model):
         required=False, copy=False,
         help="Time interval (in seconds)."
     )
+
+    def validate_selected_picking_zones(self, picking_zones):
+        """
+        Method which can be extended in other modules, to validate if selected pick zones are subset of available pick zones.
+        """
+        self.ensure_one()
+        return True
