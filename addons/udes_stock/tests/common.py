@@ -146,6 +146,19 @@ class UnconfiguredBaseUDES(common.SavepointCase):
             kwargs.pop("create_user")
         vals = {}
         vals.update(kwargs)
+
+        # Set default package type if not provided
+        if "u_package_type" not in vals or not vals["u_package_type"]:
+            try:
+                pallet_type = self.env.ref(
+                    "udes_stock_packaging.pallet_package_type", raise_if_not_found=False
+                )
+                if pallet_type:
+                    vals["u_package_type"] = pallet_type.id
+            except Exception:
+                # module not installed -> skip
+                pass
+
         return Package.create(vals)
 
     @classmethod
