@@ -129,7 +129,7 @@ class StockQuantPackage(models.Model):
 
         self.ensure_one()
 
-        if self.u_package_type.package_type_regex:
+        if self.u_package_type:
             pattern = self.u_package_type.package_type_regex
             type_ = self.u_package_type.name
         else:
