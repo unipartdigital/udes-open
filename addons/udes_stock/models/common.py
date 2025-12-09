@@ -103,7 +103,10 @@ def check_upper_case_validation(active_model, user, vals):
     containing valid UDES fields and value as a key value pair
     user -> Current UDES user
     """
-    wh = user.get_user_warehouse()
+    # There are some edge-cases around logging out where `user` may be an empty
+    # recordset when get here; in that case we have to fall back to the default
+    # warehouse.
+    wh = user.get_user_warehouse() if user else user.env.ref("stock.warehouse0")
     # There will always be only one warehouse as per get_user_warehouse()
     if wh.u_force_upper_case_field_ids:
         # field names can be similar in different models filter out records based on which active_model
@@ -115,6 +118,6 @@ def check_upper_case_validation(active_model, user, vals):
             if field_value:
                 if field_value != field_value.upper():
                     raise ValidationError(
-                        _("%s column value on model %s should " "be in upper case instead of %s ")
+                        _("%s column value on model %s should be in upper case instead of %s ")
                         % (field.name, active_model, field_value)
                     )
