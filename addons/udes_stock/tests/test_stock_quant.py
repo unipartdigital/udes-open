@@ -1,5 +1,6 @@
 from .common import BaseUDES
 from datetime import datetime, timedelta
+from freezegun import freeze_time
 
 
 class TestStockQuantModel(BaseUDES):
@@ -7,6 +8,7 @@ class TestStockQuantModel(BaseUDES):
     def setUpClass(cls):
         super(TestStockQuantModel, cls).setUpClass()
         cls.Quant = cls.env["stock.quant"]
+        cls.supplier_location = cls.env.ref("stock.stock_location_suppliers")
         cls.test_package = cls.create_package()
         cls.test_package2 = cls.create_package()
         cls.quantA = cls.create_quant(
@@ -90,6 +92,97 @@ class TestStockQuantModel(BaseUDES):
         gathered_items = self.Quant._gather(self.apple, self.test_stock_location_02)
         # Check the number of apple quants returned is correct
         self.assertFalse(len(gathered_items))
+
+    def test_in_date_on_new_quant_with_lot(self):
+        """
+        Creating 2 lots on different packages from supplier, and testing they have different in_date.
+        """
+        lot = self.create_lot(self.tangerine.id, "4001")
+        package_1 = self.create_package()
+        package_2 = self.create_package()
+        quants = self.Quant._gather(
+            self.tangerine,
+            self.test_stock_location_03,
+            lot_id=lot,
+            package_id=package_1,
+            owner_id=None,
+            strict=True,
+        )
+        supplier_quants = self.Quant._gather(
+            self.tangerine,
+            self.supplier_location,
+            lot_id=lot,
+            package_id=None,
+            owner_id=None,
+            strict=True,
+        )
+        # At the beginning there are not any quants for lot 0004
+        self.assertFalse(quants)
+        self.assertFalse(supplier_quants)
+        # Create lot 0004 in package 1, in_date wil be always returned None when we create or
+        # update quants for a lot in customer location.
+        # In date will have value if we create quant which is not a lot in supplier location
+        initial_datetime = datetime.now().replace(microsecond=0)
+        with freeze_time(initial_datetime) as frozen_time:
+            supplier_qty, supplier_in_date = self.Quant._update_available_quantity(
+                self.tangerine,
+                self.supplier_location,
+                quantity=-10,
+                lot_id=lot,
+            )
+            # Normally before changes supplier_in_date is passed when creating the lot in the
+            # stock location.
+            self.assertFalse(supplier_in_date)
+            first_lot_qty, first_lot_in_date = self.Quant._update_available_quantity(
+                self.tangerine,
+                self.test_stock_location_03,
+                quantity=10,
+                lot_id=lot,
+                package_id=package_1,
+                in_date=supplier_in_date,
+            )
+            self.assertTrue(first_lot_in_date)
+            self.assertEqual(initial_datetime, first_lot_in_date)
+            # Finding the lot created for package 1
+            first_lot_quant = self.Quant._gather(
+                self.tangerine,
+                self.test_stock_location_03,
+                lot_id=lot,
+                package_id=package_1,
+                strict=True,
+            )
+            self.assertEqual(len(first_lot_quant), 1)
+            self.assertEqual(first_lot_quant.in_date, first_lot_in_date)
+            # Tick so datetime.now will be one second forward.
+            frozen_time.tick(delta=timedelta(seconds=1))
+            supplier_qty, supplier_in_date = self.Quant._update_available_quantity(
+                self.tangerine,
+                self.supplier_location,
+                quantity=-5,
+                lot_id=lot,
+            )
+            # Normally before changes supplier_in_date is passed when creating the lot in the
+            # stock location.
+            self.assertFalse(supplier_in_date)
+            second_lot_qty, second_lot_in_date = self.Quant._update_available_quantity(
+                self.tangerine,
+                self.test_stock_location_03,
+                quantity=5,
+                lot_id=lot,
+                package_id=package_2,
+                in_date=supplier_in_date,
+            )
+            # Finding the lot created for package 2
+            second_lot_quant = self.Quant._gather(
+                self.tangerine,
+                self.test_stock_location_03,
+                lot_id=lot,
+                package_id=package_2,
+                strict=True,
+            )
+            self.assertEqual(len(second_lot_quant), 1)
+            self.assertEqual(second_lot_quant.in_date, second_lot_in_date)
+            self.assertEqual(second_lot_in_date, first_lot_in_date + timedelta(seconds=1))
 
 
 class TestCreatePicking(BaseUDES):

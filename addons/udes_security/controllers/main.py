@@ -118,11 +118,12 @@ class SecureAction(Action):
             ]
             for model in models:
                 action = request.env[model].sudo().search([("id", "=", action_id)], order="id")
-                if action and hasattr(action, "groups_id"):
-                    action_group_ids = action.groups_id.ids
+                if action:
                     # Let _user_has_access_right() run at least once but give it
                     # a menu id which will resolve to no result in the query
                     parent_path_ids = [0]
+                    if hasattr(action, "groups_id"):
+                        action_group_ids = action.groups_id.ids
                     break
         return parent_path_ids, action_group_ids
 

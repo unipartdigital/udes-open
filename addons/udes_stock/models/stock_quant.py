@@ -143,7 +143,7 @@ class StockQuant(models.Model):
         aux_domain optional parameter
         """
         self.ensure_one()
-        
+
         domain = [
             ("product_id", "=", self.product_id.id),
             ("package_id", "=", self.package_id.id),
@@ -158,3 +158,28 @@ class StockQuant(models.Model):
     @api.model
     def get_available_qty_domain(self, product, locations):
         return [("product_id", "=", product.id), ("location_id", "child_of", locations.ids)]
+
+    def _update_available_quantity(
+        self,
+        product_id,
+        location_id,
+        quantity,
+        lot_id=None,
+        package_id=None,
+        owner_id=None,
+        in_date=None,
+    ):
+        """
+        When receiving a product, source location is supplier. UDES creates a negative quant in
+        supplier location and a positive quant in received location. When creating negative quant
+        in supplier location, because quants for the lot in supplier location doesn't save
+        information about package it gets as in_date the in_date of the original in_date for the
+        negative quant in supplier location. In these cases we return as in_date None so when new lot
+        is created to create with new in_date and not the first received date for that lot.
+        """
+        available_qty, in_date = super()._update_available_quantity(
+            product_id, location_id, quantity, lot_id, package_id, owner_id, in_date
+        )
+        if quantity < 0 and lot_id and location_id.usage == "supplier":
+            in_date = None
+        return available_qty, in_date
