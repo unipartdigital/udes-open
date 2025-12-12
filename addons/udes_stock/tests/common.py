@@ -2,7 +2,7 @@ from odoo.tests import common, tagged
 from odoo.fields import Datetime
 from datetime import timedelta
 from itertools import count
-
+import contextlib
 import logging
 from unittest.mock import patch
 
@@ -146,6 +146,13 @@ class UnconfiguredBaseUDES(common.SavepointCase):
             kwargs.pop("create_user")
         vals = {}
         vals.update(kwargs)
+
+        # Set default package type if packaging module is installed
+        with contextlib.suppress(ValueError, KeyError):
+            pallet_type = self.env.ref("udes_stock_packaging.pallet_package_type")
+            vals.setdefault("u_package_type", pallet_type.id)
+
+
         return Package.create(vals)
 
     @classmethod

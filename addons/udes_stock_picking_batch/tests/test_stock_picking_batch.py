@@ -9,8 +9,8 @@ class TestBatchState(common.BaseUDES):
     def setUpClass(cls):
         super().setUpClass()
 
-        cls.package_one = cls.create_package(name="00001")
-        cls.package_two = cls.create_package(name="00002")
+        cls.package_one = cls.create_package(name="UDES00001")
+        cls.package_two = cls.create_package(name="UDES00002")
 
         cls.pack_4apples_info = [{"product": cls.apple, "qty": 4}]
 
@@ -843,8 +843,8 @@ class TestBatchAddRemoveWork(common.BaseUDES):
         Batch = cls.env["stock.picking.batch"]
         Batch = Batch.with_user(cls.stock_user)
 
-        cls.package_one = cls.create_package(name="00001")
-        cls.package_two = cls.create_package(name="00002")
+        cls.package_one = cls.create_package(name="UDES00001")
+        cls.package_two = cls.create_package(name="UDES00002")
         cls.pack_4apples_info = [{"product": cls.apple, "qty": 4}]
 
         cls.pack_info = [{"product": cls.apple, "qty": 4}]
@@ -1069,10 +1069,10 @@ class TestStockPickingBatch(common.BaseUDES):
     def setUp(self):
         super(TestStockPickingBatch, self).setUp()
 
-        self.package_one = self.create_package(name="00001")
-        self.package_two = self.create_package(name="00002")
-        self.package_three = self.create_package(name="00003")
-        self.package_four = self.create_package(name="00004")
+        self.package_one = self.create_package(name="UDES00001")
+        self.package_two = self.create_package(name="UDES00002")
+        self.package_three = self.create_package(name="UDES00003")
+        self.package_four = self.create_package(name="UDES00004")
 
     def test_get_single_batch_no_batch_no_picking(self):
         """Should not create anything if no picking exists"""
@@ -2286,7 +2286,7 @@ class TestPickingBatchDisabledUnpickableItems(common.BaseUDES):
 
     def setUp(self):
         super(TestPickingBatchDisabledUnpickableItems, self).setUp()
-        self.package_one = self.create_package(name="00001")
+        self.package_one = self.create_package(name="UDES00001")
 
     def _create_valid_batch(self):
         Batch = self.env["stock.picking.batch"]

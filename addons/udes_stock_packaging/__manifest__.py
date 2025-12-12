@@ -13,7 +13,6 @@
         "views/container_type_views.xml",
         "views/package_type_views.xml",
         "views/stock_picking_type.xml",
-        "views/stock_warehouse.xml",
         "views/stock_quant_package.xml",
     ],
 }
