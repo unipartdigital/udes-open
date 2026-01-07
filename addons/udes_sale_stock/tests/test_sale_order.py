@@ -8,7 +8,35 @@ class TestSaleOrder(common.BaseUDESPullOutboundRoute):
     @classmethod
     def setUpClass(cls):
         super(TestSaleOrder, cls).setUpClass()
+        cls.setup_default_warehouse()
         cls.Picking = cls.env["stock.picking"]
+
+    @classmethod
+    def create_simple_outbound_route(cls):
+        """Extend to create a rule for customers location if required."""
+        res = super().create_simple_outbound_route()
+
+        IrModuleModule = cls.env["ir.module.module"]
+        Rule = cls.env["stock.rule"]
+        customers_location = cls.env.ref("stock.stock_location_customers")
+
+        procurement_jit = IrModuleModule.search(
+            [("name", "=", "procurement_jit"), ("state", "=", "installed")]
+        )
+        if procurement_jit:
+            # Create a dummy rule to keep procurement_jit happy.
+            cls.rule_dispatch = Rule.create(
+                {
+                    "name": "TestCustomers",
+                    "route_id": cls.route_out.id,
+                    "picking_type_id": cls.picking_type_trailer_dispatch.id,
+                    "location_src_id": cls.picking_type_trailer_dispatch.default_location_src_id.id,
+                    "location_id": customers_location.id,
+                    "action": "pull",
+                    "procure_method": "make_to_order",
+                }
+            )
+        return res
 
     def test_all_created_pickings_are_attached_to_sale_order(self):
         """
