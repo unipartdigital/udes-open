@@ -18,7 +18,7 @@ PG_CONCURRENCY_ERRORS_TO_RETRY = (
 
 _logger = logging.getLogger(__name__)
 
-PRIORITIES = [('0', 'Normal'), ('1', 'Urgent')]
+PRIORITIES = [("0", "Normal"), ("1", "Urgent")]
 
 
 class SaleOrder(models.Model):
@@ -33,12 +33,17 @@ class SaleOrder(models.Model):
     )
 
     # Rename states
-    state = fields.Selection(selection_add=[("sale", "In Progress"), ("done", "Done"),])
+    state = fields.Selection(
+        selection_add=[
+            ("sale", "In Progress"),
+            ("done", "Done"),
+        ]
+    )
 
     picking_ids = fields.One2many(
         "stock.picking",
         # inverse_name=None,
-        compute="_compute_picking_ids_by_line"
+        compute="_compute_picking_ids_by_line",
     )
 
     priority = fields.Selection(
@@ -56,7 +61,8 @@ class SaleOrder(models.Model):
     requested_date = fields.Datetime(required=True, copy=True)
 
     u_allow_manual_sale_order_line_cancellation = fields.Boolean(
-        readonly=True, related="warehouse_id.u_allow_manual_sale_order_line_cancellation",
+        readonly=True,
+        related="warehouse_id.u_allow_manual_sale_order_line_cancellation",
     )
 
     u_carrier_id = fields.Many2one("udes.carrier", string="Carrier")
@@ -123,7 +129,7 @@ class SaleOrder(models.Model):
 
     def copy(self, default=None):
         """Append '(copy)' to Customer Reference for duplicated Order if not supplied"""
-        if not dict(default or {}).get('client_order_ref'):
+        if not dict(default or {}).get("client_order_ref"):
             default = dict(default or {}, client_order_ref=_("%s (copy)") % self.client_order_ref)
         return super(SaleOrder, self).copy(default)
 
@@ -170,9 +176,9 @@ class SaleOrder(models.Model):
 
     def _find_unfulfillable_order_lines(self, batch_size=1000):
         """Find unfullfilable order lines due to lack of stock."""
-        Location = self.env['stock.location']
+        Location = self.env["stock.location"]
         OrderLine = self.env["sale.order.line"]
-        Quant = self.env['stock.quant']
+        Quant = self.env["stock.quant"]
 
         # Create empty record sets for SO lines
         unfulfillable_lines = OrderLine.browse()
@@ -245,11 +251,11 @@ class SaleOrder(models.Model):
         return unfulfillable_lines.mapped("order_id")
 
     def check_delivered(self):
-        """ Update sale orders state based on the states of their related
-            pickings.
-            An order is considered cancelled when all its terminal pickings are
-            cancelled and is considered done when all terminal pickings are in a
-            terminal state (at least one of which is in state done).
+        """Update sale orders state based on the states of their related
+        pickings.
+        An order is considered cancelled when all its terminal pickings are
+        cancelled and is considered done when all terminal pickings are in a
+        terminal state (at least one of which is in state done).
         """
         for order in self:
             last_pickings = order.picking_ids.filtered(lambda p: len(p.u_next_picking_ids) == 0)
@@ -257,8 +263,9 @@ class SaleOrder(models.Model):
                 lambda p: p.state in ["done", "cancel"]
             )
             cancelled_last_pickings = last_pickings.filtered(lambda p: p.state == "cancel")
-            if last_pickings == cancelled_last_pickings and \
-                not self.env.context.get("disable_sale_cancel", False):
+            if last_pickings == cancelled_last_pickings and not self.env.context.get(
+                "disable_sale_cancel", False
+            ):
                 order.with_context(from_sale=True).action_cancel()
             elif last_pickings == completed_last_pickings:
                 order.action_done()
@@ -297,7 +304,7 @@ class SaleOrder(models.Model):
         return so_to_confirm.action_confirm()
 
     def get_current_demand(self, products=None):
-        """ Get current demand created by confirmed Sale Orders
+        """Get current demand created by confirmed Sale Orders
         per product - regardless of expected delivery date
 
         Returns defaultdict(int, {product.product(1,): 12.0})
@@ -333,7 +340,7 @@ class SaleOrder(models.Model):
         return demand
 
     def action_confirm(self):
-        """ Override to disable tracking by default """
+        """Override to disable tracking by default"""
         return super(SaleOrder, self.with_context(tracking_disable=True)).action_confirm()
 
     def confirm_orders(self, size=1000):
@@ -358,8 +365,11 @@ class SaleOrder(models.Model):
         exception_data = []
         # Getting value of MAX_TRIES_ON_CONCURRENCY_FAILURE from system parameters,
         # will allow us to be flexible to change on fly if needed and not hard coded
-        MAX_TRIES_ON_CONCURRENCY_FAILURE = int(self.env["ir.config_parameter"].sudo().get_param(
-            "udes_sale_stock.max_tries_on_concurrency_failure", 5))
+        MAX_TRIES_ON_CONCURRENCY_FAILURE = int(
+            self.env["ir.config_parameter"]
+            .sudo()
+            .get_param("udes_sale_stock.max_tries_on_concurrency_failure", 5)
+        )
 
         if self:
             to_confirm = self
@@ -415,7 +425,7 @@ class SaleOrder(models.Model):
             _logger.error(collected_exceptions)
             raise exceptions.CombinedException(
                 "At least one error occurred while confirming orders.",
-                collected_exceptions=collected_exceptions
+                collected_exceptions=collected_exceptions,
             ) from None
 
         return True
@@ -469,7 +479,7 @@ class SaleOrder(models.Model):
         return [("state", "=", "draft")]
 
     def get_orders_to_confirm(self):
-        """ Getting orders to confirm. Placing into a method in order to be easier to override"""
+        """Getting orders to confirm. Placing into a method in order to be easier to override"""
         return self.search(self._get_confirmation_domain())
 
     def action_done(self):

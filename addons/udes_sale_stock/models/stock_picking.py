@@ -1,5 +1,6 @@
 from odoo import models
 
+
 class StockPicking(models.Model):
     _inherit = "stock.picking"
 
@@ -41,7 +42,9 @@ class StockPicking(models.Model):
         sale = package.get_sale_order()
         res["title"] = f"Order: {sale.name}"
         # This pair should be at the top, hence insert(0), but name should be first, hence inserting afterwards.
-        res["extra_summary"].insert(0, f"**Customer Address:** \n{sale.partner_id._display_address()}")
+        res["extra_summary"].insert(
+            0, f"**Customer Address:** \n{sale.partner_id._display_address()}"
+        )
         res["extra_summary"].insert(0, f"**Customer Name:** {sale.partner_id.name}")
         res["courier_info"] = {
             "id": sale.u_carrier_id.id,

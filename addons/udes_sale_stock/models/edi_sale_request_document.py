@@ -30,8 +30,9 @@ class EdiSaleRequestDocument(models.AbstractModel):
         SaleRequestRecord = self.sale_request_record_model(line.doc_id)
 
         extracted = super()._extract_invalid_order_line(line)
-        sale = SaleRequestRecord.search([('doc_id', '=', line.doc_id.id),
-                                         ('name', '=', line.order_key)])
+        sale = SaleRequestRecord.search(
+            [("doc_id", "=", line.doc_id.id), ("name", "=", line.order_key)]
+        )
         extracted.insert(0, sale.client_order_ref)
         return extracted
 

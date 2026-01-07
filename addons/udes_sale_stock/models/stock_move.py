@@ -35,16 +35,19 @@ class StockMove(models.Model):
         def not_cancelled_filter(m):
             return m.state not in ["cancel"] and m.location_dest_id == location_customers
 
-
         if not self.env.context.get("disable_sale_cancel", False) and delivery_cancelled_moves:
-            lines_to_cancel = delivery_cancelled_moves.sale_line_id.filtered(lambda s: len(s.move_ids.filtered(not_cancelled_filter)) == 0)
+            lines_to_cancel = delivery_cancelled_moves.sale_line_id.filtered(
+                lambda s: len(s.move_ids.filtered(not_cancelled_filter)) == 0
+            )
             lines_to_cancel.action_cancel()
 
         for delivery_cancelled_move in delivery_cancelled_moves:
             # Already cancelled qty for sale order line
             cancelled_qty = delivery_cancelled_move.sale_line_id.u_cancelled_qty
 
-            delivery_cancelled_move.sale_line_id.u_cancelled_qty = cancelled_qty + delivery_cancelled_move.product_uom_qty
+            delivery_cancelled_move.sale_line_id.u_cancelled_qty = (
+                cancelled_qty + delivery_cancelled_move.product_uom_qty
+            )
         return result
 
     def _prepare_procurement_values(self):
@@ -65,7 +68,7 @@ class StockMove(models.Model):
         picking = super(StockMove, self)._search_picking_for_assignation()
         if self.sale_line_id:
             if picking and picking.priority != self.sale_line_id.order_id.priority:
-                return self.env['stock.picking']
+                return self.env["stock.picking"]
         return picking
 
     def _get_new_picking_values(self):

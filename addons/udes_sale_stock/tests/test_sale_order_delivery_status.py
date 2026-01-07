@@ -281,9 +281,7 @@ class TestDeliveryStatusOfSaleOrder(common.BaseUDESPullOutboundRoute, BaseSaleUD
         self.assertEqual(self.sale_line1.u_delivery_line_state, "picked")
         self.assertEqual(self.sale_line2.u_delivery_line_state, "allocated")
         self.assertEqual(self.sale.u_delivery_state, "allocated")
-        back_order = self.env["stock.picking"].search(
-            [("backorder_id", "=", pick_picking.id)]
-        )
+        back_order = self.env["stock.picking"].search([("backorder_id", "=", pick_picking.id)])
         self.assertEqual(len(back_order), 1)
         back_order.action_assign()
         self.assertEqual(back_order.state, "assigned")

@@ -73,7 +73,9 @@ class TestSaleOrder(common.BaseUDESPullOutboundRoute):
         sale_order.action_confirm()
         self.assertFalse(sale_order.u_done_date, "Done Date should not be set initially.")
         sale_order.action_done()
-        self.assertEqual(sale_order.u_done_date, datetime.strptime("2025-04-28 15:30:00", "%Y-%m-%d %H:%M:%S"))
+        self.assertEqual(
+            sale_order.u_done_date, datetime.strptime("2025-04-28 15:30:00", "%Y-%m-%d %H:%M:%S")
+        )
 
     def _create_sale_order(self, product_id, product_uom_qty):
         """

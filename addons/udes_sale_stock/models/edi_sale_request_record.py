@@ -6,7 +6,7 @@ _logger = logging.getLogger(__name__)
 
 class EdiSaleRequestRecord(models.AbstractModel):
     """
-    Extend ``edi.sale.request.record`` to add 
+    Extend ``edi.sale.request.record`` to add
     Requested Date and Customer Reference fields
     """
 
@@ -18,7 +18,7 @@ class EdiSaleRequestRecord(models.AbstractModel):
     @api.model
     def target_values(self, record_vals):
         """
-        Override to add Requested Date and Customer Reference fields 
+        Override to add Requested Date and Customer Reference fields
         to ``sale.order`` value dictionary
         """
         so_vals = super().target_values(record_vals)

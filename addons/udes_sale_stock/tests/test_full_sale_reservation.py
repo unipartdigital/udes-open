@@ -1,4 +1,5 @@
 """Unit tests for full sale reservation"""
+
 from unittest import mock
 from odoo.addons.udes_common.tests.common import SavepointMixin
 from .common import BaseSaleUDES
@@ -52,7 +53,9 @@ class TestFullSaleReservation(BaseSaleUDES):
         # Not allowing handle partials.
         cls.picking_type_pick.u_handle_partials = False
         # Copy picking type to have same configurations, and only changing the source location.
-        cls.picking_type_pick2 = cls.picking_type_pick.copy({"default_location_src_id": picking_zone2.id})
+        cls.picking_type_pick2 = cls.picking_type_pick.copy(
+            {"default_location_src_id": picking_zone2.id}
+        )
 
         products_info = [{"product": cls.apple, "uom_qty": 10.0}]
 
@@ -75,12 +78,14 @@ class TestFullSaleReservation(BaseSaleUDES):
         )
 
         # Create a sale order with same qty of apples and bananas
-        customer = cls.create_partner("Test Customer",)
+        customer = cls.create_partner(
+            "Test Customer",
+        )
         cls.sale = cls.create_sale(
             customer, client_order_ref="order01", requested_date=datetime.date.today()
         )
         cls.sale_line1 = cls.create_sale_line(cls.sale, cls.apple, 10.0)
-        cls.sale_line2 =cls.create_sale_line(cls.sale, cls.banana, 5.0)
+        cls.sale_line2 = cls.create_sale_line(cls.sale, cls.banana, 5.0)
         # Update move lines to link each move line with respective sale order line
         cls.test_picking_pick1.move_lines.write({"sale_line_id": cls.sale_line1.id})
         cls.test_picking_pick2.move_lines.write({"sale_line_id": cls.sale_line2.id})
@@ -108,7 +113,6 @@ class TestFullSaleReservation(BaseSaleUDES):
         self.picking_type_pick.u_full_sale_reservation = True
         self.picking_type_pick2.u_full_sale_reservation = True
         self.assertEqual(test_quant_apple.quantity, 10.0)
-
 
         move1 = self.test_picking_pick1.move_lines
         self.assertEqual(len(move1), 1)

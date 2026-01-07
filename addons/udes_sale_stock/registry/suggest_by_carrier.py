@@ -1,4 +1,6 @@
-from odoo.addons.udes_suggest_location.registry.suggest_locations_policy import SuggestLocationPolicy
+from odoo.addons.udes_suggest_location.registry.suggest_locations_policy import (
+    SuggestLocationPolicy,
+)
 from odoo.tools.translate import _
 
 
@@ -49,17 +51,15 @@ class ByCarrier(SuggestLocationPolicy):
         # Note that, this wouldn't work if 'by carrier' is configured on the last
         # picking in a chain, as there will be no followup moves. This shouldn't
         # matter as the quants are just going out of the warehouse in that case.
-        move_lines = StockMoveLine.search([
-            ("state", "=", "assigned"),
-            ("location_id", "child_of", location.id)
-        ])
+        move_lines = StockMoveLine.search(
+            [("state", "=", "assigned"), ("location_id", "child_of", location.id)]
+        )
         return move_lines.filtered(
             lambda ml: ml.move_id.sale_line_id.order_id.u_carrier_id == carrier
         ).location_id  # Can be singleton, multi, or emptyset!
 
-
     def iter_mls(self, mls):
         for _carrier, grouped_mls in mls.groupby(
-                lambda ml: ml.move_id.sale_line_id.order_id.u_carrier_id
+            lambda ml: ml.move_id.sale_line_id.order_id.u_carrier_id
         ):
             yield grouped_mls
