@@ -98,6 +98,21 @@ class SaleOrderLine(models.Model):
                         state = "done"
             line.u_delivery_line_state = state
 
+    @api.depends(
+        "product_type", "product_uom_qty", "qty_delivered", "state", "move_ids", "product_uom"
+    )
+    def _compute_qty_to_deliver(self):
+        """
+        Compute the visibility of the inventory widget.
+
+        Override the core method to prevent display of the widget for orders
+        as the computations are costly when an order has many lines
+        and the warehouse many locations.
+        """
+        for line in self:
+            line.qty_to_deliver = line.product_uom_qty - line.qty_delivered
+            line.display_qty_widget = False
+
     def _prepare_procurement_values(self, group_id=False):
         values = super()._prepare_procurement_values(group_id)
         values.update(

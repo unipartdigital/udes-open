@@ -130,3 +130,11 @@ class TestSaleOrder(common.BaseUDESPullOutboundRoute):
             }
         )
         return sale_order
+
+    def test_will_not_display_forecast_widget_for_confirmed_sales(self):
+        """The system will not display the forecast widget for open sales with moves."""
+        sale_order = self._create_sale_order(self.apple.id, 10)
+        sale_order.action_confirm()
+
+        self.assertEqual(sale_order.order_line.qty_to_deliver, 10)
+        self.assertFalse(sale_order.order_line.display_qty_widget)
