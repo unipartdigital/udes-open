@@ -117,6 +117,10 @@ class StockPickingBatch(models.Model):
     @api.constrains("user_id", "u_user_ids")
     def _compute_state(self):
         """ Compute the state of a batch
+            If a batch is in state different from draft or cancelled
+            (so it was confirmed/started at some point) and it ends up without pickings or only
+            pickings without moves, state of the batch is changed as done.
+
             waiting     : At least some picks are not ready
             ready       : All picks are in ready state (assigned)
             in_progress : All picks are ready and a user has been assigned
@@ -134,7 +138,7 @@ class StockPickingBatch(models.Model):
                 # Can not do anything with them don't bother trying
                 continue
 
-            if batch.picking_ids:
+            if batch.picking_ids and batch.picking_ids.move_lines:
 
                 ready_picks = batch.ready_picks()
                 done_picks = batch.done_picks()
@@ -875,6 +879,8 @@ class StockPickingBatch(models.Model):
                 stats.count,
                 stats.count / stats.elapsed
             )
+        # Recompute state of the batch.
+        self._compute_state()
         if not continue_batch:
             # NOTE: Added sudo() - Uses sudo() here as a user might not have the full access rights to stock.picking.batch
             # but still needs more access rights for the flow
