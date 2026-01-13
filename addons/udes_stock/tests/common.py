@@ -59,11 +59,12 @@ class UnconfiguredBaseUDES(common.SavepointCase):
         cls._set_test_picking_type("out", "trailer_dispatch")
 
     @classmethod
-    def _set_test_picking_type(cls, ptype, name=None):
+    def _set_test_picking_type(cls, ptype, name=None, **kwargs):
         if name is None:
             name = ptype
 
         copy_vals = {"name": f"TEST_{name.upper()}", "active": True}
+        copy_vals.update(kwargs)
         wh_attr = getattr(cls.warehouse, f"{ptype}_type_id")
         new_pt = wh_attr.copy(copy_vals)
         setattr(cls, f"picking_type_{name}", new_pt)
