@@ -908,7 +908,8 @@ class StockPicking(models.Model):
 
         # Try to re-assign the picking after creating the stock investigation
         # picking as we have reserved the problematic stock
-        self.action_assign()
+        if self.move_lines:
+            self.action_assign()
 
     def _check_entire_pack(self):
         """
