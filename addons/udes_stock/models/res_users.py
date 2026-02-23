@@ -35,7 +35,7 @@ class ResUser(models.Model):
         """
         Warehouse = self.env["stock.warehouse"]
 
-        user = self.env.user
+        user = self or self.env.user
         if user.id != SUPERUSER_ID:
             user = self.search([("id", "=", user.id)])
             if not user:
