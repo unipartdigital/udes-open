@@ -285,6 +285,8 @@ class StockQuantPackage(models.Model):
                 # Create result_package when packing products without
                 # result_package being set
                 result_package = Package.create({"u_package_type": package_package_type.id})
+            elif product_ids and not package and result_package_name:
+                result_package = Package.get_or_create(result_package_name, create=True, **kwargs)
 
         elif target_storage_format == "product":
             # Error when trying to mark_as_done a full package or setting result package
