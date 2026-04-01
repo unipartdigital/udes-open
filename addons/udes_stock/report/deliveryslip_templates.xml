@@ -50,8 +50,9 @@
                             </tr>
                             <tr style="border:0px solid transparent">
                                 <td style="border:0px solid transparent">
-                                    <span t-field="o.partner_id"
-                                       t-options='{"widget": "contact", "fields": ["address", "name", "phone"], "no_marker": True}'/>
+                                    <t t-set="clean_address" t-value="o.partner_id.contact_address.replace('\n\n', '\n')"/>
+                                    <div style="white-space: pre-line;"><t t-raw="clean_address"/></div>
+                                    <div><t t-esc="o.partner_id.phone"/></div>
                                 </td>
                             </tr>
                         </t>
@@ -165,4 +166,3 @@
         </t>
     </template>
 </odoo>
-
