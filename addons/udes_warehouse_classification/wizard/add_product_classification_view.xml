@@ -3,12 +3,13 @@
   <data>
 
     <record model="ir.ui.view" id="add_product_classification_form">
-      <field name="name">Add Product Classification</field>
+      <field name="name">Add / Remove Product Classification</field>
       <field name="model">udes_warehouse_classification.add_product_classification</field>
       <field name="type">form</field>
       <field name="arch" type="xml">
         <form string="Upload products">
           <group>
+            <field name="action_type"/>
             <field name="file_data" required="1"/>
           </group>
           <footer>

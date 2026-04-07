@@ -15,6 +15,15 @@ class AddProductClassification(models.TransientModel):
     file_data = fields.Binary(
         string="Upload file", help="A file of product default codes, one code per line"
     )
+    action_type = fields.Selection(
+        [
+            ("add", "Add"),
+            ("remove", "Remove"),
+        ],
+        string="Action",
+        required=True,
+        default="add",
+    )
 
     @api.multi
     def upload_products(self):
@@ -38,9 +47,15 @@ class AddProductClassification(models.TransientModel):
             unknown = cleaned_data - set(product_templates.mapped("default_code"))
             message = _("Unknown product code(s) {}").format(", ".join(repr(s) for s in unknown))
             raise ValidationError(message)
+        
+         # Action mapping
+        action_mapping = {
+            "add": 4,
+            "remove": 3,
+        }
 
         product_templates.write(
-            {"u_product_warehouse_classification_ids": [(4, c.id) for c in classifications]}
+            {"u_product_warehouse_classification_ids": [(action_mapping[self.action_type], c.id) for c in classifications]}
         )
 
 
