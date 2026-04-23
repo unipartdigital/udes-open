@@ -27,12 +27,6 @@
             ]" />
         </record>
 
-        <!-- Extend Super User Template to include edi groups -->
-        <record id="udes_permissions.super_user_template" model="user.template">
-            <field name="group_ids" eval="[
-                (4, ref('udes_warehouse_classification.group_warehouse_classification_delete')),
-            ]" />
-        </record>
 
     </data>
 </odoo>
