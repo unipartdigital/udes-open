@@ -162,6 +162,13 @@ class StockQuantPackage(models.Model):
             res[quant.product_id] += quant.quantity
         return res
 
+    def _get_product_quantities(self):
+        """
+        Stub function intended to be extended.
+        DEBT: Review this function and extensions - SE-2569
+        """
+        return {}
+
     def check_package_contains_single_item(self, raise_error=True):
         """
         Check if package has one item only.
