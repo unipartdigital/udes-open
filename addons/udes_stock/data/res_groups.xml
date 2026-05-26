@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- The group to allow uploading product images -->
+    <record id="group_upload_product_image" model="res.groups">
+        <field name="name">Upload Product Image</field>
+        <field name="category_id" eval="False" />
+    </record>
+
+</odoo>

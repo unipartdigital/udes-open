@@ -16,6 +16,8 @@
         "udes_security",
     ],
     "data": [
+        "data/res_groups.xml",
+        "data/res_users.xml",
         "wizard/upload_image_views.xml",
         "wizard/csv_image_upload_view.xml",
         "security/ir.model.access.csv",
