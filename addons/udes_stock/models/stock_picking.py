@@ -289,7 +289,6 @@ class StockPicking(models.Model):
             done_move_lines.reset_move_line_data()
         return True
 
-
     def get_empty_location_domain(self, policy_domain=None):
         """
         Return the domain for searching empty locations
@@ -953,6 +952,15 @@ class StockPicking(models.Model):
         if not merge_on_confirm:
             new_moves._merge_moves()
         return new_mls
+
+    @api.depends('move_type', 'immediate_transfer', 'move_lines.state', 'move_lines.picking_id')
+    def _compute_state(self):
+        """Set date_done to cancelled pickings if it is not set."""
+        super()._compute_state()
+        now = fields.Datetime.now()
+        for picking in self:
+            if picking.state == 'cancel' and not picking.date_done:
+                picking.date_done = now
 
     def action_cancel(self):
         """Extend to set date_done field when cancelling transfers"""
