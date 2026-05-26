@@ -1107,6 +1107,38 @@ class TestStockPicking(TestStockPickingCommon):
         # Check batch created
         self.assertTrue(picks.batch_id)
 
+    def test_cancel_picking_sets_done_date_on_entire_chain(self):
+        """Create a pick picking, confirm it to create the chain of pickings and cancel it
+        so that date_done of all the chain of pickings is set.
+        """
+        # Create procurement group to avoid mergings
+        self.picking_type_pick.u_create_procurement_group = True
+        pick = self.Picking.create_picking(
+            picking_type=self.picking_type_pick,
+            products_info=[
+                {"product": self.apple, "uom_qty": 2},
+            ],
+            confirm=True,
+        )
+        self.assertEqual(pick.state, "confirmed")
+        self.assertFalse(pick.date_done)
+        all_pickings = pick
+        next_pickings = pick.u_next_picking_ids
+        while next_pickings:
+            all_pickings |= next_pickings
+            next_pickings = next_pickings.u_next_picking_ids
+        # Ensure all picking types of the chain have u_propagate_cancel = True
+        all_pickings.picking_type_id.write({"u_propagate_cancel": True})
+        for ppp in (all_pickings - pick):
+            with self.subTest(picking=ppp):
+                self.assertEqual(ppp.state, "waiting")
+                self.assertFalse(ppp.date_done)
+        pick.action_cancel()
+        for ppp in all_pickings:
+            with self.subTest(picking=ppp):
+                self.assertEqual(ppp.state, "cancel")
+                self.assertTrue(ppp.date_done)
+
     def test_prepare_and_create_move(self):
         """Prepare and create a single move"""
         pick = self.create_picking(self.picking_type_goods_in)
