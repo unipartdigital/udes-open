@@ -90,8 +90,8 @@ class ResUsers(models.Model):
                     group = Group.browse(group_id)
 
                     if group.u_required_group_id_to_change:
-                        # Allow all groups to be added that are assigned to the default users groups
-                        if new_user and operation == 4:
+                        # Allow all groups to be added that are assigned to the default user
+                        if new_user and operation == RelFieldOps.Add:
                             if default_user and group_id in default_user.groups_id.ids:
                                 continue
 
