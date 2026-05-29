@@ -76,6 +76,8 @@ class ResUsers(models.Model):
             # Validate the many2many write to check that the
             # supplied user group is not being added or removed.
             disallowed_group = False
+            default_user = self.env.ref('base.default_user', raise_if_not_found=False)
+
             for action in unreified_group_vals["groups_id"]:
                 groups_to_check = Group.browse()
                 operation = action[0]
@@ -88,6 +90,11 @@ class ResUsers(models.Model):
                     group = Group.browse(group_id)
 
                     if group.u_required_group_id_to_change:
+                        # Allow all groups to be added that are assigned to the default user
+                        if new_user and operation == RelFieldOps.Add:
+                            if default_user and group_id in default_user.groups_id.ids:
+                                continue
+
                         # If new user record, only check if the group is being added
                         # If a group is being removed,
                         # check if the user actually had that group already
