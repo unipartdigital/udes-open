@@ -9,12 +9,6 @@
 
                 <t t-set="o" t-value="o.with_context({'lang':o.partner_id.lang})"/>
 
-                <t t-if="o.state != 'done'">
-                    <h1>
-                        DRAFT
-                    </h1>
-                </t>
-
                 <h2>
                     Delivery Slip
                 </h2>
@@ -50,8 +44,15 @@
                             </tr>
                             <tr style="border:0px solid transparent">
                                 <td style="border:0px solid transparent">
-                                    <span t-field="o.partner_id"
-                                       t-options='{"widget": "contact", "fields": ["address", "name", "phone"], "no_marker": True}'/>
+                                    <div t-if="o.partner_id.name"><span t-field="o.partner_id.name"/><br/></div>
+                                    <div t-if="o.partner_id.street"><span t-field="o.partner_id.street"/><br/></div>
+                                    <div t-if="o.partner_id.street2"><span t-field="o.partner_id.street2"/><br/></div>
+                                    <div t-if="o.partner_id.city or o.partner_id.zip">
+                                        <span t-if="o.partner_id.city" t-field="o.partner_id.city"/>
+                                        <span t-if="o.partner_id.zip" t-esc="', ' + o.partner_id.zip"/><br/>
+                                    </div>
+                                    <div t-if="o.partner_id.country_id"><span t-field="o.partner_id.country_id.name"/><br/></div>
+                                    <div t-if="o.partner_id.phone"><span t-field="o.partner_id.phone"/></div>
                                 </td>
                             </tr>
                         </t>
@@ -165,4 +166,3 @@
         </t>
     </template>
 </odoo>
-
