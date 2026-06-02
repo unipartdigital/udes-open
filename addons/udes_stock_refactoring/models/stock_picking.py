@@ -180,6 +180,7 @@ class StockPicking(models.Model):
                     stats.count / stats.elapsed,
                 )
 
+            picking._add_sale_id_to_picking()
         return picking
 
     def _prepare_extra_info_for_new_picking_for_group(self, moves):
@@ -219,6 +220,18 @@ class StockPicking(models.Model):
             values["u_original_picking_id"] = self.id
 
         return values
+
+    def _add_sale_id_to_picking(self):
+        """Assign sale_id to pickings from group_id.sale_id or move_lines"""
+        sale = self.move_lines.mapped("sale_line_id.order_id")
+        if not self.sale_id:
+            if len(sale) > 1:
+                _logger.warning("Could not determine sale_id for this picking, as its moves point to more than one sale.")
+            else:
+                if sale:
+                    self.sale_id = sale
+                if self.group_id.sale_id:
+                    self.sale_id = self.group_id.sale_id
 
     def action_assign(self):
         """Override action_assign to unlink empty pickings if needed"""
