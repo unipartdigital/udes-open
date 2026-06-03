@@ -1,7 +1,7 @@
 from odoo import models, fields, api, service, _
 import re
 import ast
-from werkzeug import urls
+from urllib.parse import urlsplit
 
 WILDCARD_PART_CHECK = re.compile("[\*|\?|\]](?!\.)")
 WILDCARD_ENDING_CHECK = re.compile("\*$")
@@ -16,7 +16,7 @@ class DomainAllowlist(models.Model):
     active = fields.Boolean(default=True)
 
     def _get_host(self):
-        return urls.url_parse(self.env["ir.config_parameter"].sudo().get_param("web.base.url")).host
+        return urlsplit(self.env["ir.config_parameter"].sudo().get_param("web.base.url")).hostname
 
     @api.model
     def _setup_default_domains(self):
@@ -43,7 +43,7 @@ class DomainAllowlist(models.Model):
         for values in vals_list:
             domain = values.get("domain")
             if domain:
-                parsed_domain = urls.url_parse(domain)
+                parsed_domain = urlsplit(domain)
                 # Note: if domain is just the domain then it will appear in path not netloc
                 values["domain"] = parsed_domain.netloc or parsed_domain.path
         return super().create(vals_list)
@@ -52,7 +52,7 @@ class DomainAllowlist(models.Model):
         """Extend write to massage domain if someone gives a url"""
         domain = values.get("domain")
         if domain:
-            parsed_domain = urls.url_parse(domain)
+            parsed_domain = urlsplit(domain)
             # Note: if domain is just the domain then it will appear in path not netloc
             values["domain"] = parsed_domain.netloc or parsed_domain.path
         super().write(values)
