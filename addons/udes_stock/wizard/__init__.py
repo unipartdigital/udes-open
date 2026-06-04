@@ -3,3 +3,4 @@ from . import udes_proactive_replens
 from . import upload_image
 from . import csv_image_upload
 from . import stock_location_unreserve
+from . import stock_quant_history
