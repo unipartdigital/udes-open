@@ -230,8 +230,12 @@ class StockPicking(models.Model):
             else:
                 if sale:
                     self.sale_id = sale
-                if self.group_id.sale_id:
+                    _logger.info(f"sale_id field has been updated to {sale} from move line values")
+                elif self.group_id.sale_id:
                     self.sale_id = self.group_id.sale_id
+                    _logger.info(f"sale_id field has been updated to {sale} from procurement values")
+                else:
+                    _logger.warning("sale_id field has not been updated couldn't find a corresponding value")
 
     def action_assign(self):
         """Override action_assign to unlink empty pickings if needed"""
