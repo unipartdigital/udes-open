@@ -81,6 +81,8 @@ Additional Details:
 | u_height            | Product height in metres                        |
 | u_length            | Product length in metres                        |
 | u_width             | Product width in metres                         |
+| u_fragile           | Product is fragile                              |
+| u_high_value        | Product has high value                          |
 
 ### Locations (model: stock.location)
 

@@ -16,6 +16,8 @@
                     <field name="u_pack_qty" />
                     <field name="u_carton_qty" />
                     <field name="u_pallet_qty" />
+                    <field name="u_fragile"/>
+                    <field name="u_high_value"/>
                 </group>
             </xpath>
             <xpath expr="//div[@name='options']" position="inside">

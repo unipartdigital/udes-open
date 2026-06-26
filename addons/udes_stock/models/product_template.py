@@ -57,6 +57,14 @@ class ProductTemplate(models.Model):
              "lines when config on the warehouse is enabled.",
     )
     u_barcode_ids = fields.One2many("product.barcode", "product_tmpl_id", string="Barcodes")
+    u_fragile = fields.Boolean(
+        string="Fragile",
+        help="""Flag to show product is fragile""",
+    )
+    u_high_value = fields.Boolean(
+        string="High value",
+        help="""Flag to show product has high value""",
+    )
 
     POSITIVE_FIELDS = [
         "u_pack_qty",
