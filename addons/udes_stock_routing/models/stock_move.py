@@ -224,7 +224,7 @@ class StockMove(models.Model):
             if move.exists() and (picking := move.picking_id):
                 if picking.should_two_stage_initiate():
                     processed |= move.picking_id
-                    move.picking_id.initiate_two_stage_split()
+                    res |= move.picking_id.initiate_two_stage_split()
         # Unlink any empty pickings left by two stage split immediately.
         if processed:
             processed.unlink_empty()

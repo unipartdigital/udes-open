@@ -143,7 +143,7 @@ class TestTwoStageOutbound(TwoStageOutboundBase):
         """
         self.create_quant(self.apple.id, self.test_special_location_01.id, 10)
         self.create_quant(self.banana.id, self.test_special_location_02.id, 5)
-        self.create_picking(
+        new_picking = self.create_picking(
             self.picking_type_pick, products_info=self.products_info, confirm=True, assign=True
         )
         all_picks = self.Picking.search([])
@@ -165,6 +165,7 @@ class TestTwoStageOutbound(TwoStageOutboundBase):
         # The picking type of the next picking should no longer be the Check picking, instead it is the 2nd stage,
         # which will preserve the original picking type.
         stage_2_pick = stage_1_pick.u_next_picking_ids
+        self.assertEqual(new_picking, stage_2_pick)
         self.assertEqual(stage_2_pick.picking_type_id, self.picking_type_pick)
         # It should be waiting for another operation
         self.assertEqual(stage_2_pick.state, "waiting")
@@ -215,7 +216,7 @@ class TestTwoStageOutbound(TwoStageOutboundBase):
         """
         self.create_quant(self.apple.id, self.test_special_location_01.id, 10)
         self.create_quant(self.banana.id, self.test_stock_location_01.id, 5)
-        self.create_picking(
+        new_picking = self.create_picking(
             self.picking_type_pick, products_info=self.products_info, confirm=True, assign=True
         )
         all_picks = self.Picking.search([])
@@ -231,6 +232,8 @@ class TestTwoStageOutbound(TwoStageOutboundBase):
         )
         self.assertEqual(stage_1_pick.state, "assigned")
         stage_2_pick = stage_1_pick.u_next_picking_ids
+        self.assertNotEqual(new_picking, stage_2_pick)
+        self.assertEqual(new_picking, stage_2_pick.backorder_id)
         self.assertEqual(stage_2_pick.picking_type_id, self.picking_type_pick)
         self.assertEqual(stage_2_pick.state, "waiting")
         check_pick = stage_2_pick.u_next_picking_ids

@@ -96,6 +96,7 @@ class StockPicking(models.Model):
         """
         self.ensure_one()
         Picking = self.env["stock.picking"]
+        Move = self.env["stock.move"]
 
         original_priority = self.priority
         original_origin = self.origin
@@ -104,6 +105,7 @@ class StockPicking(models.Model):
         original_sequence = self.sequence
 
         configuration_move_line_mapping = self._get_two_stage_configuration_move_line_mapping()
+        new_moves = Move.browse()
         for configuration, move_lines in configuration_move_line_mapping.items():
             # Split the reserved two stage move lines to a backorder. This makes it so that even on partial reservation,
             # only the reserved stock will get split to two stage, which means the remaining stock on the original pick
@@ -118,7 +120,17 @@ class StockPicking(models.Model):
                 "u_from_two_stage_split": True,
                 "sequence": original_sequence,
             }
-            stage_2_pick = self.split_move_lines_to_backorder(move_lines, **stage_2_pick_vals)
+
+            # Only create backorder for partial reservation
+            if self.move_lines.get_uncovered_moves(mls=move_lines):
+                stage_2_pick = self.split_move_lines_to_backorder(move_lines, **stage_2_pick_vals)
+            else:
+                stage_2_pick = self
+                stage_2_pick.write({
+                    "location_id": configuration.intermediate_location_id,
+                    "location_dest_id": configuration.intermediate_dest_location_id,
+                    "u_from_two_stage_split": True,
+            })
             stage_2_pick.move_lines.write(
                 {
                     "location_id": configuration.intermediate_location_id,
@@ -162,9 +174,11 @@ class StockPicking(models.Model):
                         "location_dest_id": configuration.intermediate_location_id,
                     }
                 )
+                new_moves |= stage_1_move
             # Flag fully emptied pickings as empty.
             if not self.move_lines:
                 self.u_is_empty = True
+        return new_moves
 
     def do_unreserve(self):
         """Extend to mark empty picks for deletion."""
