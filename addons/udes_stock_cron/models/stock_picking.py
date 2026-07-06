@@ -264,7 +264,7 @@ class StockPicking(models.Model):
         Helper function to actually process the pickings in `self`.
         Called while being wrapped by odoo_retry, hence the return values being a dict.
         """
-        unsatisfied_state = lambda p: p.state not in ("assigned", "cancel", "done")
+        unsatisfied_state = lambda p: p.state not in ("assigned", "cancel", "done", "waiting")
         newly_processed = self._reserve_stock_assign()
         self.batch_id._compute_state()
 
