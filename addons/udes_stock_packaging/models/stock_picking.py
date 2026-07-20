@@ -108,8 +108,6 @@ class StockPicking(models.Model):
         Extend to include weight and dimensions details of the package.
         """
         ContainerType = self.env["container.type"]
-        IrSequence = self.env["ir.sequence"]
-        parcel_type = self.env.ref("udes_stock_packaging.parcel_package_type")
         res = super().get_pallet_move_details_extra_info(result, package, container_id=container_id)
 
         if container_id is None:
@@ -123,10 +121,4 @@ class StockPicking(models.Model):
             f"**Weight:** {float_repr(float_round(weight_kg + container.weight, 2), 2)}kg",
             f"**Dimensions:** Length {container.length}mm x Width {container.width}mm x Height {container.height}mm",
         ]
-        if "result_package_name" not in res:
-            result_package_name = IrSequence.next_by_code("stock.quant.package.parcel")
-            # Add the resulting package name to context, so it can be marked on the picked lines later.
-            # Also add the package type parcel, to use when new parcel will be created.
-            res["result_package_name"] = result_package_name
-            res["result_package_type_id"] = parcel_type.id
         return res
