@@ -546,11 +546,16 @@ class StockPicking(models.Model):
         permissions.
         """
         multi_users_enabled = self.picking_type_id.u_multi_users_enabled
-        # If configuration is enabled, copy the batch to the backorder too.
+        # If configuration is enabled, copy the batch to the backorder
+        # Unless remove_from_batch context is True
         batch_id = False
-        if self.picking_type_id.u_preserve_backorder_batch:
+        if (
+            self.picking_type_id.u_preserve_backorder_batch 
+            and not self.env.context.get("remove_from_batch")
+        ):
             # If the picking has no batch, batch_id will be False.
             batch_id = self.batch_id.id
+            
         # If multi users config is enabled, moves to keep will stay in the existing picking and others will be
         # transferred in the new pick.
         if multi_users_enabled:
