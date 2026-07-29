@@ -35,10 +35,12 @@ class StockQuantPackage(models.Model):
     u_tracking_id = fields.Char(
         string="Tracking Id",
         help="Tracking Id",
+        tracking=True,
     )
     u_container_type = fields.Many2one(
         "container.type",
         string="Container Type",
+        tracking=True,
     )
     u_package_type = fields.Many2one(
         "package.type",
@@ -149,7 +151,6 @@ class StockQuantPackage(models.Model):
                 pattern = f"{pallet_package_type.package_type_regex}|{package_package_type.package_type_regex}"
                 type_ = "package"
 
-    
         return pattern, type_
 
     def _get_all_products_quantities(self):

@@ -376,6 +376,19 @@ class StockPickingBatch(models.Model):
 
         self.check_same_picking_priority(pickings)
         pickings.write({"batch_id": self.id})
+        # Add log and post in the batch extra pickings added.
+        if pickings:
+            self.extra_pickings_log_thread_message(pickings)
+        return True
+
+    def extra_pickings_log_thread_message(self, pickings):
+        """Posting thread message on batch and on pickings"""
+        pickings_name = ", ".join(pickings.mapped("name"))
+        batch_thread_message = f"Extra Pickings {pickings_name} added."
+        self.message_post(body=batch_thread_message)
+        picking_thread_message = f"Extra Picking added into the batch {self.name}."
+        pickings.message_post(body=picking_thread_message)
+        _logger.info("Pickings %s added to batch %s." % (pickings_name, self.name))
         return True
 
     def get_batch_priority_group(self):
