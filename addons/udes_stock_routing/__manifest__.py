@@ -10,5 +10,6 @@
     "data": [
         "views/stock_rule_views.xml",
         "views/stock_location_views.xml",
+        "views/stock_picking_type.xml",
     ],
 }
