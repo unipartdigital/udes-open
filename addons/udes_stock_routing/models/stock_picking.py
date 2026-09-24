@@ -19,7 +19,7 @@ class StockPicking(models.Model):
         self.ensure_one()
         Location = self.env["stock.location"]
         # When stock gets reserved (and has not been split already)
-        if not self.u_from_two_stage_split and self.state == "assigned":
+        if not self.u_from_two_stage_split and self.state == "assigned" and not self.picking_type_id.u_ignore_two_stage:
             # We trigger the split to occur if any of the stock has been reserved
             # against any locations requiring two stage. We also check their parents
             # to avoid needing to configure two stage requirements on every individual location.

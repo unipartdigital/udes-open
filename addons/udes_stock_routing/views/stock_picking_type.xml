@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_picking_type_form_inherit_two_stage" model="ir.ui.view">
+        <field name="name">stock.picking.type.form.inherit.two.stage</field>
+        <field name="model">stock.picking.type</field>
+        <field name="inherit_id" ref="udes_stock.view_picking_type_form_udes_stock" />
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='u_auto_unlink_empty']" position="after">
+                <field name="u_ignore_two_stage" />
+            </xpath>
+
+        </field>
+    </record>
+</odoo>
