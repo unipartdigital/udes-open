@@ -84,7 +84,7 @@ class ProductTemplate(models.Model):
     @api.constrains("tracking", "active")
     def _constrain_tracking_in_allowed_tracking_values(self):
         for product_template in self:
-            warehouse = self.env.ref("stock.warehouse0")
+            warehouse = self.env.user.get_user_warehouse()
             # Allowed tracking types are saved in a single char field, comma separated.
             allowed_tracking_types_list = warehouse.u_allowed_tracking_types.split(",")
             tracking_types_mapping = {
