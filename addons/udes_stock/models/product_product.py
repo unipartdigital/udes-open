@@ -73,7 +73,7 @@ class ProductProduct(models.Model):
         raise ValidationError(_("Products may not be deleted. Please archive them instead."))
 
     def get_quant_counts(self):
-        warehouse = self.env.ref("stock.warehouse0")
+        warehouse = self.env.user.get_user_warehouse()
         Quant = self.env["stock.quant"]
         quants = Quant.search_count(
             [
@@ -172,7 +172,7 @@ class ProductProduct(models.Model):
         """
         Product = self.env["product.product"]
         ProductBarcode = self.env["product.barcode"]
-        warehouse = self.env.ref("stock.warehouse0")
+        warehouse = self.env.user.get_user_warehouse()
         product = Product.browse()
         if warehouse.u_product_multiple_barcodes:
             # Using in operator when searching for the product, as the first one might be a new barcode.
