@@ -219,8 +219,19 @@ class ProductProduct(models.Model):
         add "replen" route on the product, similarly it will remove the "replen" route from
         the product if there are no replenishment rules.
         """
-        replenish_route = self.env.ref("udes_stock.route_warehouse0_replen")
+        base_route = self.env.ref("udes_stock.route_warehouse0_replen")
+        Route = self.env["stock.location.route"].with_context(active_test=False).sudo()
         for product in self:
+            # A copy of the route exists per company, use the product's company's copy
+            company = product.company_id
+            if not company or base_route.company_id == company:
+                replenish_route = base_route
+            else:
+                replenish_route = Route.search(
+                    [("name", "=", base_route.name), ("company_id", "=", company.id)], limit=1
+                )
+            if not replenish_route:
+                continue
             if (
                 product.nbr_reordering_rules > 0
                 and replenish_route.id not in product.route_ids.ids
