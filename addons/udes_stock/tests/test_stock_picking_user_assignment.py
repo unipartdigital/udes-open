@@ -1,5 +1,9 @@
-from . import common
+from unittest.mock import patch
+
+from odoo.tests import Form
 from odoo.tools import mute_logger
+
+from . import common
 
 
 class TestUserAssignments(common.BaseUDES):
@@ -251,3 +255,218 @@ class TestUserAssignments(common.BaseUDES):
         self.assertEqual(self.goods_in_picking.u_assigned_user_ids, user)
         self.assertEqual(user.u_picking_id, self.goods_in_picking)
         self.assertEqual(user.u_picking_assigned_time, user_start_time)
+
+
+class TestButtonValidateUserAssignment(common.BaseUDES):
+    """Test that the validating user is assigned to the pickings while they are done"""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+
+        cls.stock_user = cls.create_user(
+            "stock user",
+            "stock user",
+            groups_id=[(6, 0, [cls.env.ref("stock.group_stock_user").id])],
+        )
+        cls.stock_user_2 = cls.stock_user.copy(
+            {"name": "Stock User 2", "login": "stock_user_2_login"}
+        )
+
+        cls.goods_in_picking = cls.create_picking(
+            cls.picking_type_goods_in,
+            products_info=[{"product": cls.banana, "qty": 10}],
+            assign=True,
+        )
+        cls.goods_in_picking.move_line_ids.location_dest_id = cls.test_received_location_01
+        cls.goods_in_picking_2 = cls.create_picking(
+            cls.picking_type_goods_in,
+            products_info=[{"product": cls.fig, "qty": 5}],
+            assign=True,
+        )
+        cls.goods_in_picking_2.move_line_ids.location_dest_id = cls.test_received_location_01
+
+
+    def setUp(self):
+        """
+        Spy on the user assignment methods, recording each picking (and its state) the
+        users were assigned to when getting unassigned from it.
+        """
+        super().setUp()
+        ResUsers = type(self.env["res.users"])
+        original_unassign = ResUsers.unassign_pickings_from_users
+        original_assign = ResUsers.assign_picking_to_users
+
+        self.unassigned_from = []
+        self.assign_calls = 0
+        test = self
+
+        def unassign_pickings_from_users(users, *args, **kwargs):
+            for user in users.filtered("u_picking_id"):
+                test.unassigned_from.append((user, user.u_picking_id, user.u_picking_id.state))
+            return original_unassign(users, *args, **kwargs)
+
+        def assign_picking_to_users(users, *args, **kwargs):
+            test.assign_calls += 1
+            return original_assign(users, *args, **kwargs)
+
+        for name, spy in (
+            ("unassign_pickings_from_users", unassign_pickings_from_users),
+            ("assign_picking_to_users", assign_picking_to_users),
+        ):
+            patcher = patch.object(ResUsers, name, spy)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def _as_stock_user(self, records):
+        return records.with_user(self.stock_user).sudo()
+
+    def _process_wizard(self, action, method="process"):
+        """Process the pre-validation wizard returned by button_validate, as the stock user"""
+        Wizard = self._as_stock_user(self.env[action["res_model"]])
+        wizard = Form(Wizard.with_context(action["context"])).save()
+        return getattr(wizard, method)()
+
+    def test_button_validate_assigns_validating_user_while_done(self):
+        """Test that the validating user is assigned while the picking is done, then unassigned"""
+        picking = self.goods_in_picking
+        self.update_move_lines(picking.move_line_ids)
+        self.assertFalse(picking.u_date_started)
+
+        res = self._as_stock_user(picking).button_validate()
+
+        self.assertIs(res, True)
+        self.assertEqual(picking.state, "done")
+        self.assertEqual(self.unassigned_from, [(self.stock_user, picking, "done")])
+        self.assertFalse(self.stock_user.u_picking_id)
+        self.assertTrue(picking.u_date_started)
+
+    def test_button_validate_unassigns_users_already_working_on_picking(self):
+        """Test that users already working on the picking get unassigned when validating"""
+        picking = self.goods_in_picking
+        self.stock_user_2.assign_picking_to_users(picking)
+        self.update_move_lines(picking.move_line_ids)
+
+        self._as_stock_user(picking).button_validate()
+
+        self.assertEqual(picking.state, "done")
+        self.assertFalse(self.stock_user_2.u_picking_id)
+        self.assertFalse(self.stock_user.u_picking_id)
+        self.assertIn((self.stock_user, picking, "done"), self.unassigned_from)
+
+    def test_button_validate_with_immediate_transfer_wizard(self):
+        """
+        Test that the validating user is only assigned when the immediate transfer wizard is
+        processed, not when it is created.
+        """
+        picking = self.goods_in_picking
+
+        action = self._as_stock_user(picking).button_validate()
+
+        self.assertEqual(action["res_model"], "stock.immediate.transfer")
+        self.assertEqual(picking.state, "assigned")
+        self.assertEqual(self.assign_calls, 0)
+        self.assertFalse(self.stock_user.u_picking_id)
+
+        self._process_wizard(action, "process")
+
+        self.assertEqual(picking.state, "done")
+        self.assertEqual(self.assign_calls, 1)
+        self.assertEqual(self.unassigned_from, [(self.stock_user, picking, "done")])
+
+    def test_button_validate_with_backorder_wizard_creates_backorder(self):
+        """
+        Test that the validating user is assigned to the original picking while it is done
+        when a backorder is created, and is not left assigned to the backorder.
+        """
+        picking = self.goods_in_picking
+        self.update_move_lines(picking.move_line_ids, qty=4)
+
+        action = self._as_stock_user(picking).button_validate()
+
+        self.assertEqual(action["res_model"], "stock.backorder.confirmation")
+        self.assertEqual(self.assign_calls, 0)
+
+        self._process_wizard(action, "process")
+
+        backorder = picking.backorder_ids
+        self.assertEqual(picking.state, "done")
+        self.assertEqual(len(backorder), 1)
+        self.assertEqual(backorder.state, "assigned")
+        self.assertEqual(self.assign_calls, 1)
+        self.assertEqual(self.unassigned_from, [(self.stock_user, picking, "done")])
+        self.assertFalse(self.stock_user.u_picking_id)
+
+    def test_button_validate_with_backorder_wizard_no_backorder(self):
+        """
+        Test that the validating user is assigned to the picking while it is done when
+        choosing not to create a backorder.
+        """
+        picking = self.goods_in_picking
+        self.update_move_lines(picking.move_line_ids, qty=4)
+
+        action = self._as_stock_user(picking).button_validate()
+        self._process_wizard(action, "process_cancel_backorder")
+
+        self.assertEqual(picking.state, "done")
+        self.assertFalse(picking.backorder_ids)
+        self.assertEqual(self.assign_calls, 1)
+        self.assertEqual(self.unassigned_from, [(self.stock_user, picking, "done")])
+        self.assertFalse(self.stock_user.u_picking_id)
+
+    def test_button_validate_multiple_pickings(self):
+        """Test that the validating user is assigned to each picking in turn while it is done"""
+        pickings = self.goods_in_picking | self.goods_in_picking_2
+        self.update_move_lines(pickings.move_line_ids)
+
+        res = self._as_stock_user(pickings).button_validate()
+
+        self.assertIs(res, True)
+        self.assertEqual(pickings.mapped("state"), ["done", "done"])
+        self.assertEqual(
+            self.unassigned_from,
+            [
+                (self.stock_user, self.goods_in_picking, "done"),
+                (self.stock_user, self.goods_in_picking_2, "done"),
+            ],
+        )
+        self.assertFalse(self.stock_user.u_picking_id)
+
+    def test_batch_action_done_assigns_validating_user(self):
+        """
+        Test that completing a batch assigns the validating user to each picking in turn
+        while it is done.
+        """
+        pickings = self.goods_in_picking | self.goods_in_picking_2
+        batch = self.create_batch(user=self.stock_user, picking_ids=[(6, 0, pickings.ids)])
+        batch.action_confirm()
+        self.update_move_lines(pickings.move_line_ids)
+
+        self._as_stock_user(batch).action_done()
+
+        self.assertEqual(pickings.mapped("state"), ["done", "done"])
+        self.assertEqual(
+            self.unassigned_from,
+            [
+                (self.stock_user, self.goods_in_picking, "done"),
+                (self.stock_user, self.goods_in_picking_2, "done"),
+            ],
+        )
+        self.assertFalse(self.stock_user.u_picking_id)
+
+    def test_validate_picking_does_not_reassign_users(self):
+        """
+        Test that validating outside of button_validate (e.g. from the mobile) does not
+        change which users are assigned to the picking.
+        """
+        picking = self.goods_in_picking
+        self.stock_user_2.assign_picking_to_users(picking)
+        self.assign_calls = 0
+        self.update_move_lines(picking.move_line_ids)
+
+        self._as_stock_user(picking).validate_picking()
+
+        self.assertEqual(picking.state, "done")
+        self.assertEqual(self.assign_calls, 0)
+        self.assertEqual(self.unassigned_from, [])
+        self.assertEqual(self.stock_user_2.u_picking_id, picking)
