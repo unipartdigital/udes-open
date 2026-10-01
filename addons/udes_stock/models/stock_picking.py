@@ -974,10 +974,16 @@ class StockPicking(models.Model):
         return res
 
     def _action_done(self):
-        """Extend to collect stats for the UDES monitor"""
+        """
+        Extend to collect stats for the UDES monitor, and to assign the validating user
+        to the pickings while they are done when coming from button_validate.
+        """
         # Collect action_done stats for monitor
         with self.statistics() as stats:
-            res = super()._action_done()
+            if self.env.context.get("assign_validating_user"):
+                res = self._action_done_with_validating_user()
+            else:
+                res = super()._action_done()
 
         # Ensure when multiple picking types are involved that the names are combined
         picking_type_names = ",".join(self.mapped("picking_type_id.name"))
@@ -993,6 +999,28 @@ class StockPicking(models.Model):
             stats.count / stats.elapsed,
         )
         return res
+
+    def _action_done_with_validating_user(self):
+        """
+        Assign the validating user to each picking while it is done, then unassign them.
+        Any users that were already working on the pickings get unassigned.
+
+        As a user can only be assigned to one picking at a time, each picking is done
+        separately.
+        """
+        Users = self.env["res.users"]
+
+        # Drop the flag so any nested _action_done calls are not affected
+        pickings = self.with_context(assign_validating_user=False)
+        users_working_on_pickings = Users.search([("u_picking_id", "in", pickings.ids)])
+        users_working_on_pickings.unassign_pickings_from_users()
+
+        user_validating = self.env.user
+        for picking in pickings:
+            user_validating.assign_picking_to_users(picking)
+            super(StockPicking, picking)._action_done()
+            user_validating.unassign_pickings_from_users()
+        return True
 
     def validate_picking(self, create_backorder=False, force_validate=False):
         """Validates a picking and returns its backorder if any has been created.
@@ -1211,18 +1239,16 @@ class StockPicking(models.Model):
 
     def button_validate(self):
         """
-        Assign the user who validated the picking (via the validate picking button) to the picking, then unassign
-        after completion. Any users that were already working on the picking will get unassigned.
-        """
-        Users = self.env["res.users"]
-        user_working_on_picking = Users.search([("u_picking_id", "=", self.id)])
-        if user_working_on_picking:
-            user_working_on_picking.unassign_pickings_from_users()
+        Flag that the user who validated the pickings (via the validate picking button) should be
+        assigned to them while they are done, see _action_done_with_validating_user.
 
-        user_validating = self.env.user
-        user_validating.assign_picking_to_users(self)
-        res = super().button_validate()
-        user_validating.unassign_pickings_from_users()
+        The assignment is not done here, as button_validate is called again when processing a
+        pre-validation wizard (immediate transfer or backorder), and only that call does the
+        pickings.
+        """
+        res = super(
+            StockPicking, self.with_context(assign_validating_user=True)
+        ).button_validate()
         self._unlink_reserved_mls_with_no_reserved_quantity()
         return res
 
