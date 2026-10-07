@@ -174,9 +174,17 @@ class SaleOrder(models.Model):
 
         return unfulfillable_lines
 
+    def _get_fulfilment_locations(self):
+        """Return the stock locations whose stock is available for fulfilling the order.
+
+        This is a hook for extending where the stock to use depends on the order, for example
+        on its warehouse.
+        """
+        self.ensure_one()
+        return self.env["stock.location"].get_available_stock_locations()
+
     def _find_unfulfillable_order_lines(self, batch_size=1000):
         """Find unfullfilable order lines due to lack of stock."""
-        Location = self.env["stock.location"]
         OrderLine = self.env["sale.order.line"]
         Quant = self.env["stock.quant"]
 
@@ -185,7 +193,6 @@ class SaleOrder(models.Model):
 
         _logger.info("Checking orders to cancel due to stock shortage")
         # Get unreserved stock for each product in locations
-        locations = Location.get_available_stock_locations()
         stock = defaultdict(int)
 
         for r, batch in self.batched(size=batch_size):
@@ -222,6 +229,7 @@ class SaleOrder(models.Model):
                 # can or cant fulfill record sets
                 # If this code is modified, the caching above needs to be
                 # kept up to date to ensure good performance
+                locations = order._get_fulfilment_locations()
                 for line in order.order_line.filtered(lambda x: not x.is_cancelled):
 
                     # If any of the mls are done or assigned then skip this line
@@ -232,11 +240,12 @@ class SaleOrder(models.Model):
 
                     product = line.product_id
 
-                    if product not in stock.keys():
-                        stock[product] = Quant.get_available_quantity(product, locations)
+                    key = (product, locations)
+                    if key not in stock:
+                        stock[key] = Quant.get_available_quantity(product, locations)
                     qty_ordered = line.product_uom_qty
-                    if stock[product] >= qty_ordered:
-                        stock[product] = stock[product] - qty_ordered
+                    if stock[key] >= qty_ordered:
+                        stock[key] = stock[key] - qty_ordered
                     else:
                         unfulfillable_lines |= line
 
