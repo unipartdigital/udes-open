@@ -32,9 +32,14 @@ class StockPicking(models.Model):
         unreservable_moves = Move.browse()
         stock_for_products = defaultdict(int)
         skip_states = ("assigned", "done", "cancel")
-        for picking_type, pickings in self.groupby(lambda p: p.picking_type_id):
-
-            location = picking_type.default_location_src_id
+        PickingType = self.env["stock.picking.type"]
+        Location = self.env["stock.location"]
+        # Group by ids as groupby replaces the recordsets of a tuple key with lists of ids
+        for (picking_type_id, location_id), pickings in self.groupby(
+            lambda p: (p.picking_type_id.id, p._get_reservation_source_location().id)
+        ):
+            picking_type = PickingType.browse(picking_type_id)
+            location = Location.browse(location_id)
             level = logging.DEBUG if len(pickings) == 1 else logging.INFO
             _logger.log(level, _("Checking reservability for %d pickings."), len(pickings))
             for r, batch in pickings.batched(size=batch_size):
@@ -65,22 +70,41 @@ class StockPicking(models.Model):
                     for move in picking.move_lines.filtered(lambda m: m.state not in skip_states):
                         product = move.product_id
 
-                        if product not in stock_for_products.keys():
-                            stock_for_products[product] = Quant.get_available_quantity(
+                        key = (product, location)
+                        if key not in stock_for_products:
+                            stock_for_products[key] = Quant.get_available_quantity(
                                 product,
                                 location,
                             )
                         qty_ordered = move.product_uom_qty
-                        if stock_for_products[product] <= 0 or (
-                            stock_for_products[product] < qty_ordered
+                        if stock_for_products[key] <= 0 or (
+                            stock_for_products[key] < qty_ordered
                             and not picking.picking_type_id.u_handle_partials
                         ):
                             unreservable_moves |= move
                             if return_fast:
                                 return unreservable_moves
-                        stock_for_products[product] -= qty_ordered
+                        stock_for_products[key] -= qty_ordered
 
         return unreservable_moves
+
+    def _get_reservation_source_location(self):
+        """Return the location whose stock the picking is checked against for reservability.
+
+        This is a hook for extending where the picking type's default location is not the
+        right one for every picking.
+        """
+        self.ensure_one()
+        return self.picking_type_id.default_location_src_id
+
+    def _get_reservation_domains(self, picking_type):
+        """Return a list of domains that the pickings of the picking type are reserved in turn
+        for, each with its own number of reservable pickings.
+
+        This is a hook for extending where the pickings of a type are not all one pool, for
+        example because they belong to different warehouses.
+        """
+        return [[]]
 
     def reserve_stock(self, batch_size=100):
         """
@@ -114,11 +138,20 @@ class StockPicking(models.Model):
 
         for picking_type in picking_types:
             _logger.info("Reserving stock for picking type %r.", picking_type)
-            self.reserve_stock_for_picking_type(picking_type, using_wizard, batch_size)
+            if using_wizard:
+                domains = [[]]
+            else:
+                domains = self._get_reservation_domains(picking_type)
+            for domain in domains:
+                self.reserve_stock_for_picking_type(
+                    picking_type, using_wizard, batch_size, extra_domain=domain
+                )
             _logger.info("Reserving stock for picking type %r completed.", picking_type)
         return
 
-    def reserve_stock_for_picking_type(self, picking_type, using_wizard, batch_size):
+    def reserve_stock_for_picking_type(
+        self, picking_type, using_wizard, batch_size, extra_domain=None
+    ):
         """
         Reserve stock for a particular picking type.
 
@@ -134,6 +167,9 @@ class StockPicking(models.Model):
         u_num_reservable_pickings.
         However we must also take into account the atomic batch reservation
         flag (u_reserve_batches) and the handle partial flag (u_handle_partials).
+
+        The extra domain narrows the pickings searched for when not using the wizard, so the
+        number of reservable pickings applies to just those.
         """
 
         def generate_pickings():
@@ -154,6 +190,8 @@ class StockPicking(models.Model):
                         ("picking_type_id", "=", picking_type.id),
                         ("state", "=", "confirmed"),
                     ]
+                    if extra_domain:
+                        domain += extra_domain
                     if processed:
                         domain.append(("id", "not in", processed.ids))
                     pickings = Picking.search(domain, limit=batch_size)
