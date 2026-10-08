@@ -73,7 +73,7 @@ class ProductProduct(models.Model):
         raise ValidationError(_("Products may not be deleted. Please archive them instead."))
 
     def get_quant_counts(self):
-        warehouse = self.env.ref("stock.warehouse0")
+        warehouse = self.env.user.get_user_warehouse()
         Quant = self.env["stock.quant"]
         quants = Quant.search_count(
             [
@@ -172,7 +172,7 @@ class ProductProduct(models.Model):
         """
         Product = self.env["product.product"]
         ProductBarcode = self.env["product.barcode"]
-        warehouse = self.env.ref("stock.warehouse0")
+        warehouse = self.env.user.get_user_warehouse()
         product = Product.browse()
         if warehouse.u_product_multiple_barcodes:
             # Using in operator when searching for the product, as the first one might be a new barcode.
@@ -219,8 +219,19 @@ class ProductProduct(models.Model):
         add "replen" route on the product, similarly it will remove the "replen" route from
         the product if there are no replenishment rules.
         """
-        replenish_route = self.env.ref("udes_stock.route_warehouse0_replen")
+        base_route = self.env.ref("udes_stock.route_warehouse0_replen")
+        Route = self.env["stock.location.route"].with_context(active_test=False).sudo()
         for product in self:
+            # A copy of the route exists per company, use the product's company's copy
+            company = product.company_id
+            if not company or base_route.company_id == company:
+                replenish_route = base_route
+            else:
+                replenish_route = Route.search(
+                    [("name", "=", base_route.name), ("company_id", "=", company.id)], limit=1
+                )
+            if not replenish_route:
+                continue
             if (
                 product.nbr_reordering_rules > 0
                 and replenish_route.id not in product.route_ids.ids
