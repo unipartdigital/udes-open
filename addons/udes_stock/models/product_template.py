@@ -83,19 +83,19 @@ class ProductTemplate(models.Model):
 
     @api.constrains("tracking", "active")
     def _constrain_tracking_in_allowed_tracking_values(self):
+        warehouse = self.env.user.get_user_warehouse()
+        # Allowed tracking types are saved in a single char field, comma separated.
+        allowed_tracking_types_list = warehouse.u_allowed_tracking_types.split(",")
+        tracking_types_mapping = {
+            "none": "No Tracking",
+            "lot": "Lots",
+            "serial": "Serial Number"
+        }
+        # Clearing allowed tracking types which are not possible option of tracking types.
+        allowed_tracking_types = [
+            tracking for tracking in allowed_tracking_types_list if tracking in tracking_types_mapping.keys()
+        ]
         for product_template in self:
-            warehouse = self.env.ref("stock.warehouse0")
-            # Allowed tracking types are saved in a single char field, comma separated.
-            allowed_tracking_types_list = warehouse.u_allowed_tracking_types.split(",")
-            tracking_types_mapping = {
-                "none": "No Tracking",
-                "lot": "Lots",
-                "serial": "Serial Number"
-            }
-            # Clearing allowed tracking types which are not possible option of tracking types.
-            allowed_tracking_types = [
-                tracking for tracking in allowed_tracking_types_list if tracking in tracking_types_mapping.keys()
-            ]
             if product_template.tracking not in allowed_tracking_types:
                     raise UserError(
                         _("You aren't allowed to track a product by %s.")
