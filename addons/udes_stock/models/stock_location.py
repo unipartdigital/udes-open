@@ -4,6 +4,20 @@ from .stock_picking_type import TARGET_STORAGE_FORMAT_OPTIONS
 from odoo.addons.udes_common.models.fields import PreciseDatetime
 from odoo.exceptions import ValidationError
 from . common import check_upper_case_validation
+from ..registry.quant_policy import get_selection, QuantPolicy
+from ..registry.quant_policy_all import QuantPolicyAll
+from ..registry.quant_policy_single_product import QuantPolicySingleProduct
+from ..registry.quant_policy_one_lot_or_product_per_package import (
+    QuantPolicyOneLotOrProductPerPackage,
+)
+from ..registry.quant_policy_single_package_per_location import QuantPolicyOnePackagePerLocation
+
+QUANT_POLICIES = [
+    get_selection(QuantPolicyAll),
+    get_selection(QuantPolicySingleProduct),
+    get_selection(QuantPolicyOneLotOrProductPerPackage),
+    get_selection(QuantPolicyOnePackagePerLocation),
+]
 
 class StockLocation(models.Model):
     _name = "stock.location"
@@ -233,6 +247,7 @@ class StockLocation(models.Model):
         string="Sequence",
         default=0,
     )
+    u_quant_policy = fields.Selection(selection=QUANT_POLICIES, string="Quant Policy")
 
     def set_u_heatmap_data_updated(self, vals):
         """
@@ -437,8 +452,12 @@ class StockLocation(models.Model):
          their children) stock available for fulfilling orders. Should be
         overridden where necessary"""
         return self.env.ref("stock.stock_location_stock")
-    
+
     @api.model
     def create(self, vals):
         check_upper_case_validation(self._name, self.env.user, vals)
         return super().create(vals)
+
+    @api.constrains("u_quant_policy")
+    def _check_location_quant_policy(self):
+        QuantPolicy.check_locations_quant_policy(self.env, self)

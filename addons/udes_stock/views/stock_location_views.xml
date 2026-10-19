@@ -18,6 +18,7 @@
                 <field name="u_unreserving_configuration" attrs="{'invisible': [('usage', 'not in', ('internal', 'view'))]}" groups="stock.group_stock_manager"/>
                 <field name="u_location_is_countable"/>
                 <field name="u_is_countable"/>
+                <field name="u_quant_policy"/>
             </xpath>
 
             <xpath expr="//field[@name='removal_strategy_id']/parent::group/parent::group" position="attributes">

@@ -370,3 +370,89 @@ class PickingZoneTestCase(BaseUDES):
         location = self.create_location("test_location", location_id=parent.id)
 
         self.assertEqual(location.u_picking_zone_id, parent)
+
+
+class TestLocationQuantPolicy(TestStockLocation):
+
+    def test_single_product_id_quant_policy(self):
+        """Test 'One product per location' quant policy.
+        Quant policy raises error and stops multiple products in the location.
+        """
+        self.loc_01_01.u_quant_policy = "single_product_id"
+        quant_1 = self.create_quant(self.apple.id, self.loc_01_01.id, 10)
+        quant_2 = self.create_quant(self.apple.id, self.loc_01_01.id, 20)
+        self.assertTrue(quant_1)
+        self.assertTrue(quant_2)
+        with self.assertRaises(ValidationError):
+            self.create_quant(self.banana.id, self.loc_01_01.id, 30)
+
+    def test_all_quant_policy_raises_no_error(self):
+        """Test 'Allow All' quant policy.
+        Quant policy raises no error with multiple products in the location.
+        """
+        self.loc_01_01.u_quant_policy = "all"
+        quant_1 = self.create_quant(self.apple.id, self.loc_01_01.id, 10)
+        quant_2 = self.create_quant(self.apple.id, self.loc_01_01.id, 20)
+        quant_3 = self.create_quant(self.banana.id, self.loc_01_01.id, 30)
+        self.assertTrue(quant_1)
+        self.assertTrue(quant_2)
+        self.assertTrue(quant_3)
+
+    def test_single_lot_id_single_product_id_per_package_quant_policy(self):
+        """Test 'One lot/package per location' quant policy.
+        Quant policy raises error with multiple products/lots in the location.
+        """
+        self.loc_01_01.u_quant_policy = "single_lot_id_single_product_id_per_package"
+        package_1 = self.create_package(name="WPA001")
+        package_2 = self.create_package(name="WPA002")
+        quant_1 = self.create_quant(
+            self.apple.id, self.loc_01_01.id, 10, package_id=package_1.id, lot_name="AppleLot"
+        )
+        quant_2 = self.create_quant(self.apple.id, self.loc_01_01.id, 20, package_id=package_2.id)
+        self.assertTrue(quant_1)
+        self.assertTrue(quant_2)
+        with self.assertRaises(ValidationError):
+            self.create_quant(self.banana.id, self.loc_01_01.id, 30, package_id=package_2.id)
+        with self.assertRaises(ValidationError):
+            self.create_quant(
+                self.apple.id, self.loc_01_01.id, 30, package_id=package_1.id, lot_name="AppleLot2"
+            )
+            self.create_quant(
+                self.banana.id, self.loc_01_01.id, 5, package_id=package_1.id, lot_name="AppleLot3"
+            )
+
+    def test_single_package_per_location(self):
+        """Test 'One package per location' quant policy.
+        Quant policy raises error with multiple packages in the location.
+        """
+        self.loc_01_01.u_quant_policy = "single_package_per_location"
+        package_1 = self.create_package(name="WPA001")
+        package_2 = self.create_package(name="WPA002")
+        self.create_quant(self.apple.id, self.loc_01_01.id, 10, package_id=package_1.id)
+        with self.assertRaises(ValidationError):
+            self.create_quant(self.apple.id, self.loc_01_01.id, 20, package_id=package_2.id)
+
+    def test_parent_quant_policy_applies_when_no_quant_policy_on_a_location(self):
+        """
+        Test parent location's strategy applies even if its child location does not
+         have any quant policy of its own.
+        """
+        self.loc_01_01.u_quant_policy = False
+        self.stock_location.u_quant_policy = "single_product_id"
+        quant_1 = self.create_quant(self.apple.id, self.loc_01_01.id, 10)
+        quant_2 = self.create_quant(self.apple.id, self.loc_01_01.id, 20)
+        self.assertTrue(quant_1)
+        self.assertTrue(quant_2)
+        with self.assertRaises(ValidationError):
+            self.create_quant(self.banana.id, self.loc_01_01.id, 30)
+
+    def test_locations_own_quant_policy_takes_precedence_over_parent(self):
+        """
+        Test a location's own quant policy takes precedence over the parent location's quant policy.
+        """
+        self.loc_01_01.u_quant_policy = "single_product_id"
+        self.loc_01_01.location_id.u_quant_policy = "all"
+        quant_1 = self.create_quant(self.apple.id, self.loc_01_01.id, 10)
+        self.assertTrue(quant_1)
+        with self.assertRaises(ValidationError):
+            self.create_quant(self.banana.id, self.loc_01_01.id, 30)

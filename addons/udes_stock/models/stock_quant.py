@@ -1,6 +1,7 @@
 from odoo import models, _, api
 from collections import defaultdict
 from odoo.exceptions import ValidationError
+from ..registry.quant_policy import QuantPolicyRegistryMeta, QuantPolicy
 
 
 class StockQuant(models.Model):
@@ -183,3 +184,7 @@ class StockQuant(models.Model):
         if quantity < 0 and lot_id and location_id.usage == "supplier":
             in_date = None
         return available_qty, in_date
+
+    @api.constrains("location_id", "quantity", "package_id")
+    def _check_location_quant_policy(self):
+        QuantPolicy.check_locations_quant_policy(self.env, self.location_id)
