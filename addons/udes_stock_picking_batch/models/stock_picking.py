@@ -41,8 +41,15 @@ class StockPicking(models.Model):
     def _compute_volume(self):
         """
         Compute volume of pickings when anyone of api.depends changes and store the total volume.
+
+        Done and cancelled pickings are given a volume of 0, as only open pickings are searched
+        by volume, and computing it would load the moves of every historical picking.
         """
-        picking_with_total_volume = self.filtered(lambda p: p.u_prioritise_matrix_small_items)
+        # TODO: SE-3163 Review this feature, so that the recompute doesn't still visit every
+        # historical picking.
+        picking_with_total_volume = self.filtered(
+            lambda p: p.u_prioritise_matrix_small_items and p.state not in ("done", "cancel")
+        )
         for picking in picking_with_total_volume:
             total_volume = 0.0
             for move in picking.move_lines:
