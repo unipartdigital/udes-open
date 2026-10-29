@@ -786,14 +786,18 @@ class StockMoveLine(models.Model):
             move_lines_to_write[move_lines[0]] = move_lines._merge_move_lines_fields()
             # update merged moves dicts
             move_lines_to_unlink |= move_lines[1:]
-        # Unlinking move lines first will add the available quantity (
-        # By removing already reserved quantity), when writing will reserve the merged quantity.
-        # TODO Would be better to bypass reserving on both write and unlink, but the unlink core
-        #  functionality doesnt have an option to by pass. Issue #4895
+        # Merged move lines share the same quants (see distinct fields), so moving the reserved
+        # quantity between them doesn't change the quants reservation: bypass it on both unlink
+        # and write. Core unlink has no option to bypass, but it skips unreserving move lines
+        # with zero quantity, so set it to zero before unlinking. Issue #4895
         if move_lines_to_unlink:
-            move_lines_to_unlink.sudo().unlink()
+            move_lines_to_unlink = move_lines_to_unlink.sudo().with_context(
+                bypass_reservation_update=True
+            )
+            move_lines_to_unlink.write({"product_uom_qty": 0})
+            move_lines_to_unlink.unlink()
         for move_line, value in move_lines_to_write.items():
-            move_line.write(value)
+            move_line.with_context(bypass_reservation_update=True).write(value)
         return (self | MoveLine.concat(*move_lines_to_merge)) - move_lines_to_unlink
 
     @api.model
@@ -801,7 +805,15 @@ class StockMoveLine(models.Model):
         """
         Prepare merge move lines distinct fields
         """
-        return ["product_id", "location_id", "location_dest_id", "package_id", "lot_id", "move_id"]
+        return [
+            "product_id",
+            "location_id",
+            "location_dest_id",
+            "package_id",
+            "lot_id",
+            "owner_id",
+            "move_id",
+        ]
 
     @api.model
     def _prepare_merge_move_line_sort_method(self, move_line):
@@ -816,6 +828,7 @@ class StockMoveLine(models.Model):
             move_line.location_dest_id.id,
             move_line.package_id.id,
             move_line.lot_id.id,
+            move_line.owner_id.id,
             move_line.move_id.id,
         ]
 

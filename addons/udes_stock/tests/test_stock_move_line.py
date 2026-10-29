@@ -2101,3 +2101,55 @@ class TestMergeMoveLines(common.BaseUDES):
         self.assertEqual(picking.move_line_ids, move_line)
         self.assertEqual(move_line.lot_id, lot)
         self.assertEqual(move_line.product_uom_qty, 10.0)
+
+    def test_merge_move_lines_of_quants_outside_quant_ids(self):
+        """Merging move lines does not unreserve/re-reserve their quants, so it does not fail
+        when their quants are filtered out by the quant_ids context (e.g. loose stock while
+        reserving full packages)
+        """
+        pick_info = [{"product": self.apple, "uom_qty": 10}]
+        loose_quant = self.create_quant(self.apple.id, self.test_stock_location_01.id, 10)
+        package = self.create_package()
+        package_quant = self.create_quant(
+            self.apple.id, self.test_stock_location_02.id, 5, package_id=package.id
+        )
+        picking = self.create_picking(
+            self.picking_type_pick, products_info=pick_info, confirm=True, assign=True
+        )
+        # Split the reserved loose stock into two move lines of the same quant
+        picking.move_line_ids._split(4)
+        self.assertEqual(len(picking.move_line_ids), 2)
+        self.assertEqual(picking.move_line_ids.package_id, package.browse())
+        self.assertEqual(loose_quant.reserved_quantity, 10)
+
+        move_line = picking.move_line_ids.with_context(
+            quant_ids=package_quant.ids
+        )._merge_move_lines()
+        self.assertEqual(picking.move_line_ids, move_line)
+        self.assertEqual(move_line.product_uom_qty, 10)
+        self.assertEqual(loose_quant.reserved_quantity, 10)
+        self.assertEqual(package_quant.reserved_quantity, 0)
+
+    def test_does_not_merge_move_lines_of_different_owners(self):
+        """Move lines reserving quants of different owners are not merged"""
+        Partner = self.env["res.partner"]
+
+        pick_info = [{"product": self.apple, "uom_qty": 10}]
+        owner_01 = Partner.create({"name": "Owner 01"})
+        owner_02 = Partner.create({"name": "Owner 02"})
+        quant_01 = self.create_quant(
+            self.apple.id, self.test_stock_location_01.id, 5, owner_id=owner_01.id
+        )
+        quant_02 = self.create_quant(
+            self.apple.id, self.test_stock_location_01.id, 5, owner_id=owner_02.id
+        )
+        picking = self.create_picking(
+            self.picking_type_pick, products_info=pick_info, confirm=True, assign=True
+        )
+        self.assertEqual(len(picking.move_line_ids), 2)
+
+        move_lines = picking.move_line_ids._merge_move_lines()
+        self.assertEqual(picking.move_line_ids, move_lines)
+        self.assertEqual(move_lines.mapped("product_uom_qty"), [5, 5])
+        self.assertEqual(quant_01.reserved_quantity, 5)
+        self.assertEqual(quant_02.reserved_quantity, 5)
