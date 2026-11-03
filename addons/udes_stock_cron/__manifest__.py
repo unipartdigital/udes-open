@@ -12,6 +12,7 @@
         "udes_cron",
         "udes_stock",
         "udes_security",
+        "udes_stock_blocking",
     ],
     "data": [
         "data/ir_cron.xml",

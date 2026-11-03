@@ -115,6 +115,43 @@ class TestStockPicking(BaseUDES):
         self.assertEqual(move.state, "confirmed")
         self.assertEqual(self.test_picking_pick.state, "confirmed")
 
+    def test_block_unreserves_all_pickings_of_batch_reserved_atomically(self):
+        """
+        Blocking stock reserved by a picking in a batch reserved atomically unreserves all the
+        pickings of the batch after a confirmation, as they are reserved together
+        """
+        BlockReservationWizard = self.env["block.reservation.wizard"]
+        Batch = self.env["stock.picking.batch"]
+        # Handle partials, so only the batch reservation unreserves the other picking
+        self.picking_type_pick.write({"u_reserve_batches": True, "u_handle_partials": True})
+        self.create_quant(
+            product_id=self.banana.id, location_id=self.test_quant_apple.location_id.id, qty=5.0
+        )
+        banana_picking = self.create_picking(
+            self.picking_type_pick,
+            products_info=[{"product": self.banana, "uom_qty": 5.0}],
+            confirm=True,
+            location_dest_id=self.test_received_location_01.id,
+        )
+        pickings = self.test_picking_pick | banana_picking
+        Batch.create({"picking_ids": [(6, 0, pickings.ids)]})
+        pickings.action_assign()
+        self.assertEqual(set(pickings.mapped("state")), {"assigned"})
+
+        action = self.apple.button_block_wizard()
+        wizard = BlockReservationWizard.browse(action["res_id"])
+        self.assertFalse(wizard.unreservable_move_line_ids)
+        self.assertEqual(
+            wizard.full_reservation_move_line_ids, self.test_picking_pick.move_line_ids
+        )
+        self.assertEqual(wizard.full_reservation_picking_ids, pickings)
+
+        wizard.u_blocked_reason = "Faulty batch"
+        wizard.action_confirm()
+        self.assertTrue(self.apple.u_blocked)
+        self.assertFalse(pickings.move_line_ids)
+        self.assertEqual(set(pickings.mapped("state")), {"confirmed"})
+
 
 class FindUnreservableMovesTestCase(BaseUDES):
     """Test cases for StockPicking._find_unreservable_moves."""
