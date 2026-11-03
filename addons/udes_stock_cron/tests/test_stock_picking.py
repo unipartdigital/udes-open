@@ -464,8 +464,8 @@ class ReservationGeneralTestCase(BaseUDES):
         )
         picking3.batch_id = batch1
 
-        batch1.action_confirm()
-        batch2.action_confirm()
+        batch1.mark_as_todo()
+        batch2.mark_as_todo()
         self.pick.reserve_stock()
 
         self.assertEqual(quant.reserved_quantity, expected)
