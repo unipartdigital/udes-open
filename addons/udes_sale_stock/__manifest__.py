@@ -16,6 +16,7 @@
         "sale",
         "udes_common",
         "udes_suggest_location",
+        "udes_stock_blocking",
     ],
     "category": "Warehouse",
     "sequence": 12,
