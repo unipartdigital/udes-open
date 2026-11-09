@@ -194,3 +194,125 @@ class TestFullSaleReservation(BaseSaleUDES):
         self.assertEqual(move2.reserved_availability, 5.0)
         self.assertEqual(move2.state, "assigned")
         self.assertEqual(self.test_picking_pick2.state, "assigned")
+
+    def test_block_unreserves_all_pickings_of_full_sale_reservation(self):
+        """
+        Blocking stock reserved by a picking with full sale reservation unreserves all the
+        pickings of its sale order after a confirmation, as they are reserved together
+        """
+        BlockReservationWizard = self.env["block.reservation.wizard"]
+        self.create_quant(product_id=self.apple.id, location_id=self.pick_location.id, qty=10.0)
+        self.create_quant(product_id=self.banana.id, location_id=self.pick_location_2.id, qty=5)
+        pickings = self.test_picking_pick1 | self.test_picking_pick2
+        # Handle partials, so only the full sale reservation unreserves the other picking
+        pickings.picking_type_id.write({"u_full_sale_reservation": True, "u_handle_partials": True})
+        self.test_picking_pick1.reserve_stock()
+        self.assertEqual(set(pickings.mapped("state")), {"assigned"})
+
+        action = self.pick_location.button_block_wizard()
+        wizard = BlockReservationWizard.browse(action["res_id"])
+        self.assertFalse(wizard.unreservable_move_line_ids)
+        self.assertEqual(
+            wizard.full_reservation_move_line_ids, self.test_picking_pick1.move_line_ids
+        )
+        self.assertEqual(wizard.full_reservation_picking_ids, pickings)
+
+        wizard.u_blocked_reason = "Shelves fell over"
+        wizard.action_confirm()
+        self.assertTrue(self.pick_location.u_blocked)
+        self.assertFalse(pickings.move_line_ids)
+        self.assertEqual(set(pickings.mapped("state")), {"confirmed"})
+
+    def test_block_unreserves_sale_pickings_of_picking_in_batch_reserved_atomically(self):
+        """
+        Blocking stock reserved by a picking with full sale reservation, which is also in a
+        batch reserved atomically, unreserves all the pickings of its sale order
+        """
+        BlockReservationWizard = self.env["block.reservation.wizard"]
+        Batch = self.env["stock.picking.batch"]
+        self.create_quant(product_id=self.apple.id, location_id=self.pick_location.id, qty=10.0)
+        self.create_quant(product_id=self.banana.id, location_id=self.pick_location_2.id, qty=5)
+        pickings = self.test_picking_pick1 | self.test_picking_pick2
+        pickings.picking_type_id.write(
+            {"u_full_sale_reservation": True, "u_handle_partials": True, "u_reserve_batches": True}
+        )
+        batch = Batch.create({"picking_ids": [(6, 0, self.test_picking_pick1.ids)]})
+        batch.mark_as_todo()
+        self.test_picking_pick1.reserve_stock()
+        self.assertEqual(set(pickings.mapped("state")), {"assigned"})
+
+        action = self.pick_location.button_block_wizard()
+        wizard = BlockReservationWizard.browse(action["res_id"])
+        self.assertEqual(
+            wizard.full_reservation_move_line_ids, self.test_picking_pick1.move_line_ids
+        )
+        self.assertEqual(wizard.full_reservation_picking_ids, pickings)
+
+        wizard.u_blocked_reason = "Shelves fell over"
+        wizard.action_confirm()
+        self.assertTrue(self.pick_location.u_blocked)
+        self.assertFalse(pickings.move_line_ids)
+        self.assertEqual(set(pickings.mapped("state")), {"confirmed"})
+
+    def test_block_unreserves_sale_pickings_of_other_pickings_in_batch_reserved_atomically(self):
+        """
+        Blocking stock reserved by a picking in a batch reserved atomically unreserves the
+        pickings of the sale orders of the other pickings in the batch too, as reserving the
+        batch reserves all of them together
+        """
+        BlockReservationWizard = self.env["block.reservation.wizard"]
+        Batch = self.env["stock.picking.batch"]
+        self.create_quant(product_id=self.apple.id, location_id=self.pick_location.id, qty=10.0)
+        self.create_quant(product_id=self.cherry.id, location_id=self.pick_location.id, qty=5.0)
+        self.create_quant(product_id=self.banana.id, location_id=self.pick_location_2.id, qty=10)
+        # A second sale order with a picking in the batch and a picking outside it
+        test_picking_pick3 = self.create_picking(
+            self.picking_type_pick,
+            products_info=[{"product": self.cherry, "uom_qty": 5.0}],
+            confirm=True,
+            assign=False,
+            location_dest_id=self.test_received_location_01.id,
+        )
+        test_picking_pick4 = self.create_picking(
+            self.picking_type_pick2,
+            products_info=[{"product": self.banana, "uom_qty": 5.0}],
+            confirm=True,
+            assign=False,
+            location_dest_id=self.test_received_location_01.id,
+        )
+        sale2 = self.create_sale(
+            self.sale.partner_id, client_order_ref="order02", requested_date=datetime.date.today()
+        )
+        test_picking_pick3.move_lines.write(
+            {"sale_line_id": self.create_sale_line(sale2, self.cherry, 5.0).id}
+        )
+        test_picking_pick4.move_lines.write(
+            {"sale_line_id": self.create_sale_line(sale2, self.banana, 5.0).id}
+        )
+        pickings = (
+            self.test_picking_pick1
+            | self.test_picking_pick2
+            | test_picking_pick3
+            | test_picking_pick4
+        )
+        pickings.picking_type_id.write(
+            {"u_full_sale_reservation": True, "u_handle_partials": True, "u_reserve_batches": True}
+        )
+        batch = Batch.create(
+            {"picking_ids": [(6, 0, (self.test_picking_pick1 | test_picking_pick3).ids)]}
+        )
+        batch.mark_as_todo()
+        self.test_picking_pick1.reserve_stock()
+        self.assertEqual(set(pickings.mapped("state")), {"assigned"})
+
+        # Block the cherries, reserved by the picking of the second sale order in the batch
+        action = self.cherry.button_block_wizard()
+        wizard = BlockReservationWizard.browse(action["res_id"])
+        self.assertEqual(wizard.full_reservation_move_line_ids, test_picking_pick3.move_line_ids)
+        self.assertEqual(wizard.full_reservation_picking_ids, pickings)
+
+        wizard.u_blocked_reason = "Damaged cherries"
+        wizard.action_confirm()
+        self.assertTrue(self.cherry.u_blocked)
+        self.assertFalse(pickings.move_line_ids)
+        self.assertEqual(set(pickings.mapped("state")), {"confirmed"})
