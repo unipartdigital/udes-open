@@ -1,5 +1,0 @@
-<odoo>
-    <data>
-        <function model="udes_security.domain.allowlist" name="_setup_default_domains"/>
-    </data>
-</odoo>

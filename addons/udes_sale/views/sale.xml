@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<odoo>
-    <!-- Remove default context on action -->
-    <record id="sale.action_quotations_with_onboarding" model="ir.actions.act_window">
-          <field name="context"></field>
-    </record>
-</odoo>
